@@ -31,7 +31,7 @@ package to manage downloading the dataset in various formats.
 
 ```python
 import roboflow
-roboflow.load("http://app.roboflow.ai/ds/####?key=####", "tfrecord")
+roboflow.load("https://app.roboflow.ai/ds/####?key=####", "tfrecord")
 # dataset is now downloaded and unzipped in your current directory
 ```
 
