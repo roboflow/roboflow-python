@@ -24,4 +24,7 @@ setuptools.setup(
     ],
     keywords="roboflow datasets dataset download convert annotation annotations computer vision object detection classification",
     python_requires='>=3.6',
+    install_requires=[
+        "requests>=2.23"
+    ]
 )
