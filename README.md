@@ -25,14 +25,17 @@ conda install roboflow
 The `roboflow` package works in conjunction with your
 [Roboflow](https://roboflow.ai) account.
 
-Simply select "Show Download Code" when exporting a dataset and you will
-receive a link that includes your API key. You can use the `roboflow`
-package to manage downloading the dataset in various formats.
+From your `Account` page, click `Roboflow Keys` to get your API key.
+You can then use the `roboflow` python package to manage downloading
+your datasets in various formats.
 
 ```python
 import roboflow
-roboflow.load("https://app.roboflow.ai/ds/####?key=####", "tfrecord")
+roboflow.auth("<<YOUR API KEY>>")
+info = roboflow.load("chess-sample", 1, "tfrecord")
 # dataset is now downloaded and unzipped in your current directory
+# and info contains the paths you need to load it into your favorite
+# machine learning libraries
 ```
 
 By default the folder is named
