@@ -5,6 +5,10 @@ API_URL = "https://api.roboflow.ai"
 _token = None
 _token_expires = 0
 
+def token():
+    global _token
+    return _token
+
 def auth(api_key):
     global _token
 
@@ -28,6 +32,22 @@ def dataset(name):
         raise Exception("You must first auth with your API key to call this method.")
 
     response = requests.get(API_URL + "/dataset/" + name, params=({
+        "access_token": _token
+    }))
+
+    r = response.json();
+    if "error" in r:
+        raise RuntimeError(response.text)
+
+    return r
+
+def version(dataset_name, version_id):
+    global _token
+
+    if not _token:
+        raise Exception("You must first auth with your API key to call this method.")
+
+    response = requests.get(API_URL + "/dataset/" + dataset_name + '/' + str(version_id), params=({
         "access_token": _token
     }))
 
