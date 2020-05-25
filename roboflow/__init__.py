@@ -57,5 +57,21 @@ def version(dataset_name, version_id):
 
     return r
 
+def export(dataset_name, version_id, format):
+    global _token
+
+    if not _token:
+        raise Exception("You must first auth with your API key to call this method.")
+
+    response = requests.get(API_URL + "/dataset/" + dataset_name + '/' + str(version_id) + '/' + format, params=({
+        "access_token": _token
+    }))
+
+    r = response.json();
+    if "error" in r:
+        raise RuntimeError(response.text)
+
+    return r
+
 def load(dataset, *args):
     print(f"loading {dataset} {args}")
