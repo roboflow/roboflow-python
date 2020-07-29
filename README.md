@@ -33,6 +33,7 @@ your datasets in various formats.
 import roboflow
 roboflow.auth("<<YOUR API KEY>>")
 info = roboflow.load("chess-sample", 1, "tfrecord")
+
 # dataset is now downloaded and unzipped in your current directory
 # and info contains the paths you need to load it into your favorite
 # machine learning libraries
@@ -50,6 +51,19 @@ in `roboflow.load` above). There is also a `README.roboflow.txt` describing the 
 provided by the person who shared the dataset.
 
 ![Example file layout](img/file-layout.png)
+
+## Doing Inference
+It's important to pre-process your images for inference the same way you
+pre-processed your training images. For this, get a pre-processor via the
+`roboflow.infer` method which will return a function you can use to pre-process
+your images.
+
+```python
+import roboflow
+roboflow.auth("<<YOUR API KEY>>")
+process = roboflow.preprocessor("chess-sample", 1)
+images = process.fromFile("example.jpg") # returns a numpy array (of 1 image, unless you used tiling)
+```
 
 ## Benefits
 
