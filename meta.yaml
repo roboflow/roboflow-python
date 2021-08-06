@@ -11,4 +11,4 @@ requirements:
 about:
   license: Apache
   license_file: LICENSE
-  summary: Loader for Roboflow datasets.
+  summary: The official Roboflow Python Package

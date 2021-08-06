@@ -1,77 +1,53 @@
+import json
 import time
+
 import requests
 
-API_URL = "https://api.roboflow.ai"
-_token = None
-_token_expires = 0
+from roboflow.core.project import Project
 
-def token():
-    global _token
-    return _token
+TOKEN = None
+API_URL = "http://localhost:5000"
+TOKEN_EXPIRES = None
+USER_API_KEY = ""
+
 
 def auth(api_key):
-    global _token
-
+    global TOKEN, TOKEN_EXPIRES
+    global USER_API_KEY
+    USER_API_KEY = api_key
     response = requests.post(API_URL + "/token", data=({
         "api_key": api_key
     }))
 
-    r = response.json();
-    if "error" in r:
+    r = response.json()
+    if "error" in r or response.status_code != 200:
         raise RuntimeError(response.text)
 
-    _token = r["token"]
-    _token_expires = time.time() + r["expires_in"]
+    TOKEN = r['token']
+    TOKEN_EXPIRES = r['expires_in']
+    return Roboflow(api_key, TOKEN, TOKEN_EXPIRES)
 
-    return r
 
-def dataset(name):
-    global _token
+class Roboflow():
+    def __init__(self, api_key, access_token, token_expires):
+        self.api_key = api_key
+        self.access_token = access_token
+        self.token_expires = token_expires
 
-    if not _token:
-        raise Exception("You must first auth with your API key to call this method.")
+    def list_workspaces(self):
+        workspaces = requests.get(API_URL + '/workspaces?access_token=' + self.access_token).json()
+        print(json.dumps(workspaces, indent=2))
+        return workspaces
 
-    response = requests.get(API_URL + "/dataset/" + name, params=({
-        "access_token": _token
-    }))
+    def load_workspace(self):
+        pass
 
-    r = response.json();
-    if "error" in r:
-        raise RuntimeError(response.text)
+    def load(self, dataset_slug):
+        # TODO: Change endpoint once written
+        LOAD_ENDPOINT = "ENDPOINT_TO_GET_DATSET_INFO" + dataset_slug
+        response = requests.get(LOAD_ENDPOINT).json()
+        return Project(self.api_key, response['dataset_slug'], response['type'], response['exports'])
 
-    return r
-
-def version(dataset_name, version_id):
-    global _token
-
-    if not _token:
-        raise Exception("You must first auth with your API key to call this method.")
-
-    response = requests.get(API_URL + "/dataset/" + dataset_name + '/' + str(version_id), params=({
-        "access_token": _token
-    }))
-
-    r = response.json();
-    if "error" in r:
-        raise RuntimeError(response.text)
-
-    return r
-
-def export(dataset_name, version_id, format):
-    global _token
-
-    if not _token:
-        raise Exception("You must first auth with your API key to call this method.")
-
-    response = requests.get(API_URL + "/dataset/" + dataset_name + '/' + str(version_id) + '/' + format, params=({
-        "access_token": _token
-    }))
-
-    r = response.json();
-    if "error" in r:
-        raise RuntimeError(response.text)
-
-    return r
-
-def load(dataset, *args):
-    print(f"loading {dataset} {args}")
+    def __str__(self):
+        json_value = {'api_key': self.api_key, 'auth_token': self.access_token, 'token_expires': self.token_expires}
+        return json.dumps(json_value, indent=2)
