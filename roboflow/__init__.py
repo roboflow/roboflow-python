@@ -43,9 +43,12 @@ class Roboflow():
         pass
 
     def load(self, dataset_slug):
-        # TODO: Change endpoint once written
-        LOAD_ENDPOINT = "ENDPOINT_TO_GET_DATSET_INFO" + dataset_slug
-        response = requests.get(LOAD_ENDPOINT).json()
+        dataset_endpoint = API_URL + "/dataset/" + dataset_slug
+        response = requests.post(dataset_endpoint, data=({
+            "access_token": self.access_token
+        }))
+        response = response.json()
+        print(response)
         return Project(self.api_key, response['dataset_slug'], response['type'], response['exports'])
 
     def __str__(self):
