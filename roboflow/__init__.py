@@ -34,22 +34,16 @@ class Roboflow():
         self.access_token = access_token
         self.token_expires = token_expires
 
-    def list_workspaces(self):
-        workspaces = requests.get(API_URL + '/workspaces?access_token=' + self.access_token).json()
-        print(json.dumps(workspaces, indent=2))
-        return workspaces
-
-    def load_workspace(self):
-        pass
+    def list_datasets(self):
+        get_datasets_endpoint = API_URL + '/datasets'
+        datasets = requests.get(get_datasets_endpoint + '?access_token=' + self.access_token).json()
+        print(json.dumps(datasets, indent=2))
+        return datasets
 
     def load(self, dataset_slug):
         dataset_endpoint = API_URL + "/dataset/" + dataset_slug
-        response = requests.post(dataset_endpoint, data=({
-            "access_token": self.access_token
-        }))
-        response = response.json()
-        print(response)
-        return Project(self.api_key, response['dataset_slug'], response['type'], response['exports'])
+        response = requests.get(dataset_endpoint + "?access_token=" + self.access_token).json()
+        return Project(self.api_key, response['dataset_slug'], response['type'], response['versions'])
 
     def __str__(self):
         json_value = {'api_key': self.api_key, 'auth_token': self.access_token, 'token_expires': self.token_expires}
