@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 import os
 import pathlib
 import urllib
@@ -10,28 +11,36 @@ from PIL import Image
 
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.object_detection import ObjectDetectionModel
+from roboflow.config import *
 
 
 class Project():
-    def __init__(self, api_key, dataset_slug, type, exports):
-        # TODO: Write JS endpoint to get all this Project info
+    def __init__(self, api_key, dataset_slug, type, versions, access_token, publishable_key):
         self.api_key = api_key
         self.dataset_slug = dataset_slug
         self.type = type
-        # List of all versions
-        self.exports = exports
+        self.access_token = access_token
+        self.publishable_key = publishable_key
+        # Dictionary of versions + names
+        self.versions_and_names = versions
+        # List of all versions to choose from
+        self.versions = versions.keys()
 
     def model(self, version):
-        if version not in self.exports:
+        # Check if version number is an available version to choose from
+        if str(version) not in self.versions:
             raise RuntimeError(
-                version + " is an invalid version; please export a different version from " + str(self.exports))
-        # TODO: Write JS endpoint to get model info
-        # Check whether model exists before initializing model
-        MODEL_INFO_ENDPOINT = "" + version
-        model_info = requests.get(MODEL_INFO_ENDPOINT).json()
-        if not model_info['exists']:
-            raise RuntimeError("Model does not exist for this version (" + version + ")")
+                version + " is an invalid version; please select a different version from " + str(self.versions))
 
+        # Currently uses TFJS endpoint to figure out whether model exists
+        # TODO: (Optional) Consider writing a separate endpoint for it to keep this organized
+        # Check whether model exists before initializing model
+        model_info_response = requests.get(
+            API_URL + "/tfjs/" + self.dataset_slug + "/" + str(version) + "?publishable_key=" + self.publishable_key)
+        if model_info_response.status_code != 200:
+            raise RuntimeError(model_info_response.text)
+
+        # Return appropriate model if model does exist
         if self.type == "object-detection":
             return ObjectDetectionModel(self.api_key, self.dataset_slug, version)
         elif self.type == "classification":
@@ -90,3 +99,12 @@ class Project():
             }).json()
 
             success = annotation_response['success']
+
+    def __str__(self):
+        json_str = {
+            "dataset_slug": self.dataset_slug,
+            "dataset_type": self.type,
+            "dataset_versions": self.versions_and_names
+        }
+
+        return json.dumps(json_str, indent=2)
