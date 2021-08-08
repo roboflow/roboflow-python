@@ -33,7 +33,7 @@ class Project():
                 version + " is an invalid version; please select a different version from " + str(self.versions))
 
         # Currently uses TFJS endpoint to figure out whether model exists
-        # TODO: (Optional) Consider writing a separate endpoint for it to keep this organized
+        # TODO: (Optional) Consider writing a separate endpoint for this to keep this organized
         # Check whether model exists before initializing model
         model_info_response = requests.get(
             API_URL + "/tfjs/" + self.dataset_slug + "/" + str(version) + "?publishable_key=" + self.publishable_key)

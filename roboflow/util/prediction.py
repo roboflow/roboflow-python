@@ -2,11 +2,15 @@ import io
 import json
 import os
 import warnings
+
+import cv2
+import numpy as np
 import requests
 
 import matplotlib.pyplot as plt
 from matplotlib import patches
 from PIL import Image
+import urllib.request
 
 from roboflow.config import OBJECT_DETECTION_MODEL, PREDICTION_OBJECT, CLASSIFICATION_MODEL
 from roboflow.util.image_utils import check_image_url
@@ -76,10 +80,21 @@ class Prediction:
         # Set image path in JSON prediction
         json_prediction['image_path'] = image_path
         json_prediction['prediction_type'] = prediction_type
+        self.image_path = image_path
         self.json_prediction = json_prediction
 
     def json(self):
         return self.json_prediction
+
+    def __load_image(self):
+        if "http://" in self.image_path:
+            req = urllib.request.urlopen(self.image_path)
+            arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
+            image = cv2.imdecode(arr, -1)  # 'Load it as it is'
+
+            return image
+
+        return cv2.imread(self.image_path)
 
     def plot(self, stroke=1):
         # Exception to check if image path exists
@@ -89,11 +104,58 @@ class Prediction:
         plot_annotation(axes, self, stroke)
         plt.show()
 
-    def save(self, path='predictions.jpg'):
+    def save(self, output_path='predictions.jpg', stroke=2):
+        image = self.__load_image()
         if self['prediction_type'] == OBJECT_DETECTION_MODEL:
-            pass
+            # Check what type of prediction it is
+            if self['prediction_type'] == OBJECT_DETECTION_MODEL:
+                # Get different dimensions/coordinates
+                x = self['x']
+                y = self['y']
+                width = self['width']
+                height = self['height']
+                class_name = self['class']
+                # Draw bounding boxes for object detection prediction
+                cv2.rectangle(image, (
+                    int(x - width / 2), int(y + height / 2)),
+                              (int(x + width / 2),
+                               int(y - height / 2)),
+                              (255, 0, 0), stroke)
+                # Get size of text
+                text_size = cv2.getTextSize(class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)[0]
+                # Draw background rectangle for text
+                cv2.rectangle(image, (x - width / 2, y - height / 2 + 1),
+                              (x - width / 2 + text_size[0] + 1, y - height / 2 + int(1.5 * text_size[1])), (255, 0, 0),
+                              -1)
+                # Write text onto image
+                cv2.putText(image, class_name,
+                            (int(x - width / 2),
+                             y + text_size[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
+                            (255, 255, 255), thickness=1)
         elif self['prediction_type'] == CLASSIFICATION_MODEL:
-            pass
+            # Get image dimensions
+            height, width = image.shape[:2]
+            # Get bottom amount for image
+            bottom = image[height - 2:height, 0:width]
+            # Get mean of bottom amount
+            mean = cv2.mean(bottom)[0]
+
+            border_size = 10
+            # Apply Border
+            image = cv2.copyMakeBorder(
+                image,
+                top=border_size,
+                bottom=border_size,
+                left=border_size,
+                right=border_size,
+                borderType=cv2.BORDER_CONSTANT,
+                value=[mean, mean, mean]
+            )
+            # Add text and relax
+            cv2.putText(image, self["top"], (int(width / 2), 5), cv2.FONT_HERSHEY_DUPLEX, 0.5,
+                        (255, 255, 255), 1)
+            # Write image path
+        cv2.imwrite(output_path, image)
 
     def __str__(self) -> str:
         """
@@ -165,15 +227,75 @@ class PredictionGroup:
             # Plot annotations in prediction group
             for single_prediction in self:
                 plot_annotation(axes, single_prediction, stroke)
-
+        # Show the plot to the user
         plt.show()
 
-    def save(self, path="predictions.jpg"):
-        # TODO: Implement save to save prediction as a image
-        if self['prediction_type'] == OBJECT_DETECTION_MODEL:
-            pass
-        elif self['prediction_type'] == CLASSIFICATION_MODEL:
-            pass
+    def __load_image(self):
+        # Check if it is a hosted image and open image as needed
+        if "http://" in self.base_image_path:
+            req = urllib.request.urlopen(self.base_image_path)
+            arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
+            image = cv2.imdecode(arr, -1)  # 'Load it as it is'
+            # Return array with image info
+            return image
+        # Return array with image info of local image
+        return cv2.imread(self.base_image_path)
+
+    def save(self, output_path="predictions.jpg", stroke=2):
+        # Load image based on image path as an array
+        image = self.__load_image()
+        # Iterate through predictions and add prediction to image
+        for prediction in self.predictions:
+            # Check what type of prediction it is
+            if self['prediction_type'] == OBJECT_DETECTION_MODEL:
+                # Get different dimensions/coordinates
+                x = prediction['x']
+                y = prediction['y']
+                width = prediction['width']
+                height = prediction['height']
+                class_name = prediction['class']
+                # Draw bounding boxes for object detection prediction
+                cv2.rectangle(image, (
+                    int(x - width / 2), int(y + height / 2)),
+                              (int(x + width / 2),
+                               int(y - height / 2)),
+                              (255, 0, 0), stroke)
+                # Get size of text
+                text_size = cv2.getTextSize(class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)[0]
+                # Draw background rectangle for text
+                cv2.rectangle(image, (x - width / 2, y - height / 2 + 1),
+                              (x - width / 2 + text_size[0] + 1, y - height / 2 + int(1.5 * text_size[1])), (255, 0, 0),
+                              -1)
+                # Write text onto image
+                cv2.putText(image, class_name,
+                            (int(x - width / 2),
+                             y + text_size[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
+                            (255, 255, 255), thickness=1)
+            # Plot for classification model
+            elif self['prediction_type'] == CLASSIFICATION_MODEL:
+                # Get image dimensions
+                height, width = image.shape[:2]
+                # Get bottom amount for image
+                bottom = image[height - 2:height, 0:width]
+                # Get mean of bottom amount
+                mean = cv2.mean(bottom)[0]
+
+                border_size = 10
+                # Apply Border
+                image = cv2.copyMakeBorder(
+                    image,
+                    top=border_size,
+                    bottom=border_size,
+                    left=border_size,
+                    right=border_size,
+                    borderType=cv2.BORDER_CONSTANT,
+                    value=[mean, mean, mean]
+                )
+                # Add text and relax
+                cv2.putText(image, prediction["top"], (int(width / 2), 5), cv2.FONT_HERSHEY_DUPLEX, 0.5,
+                            (255, 255, 255), 1)
+        # Write image path
+        cv2.imwrite(output_path, image)
 
     def __str__(self):
         """
@@ -218,19 +340,21 @@ class PredictionGroup:
                     ") than the prediction group base image path (" + self.base_image_path +
                     ")")
 
-    @staticmethod
-    def create_prediction_group(json_response, image_path, prediction_type):
-        """
 
-        :param prediction_type:
-        :param json_response: Based on Roboflow JSON Response from Inference API
-        :param model:
-        :param image_path:
-        :return:
-        """
-        prediction_list = []
-        for prediction in json_response['predictions']:
-            prediction = Prediction(prediction, image_path, prediction_type=prediction_type)
-            prediction_list.append(prediction)
+@staticmethod
+def create_prediction_group(json_response, image_path, prediction_type):
+    """
+    Method to create a prediction group based on the JSON Response
 
-        return PredictionGroup(*prediction_list)
+    :param prediction_type:
+    :param json_response: Based on Roboflow JSON Response from Inference API
+    :param model:
+    :param image_path:
+    :return:
+    """
+    prediction_list = []
+    for prediction in json_response['predictions']:
+        prediction = Prediction(prediction, image_path, prediction_type=prediction_type)
+        prediction_list.append(prediction)
+
+    return PredictionGroup(*prediction_list)

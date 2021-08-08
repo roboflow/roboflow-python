@@ -9,6 +9,10 @@ from roboflow.config import *
 
 
 def auth(api_key):
+    if type(api_key) is not str:
+        raise RuntimeError(
+            "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key)))
+
     response = requests.post(API_URL + "/token", data=({
         "api_key": api_key
     }))
@@ -28,11 +32,11 @@ class Roboflow():
         self.access_token = access_token
         self.token_expires = token_expires
         # TODO: Need an endpoint to retrieve publishable key based on access token/workspace/api key
-        self.publishable_key = os.getenv("ROBOFLOW_PUBLISHABLE_KEY")
-        # publishable_key_response = requests.get(API_URL + "/convert_key?access_token=" + self.access_token)
-        # if publishable_key_response.status_code != 200:
-        #     raise RuntimeError(publishable_key_response.text)
-        # # self.publishable_key =
+        publishable_key_response = requests.get(API_URL + "/key/publishable_key?access_token=" + self.access_token)
+        if publishable_key_response.status_code != 200:
+            raise RuntimeError(publishable_key_response.text)
+        publishable_key_response = publishable_key_response.json()
+        self.publishable_key = publishable_key_response['publishable_key']
 
     def list_datasets(self):
         get_datasets_endpoint = API_URL + '/datasets'
