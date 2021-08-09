@@ -340,21 +340,20 @@ class PredictionGroup:
                     ") than the prediction group base image path (" + self.base_image_path +
                     ")")
 
+    @staticmethod
+    def create_prediction_group(json_response, image_path, prediction_type):
+        """
+        Method to create a prediction group based on the JSON Response
 
-@staticmethod
-def create_prediction_group(json_response, image_path, prediction_type):
-    """
-    Method to create a prediction group based on the JSON Response
+        :param prediction_type:
+        :param json_response: Based on Roboflow JSON Response from Inference API
+        :param model:
+        :param image_path:
+        :return:
+        """
+        prediction_list = []
+        for prediction in json_response['predictions']:
+            prediction = Prediction(prediction, image_path, prediction_type=prediction_type)
+            prediction_list.append(prediction)
 
-    :param prediction_type:
-    :param json_response: Based on Roboflow JSON Response from Inference API
-    :param model:
-    :param image_path:
-    :return:
-    """
-    prediction_list = []
-    for prediction in json_response['predictions']:
-        prediction = Prediction(prediction, image_path, prediction_type=prediction_type)
-        prediction_list.append(prediction)
-
-    return PredictionGroup(*prediction_list)
+        return PredictionGroup(*prediction_list)

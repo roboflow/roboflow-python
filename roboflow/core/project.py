@@ -33,12 +33,12 @@ class Project():
                 version + " is an invalid version; please select a different version from " + str(self.versions))
 
         # Currently uses TFJS endpoint to figure out whether model exists
-        # TODO: (Optional) Consider writing a separate endpoint for this to keep this organized
+        # TODO: Write a endpoint to check if mode exists
         # Check whether model exists before initializing model
-        model_info_response = requests.get(
-            API_URL + "/tfjs/" + self.dataset_slug + "/" + str(version) + "?publishable_key=" + self.publishable_key)
-        if model_info_response.status_code != 200:
-            raise RuntimeError(model_info_response.text)
+        # model_info_response = requests.get(
+        #     API_URL + "/tfjs/" + self.dataset_slug + "/" + str(version) + "?publishable_key=" + self.publishable_key)
+        # if model_info_response.status_code != 200:
+        #     raise RuntimeError(model_info_response.text)
 
         # Return appropriate model if model does exist
         if self.type == "object-detection":
