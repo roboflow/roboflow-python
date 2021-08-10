@@ -101,11 +101,10 @@ class ObjectDetectionModel:
         else:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
-
             # POST to the API
-            resp = requests.post(self.api_url)
-        if resp.status_code == 403:
-            raise Exception("API Credentials not Authorized")
+            resp = requests.get(self.api_url)
+        if resp.status_code != 200:
+            raise Exception(resp.text)
         # Return a prediction group if JSON data
         if self.format == "json":
             return PredictionGroup.create_prediction_group(resp.json(),
@@ -149,7 +148,7 @@ class ObjectDetectionModel:
 
         # Create the new API URL
         self.api_url = "".join([
-            self.base_url + self.dataset_slug + '/' + self.version,
+            self.base_url + self.dataset_slug + '/' + str(self.version),
             "?api_key=" + self.api_key,
             "&name=YOUR_IMAGE.jpg",
             "&overlap=" + str(self.overlap),

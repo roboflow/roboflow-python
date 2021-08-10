@@ -232,7 +232,7 @@ class PredictionGroup:
 
     def __load_image(self):
         # Check if it is a hosted image and open image as needed
-        if "http://" in self.base_image_path:
+        if "http://" in self.base_image_path or "https://" in self.base_image_path:
             req = urllib.request.urlopen(self.base_image_path)
             arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
             image = cv2.imdecode(arr, -1)  # 'Load it as it is'
@@ -247,7 +247,7 @@ class PredictionGroup:
         # Iterate through predictions and add prediction to image
         for prediction in self.predictions:
             # Check what type of prediction it is
-            if self['prediction_type'] == OBJECT_DETECTION_MODEL:
+            if self.base_prediction_type == OBJECT_DETECTION_MODEL:
                 # Get different dimensions/coordinates
                 x = prediction['x']
                 y = prediction['y']
@@ -263,16 +263,16 @@ class PredictionGroup:
                 # Get size of text
                 text_size = cv2.getTextSize(class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)[0]
                 # Draw background rectangle for text
-                cv2.rectangle(image, (x - width / 2, y - height / 2 + 1),
-                              (x - width / 2 + text_size[0] + 1, y - height / 2 + int(1.5 * text_size[1])), (255, 0, 0),
+                cv2.rectangle(image, (int(x - width / 2), int(y - height / 2 + 1)),
+                              (int(x - width / 2 + text_size[0] + 1), int(y - height / 2 + int(1.5 * text_size[1]))), (255, 0, 0),
                               -1)
                 # Write text onto image
                 cv2.putText(image, class_name,
                             (int(x - width / 2),
-                             y + text_size[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
+                             int(y - height/2 + text_size[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
                             (255, 255, 255), thickness=1)
             # Plot for classification model
-            elif self['prediction_type'] == CLASSIFICATION_MODEL:
+            elif self.base_prediction_type == CLASSIFICATION_MODEL:
                 # Get image dimensions
                 height, width = image.shape[:2]
                 # Get bottom amount for image
