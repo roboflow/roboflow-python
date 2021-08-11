@@ -11,4 +11,4 @@ if __name__ == '__main__':
     project = rflow.load("eastern-cottontail-rabbits")
     model = project.model(1)
     prediction = model.predict("https://i.imgur.com/dR8pRpt.jpg", hosted=True)
-    prediction.save()
+    prediction.plot()
