@@ -1,10 +1,12 @@
 import base64
 import io
 import os
+import urllib
 
 import requests
 from PIL import Image
 
+from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 from roboflow.config import CLASSIFICATION_MODEL
 
@@ -33,27 +35,34 @@ class ClassificationModel:
         :param hosted:
         :return:
         """
+        self.__generate_url()
         self.__exception_check(image_path_check=image_path)
+        # If image is local image
         if not hosted:
-            # Load Image with PIL
+            # Open Image in RGB Format
             image = Image.open(image_path).convert("RGB")
-
-            # Convert to JPEG Buffer
+            # Create buffer
             buffered = io.BytesIO()
             image.save(buffered, quality=90, format="JPEG")
-
-            # Base 64 Encode
+            # Base64 encode image
             img_str = base64.b64encode(buffered.getvalue())
             img_str = img_str.decode("ascii")
-
-            # POST to the API
+            # Post to API and return response
             resp = requests.post(self.api_url, data=img_str, headers={
                 "Content-Type": "application/x-www-form-urlencoded"
             })
+        else:
+            # Create API URL for hosted image (slightly different)
+            self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
+            # POST to the API
+            resp = requests.get(self.api_url)
 
-            return PredictionGroup.create_prediction_group(resp.json(),
-                                                           image_path=image_path,
-                                                           prediction_type=CLASSIFICATION_MODEL)
+        if resp.status_code != 200:
+            raise Exception(resp.text)
+
+        return PredictionGroup.create_prediction_group(resp.json(),
+                                                       image_path=image_path,
+                                                       prediction_type=CLASSIFICATION_MODEL)
 
     def load_model(self, dataset_slug, version):
         """
@@ -72,7 +81,7 @@ class ClassificationModel:
         :return:
         """
         self.api_url = "".join([
-            self.base_url + self.dataset_slug + '/' + self.version,
+            self.base_url + self.dataset_slug + '/' + str(self.version),
             "?api_key=" + self.api_key,
             "&name=YOUR_IMAGE.jpg"])
 
@@ -83,5 +92,5 @@ class ClassificationModel:
         :return:
         """
         if image_path_check is not None:
-            if not os.path.exists(image_path_check):
+            if not os.path.exists(image_path_check) and not check_image_url(image_path_check):
                 raise Exception("Image does not exist at " + image_path_check + "!")

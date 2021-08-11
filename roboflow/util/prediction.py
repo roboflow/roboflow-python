@@ -66,7 +66,7 @@ def plot_annotation(axes, prediction=None, stroke=1):
             # Plot Rectangle
             axes.add_patch(rect)
     elif prediction['prediction_type'] == CLASSIFICATION_MODEL:
-        axes.set_title('Class: ' + prediction['top'] + " | Confidence: " + prediction['confidence'])
+        axes.set_title('Class: ' + prediction['top'] + " | Confidence: " + str(prediction['confidence']))
 
 
 class Prediction:
@@ -139,8 +139,7 @@ class Prediction:
             bottom = image[height - 2:height, 0:width]
             # Get mean of bottom amount
             mean = cv2.mean(bottom)[0]
-
-            border_size = 10
+            border_size = 100
             # Apply Border
             image = cv2.copyMakeBorder(
                 image,
@@ -152,7 +151,8 @@ class Prediction:
                 value=[mean, mean, mean]
             )
             # Add text and relax
-            cv2.putText(image, self["top"], (int(width / 2), 5), cv2.FONT_HERSHEY_DUPLEX, 0.5,
+            cv2.putText(image, (self["top"] + ' | ' + "Confidence: " + self['confidence']), (int(width / 2), 5),
+                        cv2.FONT_HERSHEY_DUPLEX, 0.5,
                         (255, 255, 255), 1)
             # Write image path
         cv2.imwrite(output_path, image)
@@ -264,23 +264,22 @@ class PredictionGroup:
                 text_size = cv2.getTextSize(class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)[0]
                 # Draw background rectangle for text
                 cv2.rectangle(image, (int(x - width / 2), int(y - height / 2 + 1)),
-                              (int(x - width / 2 + text_size[0] + 1), int(y - height / 2 + int(1.5 * text_size[1]))), (255, 0, 0),
+                              (int(x - width / 2 + text_size[0] + 1), int(y - height / 2 + int(1.5 * text_size[1]))),
+                              (255, 0, 0),
                               -1)
                 # Write text onto image
                 cv2.putText(image, class_name,
                             (int(x - width / 2),
-                             int(y - height/2 + text_size[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
+                             int(y - height / 2 + text_size[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
                             (255, 255, 255), thickness=1)
             # Plot for classification model
             elif self.base_prediction_type == CLASSIFICATION_MODEL:
                 # Get image dimensions
                 height, width = image.shape[:2]
-                # Get bottom amount for image
-                bottom = image[height - 2:height, 0:width]
-                # Get mean of bottom amount
-                mean = cv2.mean(bottom)[0]
 
-                border_size = 10
+                border_size = 100
+                text = "Class: " + prediction["top"] + ' | ' + "Confidence: " + str(prediction['confidence'])
+                text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_COMPLEX, 1, 1)[0]
                 # Apply Border
                 image = cv2.copyMakeBorder(
                     image,
@@ -289,11 +288,15 @@ class PredictionGroup:
                     left=border_size,
                     right=border_size,
                     borderType=cv2.BORDER_CONSTANT,
-                    value=[mean, mean, mean]
+                    value=[255, 255, 255]
                 )
+                # get coords
+                text_x = (image.shape[1] - text_size[0]) / 2
+                text_y = (image.shape[0] + text_size[1]) / 2
                 # Add text and relax
-                cv2.putText(image, prediction["top"], (int(width / 2), 5), cv2.FONT_HERSHEY_DUPLEX, 0.5,
-                            (255, 255, 255), 1)
+                cv2.putText(image, text,
+                            (int(text_x), int(border_size/2)), cv2.FONT_HERSHEY_COMPLEX, 1,
+                            (0, 0, 0), 1)
         # Write image path
         cv2.imwrite(output_path, image)
 
@@ -352,8 +355,12 @@ class PredictionGroup:
         :return:
         """
         prediction_list = []
-        for prediction in json_response['predictions']:
-            prediction = Prediction(prediction, image_path, prediction_type=prediction_type)
+        if prediction_type == OBJECT_DETECTION_MODEL:
+            for prediction in json_response['predictions']:
+                prediction = Prediction(prediction, image_path, prediction_type=prediction_type)
+                prediction_list.append(prediction)
+        elif prediction_type == CLASSIFICATION_MODEL:
+            prediction = Prediction(json_response, image_path, prediction_type)
             prediction_list.append(prediction)
 
         return PredictionGroup(*prediction_list)

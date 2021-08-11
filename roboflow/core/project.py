@@ -33,8 +33,6 @@ class Project():
             raise RuntimeError(
                 str(version) + " is an invalid version; please select a different version from " + str(self.versions))
 
-        # Currently uses TFJS endpoint to figure out whether model exists
-        # TODO: Write a endpoint to check if model exists
         # Check whether model exists before initializing model
         model_info_response = requests.get(
             API_URL + "/model/" + self.dataset_slug + "/" + str(version) + "?access_token=" + self.access_token)
