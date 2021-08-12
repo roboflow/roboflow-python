@@ -66,8 +66,10 @@ class ObjectDetectionModel:
 
         :param model_endpoint: This is the endpoint that is loaded into the api_url
         """
+        # To load a model manually, they must specify a dataset slug
         self.dataset_slug = dataset_slug
         self.version = version
+        # Generate URL based on parameters
         self.__generate_url(local=local, classes=classes, overlap=overlap, confidence=confidence,
                             stroke=stroke, labels=labels, format=format)
 
@@ -80,6 +82,7 @@ class ObjectDetectionModel:
         :param format: output format from this method
         :return: PredictionGroup --> a group of predictions based on Roboflow JSON response
         """
+        # Generate url before predicting
         self.__generate_url(format=format)
         # Check if image exists at specified path or URL
         self.__exception_check(image_path_check=image_path)
@@ -133,6 +136,7 @@ class ObjectDetectionModel:
         There is probably a better way to do this lol
         TODO: Refactor this!
         """
+        # Change any variables that the user wants to change
         if classes is not None:
             self.classes = classes
         if overlap is not None:
@@ -157,5 +161,6 @@ class ObjectDetectionModel:
             "&labels=" + str(self.labels).lower(),
             "&format=" + self.format
         ])
+        # add classes parameter to api
         if self.classes is not None:
             self.api_url += "&classes=" + self.classes

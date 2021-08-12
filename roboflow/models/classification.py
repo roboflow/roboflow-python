@@ -71,6 +71,7 @@ class ClassificationModel:
         :param version:
         :return:
         """
+        # Load model based on user defined characteristics
         self.dataset_slug = dataset_slug
         self.version = version
         self.__generate_url()
@@ -80,6 +81,7 @@ class ClassificationModel:
 
         :return:
         """
+        # Generates URL based on all parameters
         self.api_url = "".join([
             self.base_url + self.dataset_slug + '/' + str(self.version),
             "?api_key=" + self.api_key,
@@ -91,6 +93,7 @@ class ClassificationModel:
         :param image_path_check:
         :return:
         """
+        # Checks if image exists
         if image_path_check is not None:
             if not os.path.exists(image_path_check) and not check_image_url(image_path_check):
                 raise Exception("Image does not exist at " + image_path_check + "!")

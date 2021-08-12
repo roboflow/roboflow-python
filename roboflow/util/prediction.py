@@ -295,7 +295,7 @@ class PredictionGroup:
                 text_y = (image.shape[0] + text_size[1]) / 2
                 # Add text and relax
                 cv2.putText(image, text,
-                            (int(text_x), int(border_size/2)), cv2.FONT_HERSHEY_COMPLEX, 1,
+                            (int(text_x), int(border_size / 2)), cv2.FONT_HERSHEY_COMPLEX, 1,
                             (0, 0, 0), 1)
         # Write image path
         cv2.imwrite(output_path, image)
@@ -354,13 +354,22 @@ class PredictionGroup:
         :param image_path:
         :return:
         """
+        # List of predictions
         prediction_list = []
+        # For object detection model
         if prediction_type == OBJECT_DETECTION_MODEL:
+            # get all predicted bounding boxes for image
             for prediction in json_response['predictions']:
+                # Create prediction for bbox
                 prediction = Prediction(prediction, image_path, prediction_type=prediction_type)
+                # Add to prediction list
                 prediction_list.append(prediction)
+        # For classification model
         elif prediction_type == CLASSIFICATION_MODEL:
+            # Create prediction for predicted class
             prediction = Prediction(json_response, image_path, prediction_type)
+            # add to prediction list
             prediction_list.append(prediction)
 
+        # Seperate list and return as a prediction group
         return PredictionGroup(*prediction_list)

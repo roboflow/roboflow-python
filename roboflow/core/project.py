@@ -72,6 +72,7 @@ class Project():
             })
 
         else:
+            # Hosted image upload url
             upload_url = "".join([
                 "https://api.roboflow.com/dataset/" + self.dataset_slug + "/upload",
                 "?api_key=" + self.api_key,
@@ -79,24 +80,25 @@ class Project():
                 "&split=" + split,
                 "&image=" + urllib.parse.quote_plus(image_path)
             ])
-
+            # Get response
             response = requests.post(upload_url)
-
+        # Return response
         return response
 
     def __annotation_upload(self, annotation_path, image_id):
+        # Get annotation string
         annotation_string = open(annotation_path, "r").read()
-
+        # Set annotation upload url
         self.annotation_upload_url = "".join([
             "https://api.roboflow.com/dataset/", self.dataset_slug, "/annotate/", image_id,
             "?api_key=", self.api_key,
             "&name=" + os.path.basename(annotation_path)
         ])
-
+        # Get annotation response
         annotation_response = requests.post(self.annotation_upload_url, data=annotation_string, headers={
             "Content-Type": "text/plain"
         })
-
+        # Return annotation response
         return annotation_response
 
     def upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train'):
@@ -140,6 +142,7 @@ class Project():
             warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
 
     def __str__(self):
+        # String representation of project
         json_str = {
             "dataset_slug": self.dataset_slug,
             "dataset_type": self.type,
