@@ -27,7 +27,7 @@ class Project():
         # List of all versions to choose from
         self.versions = list(int(vers) for vers in versions.keys())
 
-    def model(self, version):
+    def model(self, version, local=False):
         # Check if version number is an available version to choose from
         if version not in self.versions:
             raise RuntimeError(
@@ -43,9 +43,9 @@ class Project():
         # Return appropriate model if model does exist
         if model_info_response['exists']:
             if self.type == "object-detection":
-                return ObjectDetectionModel(self.api_key, self.dataset_slug, version)
+                return ObjectDetectionModel(self.api_key, self.dataset_slug, version, local=local)
             elif self.type == "classification":
-                return ClassificationModel(self.api_key, self.dataset_slug, version)
+                return ClassificationModel(self.api_key, self.dataset_slug, version, local=local)
 
     def __image_upload(self, image_path, hosted_image=False, split="train"):
         # If image is not a hosted image

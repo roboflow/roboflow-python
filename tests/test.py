@@ -12,6 +12,8 @@ if __name__ == '__main__':
     rflow.list_datasets()
     # Load a certain project
     project = rflow.load("cats-dogs")
+    # Upload image to dataset
+    project.upload("https://i.imgur.com/XG2UtK7.jpg", hosted_image=True)
     # Choose a specific model from the project
     model = project.model(1)
     # predict on a certain image

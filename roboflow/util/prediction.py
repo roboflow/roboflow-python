@@ -104,35 +104,34 @@ class Prediction:
         plot_annotation(axes, self, stroke)
         plt.show()
 
-    #saves a single box or classification on the image
+    # saves a single box or classification on the image
     def save(self, output_path='predictions.jpg', stroke=2):
         image = self.__load_image()
         if self['prediction_type'] == OBJECT_DETECTION_MODEL:
-            # Check what type of prediction it is
-            if self['prediction_type'] == OBJECT_DETECTION_MODEL:
-                # Get different dimensions/coordinates
-                x = self['x']
-                y = self['y']
-                width = self['width']
-                height = self['height']
-                class_name = self['class']
-                # Draw bounding boxes for object detection prediction
-                cv2.rectangle(image, (
-                    int(x - width / 2), int(y + height / 2)),
-                              (int(x + width / 2),
-                               int(y - height / 2)),
-                              (255, 0, 0), stroke)
-                # Get size of text
-                text_size = cv2.getTextSize(class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)[0]
-                # Draw background rectangle for text
-                cv2.rectangle(image, (x - width / 2, y - height / 2 + 1),
-                              (x - width / 2 + text_size[0] + 1, y - height / 2 + int(1.5 * text_size[1])), (255, 0, 0),
-                              -1)
-                # Write text onto image
-                cv2.putText(image, class_name,
-                            (int(x - width / 2),
-                             y + text_size[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
-                            (255, 255, 255), thickness=1)
+            # Get different dimensions/coordinates
+            x = self['x']
+            y = self['y']
+            width = self['width']
+            height = self['height']
+            class_name = self['class']
+            # Draw bounding boxes for object detection prediction
+            cv2.rectangle(image, (
+                int(x - width / 2), int(y + height / 2)),
+                          (int(x + width / 2),
+                           int(y - height / 2)),
+                          (255, 0, 0), stroke)
+            # Get size of text
+            text_size = cv2.getTextSize(class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)[0]
+            # Draw background rectangle for text
+            cv2.rectangle(image, (x - width / 2, y - height / 2 + 1),
+                          (x - width / 2 + text_size[0] + 1, y - height / 2 + int(1.5 * text_size[1])), (255, 0, 0),
+                          -1)
+            # Write text onto image
+            cv2.putText(image, class_name,
+                        (int(x - width / 2),
+                         y + text_size[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
+                        (255, 255, 255), thickness=1)
+
         elif self['prediction_type'] == CLASSIFICATION_MODEL:
             # Get image dimensions
             height, width = image.shape[:2]
@@ -155,7 +154,8 @@ class Prediction:
             cv2.putText(image, (self["top"] + ' | ' + "Confidence: " + self['confidence']), (int(width / 2), 5),
                         cv2.FONT_HERSHEY_DUPLEX, 0.5,
                         (255, 255, 255), 1)
-            # Write image path
+
+        # Write image path
         cv2.imwrite(output_path, image)
 
     def __str__(self) -> str:
@@ -344,8 +344,12 @@ class PredictionGroup:
                     ") than the prediction group base image path (" + self.base_image_path +
                     ")")
 
+    def json(self):
+        prediction_group_json = {"predictions": []}
+        for prediction in self.predictions:
+            prediction_group_json['predictions'].append(prediction.json())
 
-    #add json method
+        return prediction_group_json
 
     @staticmethod
     def create_prediction_group(json_response, image_path, prediction_type):

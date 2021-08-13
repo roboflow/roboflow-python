@@ -12,7 +12,7 @@ from roboflow.config import CLASSIFICATION_MODEL
 
 
 class ClassificationModel:
-    def __init__(self, api_key, dataset_slug=None, version=None):
+    def __init__(self, api_key, dataset_slug=None, version=None, local=False):
         """
 
         :param api_key:
@@ -23,7 +23,10 @@ class ClassificationModel:
         self.api_key = api_key
         self.dataset_slug = dataset_slug
         self.version = version
-        self.base_url = "https://classify.roboflow.com/"
+        if not local:
+            self.base_url = "https://classify.roboflow.com/"
+        else:
+            self.base_url = "http://localhost:9001/"
 
         if dataset_slug is not None and version is not None:
             self.__generate_url()

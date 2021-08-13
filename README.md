@@ -57,6 +57,8 @@ rflow = roboflow.auth("YOUR_API_KEY_HERE")
 rflow.list_datasets()
 # Load a certain project
 project = rflow.load("YOUR_PROJECT NAME")
+# Upload image to dataset
+project.upload("UPLOAD_IMAGE.jpg")
 # Choose a specific model from the project
 model = project.model(1)
 # predict on a local image

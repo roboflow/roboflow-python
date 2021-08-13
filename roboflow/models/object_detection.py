@@ -49,8 +49,7 @@ class ObjectDetectionModel:
         self.labels = labels
         self.format = format
 
-        
-        #local needs to be passed from Project
+        # local needs to be passed from Project
         if not local:
             self.base_url = "https://detect.roboflow.com/"
         else:
@@ -74,7 +73,8 @@ class ObjectDetectionModel:
         self.__generate_url(local=local, classes=classes, overlap=overlap, confidence=confidence,
                             stroke=stroke, labels=labels, format=format)
 
-    def predict(self, image_path, hosted=False, format=None):
+    def predict(self, image_path, hosted=False, format=None, classes=None, overlap=30, confidence=40,
+                stroke=1, labels=False):
         """
         Infers detections based on image from specified model and image path
 
@@ -84,7 +84,8 @@ class ObjectDetectionModel:
         :return: PredictionGroup --> a group of predictions based on Roboflow JSON response
         """
         # Generate url before predicting
-        self.__generate_url(format=format)
+        self.__generate_url(format=format, classes=classes, overlap=overlap, confidence=confidence, stroke=stroke,
+                            labels=labels)
         # Check if image exists at specified path or URL
         self.__exception_check(image_path_check=image_path)
 
