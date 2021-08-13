@@ -38,18 +38,19 @@ class ObjectDetectionModel:
                        of image/jpeg.
         """
         # Instantiate different API URL parameters
+        # To be moved to predict
         self.api_key = api_key
         self.dataset_slug = dataset_slug
         self.version = version
         self.classes = classes
         self.overlap = overlap
         self.confidence = confidence
-        self.overlap = overlap
-        self.confidence = confidence
         self.stroke = stroke
         self.labels = labels
         self.format = format
 
+        
+        #local needs to be passed from Project
         if not local:
             self.base_url = "https://detect.roboflow.com/"
         else:

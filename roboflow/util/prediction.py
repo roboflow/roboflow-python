@@ -104,6 +104,7 @@ class Prediction:
         plot_annotation(axes, self, stroke)
         plt.show()
 
+    #saves a single box or classification on the image
     def save(self, output_path='predictions.jpg', stroke=2):
         image = self.__load_image()
         if self['prediction_type'] == OBJECT_DETECTION_MODEL:
@@ -342,6 +343,9 @@ class PredictionGroup:
                     "This prediction has a different image path (" + image_path_check +
                     ") than the prediction group base image path (" + self.base_image_path +
                     ")")
+
+
+    #add json method
 
     @staticmethod
     def create_prediction_group(json_response, image_path, prediction_type):
