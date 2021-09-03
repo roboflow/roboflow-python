@@ -9,7 +9,6 @@ from roboflow.config import *
 
 
 def check_key(api_key):
-
     if type(api_key) is not str:
         raise RuntimeError(
             "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key)))
@@ -65,8 +64,9 @@ class Roboflow():
 
     def __str__(self):
         json_value = {'api_key': self.api_key,
-                      'auth_token': self.access_token, 'token_expires': self.token_expires}
+                      'workspace': self.workspace}
         return json.dumps(json_value, indent=2)
 
 
-auth("FuVGT9Nd8WdzDza6f6fqd")
+r = auth("FuVGT9Nd8WdzDza6f6qd")
+print(r)
