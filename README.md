@@ -52,15 +52,20 @@ pip3 install -r requirements.txt
 import roboflow
 
 # Authenticate Roboflow
-rflow = roboflow.auth("YOUR_API_KEY_HERE")
-# List all datasets based on user
-rflow.list_datasets()
+rf = roboflow.auth("YOUR_API_KEY_HERE")
+
+# List all projects for your workspace
+workspace = rf.workspace()
+
 # Load a certain project
-project = rflow.load("YOUR_PROJECT NAME")
+project = rf.project(workspace.url, "YOUR_PROJECT NAME")
+
 # Upload image to dataset
 project.upload("UPLOAD_IMAGE.jpg")
-# Choose a specific model from the project
-model = project.model(1)
+
+# Choose a specific trained model from the project
+model = project.models()[0]
+
 # predict on a local image
 prediction = model.predict("YOUR_IMAGE.jpg")
 # Plot the prediction
