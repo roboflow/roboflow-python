@@ -8,45 +8,43 @@ from roboflow.core.project import Project
 from roboflow.config import *
 
 
+def check_key(api_key):
+    response = requests.post(API_URL + "/?api_key=" + api_key)
+    r = response.json()
+
+    if "error" in r or response.status_code != 200:
+        raise RuntimeError(response.text)
+    else:
+        return r
+
+
 def auth(api_key):
     if type(api_key) is not str:
         raise RuntimeError(
             "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key)))
 
-    response = requests.post(API_URL + "/token", data=({
-        "api_key": api_key
-    }))
+    r = check_key(api_key)
+    workspace = r['workspace']
 
-    r = response.json()
-    if "error" in r or response.status_code != 200:
-        raise RuntimeError(response.text)
-
-    token = r['token']
-    token_expires = r['expires_in']
-    return Roboflow(api_key, token, token_expires)
+    return Roboflow(api_key, workspace)
 
 
 class Roboflow():
-    def __init__(self, api_key, access_token, token_expires):
+    def __init__(self, api_key, workspace):
         self.api_key = api_key
-        self.access_token = access_token
-        self.token_expires = token_expires
-        # TODO: Need an endpoint to retrieve publishable key based on access token/workspace/api key
-        publishable_key_response = requests.get(API_URL + "/key/publishable_key?access_token=" + self.access_token)
-        if publishable_key_response.status_code != 200:
-            raise RuntimeError(publishable_key_response.text)
-        publishable_key_response = publishable_key_response.json()
-        self.publishable_key = publishable_key_response['publishable_key']
+        self.workspace = workspace
 
     def list_datasets(self):
         get_datasets_endpoint = API_URL + '/datasets'
-        datasets = requests.get(get_datasets_endpoint + '?access_token=' + self.access_token).json()
+        datasets = requests.get(
+            get_datasets_endpoint + '?access_token=' + self.access_token).json()
         print(json.dumps(datasets, indent=2))
         return datasets
 
     def load(self, dataset_slug):
         # Get info about dataset being loaded
-        dataset_info = requests.get(API_URL + "/dataset/" + dataset_slug + "?access_token=" + self.access_token)
+        dataset_info = requests.get(
+            API_URL + "/dataset/" + dataset_slug + "?access_token=" + self.access_token)
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
         if dataset_info.status_code != 200:
             raise RuntimeError(dataset_info.text)
@@ -65,5 +63,9 @@ class Roboflow():
                        self.access_token, self.publishable_key)
 
     def __str__(self):
-        json_value = {'api_key': self.api_key, 'auth_token': self.access_token, 'token_expires': self.token_expires}
+        json_value = {'api_key': self.api_key,
+                      'auth_token': self.access_token, 'token_expires': self.token_expires}
         return json.dumps(json_value, indent=2)
+
+
+auth("FuVGT9Nd8WdzDza6f6qd")
