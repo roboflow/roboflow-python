@@ -24,22 +24,20 @@ def check_key(api_key):
 
 def auth(api_key):
     r = check_key(api_key)
-    workspace = r['workspace']
+    w = r['workspace']
 
-    return Roboflow(api_key, workspace)
+    return Roboflow(api_key, w)
 
 
 class Roboflow():
-    def __init__(self, api_key, workspace):
+    def __init__(self, api_key, w):
         self.api_key = api_key
-        self.workspace = workspace
+        self.current_workspace = w
 
-    def list_datasets(self):
-        get_datasets_endpoint = API_URL + '/datasets'
-        datasets = requests.get(
-            get_datasets_endpoint + '?access_token=' + self.access_token).json()
-        print(json.dumps(datasets, indent=2))
-        return datasets
+    def workspace(self):
+        list_projects = requests.get(API_URL + "/" + self.current_workspace + '?api_key=' + self.api_key).json()
+
+        return list_projects
 
     def load(self, dataset_slug):
         # Get info about dataset being loaded
@@ -66,7 +64,3 @@ class Roboflow():
         json_value = {'api_key': self.api_key,
                       'workspace': self.workspace}
         return json.dumps(json_value, indent=2)
-
-
-r = auth("FuVGT9Nd8WdzDza6f6qd")
-print(r)
