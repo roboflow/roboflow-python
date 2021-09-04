@@ -48,6 +48,9 @@ class Project():
                 return ClassificationModel(self.api_key, self.dataset_slug, version, local=local)
 
     def __image_upload(self, image_path, hosted_image=False, split="train"):
+
+
+
         # If image is not a hosted image
         if not hosted_image:
             # Construct URL for local image upload
@@ -57,8 +60,11 @@ class Project():
                 "&name=" + os.path.basename(image_path),
                 "&split=" + split
             ])
+
             # Convert to PIL Image
-            image = cv2.cvtColor(image_path, cv2.COLOR_BGR2RGB)
+            img = cv2.imread(image_path)
+            image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
             pilImage = Image.fromarray(image)
             # Convert to JPEG Buffer
             buffered = io.BytesIO()
@@ -83,6 +89,7 @@ class Project():
             # Get response
             response = requests.post(upload_url)
         # Return response
+
         return response
 
     def __annotation_upload(self, annotation_path, image_id):
@@ -107,6 +114,7 @@ class Project():
         if image_path is not None:
             # Upload Image Response
             response = self.__image_upload(image_path, hosted_image=hosted_image, split=split)
+
             # Get JSON response values
             try:
                 success, image_id = response.json()['success'], response.json()['id']
