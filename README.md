@@ -57,8 +57,8 @@ rf = roboflow.auth("YOUR_API_KEY_HERE")
 # List all projects for your workspace
 workspace = rf.workspace()
 
-# Load a certain project
-project = rf.project(workspace.url, "YOUR_PROJECT NAME")
+# Load a certain project, workspace url is optional
+project = rf.project("YOUR_PROJECT NAME", workspace.url)
 
 # Upload image to dataset
 project.upload("UPLOAD_IMAGE.jpg")
