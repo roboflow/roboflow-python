@@ -16,16 +16,16 @@ from roboflow.config import *
 
 
 class Project():
-    def __init__(self, api_key, dataset_slug, type, versions, access_token, publishable_key):
+    def __init__(self, api_key, dataset_slug, type, versions):
         self.api_key = api_key
         self.dataset_slug = dataset_slug
         self.type = type
-        self.access_token = access_token
-        self.publishable_key = publishable_key
         # Dictionary of versions + names
         self.versions_and_names = versions
         # List of all versions to choose from
-        self.versions = list(int(vers) for vers in versions.keys())
+        self.versions = [vers['id'] for vers in versions]
+
+        #self.versions = list(int(vers) for vers in versions.keys())
 
     def model(self, version, local=False):
         # Check if version number is an available version to choose from
