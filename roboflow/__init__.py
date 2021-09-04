@@ -35,20 +35,27 @@ class Roboflow():
         self.api_key = api_key
         self.current_workspace = w
 
-    def workspace(self):
-        list_projects = requests.get(API_URL + "/" + self.current_workspace + '?api_key=' + self.api_key).json()
+    def workspace(self, the_workspace=None):
+
+        if the_workspace is None:
+            the_workspace = self.current_workspace
+
+        list_projects = requests.get(API_URL + "/" + the_workspace + '?api_key=' + self.api_key).json()
 
         return list_projects
 
-    def project(self, project_name):
-        dataset_info = requests.get(API_URL + "/" + self.current_workspace + "/" + project_name + "?api_key=" + self.api_key)
+    def project(self, project_name, the_workspace=None):
+
+        if the_workspace is None:
+            the_workspace = self.current_workspace
+
+        dataset_info = requests.get(API_URL + "/" + the_workspace + "/" + project_name + "?api_key=" + self.api_key)
 
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
         if dataset_info.status_code != 200:
             raise RuntimeError(dataset_info.text)
 
         dataset_info = dataset_info.json()['project']
-        pprint.pprint(dataset_info)
 
         return Project(self.api_key, dataset_info['id'], dataset_info['type'], dataset_info['versions'])
 
