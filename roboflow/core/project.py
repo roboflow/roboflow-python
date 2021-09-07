@@ -26,18 +26,27 @@ class Project():
         # Dictionary of versions + names
         self.versions_and_names = versions
         # List of all versions to choose from
-        self.process_versions(versions)
 
-        #self.versions = list(int(vers) for vers in versions.keys())
-
-    def process_versions(self, versions):
         version_array = []
 
         for a_version in versions:
             version_object = Version(a_version)
             version_array.append(version_object)
 
-        self.versions=version_array
+        self.all_versions = version_array
+
+
+    def version(self, version_number):
+        print(self.versions)
+        for version_object in self.all_versions:
+            id = version_object.version_id
+            if id or os.path.basename(id) == version_number:
+                return version_object
+
+        raise RuntimeError("Version number {} is not found.".format(version_number))
+
+    def versions(self):
+        return self.versions
 
     def model(self, version, local=False):
 
@@ -56,7 +65,7 @@ class Project():
             raise RuntimeError(model_info_response.text)
 
         model_info_response = model_info_response.json()
-        print(model_info_response)
+
         # Return appropriate model if model does exist
         if model_info_response['exists']:
             if self.type == "object-detection":

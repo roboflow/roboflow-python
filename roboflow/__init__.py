@@ -67,4 +67,4 @@ class Roboflow():
 
 rf = auth("FuVGT9Nd8WdzDza6f6qd")
 project = rf.project("chess-sample-sgdxp")
-pprint.pprint(project.versions)
+project.versions()
