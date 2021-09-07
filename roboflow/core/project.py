@@ -12,8 +12,11 @@ from PIL import Image
 
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.object_detection import ObjectDetectionModel
+from roboflow.core.version import Version
+
 from roboflow.config import *
 
+#version class that should return
 
 class Project():
     def __init__(self, api_key, dataset_slug, type, versions):
@@ -23,23 +26,37 @@ class Project():
         # Dictionary of versions + names
         self.versions_and_names = versions
         # List of all versions to choose from
-        self.versions = [vers['id'] for vers in versions]
+        self.process_versions(versions)
 
         #self.versions = list(int(vers) for vers in versions.keys())
 
+    def process_versions(self, versions):
+        version_array = []
+
+        for a_version in versions:
+            version_object = Version(a_version)
+            version_array.append(version_object)
+
+        self.versions=version_array
+
     def model(self, version, local=False):
+
         # Check if version number is an available version to choose from
         if version not in self.versions:
             raise RuntimeError(
                 str(version) + " is an invalid version; please select a different version from " + str(self.versions))
 
+        dataset_name = os.path.basename(self.dataset_slug)
+
         # Check whether model exists before initializing model
         model_info_response = requests.get(
-            API_URL + "/model/" + self.dataset_slug + "/" + str(version) + "?access_token=" + self.access_token)
+            API_URL + "/model/" + dataset_name + "/" + str(version) + "?api_key=" + self.api_key)
+
         if model_info_response.status_code != 200:
             raise RuntimeError(model_info_response.text)
 
         model_info_response = model_info_response.json()
+        print(model_info_response)
         # Return appropriate model if model does exist
         if model_info_response['exists']:
             if self.type == "object-detection":
@@ -55,8 +72,6 @@ class Project():
         if not hosted_image:
             project_name = os.path.basename(self.dataset_slug)
             image_name = os.path.basename(image_path)
-
-            print(os.path.basename(self.dataset_slug))
             # Construct URL for local image upload
             self.image_upload_url = "".join([
                 "https://api.roboflow.com/dataset/", project_name, "/upload",
@@ -77,12 +92,11 @@ class Project():
             img_str = base64.b64encode(buffered.getvalue())
             img_str = img_str.decode("ascii")
             # Post Base 64 Data to Upload API
-            print(self.image_upload_url)
+
             response = requests.post(self.image_upload_url, data=img_str, headers={
                 "Content-Type": "application/x-www-form-urlencoded"
             })
 
-            print(response)
 
         else:
             # Hosted image upload url
