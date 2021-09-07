@@ -1,7 +1,6 @@
 import json
 import os
 import time
-import pprint
 
 import requests
 
@@ -57,9 +56,11 @@ class Roboflow():
 
         dataset_info = dataset_info.json()['project']
 
+
         return Project(self.api_key, dataset_info['id'], dataset_info['type'], dataset_info['versions'])
 
     def __str__(self):
         json_value = {'api_key': self.api_key,
                       'workspace': self.workspace}
         return json.dumps(json_value, indent=2)
+

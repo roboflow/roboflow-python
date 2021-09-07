@@ -19,7 +19,8 @@ from roboflow.config import *
 #version class that should return
 
 class Project():
-    def __init__(self, api_key, dataset_slug, type, versions):
+    def __init__(self, api_key, dataset_slug, type, versions, local=False):
+
         self.api_key = api_key
         self.dataset_slug = dataset_slug
         self.type = type
@@ -30,7 +31,7 @@ class Project():
         version_array = []
 
         for a_version in versions:
-            version_object = Version(a_version)
+            version_object = Version(type, api_key, dataset_slug, a_version['id'], local=local)
             version_array.append(version_object)
 
         self.all_versions = version_array
@@ -46,31 +47,6 @@ class Project():
 
     def versions(self):
         return self.versions
-
-    def model(self, version, local=False):
-
-        # Check if version number is an available version to choose from
-        if version not in self.versions:
-            raise RuntimeError(
-                str(version) + " is an invalid version; please select a different version from " + str(self.versions))
-
-        dataset_name = os.path.basename(self.dataset_slug)
-
-        # Check whether model exists before initializing model
-        model_info_response = requests.get(
-            API_URL + "/model/" + dataset_name + "/" + str(version) + "?api_key=" + self.api_key)
-
-        if model_info_response.status_code != 200:
-            raise RuntimeError(model_info_response.text)
-
-        model_info_response = model_info_response.json()
-
-        # Return appropriate model if model does exist
-        if model_info_response['exists']:
-            if self.type == "object-detection":
-                return ObjectDetectionModel(self.api_key, self.dataset_slug, version, local=local)
-            elif self.type == "classification":
-                return ClassificationModel(self.api_key, self.dataset_slug, version, local=local)
 
     def __image_upload(self, image_path, hosted_image=False, split="train"):
 
