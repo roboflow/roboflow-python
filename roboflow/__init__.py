@@ -65,5 +65,3 @@ class Roboflow():
         return json.dumps(json_value, indent=2)
 
 
-rf = auth("FuVGT9Nd8WdzDza6f6qd")
-rf.project("chess-sample-sgdxp")

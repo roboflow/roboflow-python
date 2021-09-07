@@ -53,11 +53,15 @@ class Project():
 
         # If image is not a hosted image
         if not hosted_image:
+            project_name = os.path.basename(self.dataset_slug)
+            image_name = os.path.basename(image_path)
+
+            print(os.path.basename(self.dataset_slug))
             # Construct URL for local image upload
             self.image_upload_url = "".join([
-                "https://api.roboflow.com/dataset/", self.dataset_slug, "/upload",
+                "https://api.roboflow.com/dataset/", project_name, "/upload",
                 "?api_key=", self.api_key,
-                "&name=" + os.path.basename(image_path),
+                "&name=" + image_name,
                 "&split=" + split
             ])
 
@@ -73,9 +77,12 @@ class Project():
             img_str = base64.b64encode(buffered.getvalue())
             img_str = img_str.decode("ascii")
             # Post Base 64 Data to Upload API
+            print(self.image_upload_url)
             response = requests.post(self.image_upload_url, data=img_str, headers={
                 "Content-Type": "application/x-www-form-urlencoded"
             })
+
+            print(response)
 
         else:
             # Hosted image upload url
