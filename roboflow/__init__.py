@@ -63,8 +63,3 @@ class Roboflow():
         json_value = {'api_key': self.api_key,
                       'workspace': self.workspace}
         return json.dumps(json_value, indent=2)
-
-
-rf = auth("FuVGT9Nd8WdzDza6f6qd")
-project = rf.project("chess-sample-sgdxp")
-project.versions()

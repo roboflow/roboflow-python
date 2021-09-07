@@ -37,7 +37,6 @@ class Project():
 
 
     def version(self, version_number):
-        print(self.versions)
         for version_object in self.all_versions:
             id = version_object.version_id
             if id or os.path.basename(id) == version_number:
