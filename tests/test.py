@@ -7,7 +7,8 @@ load_dotenv()
 
 if __name__ == '__main__':
     # Authenticate roboflow
-    rflow = roboflow.auth(os.getenv("ROBOFLOW_API_KEY_3"))
+
+    rflow = roboflow.Roboflow(api_key="API_KEY")
     # List all datasets based on user
     rflow.list_datasets()
     # Load a certain project

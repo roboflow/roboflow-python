@@ -43,7 +43,6 @@ class Roboflow():
         return self
 
     def workspace(self, the_workspace=None):
-
         if the_workspace is None:
             the_workspace = self.current_workspace
 

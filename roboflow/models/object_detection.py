@@ -100,10 +100,12 @@ class ObjectDetectionModel:
             # Base64 encode image
             img_str = base64.b64encode(buffered.getvalue())
             img_str = img_str.decode("ascii")
+
             # Post to API and return response
             resp = requests.post(self.api_url, data=img_str, headers={
                 "Content-Type": "application/x-www-form-urlencoded"
             })
+
         else:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
