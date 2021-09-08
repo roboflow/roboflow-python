@@ -84,9 +84,11 @@ class ClassificationModel:
 
         :return:
         """
+
         # Generates URL based on all parameters
+        without_workspace = os.path.basename(self.dataset_slug)
         self.api_url = "".join([
-            self.base_url + self.dataset_slug + '/' + str(self.version),
+            self.base_url + without_workspace + '/' + str(self.version),
             "?api_key=" + self.api_key,
             "&name=YOUR_IMAGE.jpg"])
 
