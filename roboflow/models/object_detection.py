@@ -104,8 +104,6 @@ class ObjectDetectionModel:
             resp = requests.post(self.api_url, data=img_str, headers={
                 "Content-Type": "application/x-www-form-urlencoded"
             })
-
-            print(self.api_url)
         else:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)

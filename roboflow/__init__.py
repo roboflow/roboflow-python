@@ -30,9 +30,17 @@ def auth(api_key):
 
 
 class Roboflow():
-    def __init__(self, api_key, w):
+    def __init__(self, api_key):
         self.api_key = api_key
-        self.current_workspace = w
+        self.auth()
+
+    def auth(self):
+        r = check_key(self.api_key)
+        w = r['workspace']
+
+        self.current_workspace=w
+
+        return self
 
     def workspace(self, the_workspace=None):
 
@@ -55,7 +63,6 @@ class Roboflow():
             raise RuntimeError(dataset_info.text)
 
         dataset_info = dataset_info.json()['project']
-
 
         return Project(self.api_key, dataset_info['id'], dataset_info['type'], dataset_info['versions'])
 

@@ -46,7 +46,7 @@ class Project():
         raise RuntimeError("Version number {} is not found.".format(version_number))
 
     def versions(self):
-        return self.versions
+        return self.all_versions
 
     def __image_upload(self, image_path, hosted_image=False, split="train"):
 
