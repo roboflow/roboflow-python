@@ -63,4 +63,3 @@ class Roboflow():
         json_value = {'api_key': self.api_key,
                       'workspace': self.workspace}
         return json.dumps(json_value, indent=2)
-
