@@ -49,14 +49,16 @@ class Roboflow():
 
         list_projects = requests.get(API_URL + "/" + the_workspace + '?api_key=' + self.api_key).json()
 
-        return Workspace(list_projects)
+        return Workspace(list_projects, self.api_key, the_workspace)
 
     def project(self, project_name, the_workspace=None):
 
-
-
         if the_workspace is None:
-            the_workspace = self.current_workspace
+            if "/" in project_name:
+                splitted_project = project_name.rsplit("/")
+                the_workspace, project_name = splitted_project[0], splitted_project[1]
+            else:
+                the_workspace = self.current_workspace
 
         dataset_info = requests.get(API_URL + "/" + the_workspace + "/" + project_name + "?api_key=" + self.api_key)
 
