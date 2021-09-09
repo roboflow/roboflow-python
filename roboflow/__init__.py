@@ -1,10 +1,9 @@
 import json
 import os
 import time
-import pprint
 
 import requests
-
+from roboflow.core.workspace import Workspace
 from roboflow.core.project import Project
 from roboflow.config import *
 
@@ -44,14 +43,17 @@ class Roboflow():
         return self
 
     def workspace(self, the_workspace=None):
+
         if the_workspace is None:
             the_workspace = self.current_workspace
 
         list_projects = requests.get(API_URL + "/" + the_workspace + '?api_key=' + self.api_key).json()
 
-        return list_projects
+        return Workspace(list_projects)
 
     def project(self, project_name, the_workspace=None):
+
+
 
         if the_workspace is None:
             the_workspace = self.current_workspace
