@@ -1,7 +1,6 @@
 import requests
 from roboflow.core.project import Project
 from roboflow.config import *
-from pprint import pprint
 
 class Workspace():
     def __init__(self, info, api_key, default_workspace):

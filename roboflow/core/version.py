@@ -9,13 +9,13 @@ class Version():
         self.api_key = api_key
         self.name = dataset_slug
         self.version = version
-        self.type = type
+        self.category = type
 
         version_without_workspace = os.path.basename(version)
 
-        if type == "object-detection":
+        if self.category == "object-detection":
             self.model = ObjectDetectionModel(self.api_key, self.name, version_without_workspace, local=local)
-        elif type == "classification":
+        elif self.category == "classification":
             self.model = ClassificationModel(self.api_key, self.name, version_without_workspace, local=local)
         else:
             self.model = None
