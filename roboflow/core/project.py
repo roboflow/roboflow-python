@@ -9,11 +9,7 @@ import warnings
 import cv2
 import requests
 from PIL import Image
-
-from roboflow.models.classification import ClassificationModel
-from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.core.version import Version
-
 from roboflow.config import *
 
 #version class that should return
@@ -38,21 +34,18 @@ class Project():
     def list_versions(self):
         print(self.all_versions)
 
-
-    def version(self, version_number):
-        for version_object in self.all_versions:
-            id = version_object.version_id
-            if id or os.path.basename(id) == version_number:
-                return version_object
-
-        raise RuntimeError("Version number {} is not found.".format(version_number))
-
     def versions(self):
         return self.all_versions
 
+
+    def version(self, version_number):
+        for version_object in self.all_versions:
+            current_version_num = os.path.basename(version_object.version_id)
+            if current_version_num == version_number:
+                return version_object
+        raise RuntimeError("Version number {} is not found.".format(version_number))
+
     def __image_upload(self, image_path, hosted_image=False, split="train"):
-
-
 
         # If image is not a hosted image
         if not hosted_image:

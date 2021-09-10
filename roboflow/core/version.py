@@ -10,12 +10,16 @@ class Version():
         self.api_key = api_key
         self.dataset_slug = dataset_slug
         self.model_type = type
-        self.version_id = os.path.basename(version)
+        self.version_id = version
+
+
+        version_without_workspace = os.path.basename(version)
 
         if type == "object-detection":
-            self.model = ObjectDetectionModel(self.api_key, self.dataset_slug, self.version_id, local=local)
+            self.model = ObjectDetectionModel(self.api_key, self.dataset_slug, version_without_workspace, local=local)
         elif type == "classification":
-            self.model = ClassificationModel(self.api_key, self.dataset_slug, self.version_id, local=local)
+            self.model = ClassificationModel(self.api_key, self.dataset_slug, version_without_workspace, local=local)
+
 
     def __str__(self):
         json_value = {'api_key': self.api_key,
