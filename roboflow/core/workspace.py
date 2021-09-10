@@ -1,7 +1,7 @@
 import requests
 from roboflow.core.project import Project
 from roboflow.config import *
-
+from pprint import pprint
 
 class Workspace():
     def __init__(self, info, api_key, default_workspace):
@@ -13,15 +13,25 @@ class Workspace():
         self.name = workspace_info['name']
         self.url = workspace_info['url']
 
-        self.projects = []
-        self.fill_projects(workspace_info['projects'])
+        self.all_projects = []
 
-    def fill_projects(self, projects):
-        for value in projects:
-            self.projects.append(value)
+        for value in info['workspace']['projects']:
+            self.all_projects.append(value)
 
     def list_projects(self):
         print(self.projects)
+
+    def projects(self):
+        projects_array = []
+        for a_project in self.all_projects:
+            split = a_project['id'].rsplit("/")
+            workspace, project_name = split[0], split[1]
+            proj = Project(self.api_key, project_name, a_project['type'], workspace)
+            projects_array.append(proj)
+
+        return projects_array
+
+
 
     def project(self, project_name):
 

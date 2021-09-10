@@ -7,40 +7,53 @@ import warnings
 import cv2
 import requests
 from PIL import Image
-from roboflow.core.version import Version
 from roboflow.config import *
+from roboflow.core.version import Version
 
 #version class that should return
-
 class Project():
-    def __init__(self, api_key, dataset_slug, type, versions, local=False):
+    def __init__(self, api_key, dataset_slug, type, workspace):
 
         self.api_key = api_key
         self.dataset_slug = dataset_slug
         self.task_type = type
-        # Dictionary of versions + names
-        self.versions_and_names = versions
+        self.workspace=workspace
         # List of all versions to choose from
-
         self.all_versions = []
 
-        for a_version in versions:
-            version_object = Version((self.task_type if 'model' in a_version else None), api_key, dataset_slug, a_version['id'], local=local)
-            self.all_versions.append(version_object)
+    def get_version_information(self):
+        dataset_info = requests.get(API_URL + "/" + self.workspace + "/" + self.dataset_slug + "?api_key=" + self.api_key)
 
+        # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
+        if dataset_info.status_code != 200:
+            raise RuntimeError(dataset_info.text)
+
+        dataset_info = dataset_info.json()['project']
+        return dataset_info['versions']
 
     def list_versions(self):
-        print(self.all_versions)
+        version_info = self.get_version_information()
+        print(version_info)
 
     def versions(self):
-        return self.all_versions
+        version_info = self.get_version_information()
+        version_array = []
+        for a_version in version_info:
+            version_object = Version((self.task_type if 'model' in a_version else None), self.api_key, self.dataset_slug, a_version['id'], local=False)
+            version_array.append(version_object)
 
+        return version_array
 
     def version(self, version_number):
-        for version_object in self.all_versions:
-            current_version_num = os.path.basename(version_object.version_id)
+
+        version_info = self.get_version_information()
+
+        for version_object in version_info:
+
+            current_version_num = os.path.basename(version_object['id'])
             if current_version_num == version_number:
                 return version_object
+
         raise RuntimeError("Version number {} is not found.".format(version_number))
 
     def __image_upload(self, image_path, hosted_image=False, split="train"):
@@ -151,8 +164,8 @@ class Project():
         # String representation of project
         json_str = {
             "dataset_slug": self.dataset_slug,
-            "dataset_type": self.type,
-            "dataset_versions": self.versions_and_names
+            "task_type": self.task_type,
+            "workspace": self.workspace
         }
 
         return json.dumps(json_str, indent=2)
