@@ -20,7 +20,11 @@ class Project():
         self.all_versions = []
 
     def get_version_information(self):
-        dataset_info = requests.get(API_URL + "/" + self.workspace + "/" + self.name + "?api_key=" + self.api_key)
+
+        slug_splitted = self.name.rsplit("/")
+        p, w = slug_splitted[0], slug_splitted[1]
+
+        dataset_info = requests.get(API_URL + "/" + p + "/" + w + "?api_key=" + self.api_key)
 
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
         if dataset_info.status_code != 200:
