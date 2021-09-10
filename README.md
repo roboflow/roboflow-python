@@ -78,6 +78,9 @@ prediction = model.predict("YOUR_IMAGE.jpg", hosted=True)
 # Plot the prediction
 prediction.plot()
 
+# Convert predictions to JSON
+prediction.json()
+
 # Save the prediction as an image
 prediction.save(output_path='predictions.jpg')
 ```
