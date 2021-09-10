@@ -13,16 +13,14 @@ from roboflow.core.version import Version
 #version class that should return
 class Project():
     def __init__(self, api_key, dataset_slug, type, workspace):
-
         self.api_key = api_key
-        self.dataset_slug = dataset_slug
-        self.task_type = type
-        self.workspace=workspace
-        # List of all versions to choose from
+        self.name = dataset_slug
+        self.category = type
+        self.workspace = workspace
         self.all_versions = []
 
     def get_version_information(self):
-        dataset_info = requests.get(API_URL + "/" + self.workspace + "/" + self.dataset_slug + "?api_key=" + self.api_key)
+        dataset_info = requests.get(API_URL + "/" + self.workspace + "/" + self.name + "?api_key=" + self.api_key)
 
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
         if dataset_info.status_code != 200:
@@ -39,7 +37,7 @@ class Project():
         version_info = self.get_version_information()
         version_array = []
         for a_version in version_info:
-            version_object = Version((self.task_type if 'model' in a_version else None), self.api_key, self.dataset_slug, a_version['id'], local=False)
+            version_object = Version((self.category if 'model' in a_version else None), self.api_key, self.name, a_version['id'], local=False)
             version_array.append(version_object)
 
         return version_array
@@ -60,7 +58,7 @@ class Project():
 
         # If image is not a hosted image
         if not hosted_image:
-            project_name = os.path.basename(self.dataset_slug)
+            project_name = os.path.basename(self.name)
             image_name = os.path.basename(image_path)
             # Construct URL for local image upload
             self.image_upload_url = "".join([
@@ -91,7 +89,7 @@ class Project():
         else:
             # Hosted image upload url
             upload_url = "".join([
-                "https://api.roboflow.com/dataset/" + self.dataset_slug + "/upload",
+                "https://api.roboflow.com/dataset/" + self.name + "/upload",
                 "?api_key=" + self.api_key,
                 "&name=" + os.path.basename(image_path),
                 "&split=" + split,
@@ -108,7 +106,7 @@ class Project():
         annotation_string = open(annotation_path, "r").read()
         # Set annotation upload url
         self.annotation_upload_url = "".join([
-            "https://api.roboflow.com/dataset/", self.dataset_slug, "/annotate/", image_id,
+            "https://api.roboflow.com/dataset/", self.name, "/annotate/", image_id,
             "?api_key=", self.api_key,
             "&name=" + os.path.basename(annotation_path)
         ])
@@ -163,8 +161,8 @@ class Project():
     def __str__(self):
         # String representation of project
         json_str = {
-            "dataset_slug": self.dataset_slug,
-            "task_type": self.task_type,
+            "dataset_slug": self.name,
+            "task_type": self.category,
             "workspace": self.workspace
         }
 

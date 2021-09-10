@@ -5,25 +5,24 @@ from pprint import pprint
 
 class Workspace():
     def __init__(self, info, api_key, default_workspace):
+
         self.api_key = api_key
-        self.current_workspace = default_workspace
+        self.name = default_workspace
 
         workspace_info = info['workspace']
-        self.num_members = workspace_info['members']
-        self.name = workspace_info['name']
+        self.members = workspace_info['members']
         self.url = workspace_info['url']
-
-        self.all_projects = []
+        self.project_list = []
 
         for value in info['workspace']['projects']:
-            self.all_projects.append(value)
+            self.project_list.append(value)
 
     def list_projects(self):
         print(self.projects)
 
     def projects(self):
         projects_array = []
-        for a_project in self.all_projects:
+        for a_project in self.project_list:
             split = a_project['id'].rsplit("/")
             workspace, project_name = split[0], split[1]
             proj = Project(self.api_key, project_name, a_project['type'], workspace)
@@ -32,13 +31,12 @@ class Workspace():
         return projects_array
 
 
-
     def project(self, project_name):
 
         if "/" in project_name:
             raise RuntimeError("Do not re-specify the workspace {} in your project request".format(project_name.rsplit()[0]))
 
-        dataset_info = requests.get(API_URL + "/" + self.current_workspace + "/" + project_name + "?api_key=" + self.api_key)
+        dataset_info = requests.get(API_URL + "/" + self.name + "/" + project_name + "?api_key=" + self.api_key)
 
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
         if dataset_info.status_code != 200:

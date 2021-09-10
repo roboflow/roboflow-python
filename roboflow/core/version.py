@@ -7,23 +7,24 @@ import json
 class Version():
     def __init__(self, type, api_key, dataset_slug, version, local):
         self.api_key = api_key
-        self.dataset_slug = dataset_slug
-        self.version_id = version
-
+        self.name = dataset_slug
+        self.version = version
+        self.type = type
 
         version_without_workspace = os.path.basename(version)
 
         if type == "object-detection":
-            self.model = ObjectDetectionModel(self.api_key, self.dataset_slug, version_without_workspace, local=local)
+            self.model = ObjectDetectionModel(self.api_key, self.name, version_without_workspace, local=local)
         elif type == "classification":
-            self.model = ClassificationModel(self.api_key, self.dataset_slug, version_without_workspace, local=local)
+            self.model = ClassificationModel(self.api_key, self.name, version_without_workspace, local=local)
         else:
             self.model = None
 
     def __str__(self):
         json_value = {'api_key': self.api_key,
+                      'name': self.name,
                       'model_type': str(self.model),
-                      'version': self.version_id}
+                      'version': self.version}
         return json.dumps(json_value, indent=2)
 
 
