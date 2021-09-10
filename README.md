@@ -58,7 +58,7 @@ rf = Roboflow(api_key=YOUR_API_KEY_HERE)
 workspace = rf.workspace()
 
 # Load a certain project, workspace url is optional
-project = rf.project("PROJECT_NAME")
+project = rf.project("PROJECT_ID")
 
 # List all versions of a specific project
 project.versions()
