@@ -28,13 +28,15 @@ class Project():
         self.versions_and_names = versions
         # List of all versions to choose from
 
-        version_array = []
+        self.all_versions = []
 
         for a_version in versions:
             version_object = Version(type, api_key, dataset_slug, a_version['id'], local=local)
-            version_array.append(version_object)
+            self.all_versions.append(version_object)
 
-        self.all_versions = version_array
+
+    def list_versions(self):
+        print(self.all_versions)
 
 
     def version(self, version_number):

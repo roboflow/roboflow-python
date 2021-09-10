@@ -20,6 +20,9 @@ class Workspace():
         for value in projects:
             self.projects.append(value)
 
+    def list_projects(self):
+        print(self.projects)
+
     def project(self, project_name):
 
         if "/" in project_name:
