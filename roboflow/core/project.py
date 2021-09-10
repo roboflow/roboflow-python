@@ -2,10 +2,8 @@ import base64
 import io
 import json
 import os
-import pathlib
 import urllib
 import warnings
-
 import cv2
 import requests
 from PIL import Image
@@ -19,7 +17,7 @@ class Project():
 
         self.api_key = api_key
         self.dataset_slug = dataset_slug
-        self.type = type
+        self.task_type = type
         # Dictionary of versions + names
         self.versions_and_names = versions
         # List of all versions to choose from
@@ -27,7 +25,7 @@ class Project():
         self.all_versions = []
 
         for a_version in versions:
-            version_object = Version(type, api_key, dataset_slug, a_version['id'], local=local)
+            version_object = Version((self.task_type if 'model' in a_version else None), api_key, dataset_slug, a_version['id'], local=local)
             self.all_versions.append(version_object)
 
 
