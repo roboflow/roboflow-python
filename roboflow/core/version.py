@@ -19,7 +19,7 @@ class Version():
         else:
             self.model = None
 
-        self.set_class_variables()
+        self.set_class_variables(version_dict)
 
     def set_class_variables(self, version_dict):
         self.augmentation=version_dict['augmentation']

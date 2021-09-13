@@ -1,20 +1,27 @@
 import requests
 from roboflow.core.project import Project
 from roboflow.config import *
+import pprint
 
 class Workspace():
     def __init__(self, info, api_key, default_workspace):
-
         self.api_key = api_key
         self.name = default_workspace
 
         workspace_info = info['workspace']
-        self.members = workspace_info['members']
         self.url = workspace_info['url']
         self.project_list = []
 
         for value in info['workspace']['projects']:
             self.project_list.append(value)
+
+        self.set_class_variables(info)
+
+    def set_class_variables(self, info):
+        w = info['workspace']
+        self.members=w['members']
+        self.projects=w['projects']
+        self.url=w['url']
 
     def list_projects(self):
         print(self.projects)
