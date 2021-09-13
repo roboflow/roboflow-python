@@ -28,6 +28,7 @@ class Workspace():
 
     def project(self, project_name):
         project_name = project_name.replace(self.url + "/", "")
+
         if "/" in project_name:
             raise RuntimeError("The {} project is not available in this ({}) workspace".format(project_name, self.url))
 

@@ -61,7 +61,7 @@ class Project():
         for version_object in version_info:
 
             current_version_num = os.path.basename(version_object['id'])
-            if current_version_num == version_number:
+            if current_version_num == str(version_number):
                 vers = Version(version_object, self.type, self.__api_key, self.name, current_version_num, local=False)
                 return vers
 
