@@ -21,11 +21,11 @@ class Project():
         self.all_versions = []
 
     def get_version_information(self):
+        print(self.workspace)
+        # slug_splitted = self.name.rsplit("/")
+        # p, w = slug_splitted[0], slug_splitted[1]
 
-        slug_splitted = self.name.rsplit("/")
-        p, w = slug_splitted[0], slug_splitted[1]
-
-        dataset_info = requests.get(API_URL + "/" + p + "/" + w + "?api_key=" + self.api_key)
+        dataset_info = requests.get(API_URL + "/" + self.workspace + "/" + self.name + "?api_key=" + self.api_key)
 
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
         if dataset_info.status_code != 200:
@@ -42,7 +42,7 @@ class Project():
         version_info = self.get_version_information()
         version_array = []
         for a_version in version_info:
-            version_object = Version((self.category if 'model' in a_version else None), self.api_key, self.name, a_version['id'], local=False)
+            version_object = Version(a_version, (self.category if 'model' in a_version else None), self.api_key, self.name, a_version['id'], local=False)
             version_array.append(version_object)
 
         return version_array
