@@ -14,7 +14,7 @@ from roboflow.core.version import Version
 #version class that should return
 class Project():
     def __init__(self, api_key, a_project):
-        self.api_key = api_key
+        self.__api_key = api_key
         self.annotation = a_project['annotation']
         self.classes = a_project['classes']
         self.colors = a_project['colors']
@@ -33,13 +33,13 @@ class Project():
         self.__project_name = temp[1]
 
     def get_version_information(self):
-        dataset_info = requests.get(API_URL + "/" + self.__workspace + "/" + self.__project_name + "?api_key=" + self.api_key)
+        dataset_info = requests.get(API_URL + "/" + self.__workspace + "/" + self.__project_name + "?api_key=" + self.__api_key)
 
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
         if dataset_info.status_code != 200:
             raise RuntimeError(dataset_info.text)
 
-        dataset_info = dataset_info.json()['project']
+        dataset_info = dataset_info.json()
         return dataset_info['versions']
 
     def list_versions(self):
@@ -50,7 +50,7 @@ class Project():
         version_info = self.get_version_information()
         version_array = []
         for a_version in version_info:
-            version_object = Version(a_version, (self.type if 'model' in a_version else None), self.api_key, self.name, a_version['id'], local=False)
+            version_object = Version(a_version, (self.type if 'model' in a_version else None), self.__api_key, self.name, a_version['id'], local=False)
             version_array.append(version_object)
         return version_array
 
@@ -62,7 +62,7 @@ class Project():
 
             current_version_num = os.path.basename(version_object['id'])
             if current_version_num == version_number:
-                vers = Version(version_object, self.type, self.api_key, self.name, current_version_num, local=False)
+                vers = Version(version_object, self.type, self.__api_key, self.name, current_version_num, local=False)
                 return vers
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
@@ -76,7 +76,7 @@ class Project():
             # Construct URL for local image upload
             self.image_upload_url = "".join([
                 "https://api.roboflow.com/dataset/", project_name, "/upload",
-                "?api_key=", self.api_key,
+                "?api_key=", self.__api_key,
                 "&name=" + image_name,
                 "&split=" + split
             ])
@@ -103,7 +103,7 @@ class Project():
             # Hosted image upload url
             upload_url = "".join([
                 "https://api.roboflow.com/dataset/" + self.name + "/upload",
-                "?api_key=" + self.api_key,
+                "?api_key=" + self.__api_key,
                 "&name=" + os.path.basename(image_path),
                 "&split=" + split,
                 "&image=" + urllib.parse.quote_plus(image_path)
@@ -120,7 +120,7 @@ class Project():
         # Set annotation upload url
         self.annotation_upload_url = "".join([
             "https://api.roboflow.com/dataset/", self.name, "/annotate/", image_id,
-            "?api_key=", self.api_key,
+            "?api_key=", self.__api_key,
             "&name=" + os.path.basename(annotation_path)
         ])
         # Get annotation response
