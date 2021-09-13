@@ -49,5 +49,7 @@ class Workspace():
             raise RuntimeError(dataset_info.text)
 
         dataset_info = dataset_info.json()['project']
+        split = dataset_info['id'].rsplit("/")
+        workspace, project_name = split[0], split[1]
 
-        return Project(self.api_key, dataset_info['id'], dataset_info['type'], dataset_info['versions'])
+        return Project(self.api_key, project_name, dataset_info['type'], workspace)

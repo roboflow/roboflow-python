@@ -13,6 +13,7 @@ from roboflow.core.version import Version
 #version class that should return
 class Project():
     def __init__(self, api_key, dataset_slug, type, workspace):
+
         self.api_key = api_key
         self.name = dataset_slug
         self.category = type
