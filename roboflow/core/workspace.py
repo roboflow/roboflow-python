@@ -19,7 +19,6 @@ class Workspace():
     def set_class_variables(self, info):
         w = info['workspace']
         self.members=w['members']
-        self.projects=w['projects']
         self.url=w['url']
 
     def list_projects(self):
