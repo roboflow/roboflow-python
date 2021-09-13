@@ -54,7 +54,7 @@ class Project():
 
             current_version_num = os.path.basename(version_object['id'])
             if current_version_num == version_number:
-                vers = Version(self.category, self.api_key, self.name, current_version_num, local=False)
+                vers = Version(version_object, self.category, self.api_key, self.name, current_version_num, local=False)
                 return vers
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
