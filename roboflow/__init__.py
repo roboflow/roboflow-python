@@ -3,67 +3,74 @@ import os
 import time
 
 import requests
-
+from roboflow.core.workspace import Workspace
 from roboflow.core.project import Project
 from roboflow.config import *
 
 
-def auth(api_key):
+def check_key(api_key):
     if type(api_key) is not str:
         raise RuntimeError(
             "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key)))
 
-    response = requests.post(API_URL + "/token", data=({
-        "api_key": api_key
-    }))
-
+    response = requests.post(API_URL + "/?api_key=" + api_key)
     r = response.json()
+
     if "error" in r or response.status_code != 200:
         raise RuntimeError(response.text)
+    else:
+        return r
 
-    token = r['token']
-    token_expires = r['expires_in']
-    return Roboflow(api_key, token, token_expires)
+
+def auth(api_key):
+    r = check_key(api_key)
+    w = r['workspace']
+
+    return Roboflow(api_key, w)
 
 
 class Roboflow():
-    def __init__(self, api_key, access_token, token_expires):
+    def __init__(self, api_key):
         self.api_key = api_key
-        self.access_token = access_token
-        self.token_expires = token_expires
-        # TODO: Need an endpoint to retrieve publishable key based on access token/workspace/api key
-        publishable_key_response = requests.get(API_URL + "/key/publishable_key?access_token=" + self.access_token)
-        if publishable_key_response.status_code != 200:
-            raise RuntimeError(publishable_key_response.text)
-        publishable_key_response = publishable_key_response.json()
-        self.publishable_key = publishable_key_response['publishable_key']
+        self.auth()
 
-    def list_datasets(self):
-        get_datasets_endpoint = API_URL + '/datasets'
-        datasets = requests.get(get_datasets_endpoint + '?access_token=' + self.access_token).json()
-        print(json.dumps(datasets, indent=2))
-        return datasets
+    def auth(self):
+        r = check_key(self.api_key)
+        w = r['workspace']
 
-    def load(self, dataset_slug):
-        # Get info about dataset being loaded
-        dataset_info = requests.get(API_URL + "/dataset/" + dataset_slug + "?access_token=" + self.access_token)
+        self.current_workspace=w
+
+        return self
+
+    def workspace(self, the_workspace=None):
+
+        if the_workspace is None:
+            the_workspace = self.current_workspace
+
+        list_projects = requests.get(API_URL + "/" + the_workspace + '?api_key=' + self.api_key).json()
+
+        return Workspace(list_projects, self.api_key, the_workspace)
+
+    def project(self, project_name, the_workspace=None):
+
+        if the_workspace is None:
+            if "/" in project_name:
+                splitted_project = project_name.rsplit("/")
+                the_workspace, project_name = splitted_project[0], splitted_project[1]
+            else:
+                the_workspace = self.current_workspace
+
+        dataset_info = requests.get(API_URL + "/" + the_workspace + "/" + project_name + "?api_key=" + self.api_key)
+
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
         if dataset_info.status_code != 200:
             raise RuntimeError(dataset_info.text)
-        # Turn dataset info into a json format otherwise
-        dataset_info = dataset_info.json()
-        # Get version info (i.e. version names + numbers)
-        version_info = requests.get(
-            API_URL + "/versions/dataset/" + dataset_slug + "?access_token=" + self.access_token)
-        # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
-        if version_info.status_code != 200:
-            raise RuntimeError(version_info.text)
-        # Turn dataset version info into a json format otherwise
-        version_info = version_info.json()
-        # Return a project object
-        return Project(self.api_key, dataset_info['id'], dataset_info['type'], version_info['versions'],
-                       self.access_token, self.publishable_key)
+
+        dataset_info = dataset_info.json()['project']
+
+        return Project(self.api_key, dataset_info['id'], dataset_info['type'], dataset_info['versions'])
 
     def __str__(self):
-        json_value = {'api_key': self.api_key, 'auth_token': self.access_token, 'token_expires': self.token_expires}
+        json_value = {'api_key': self.api_key,
+                      'workspace': self.workspace}
         return json.dumps(json_value, indent=2)

@@ -93,21 +93,25 @@ class ObjectDetectionModel:
         if not hosted:
             # Open Image in RGB Format
             image = Image.open(image_path).convert("RGB")
+
             # Create buffer
             buffered = io.BytesIO()
             image.save(buffered, quality=90, format="JPEG")
             # Base64 encode image
             img_str = base64.b64encode(buffered.getvalue())
             img_str = img_str.decode("ascii")
+
             # Post to API and return response
             resp = requests.post(self.api_url, data=img_str, headers={
                 "Content-Type": "application/x-www-form-urlencoded"
             })
+
         else:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
             # POST to the API
             resp = requests.get(self.api_url)
+
         if resp.status_code != 200:
             raise Exception(resp.text)
         # Return a prediction group if JSON data
@@ -153,8 +157,10 @@ class ObjectDetectionModel:
             self.format = format
 
         # Create the new API URL
+        without_workspace = os.path.basename(self.dataset_slug)
+
         self.api_url = "".join([
-            self.base_url + self.dataset_slug + '/' + str(self.version),
+            self.base_url + without_workspace + '/' + str(self.version),
             "?api_key=" + self.api_key,
             "&name=YOUR_IMAGE.jpg",
             "&overlap=" + str(self.overlap),
