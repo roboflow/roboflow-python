@@ -10,6 +10,12 @@ class Version():
         self.name = dataset_slug
         self.version = version
         self.type = type
+        self.augmentation = version_dict['augmentation']
+        self.created = version_dict['created']
+        self.id = version_dict['id']
+        self.images = version_dict['images']
+        self.preprocessing = version_dict['preprocessing']
+        self.splits = version_dict['splits']
 
         version_without_workspace = os.path.basename(version)
 
@@ -19,16 +25,6 @@ class Version():
             self.model = ClassificationModel(self.api_key, self.name, version_without_workspace, local=local)
         else:
             self.model = None
-
-        self.set_class_variables(version_dict)
-
-    def set_class_variables(self, version_dict):
-        self.augmentation = version_dict['augmentation']
-        self.created = version_dict['created']
-        self.id = version_dict['id']
-        self.images = version_dict['images']
-        self.preprocessing = version_dict['preprocessing']
-        self.splits = version_dict['splits']
 
     def __str__(self):
         json_value = {
