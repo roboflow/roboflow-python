@@ -27,9 +27,9 @@ class Workspace():
 
 
     def project(self, project_name):
-
+        project_name = project_name.replace(self.url + "/", "")
         if "/" in project_name:
-            raise RuntimeError("Do not re-specify the workspace {} in your project request".format(project_name.rsplit()[0]))
+            raise RuntimeError("The {} project is not available in this ({}) workspace".format(project_name, self.url))
 
         dataset_info = requests.get(API_URL + "/" + self.url + "/" + project_name + "?api_key=" + self.__api_key)
 
@@ -49,4 +49,3 @@ class Workspace():
                       }
 
         return json.dumps(json_value, indent=2)
-
