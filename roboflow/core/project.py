@@ -16,7 +16,7 @@ class Project():
 
         self.api_key = api_key
         self.name = dataset_slug
-        self.category = type
+        self.type = type
         self.workspace = workspace
         self.all_versions = []
 
@@ -42,7 +42,7 @@ class Project():
         version_info = self.get_version_information()
         version_array = []
         for a_version in version_info:
-            version_object = Version(a_version, (self.category if 'model' in a_version else None), self.api_key, self.name, a_version['id'], local=False)
+            version_object = Version(a_version, (self.type if 'model' in a_version else None), self.api_key, self.name, a_version['id'], local=False)
             version_array.append(version_object)
 
         return version_array
@@ -55,7 +55,7 @@ class Project():
 
             current_version_num = os.path.basename(version_object['id'])
             if current_version_num == version_number:
-                vers = Version(version_object, self.category, self.api_key, self.name, current_version_num, local=False)
+                vers = Version(version_object, self.type, self.api_key, self.name, current_version_num, local=False)
                 return vers
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
@@ -168,8 +168,10 @@ class Project():
         # String representation of project
         json_str = {
             "dataset_slug": self.name,
-            "task_type": self.category,
-            "workspace": self.workspace
+            "type": self.type,
+            "workspace": self.workspace,
+
+
         }
 
         return json.dumps(json_str, indent=2)

@@ -1,4 +1,5 @@
 import requests
+import json
 from roboflow.core.project import Project
 from roboflow.config import *
 
@@ -8,7 +9,6 @@ class Workspace():
         self.name = default_workspace
 
         workspace_info = info['workspace']
-        self.url = workspace_info['url']
         self.project_list = []
 
         for value in info['workspace']['projects']:
@@ -51,3 +51,12 @@ class Workspace():
         workspace, project_name = split[0], split[1]
 
         return Project(self.api_key, project_name, dataset_info['type'], workspace)
+
+    def __str__(self):
+        json_value = {'name': self.name,
+                      'url': self.url,
+                      'members': self.members,
+                      }
+
+        return json.dumps(json_value, indent=2)
+
