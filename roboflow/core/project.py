@@ -178,7 +178,7 @@ class Project():
     def __str__(self):
         # String representation of project
         json_str = {
-            "dataset_slug": self.name,
+            "name": self.name,
             "type": self.type,
             "workspace": self.__workspace,
         }
