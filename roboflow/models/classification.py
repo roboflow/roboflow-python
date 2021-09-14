@@ -21,7 +21,7 @@ class ClassificationModel:
         :param version:
         """
         # Instantiate different API URL parameters
-        self.api_key = api_key
+        self.__api_key = api_key
         self.id=id
         self.dataset_slug = dataset_slug
         self.version = version
@@ -93,7 +93,7 @@ class ClassificationModel:
 
         self.api_url = "".join([
             self.base_url + without_workspace + '/' + str(self.version),
-            "?api_key=" + self.api_key,
+            "?api_key=" + self.__api_key,
             "&name=YOUR_IMAGE.jpg"])
 
     def __exception_check(self, image_path_check=None):

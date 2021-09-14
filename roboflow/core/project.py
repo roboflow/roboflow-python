@@ -71,9 +71,12 @@ class Project():
 
         # If image is not a hosted image
         if not hosted_image:
-            project_name = os.path.basename(self.name)
+
+            project_name = self.id.rsplit("/")[1]
             image_name = os.path.basename(image_path)
+
             # Construct URL for local image upload
+
             self.image_upload_url = "".join([
                 "https://api.roboflow.com/dataset/", project_name, "/upload",
                 "?api_key=", self.__api_key,
@@ -101,8 +104,10 @@ class Project():
 
         else:
             # Hosted image upload url
+            project_name = self.id.rsplit("/")[1]
+
             upload_url = "".join([
-                "https://api.roboflow.com/dataset/" + self.name + "/upload",
+                "https://api.roboflow.com/dataset/" + self.project_name + "/upload",
                 "?api_key=" + self.__api_key,
                 "&name=" + os.path.basename(image_path),
                 "&split=" + split,
@@ -136,7 +141,6 @@ class Project():
         if image_path is not None:
             # Upload Image Response
             response = self.__image_upload(image_path, hosted_image=hosted_image, split=split)
-
             # Get JSON response values
             try:
                 success, image_id = response.json()['success'], response.json()['id']

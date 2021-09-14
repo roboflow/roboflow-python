@@ -40,7 +40,7 @@ class ObjectDetectionModel:
         """
         # Instantiate different API URL parameters
         # To be moved to predict
-        self.api_key = api_key
+        self.__api_key = api_key
         self.id = id
         self.dataset_slug = dataset_slug
         self.version = version
@@ -164,7 +164,7 @@ class ObjectDetectionModel:
 
         self.api_url = "".join([
             self.base_url + without_workspace + '/' + str(self.version),
-            "?api_key=" + self.api_key,
+            "?api_key=" + self.__api_key,
             "&name=YOUR_IMAGE.jpg",
             "&overlap=" + str(self.overlap),
             "&confidence=" + str(self.confidence),
