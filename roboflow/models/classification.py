@@ -13,7 +13,7 @@ from roboflow.config import CLASSIFICATION_MODEL
 
 
 class ClassificationModel:
-    def __init__(self, api_key, dataset_slug=None, version=None, local=False):
+    def __init__(self, api_key, id, dataset_slug=None, version=None, local=False):
         """
 
         :param api_key:
@@ -22,6 +22,7 @@ class ClassificationModel:
         """
         # Instantiate different API URL parameters
         self.api_key = api_key
+        self.id=id
         self.dataset_slug = dataset_slug
         self.version = version
         if not local:
@@ -87,7 +88,9 @@ class ClassificationModel:
         """
 
         # Generates URL based on all parameters
-        without_workspace = os.path.basename(self.dataset_slug)
+        splitted = self.id.rsplit("/")
+        without_workspace = splitted[1]
+
         self.api_url = "".join([
             self.base_url + without_workspace + '/' + str(self.version),
             "?api_key=" + self.api_key,

@@ -14,7 +14,7 @@ from roboflow.util.image_utils import check_image_url
 
 
 class ObjectDetectionModel:
-    def __init__(self, api_key, dataset_slug=None, version=None, local=False, classes=None, overlap=30, confidence=40,
+    def __init__(self, api_key, id, dataset_slug=None, version=None, local=False, classes=None, overlap=30, confidence=40,
                  stroke=1, labels=False, format="json"):
         """
         From Roboflow Docs:
@@ -41,6 +41,7 @@ class ObjectDetectionModel:
         # Instantiate different API URL parameters
         # To be moved to predict
         self.api_key = api_key
+        self.id = id
         self.dataset_slug = dataset_slug
         self.version = version
         self.classes = classes
@@ -158,7 +159,8 @@ class ObjectDetectionModel:
             self.format = format
 
         # Create the new API URL
-        without_workspace = os.path.basename(self.dataset_slug)
+        splitted = self.id.rsplit("/")
+        without_workspace = splitted[1]
 
         self.api_url = "".join([
             self.base_url + without_workspace + '/' + str(self.version),
