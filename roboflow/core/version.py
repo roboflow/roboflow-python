@@ -5,9 +5,9 @@ import json
 
 
 class Version():
-    def __init__(self, version_dict, type, api_key, dataset_slug, version, local):
+    def __init__(self, version_dict, type, api_key, name, version, local):
         self.__api_key = api_key
-        self.name = dataset_slug
+        self.name = name
         self.version = version
         self.type = type
         self.augmentation = version_dict['augmentation']

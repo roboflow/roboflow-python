@@ -13,24 +13,24 @@ from roboflow.config import CLASSIFICATION_MODEL
 
 
 class ClassificationModel:
-    def __init__(self, api_key, id, dataset_slug=None, version=None, local=False):
+    def __init__(self, api_key, id, name=None, version=None, local=False):
         """
 
         :param api_key:
-        :param dataset_slug:
+        :param name:
         :param version:
         """
         # Instantiate different API URL parameters
         self.__api_key = api_key
         self.id=id
-        self.dataset_slug = dataset_slug
+        self.name = name
         self.version = version
         if not local:
             self.base_url = "https://classify.roboflow.com/"
         else:
             self.base_url = "http://localhost:9001/"
 
-        if dataset_slug is not None and version is not None:
+        if self.name is not None and version is not None:
             self.__generate_url()
 
     def predict(self, image_path, hosted=False):
@@ -69,15 +69,15 @@ class ClassificationModel:
                                                        image_path=image_path,
                                                        prediction_type=CLASSIFICATION_MODEL)
 
-    def load_model(self, dataset_slug, version):
+    def load_model(self, name, version):
         """
 
-        :param dataset_slug:
+        :param name:
         :param version:
         :return:
         """
         # Load model based on user defined characteristics
-        self.dataset_slug = dataset_slug
+        self.name = name
         self.version = version
         self.__generate_url()
 
@@ -108,7 +108,7 @@ class ClassificationModel:
                 raise Exception("Image does not exist at " + image_path_check + "!")
 
     def __str__(self):
-        json_value = {'name': self.dataset_slug,
+        json_value = {'name': self.name,
                       'version': self.version,
                       'base_url': self.base_url}
 
