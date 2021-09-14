@@ -2,6 +2,7 @@ import base64
 import io
 import os
 import urllib
+import json
 
 import requests
 from PIL import Image
@@ -102,3 +103,10 @@ class ClassificationModel:
         if image_path_check is not None:
             if not os.path.exists(image_path_check) and not check_image_url(image_path_check):
                 raise Exception("Image does not exist at " + image_path_check + "!")
+
+    def __str__(self):
+        json_value = {'name': self.dataset_slug,
+                      'version': self.version,
+                      'base_url': self.base_url}
+
+        return json.dumps(json_value, indent=2)

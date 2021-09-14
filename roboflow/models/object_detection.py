@@ -5,6 +5,7 @@ import os
 import requests
 import urllib
 from PIL import Image
+import json
 
 from roboflow.config import OBJECT_DETECTION_MODEL
 from roboflow.util.prediction import PredictionGroup
@@ -172,3 +173,15 @@ class ObjectDetectionModel:
         # add classes parameter to api
         if self.classes is not None:
             self.api_url += "&classes=" + self.classes
+    def __str__(self):
+        json_value = {'name': self.dataset_slug,
+                      'version': self.version,
+                      'classes': self.classes,
+                      'overlap': self.overlap,
+                      'confidence': self.confidence,
+                      'stroke': self.stroke,
+                      'labels': self.labels,
+                      'format': self.format,
+                      'base_url': self.base_url}
+
+        return json.dumps(json_value, indent=2)
