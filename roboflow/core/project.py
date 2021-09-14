@@ -3,6 +3,7 @@ import io
 import json
 import os
 import urllib
+import datetime
 import warnings
 import cv2
 import requests
@@ -12,25 +13,33 @@ from roboflow.core.version import Version
 
 #version class that should return
 class Project():
-    def __init__(self, api_key, dataset_slug, type, workspace):
-        self.api_key = api_key
-        self.name = dataset_slug
-        self.category = type
-        self.workspace = workspace
-        self.all_versions = []
+    def __init__(self, api_key, a_project):
+        self.__api_key = api_key
+        self.annotation = a_project['annotation']
+        self.classes = a_project['classes']
+        self.colors = a_project['colors']
+        self.created = datetime.datetime.fromtimestamp(a_project['created'])
+        self.id = a_project['id']
+        self.images = a_project['images']
+        self.name = a_project['name']
+        self.public = a_project['public']
+        self.splits = a_project['splits']
+        self.type = a_project['type']
+        self.unannotated = a_project['unannotated']
+        self.updated = datetime.datetime.fromtimestamp(a_project['updated'])
+
+        temp = self.id.rsplit("/")
+        self.__workspace = temp[0]
+        self.__project_name = temp[1]
 
     def get_version_information(self):
-
-        slug_splitted = self.name.rsplit("/")
-        p, w = slug_splitted[0], slug_splitted[1]
-
-        dataset_info = requests.get(API_URL + "/" + p + "/" + w + "?api_key=" + self.api_key)
+        dataset_info = requests.get(API_URL + "/" + self.__workspace + "/" + self.__project_name + "?api_key=" + self.__api_key)
 
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
         if dataset_info.status_code != 200:
             raise RuntimeError(dataset_info.text)
 
-        dataset_info = dataset_info.json()['project']
+        dataset_info = dataset_info.json()
         return dataset_info['versions']
 
     def list_versions(self):
@@ -41,9 +50,8 @@ class Project():
         version_info = self.get_version_information()
         version_array = []
         for a_version in version_info:
-            version_object = Version((self.category if 'model' in a_version else None), self.api_key, self.name, a_version['id'], local=False)
+            version_object = Version(a_version, (self.type if 'model' in a_version else None), self.__api_key, self.name, a_version['id'], local=False)
             version_array.append(version_object)
-
         return version_array
 
     def version(self, version_number):
@@ -53,8 +61,8 @@ class Project():
         for version_object in version_info:
 
             current_version_num = os.path.basename(version_object['id'])
-            if current_version_num == version_number:
-                vers = Version(self.category, self.api_key, self.name, current_version_num, local=False)
+            if current_version_num == str(version_number):
+                vers = Version(version_object, self.type, self.__api_key, self.name, current_version_num, local=False)
                 return vers
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
@@ -63,12 +71,15 @@ class Project():
 
         # If image is not a hosted image
         if not hosted_image:
-            project_name = os.path.basename(self.name)
+
+            project_name = self.id.rsplit("/")[1]
             image_name = os.path.basename(image_path)
+
             # Construct URL for local image upload
+
             self.image_upload_url = "".join([
                 "https://api.roboflow.com/dataset/", project_name, "/upload",
-                "?api_key=", self.api_key,
+                "?api_key=", self.__api_key,
                 "&name=" + image_name,
                 "&split=" + split
             ])
@@ -93,9 +104,11 @@ class Project():
 
         else:
             # Hosted image upload url
+            project_name = self.id.rsplit("/")[1]
+
             upload_url = "".join([
-                "https://api.roboflow.com/dataset/" + self.name + "/upload",
-                "?api_key=" + self.api_key,
+                "https://api.roboflow.com/dataset/" + self.project_name + "/upload",
+                "?api_key=" + self.__api_key,
                 "&name=" + os.path.basename(image_path),
                 "&split=" + split,
                 "&image=" + urllib.parse.quote_plus(image_path)
@@ -112,7 +125,7 @@ class Project():
         # Set annotation upload url
         self.annotation_upload_url = "".join([
             "https://api.roboflow.com/dataset/", self.name, "/annotate/", image_id,
-            "?api_key=", self.api_key,
+            "?api_key=", self.__api_key,
             "&name=" + os.path.basename(annotation_path)
         ])
         # Get annotation response
@@ -128,7 +141,6 @@ class Project():
         if image_path is not None:
             # Upload Image Response
             response = self.__image_upload(image_path, hosted_image=hosted_image, split=split)
-
             # Get JSON response values
             try:
                 success, image_id = response.json()['success'], response.json()['id']
@@ -166,9 +178,9 @@ class Project():
     def __str__(self):
         # String representation of project
         json_str = {
-            "dataset_slug": self.name,
-            "task_type": self.category,
-            "workspace": self.workspace
+            "name": self.name,
+            "type": self.type,
+            "workspace": self.__workspace,
         }
 
         return json.dumps(json_str, indent=2)

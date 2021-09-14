@@ -2,6 +2,7 @@ import base64
 import io
 import os
 import urllib
+import json
 
 import requests
 from PIL import Image
@@ -12,23 +13,24 @@ from roboflow.config import CLASSIFICATION_MODEL
 
 
 class ClassificationModel:
-    def __init__(self, api_key, dataset_slug=None, version=None, local=False):
+    def __init__(self, api_key, id, name=None, version=None, local=False):
         """
 
         :param api_key:
-        :param dataset_slug:
+        :param name:
         :param version:
         """
         # Instantiate different API URL parameters
-        self.api_key = api_key
-        self.dataset_slug = dataset_slug
+        self.__api_key = api_key
+        self.id=id
+        self.name = name
         self.version = version
         if not local:
             self.base_url = "https://classify.roboflow.com/"
         else:
             self.base_url = "http://localhost:9001/"
 
-        if dataset_slug is not None and version is not None:
+        if self.name is not None and version is not None:
             self.__generate_url()
 
     def predict(self, image_path, hosted=False):
@@ -67,15 +69,15 @@ class ClassificationModel:
                                                        image_path=image_path,
                                                        prediction_type=CLASSIFICATION_MODEL)
 
-    def load_model(self, dataset_slug, version):
+    def load_model(self, name, version):
         """
 
-        :param dataset_slug:
+        :param name:
         :param version:
         :return:
         """
         # Load model based on user defined characteristics
-        self.dataset_slug = dataset_slug
+        self.name = name
         self.version = version
         self.__generate_url()
 
@@ -86,10 +88,12 @@ class ClassificationModel:
         """
 
         # Generates URL based on all parameters
-        without_workspace = os.path.basename(self.dataset_slug)
+        splitted = self.id.rsplit("/")
+        without_workspace = splitted[1]
+
         self.api_url = "".join([
             self.base_url + without_workspace + '/' + str(self.version),
-            "?api_key=" + self.api_key,
+            "?api_key=" + self.__api_key,
             "&name=YOUR_IMAGE.jpg"])
 
     def __exception_check(self, image_path_check=None):
@@ -102,3 +106,10 @@ class ClassificationModel:
         if image_path_check is not None:
             if not os.path.exists(image_path_check) and not check_image_url(image_path_check):
                 raise Exception("Image does not exist at " + image_path_check + "!")
+
+    def __str__(self):
+        json_value = {'name': self.name,
+                      'version': self.version,
+                      'base_url': self.base_url}
+
+        return json.dumps(json_value, indent=2)

@@ -5,6 +5,7 @@ import os
 import requests
 import urllib
 from PIL import Image
+import json
 
 from roboflow.config import OBJECT_DETECTION_MODEL
 from roboflow.util.prediction import PredictionGroup
@@ -13,13 +14,13 @@ from roboflow.util.image_utils import check_image_url
 
 
 class ObjectDetectionModel:
-    def __init__(self, api_key, dataset_slug=None, version=None, local=False, classes=None, overlap=30, confidence=40,
+    def __init__(self, api_key, id, name=None, version=None, local=False, classes=None, overlap=30, confidence=40,
                  stroke=1, labels=False, format="json"):
         """
         From Roboflow Docs:
 
         :param api_key: Your API key (obtained via your workspace API settings page)
-        :param dataset_slug: The url-safe version of the dataset name.  You can find it in the web UI by looking at
+        :param name: The url-safe version of the dataset name.  You can find it in the web UI by looking at
         the URL on the main project view or by clicking the "Get curl command" button in the train results section of
         your dataset version after training your model.
         :param local: Boolean value dictating whether to use the local server or hosted API
@@ -39,8 +40,9 @@ class ObjectDetectionModel:
         """
         # Instantiate different API URL parameters
         # To be moved to predict
-        self.api_key = api_key
-        self.dataset_slug = dataset_slug
+        self.__api_key = api_key
+        self.id = id
+        self.name = name
         self.version = version
         self.classes = classes
         self.overlap = overlap
@@ -56,10 +58,10 @@ class ObjectDetectionModel:
             self.base_url = "http://localhost:9001/"
 
         # If dataset slug not none, instantiate API URL
-        if dataset_slug is not None and version is not None:
+        if name is not None and version is not None:
             self.__generate_url()
 
-    def load_model(self, dataset_slug, version, local=None, classes=None, overlap=None, confidence=None,
+    def load_model(self, name, version, local=None, classes=None, overlap=None, confidence=None,
                    stroke=None, labels=None, format=None):
         """
         Loads a Model based on a Model Endpoint
@@ -67,7 +69,7 @@ class ObjectDetectionModel:
         :param model_endpoint: This is the endpoint that is loaded into the api_url
         """
         # To load a model manually, they must specify a dataset slug
-        self.dataset_slug = dataset_slug
+        self.name = name
         self.version = version
         # Generate URL based on parameters
         self.__generate_url(local=local, classes=classes, overlap=overlap, confidence=confidence,
@@ -157,11 +159,12 @@ class ObjectDetectionModel:
             self.format = format
 
         # Create the new API URL
-        without_workspace = os.path.basename(self.dataset_slug)
+        splitted = self.id.rsplit("/")
+        without_workspace = splitted[1]
 
         self.api_url = "".join([
             self.base_url + without_workspace + '/' + str(self.version),
-            "?api_key=" + self.api_key,
+            "?api_key=" + self.__api_key,
             "&name=YOUR_IMAGE.jpg",
             "&overlap=" + str(self.overlap),
             "&confidence=" + str(self.confidence),
@@ -172,3 +175,22 @@ class ObjectDetectionModel:
         # add classes parameter to api
         if self.classes is not None:
             self.api_url += "&classes=" + self.classes
+    def __str__(self):
+        # Create the new API URL
+        splitted = self.id.rsplit("/")
+        without_workspace = splitted[1]
+
+        json_value = {
+            'id': without_workspace + '/' + str(self.version),
+            'name': self.name,
+            'version': self.version,
+            'classes': self.classes,
+            'overlap': self.overlap,
+            'confidence': self.confidence,
+            'stroke': self.stroke,
+            'labels': self.labels,
+            'format': self.format,
+            'base_url': self.base_url
+        }
+
+        return json.dumps(json_value, indent=2)

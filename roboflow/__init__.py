@@ -68,7 +68,7 @@ class Roboflow():
 
         dataset_info = dataset_info.json()['project']
 
-        return Project(self.api_key, dataset_info['id'], dataset_info['type'], dataset_info['versions'])
+        return Project(self.api_key, dataset_info)
 
     def __str__(self):
         json_value = {'api_key': self.api_key,
