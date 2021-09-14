@@ -176,14 +176,21 @@ class ObjectDetectionModel:
         if self.classes is not None:
             self.api_url += "&classes=" + self.classes
     def __str__(self):
-        json_value = {'name': self.name,
-                      'version': self.version,
-                      'classes': self.classes,
-                      'overlap': self.overlap,
-                      'confidence': self.confidence,
-                      'stroke': self.stroke,
-                      'labels': self.labels,
-                      'format': self.format,
-                      'base_url': self.base_url}
+        # Create the new API URL
+        splitted = self.id.rsplit("/")
+        without_workspace = splitted[1]
+
+        json_value = {
+            'id': without_workspace + '/' + str(self.version),
+            'name': self.name,
+            'version': self.version,
+            'classes': self.classes,
+            'overlap': self.overlap,
+            'confidence': self.confidence,
+            'stroke': self.stroke,
+            'labels': self.labels,
+            'format': self.format,
+            'base_url': self.base_url
+        }
 
         return json.dumps(json_value, indent=2)
