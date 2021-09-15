@@ -26,8 +26,8 @@ unittest.defaultTestLoader.sortTestMethodsUsing = compare
 
 
 class TestQueries(unittest.TestCase):
-    rf = roboflow.Roboflow(api_key="FuVGT9Nd8WdzDza6f6qd")
-    workspace = rf.workspace("palash-shah")
+    rf = roboflow.Roboflow(api_key="MY_KEY")
+    workspace = rf.workspace("A_WORKSPACE")
     """
     TEST QUERIES
 
@@ -46,7 +46,7 @@ class TestQueries(unittest.TestCase):
     def test_workspace_methods(self):
         print_projects = self.workspace.list_projects()
         project_array = self.workspace.projects()
-        project_obj = self.workspace.project("test-chess")
+        project_obj = self.workspace.project("PROJECT_NAME")
 
         self.assertIsNone(print_projects)
         self.assertTrue(isinstance(project_array, list))
