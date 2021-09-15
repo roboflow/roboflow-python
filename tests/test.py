@@ -3,6 +3,7 @@ import roboflow
 from roboflow.core.project import Project
 from roboflow.core.version import Version
 import unittest
+import json
 from _datetime import datetime
 from dotenv import load_dotenv
 
@@ -27,9 +28,18 @@ unittest.defaultTestLoader.sortTestMethodsUsing = compare
 
 
 class TestQueries(unittest.TestCase):
-    rf = roboflow.Roboflow(api_key="")
-    workspace = rf.workspace("")
-    project = workspace.project("")
+
+    with open('config.json') as f:
+        config = json.load(f)
+
+    ROBOFLOW_API_KEY = config["ROBOFLOW_KEY"]
+    WORKSPACE_NAME = config["WORKSPACE_NAME"]
+    PROJECT_NAME = config["PROJECT_NAME"]
+    IMAGE_NAME = config["IMAGE_NAME"]
+
+    rf = roboflow.Roboflow(api_key=ROBOFLOW_API_KEY)
+    workspace = rf.workspace(WORKSPACE_NAME)
+    project = workspace.project(PROJECT_NAME)
     """
     TEST QUERIES
 
@@ -46,7 +56,7 @@ class TestQueries(unittest.TestCase):
     def test_workspace_methods(self):
         print_projects = self.workspace.list_projects()
         project_array = self.workspace.projects()
-        project_obj = self.workspace.project("")
+        project_obj = self.workspace.project(self.PROJECT_NAME)
 
         self.assertIsNone(print_projects)
         self.assertTrue(isinstance(project_array, list))
@@ -70,7 +80,7 @@ class TestQueries(unittest.TestCase):
         version_information = self.project.get_version_information()
         print_versions = self.project.list_versions()
         list_versions = self.project.versions()
-        upload = self.project.upload("")
+        upload = self.project.upload(self.IMAGE_NAME)
 
         self.assertTrue(len(version_information) == 2)
         self.assertIsNone(print_versions)
