@@ -9,7 +9,7 @@ opencv-python==4.5.3.56
 Pillow
 pyparsing==2.4.7
 python-dateutil
-python-dotenv==0.18.0
+python-dotenv
 requests==2.25.1
 six
 urllib3==1.26.6
