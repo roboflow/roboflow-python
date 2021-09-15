@@ -1,4 +1,4 @@
-In order to use the tests located in `tests.py` you must create a `config.json` file with several 
+In order to use the tests located in `test.py` you must create a `config.json` file with several 
 variables for the tests to use. Your JSON should look like:
 ```
 {
