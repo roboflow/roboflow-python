@@ -24,16 +24,10 @@ Roboflow:
 To install this package, please use `Python 3.6` or higher. We provide three different ways to install the Roboflow
 package to use within your own projects.
 
-Install from Pypi (Recommended):
+Install from PyPi (Recommended):
 
 ```
 pip install roboflow
-```
-
-Install from Conda:
-
-```
-conda install roboflow
 ```
 
 Install from Source:
