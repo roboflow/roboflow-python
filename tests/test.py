@@ -3,6 +3,8 @@ import roboflow
 from roboflow.core.project import Project
 from roboflow.core.version import Version
 import unittest
+from roboflow.models.classification import ClassificationModel
+from roboflow.models.object_detection import ObjectDetectionModel
 import json
 from _datetime import datetime
 from dotenv import load_dotenv
@@ -36,10 +38,12 @@ class TestQueries(unittest.TestCase):
     WORKSPACE_NAME = config["WORKSPACE_NAME"]
     PROJECT_NAME = config["PROJECT_NAME"]
     IMAGE_NAME = config["IMAGE_NAME"]
+    VERSION_NUMBER = config["VERSION_NUMBER"]
 
     rf = roboflow.Roboflow(api_key=ROBOFLOW_API_KEY)
     workspace = rf.workspace(WORKSPACE_NAME)
     project = workspace.project(PROJECT_NAME)
+    version = project.version("1")
     """
     TEST QUERIES
 
@@ -86,6 +90,24 @@ class TestQueries(unittest.TestCase):
         self.assertIsNone(print_versions)
         self.assertTrue(all(map(lambda x: isinstance(x, Version), list_versions)))
         self.assertIsNone(upload)
+
+
+    @ordered
+    def test_version_fields(self):
+        self.assertTrue(isinstance(self.version.name, str))
+        self.assertTrue(isinstance(self.version.version, str))
+        self.assertTrue(isinstance(self.version.type, str))
+        self.assertTrue(isinstance(self.version.augmentation, dict))
+        self.assertTrue(isinstance(self.version.created, float))
+        self.assertTrue(isinstance(self.version.id, str))
+        self.assertTrue(isinstance(self.version.images, int))
+        self.assertTrue(isinstance(self.version.preprocessing, dict))
+        self.assertTrue(isinstance(self.version.splits, dict))
+
+    @ordered
+    def test_version_methods(self):
+        self.assertTrue((isinstance(self.version.model, ClassificationModel) or
+                         (isinstance(self.version.model, ObjectDetectionModel))))
 
 if __name__ == '__main__':
     unittest.main()
