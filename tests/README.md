@@ -5,7 +5,8 @@ variables for the tests to use. Your JSON should look like:
     "ROBOFLOW_KEY": "YOUR_ROBOFLOW_KEY",
     "WORKSPACE_NAME": "WORKSPACE_TO_TEST",
     "PROJECT_NAME": "PROJECT_TO_TEST",
-    "IMAGE_NAME": "IMAGE_TO_UPLOAD"
+    "IMAGE_NAME": "IMAGE_TO_UPLOAD",
+    "VERSION_NUMBER": "DATASET_VERSION"
 }
 ```
 
