@@ -3,7 +3,7 @@
 ---
 ![roboflow logo](https://i.imgur.com/lXCoVt5.png)
 
-[Website](https://roboflow.com) • [Docs](https://docs.roboflow.com) • [Blog](https://blog.roboflow.com)
+[Website](https://docs.roboflow.com/python) • [Docs](https://docs.roboflow.com) • [Blog](https://blog.roboflow.com)
 • [Twitter](https://twitter.com/roboflow) • [Linkedin](https://www.linkedin.com/company/roboflow-ai)
 • [Universe](https://universe.roboflow.com)
 
