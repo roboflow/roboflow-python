@@ -9,6 +9,10 @@ from roboflow.config import *
 
 
 def check_key(api_key):
+    """Function that takes in the user provided api_key and calls the REST API for authentication.
+    :param api_key: user provided roboflow private key for authentication
+    :return authenticated response
+    """
     if type(api_key) is not str:
         raise RuntimeError(
             "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key)))
@@ -30,6 +34,8 @@ def auth(api_key):
 
 
 class Roboflow():
+    """Roboflow class that contains all of the intiial functions to retrieve user information
+    """
     def __init__(self, api_key):
         self.api_key = api_key
         self.auth()
@@ -43,6 +49,10 @@ class Roboflow():
         return self
 
     def workspace(self, the_workspace=None):
+        """Function that takes in a workspace name and returns a workspace object with appropriate information
+        :param the_workspace: workspace name
+        :return workspace object
+        """
 
         if the_workspace is None:
             the_workspace = self.current_workspace
@@ -52,6 +62,11 @@ class Roboflow():
         return Workspace(list_projects, self.api_key, the_workspace)
 
     def project(self, project_name, the_workspace=None):
+        """Function that takes in the name of the project and returns the project object
+        :param project_name api_key: project name
+        :param the_workspace workspace name
+        :return project object
+        """
 
         if the_workspace is None:
             if "/" in project_name:
@@ -71,6 +86,8 @@ class Roboflow():
         return Project(self.api_key, dataset_info)
 
     def __str__(self):
+        """to string function
+        """
         json_value = {'api_key': self.api_key,
                       'workspace': self.workspace}
         return json.dumps(json_value, indent=2)
