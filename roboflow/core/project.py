@@ -13,6 +13,10 @@ from roboflow.core.version import Version
 
 #version class that should return
 class Project():
+    """Object that stores all information and operations that can be performed on a specific project.
+    :param api_key: private roboflow API key
+    :param a_project: dictionary with project information
+    """
     def __init__(self, api_key, a_project):
         self.__api_key = api_key
         self.annotation = a_project['annotation']
@@ -33,6 +37,9 @@ class Project():
         self.__project_name = temp[1]
 
     def get_version_information(self):
+        """Helper function to get version information from the REST API.
+        :returns dictionary with information about all of the versions directly from the API.
+        """
         dataset_info = requests.get(API_URL + "/" + self.__workspace + "/" + self.__project_name + "?api_key=" + self.__api_key)
 
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
@@ -43,10 +50,15 @@ class Project():
         return dataset_info['versions']
 
     def list_versions(self):
+        """Prints out versions for that specific project
+        """
         version_info = self.get_version_information()
         print(version_info)
 
     def versions(self):
+        """function to return all versions in the project as Version objects.
+        :returns an array of Version() objects.
+        """
         version_info = self.get_version_information()
         version_array = []
         for a_version in version_info:
@@ -55,6 +67,10 @@ class Project():
         return version_array
 
     def version(self, version_number):
+        """Retrieves information about a specific version, and throws it into an object.
+        :param version_number: the version number that you want to retrieve
+        :return Version() object
+        """
 
         version_info = self.get_version_information()
 
@@ -68,6 +84,11 @@ class Project():
         raise RuntimeError("Version number {} is not found.".format(version_number))
 
     def __image_upload(self, image_path, hosted_image=False, split="train"):
+        """function to upload image to the specific project
+        :param image_path: path to image you'd like to upload.
+        :param hosted_image: if the image is hosted online, then this should be modified
+        :param split: the dataset split to upload the project to.
+        """
 
         # If image is not a hosted image
         if not hosted_image:
@@ -120,6 +141,10 @@ class Project():
         return response
 
     def __annotation_upload(self, annotation_path, image_id):
+        """function to upload annotation to the specific project
+        :param annotation_path: path to annotation you'd like to upload
+        :param image_id: image id you'd like to upload that has annotations for it.
+        """
         # Get annotation string
         annotation_string = open(annotation_path, "r").read()
         # Set annotation upload url
@@ -136,6 +161,13 @@ class Project():
         return annotation_response
 
     def upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train'):
+        """upload function
+        :param image_path: path to image you'd like to upload
+        :param annotation_path: if you're upload annotation, path to it
+        :param hosted_image: whether the image is hosted
+        :param image_id: id of the image
+        :param split: split to upload the image to
+        """
         success = False
         # User gives image path
         if image_path is not None:
