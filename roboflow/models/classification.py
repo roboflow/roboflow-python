@@ -15,10 +15,11 @@ from roboflow.config import CLASSIFICATION_MODEL
 class ClassificationModel:
     def __init__(self, api_key, id, name=None, version=None, local=False):
         """
-
-        :param api_key:
-        :param name:
-        :param version:
+        :param api_key: private roboflow api key
+        :param id: the workspace/project id
+        :param name: is the name of thep project
+        :param version: version number
+        :return ClassificationModel Object
         """
         # Instantiate different API URL parameters
         self.__api_key = api_key
@@ -36,9 +37,9 @@ class ClassificationModel:
     def predict(self, image_path, hosted=False):
         """
 
-        :param image_path:
-        :param hosted:
-        :return:
+        :param image_path: path to the image you'd like to perform prediction on
+        :param hosted: whether the image you're providing is hosted online
+        :return: PredictionGroup object
         """
         self.__generate_url()
         self.__exception_check(image_path_check=image_path)
@@ -71,10 +72,8 @@ class ClassificationModel:
 
     def load_model(self, name, version):
         """
-
-        :param name:
-        :param version:
-        :return:
+        :param name: is the name of the model you'd like to load
+        :param version: version number
         """
         # Load model based on user defined characteristics
         self.name = name
@@ -83,8 +82,7 @@ class ClassificationModel:
 
     def __generate_url(self):
         """
-
-        :return:
+        :return: roboflow API url
         """
 
         # Generates URL based on all parameters
@@ -98,9 +96,7 @@ class ClassificationModel:
 
     def __exception_check(self, image_path_check=None):
         """
-
-        :param image_path_check:
-        :return:
+        :param image_path_check: checks to see if the image exists.
         """
         # Checks if image exists
         if image_path_check is not None:
@@ -108,6 +104,9 @@ class ClassificationModel:
                 raise Exception("Image does not exist at " + image_path_check + "!")
 
     def __str__(self):
+        """
+        String representation of classification object
+        """
         json_value = {'name': self.name,
                       'version': self.version,
                       'base_url': self.base_url}
