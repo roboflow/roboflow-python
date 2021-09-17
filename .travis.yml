@@ -5,5 +5,3 @@ python:
 install:
   - pip install -r requirements.txt
   - pip install .
-script:
-  - python -m unittest discover ./tests "test.py"
