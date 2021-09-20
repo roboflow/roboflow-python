@@ -2,6 +2,15 @@ from roboflow.models.classification import ClassificationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 import os
 import json
+import requests
+import urllib
+import wget
+import zipfile
+from roboflow.config import *
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Version():
@@ -25,6 +34,34 @@ class Version():
             self.model = ClassificationModel(self.__api_key, self.id, self.name, version_without_workspace, self.id, local=local)
         else:
             self.model = None
+
+
+    def download(self, download_type):
+        url = self.__get_download_url(download_type)
+        resp = requests.get(url)
+        if resp.status_code == 200: 
+            link = resp.json()['export']['link']
+            wget.download(link, out="roboflow.zip")
+            with zipfile.ZipFile("roboflow.zip", 'r') as zip_ref:
+                zip_ref.extractall('./')
+            os.remove('./roboflow.zip')
+        else:
+            raise RuntimeError(resp.json())
+
+
+
+    def __get_download_url(self, download_type):
+        temporary = self.id.rsplit("/")
+        workspace, project = temporary[0], temporary[1]
+        url = "".join([
+            API_URL + '/' + workspace + '/' + project,
+            "/" + self.version,
+            "/" + download_type,
+            "?api_key=" + self.__api_key,
+            ])
+        return url
+
+
 
     def __str__(self):
         json_value = {
