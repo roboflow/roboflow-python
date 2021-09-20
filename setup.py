@@ -29,6 +29,8 @@ setuptools.setup(
         "requests==2.25.1",
         "six",
         "urllib3==1.26.6",
+        "wget",
+        "zipfile"
     ],
     packages=find_packages(exclude=('tests',)),
     classifiers=[
