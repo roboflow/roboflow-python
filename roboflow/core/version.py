@@ -4,6 +4,8 @@ import os
 import json
 import requests
 import urllib
+import wget
+import zipfile
 
 from dotenv import load_dotenv
 
@@ -37,6 +39,10 @@ class Version():
         url = self.__get_download_url(download_type)
         resp = requests.get(url).json()
         link = resp['export']['link']
+        wget.download(link, out="roboflow.zip")
+        with zipfile.ZipFile("roboflow.zip", 'r') as zip_ref:
+            zip_ref.extractall('./')
+        os.remove('./roboflow.zip')
 
 
 
