@@ -24,14 +24,14 @@ def make_orderer():
 ordered, compare = make_orderer()
 unittest.defaultTestLoader.sortTestMethodsUsing = compare
 
+ROBOFLOW_API_KEY = os.environ.get('ROBOFLOW_API_KEY')
+WORKSPACE_NAME = os.environ.get('WORKSPACE_NAME')
+PROJECT_NAME = os.environ.get('PROJECT_NAME')
+IMAGE_NAME = os.environ.get('IMAGE_NAME')
+
 
 class TestQueries(unittest.TestCase):
 
-    ROBOFLOW_API_KEY = os.environ.get('ROBOFLOW_API_KEY')
-    WORKSPACE_NAME = os.environ.get('WORKSPACE_NAME')
-    PROJECT_NAME = os.environ.get('PROJECT_NAME')
-    IMAGE_NAME = os.environ.get('IMAGE_NAME')
-    
     rf = roboflow.Roboflow(api_key=ROBOFLOW_API_KEY)
     workspace = rf.workspace(WORKSPACE_NAME)
     project = workspace.project(PROJECT_NAME)
