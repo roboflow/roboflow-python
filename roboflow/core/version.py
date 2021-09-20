@@ -6,6 +6,7 @@ import requests
 import urllib
 import wget
 import zipfile
+from roboflow.config import *
 
 from dotenv import load_dotenv
 
@@ -37,12 +38,15 @@ class Version():
 
     def download(self, download_type):
         url = self.__get_download_url(download_type)
-        resp = requests.get(url).json()
-        link = resp['export']['link']
-        wget.download(link, out="roboflow.zip")
-        with zipfile.ZipFile("roboflow.zip", 'r') as zip_ref:
-            zip_ref.extractall('./')
-        os.remove('./roboflow.zip')
+        resp = requests.get(url)
+        if resp.status_code == 200: 
+            link = resp.json()['export']['link']
+            wget.download(link, out="roboflow.zip")
+            with zipfile.ZipFile("roboflow.zip", 'r') as zip_ref:
+                zip_ref.extractall('./')
+            os.remove('./roboflow.zip')
+        else:
+            raise RuntimeError(resp.json())
 
 
 
@@ -50,7 +54,7 @@ class Version():
         temporary = self.id.rsplit("/")
         workspace, project = temporary[0], temporary[1]
         url = "".join([
-            "https://api.roboflow.com/" + workspace + '/' + project,
+            API_URL + '/' + workspace + '/' + project,
             "/" + self.version,
             "/" + download_type,
             "?api_key=" + self.__api_key,
