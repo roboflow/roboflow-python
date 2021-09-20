@@ -135,7 +135,38 @@ class Project():
         # Return annotation response
         return annotation_response
 
+    def check_valid_image(self, image_path):
+        acceptable_formats = ['png', 'jpeg', 'jpg']
+
+        is_image = False
+
+        for format in acceptable_formats:
+            if format in image_path:
+                is_image = True
+
+        return is_image
+
     def upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train'):
+
+        if os.path.isfile(image_path):
+            is_image = self.check_valid_image(image_path)
+
+            if not is_image:
+                raise RuntimeError("The image you provided {} is not a supported file format. We currently support png, jpeg, and jpg.".format(image_path))
+
+            self.single_upload(image_path=image_path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split)
+        else:
+            images = os.listdir(image_path)
+            for image in images:
+                path = image_path + "/" + image
+                if self.check_valid_image(image):
+                    self.single_upload(image_path=path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split)
+                    print("[ " + path + " ] was uploaded succesfully.")
+                else:
+                    print("[ " + path + " ] was skipped.")
+                    continue
+
+    def single_upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train'):
         success = False
         # User gives image path
         if image_path is not None:
