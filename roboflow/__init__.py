@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import sys
 
 import requests
 from roboflow.core.workspace import Workspace
@@ -8,10 +9,15 @@ from roboflow.core.project import Project
 from roboflow.config import *
 
 
-def check_key(api_key):
+def check_key(api_key, model, notebook):
     if type(api_key) is not str:
         raise RuntimeError(
             "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key)))
+
+    if api_key == "YOUR ROBOFLOW API KEY HERE":
+        #enter onboarding
+        sys.stdout.write("upload and label your dataset in Roboflow here: " + APP_URL + "/model=" + model + "&source=" + notebook + "\n")
+        return "onboarding"
 
     response = requests.post(API_URL + "/?api_key=" + api_key)
     r = response.json()
@@ -30,17 +36,23 @@ def auth(api_key):
 
 
 class Roboflow():
-    def __init__(self, api_key):
+    def __init__(self, api_key, model="yolov5", notebook="roboflow-yolov5"):
         self.api_key = api_key
+        self.model = model
+        self.notebook = notebook
         self.auth()
+        self.onboarding = False
 
     def auth(self):
-        r = check_key(self.api_key)
-        w = r['workspace']
+        r = check_key(self.api_key, self.model, self.notebook)
 
-        self.current_workspace=w
-
-        return self
+        if r == "onboarding":
+            self.onboarding = True 
+            return
+        else:
+            w = r['workspace']
+            self.current_workspace=w
+            return self
 
     def workspace(self, the_workspace=None):
 
