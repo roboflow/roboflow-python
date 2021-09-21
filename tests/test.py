@@ -8,6 +8,7 @@ from roboflow.models.classification import ClassificationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 import os
 
+
 def make_orderer():
     order = {}
 
@@ -27,6 +28,7 @@ unittest.defaultTestLoader.sortTestMethodsUsing = compare
 ROBOFLOW_API_KEY = os.environ.get('ROBOFLOW_API_KEY')
 WORKSPACE_NAME = os.environ.get('WORKSPACE_NAME')
 PROJECT_NAME = os.environ.get('PROJECT_NAME')
+
 
 class TestQueries(unittest.TestCase):
 
@@ -78,9 +80,9 @@ class TestQueries(unittest.TestCase):
 
         self.assertTrue(len(version_information) == 2)
         self.assertIsNone(print_versions)
-        self.assertTrue(all(map(lambda x: isinstance(x, Version), list_versions)))
+        self.assertTrue(
+            all(map(lambda x: isinstance(x, Version), list_versions)))
         self.assertIsNone(upload)
-
 
     @ordered
     def test_version_fields(self):
@@ -99,6 +101,6 @@ class TestQueries(unittest.TestCase):
         self.assertTrue((isinstance(self.version.model, ClassificationModel) or
                          (isinstance(self.version.model, ObjectDetectionModel))))
 
+
 if __name__ == '__main__':
     unittest.main()
-
