@@ -45,7 +45,7 @@ class Version():
             link = resp.json()['export']['link']
     
             def bar_progress(current, total, width=80):
-                progress_message = "Downloading: %d%% [%d / %d] bytes" % (current / total * 100, current, total)
+                progress_message = "Downloading Dataset Version Zip in " + download_type + ": %d%% [%d / %d] bytes" % (current / total * 100, current, total)
                 sys.stdout.write("\r" + progress_message)
                 sys.stdout.flush()
             
@@ -54,7 +54,7 @@ class Version():
             sys.stdout.flush()
 
             with zipfile.ZipFile("roboflow.zip", 'r') as zip_ref:
-                for member in tqdm(zip_ref.infolist(), desc='Extracting '):
+                for member in tqdm(zip_ref.infolist(), desc="Extracting Dataset Version Zip in " + download_type + ":"):
                     try:
                         zip_ref.extract(member, "./")
                     except zipfile.error as e:
