@@ -148,7 +148,13 @@ class Project():
 
     def upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train'):
 
-        if os.path.isfile(image_path):
+        is_file = os.path.isfile(image_path)
+        is_dir = os.path.isdir(image_path)
+
+        if not is_file and not is_dir:
+            raise RuntimeError("The provided image path [ {} ] is not a valid path. Please provide a path to an image or a directory.".format(image_path))
+
+        if is_file:
             is_image = self.check_valid_image(image_path)
 
             if not is_image:
