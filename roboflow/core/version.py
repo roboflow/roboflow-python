@@ -7,6 +7,7 @@ import urllib
 import wget
 import zipfile
 from roboflow.config import *
+import sys
 
 from dotenv import load_dotenv
 
@@ -41,7 +42,14 @@ class Version():
         resp = requests.get(url)
         if resp.status_code == 200: 
             link = resp.json()['export']['link']
-            wget.download(link, out="roboflow.zip")
+    
+            def bar_progress(current, total, width=80):
+                progress_message = "Downloading: %d%% [%d / %d] bytes" % (current / total * 100, current, total)
+                sys.stdout.write("\r" + progress_message)
+                sys.stdout.flush()
+            
+            wget.download(link, out="roboflow.zip", bar=bar_progress)
+
             with zipfile.ZipFile("roboflow.zip", 'r') as zip_ref:
                 zip_ref.extractall('./')
             os.remove('./roboflow.zip')
