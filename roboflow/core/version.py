@@ -8,6 +8,7 @@ import wget
 import zipfile
 from roboflow.config import *
 import sys
+from tqdm import tqdm
 
 from dotenv import load_dotenv
 
@@ -49,9 +50,16 @@ class Version():
                 sys.stdout.flush()
             
             wget.download(link, out="roboflow.zip", bar=bar_progress)
+            sys.stdout.write("\n")
+            sys.stdout.flush()
 
             with zipfile.ZipFile("roboflow.zip", 'r') as zip_ref:
-                zip_ref.extractall('./')
+                for member in tqdm(zip_ref.infolist(), desc='Extracting '):
+                    try:
+                        zip_ref.extract(member, "./")
+                    except zipfile.error as e:
+                        pass
+
             os.remove('./roboflow.zip')
         else:
             raise RuntimeError(resp.json())

@@ -15,3 +15,4 @@ six
 urllib3==1.26.6
 wget
 zipfile
+tqdm

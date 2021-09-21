@@ -30,7 +30,8 @@ setuptools.setup(
         "six",
         "urllib3==1.26.6",
         "wget",
-        "zipfile"
+        "zipfile",
+        "tqdm"
     ],
     packages=find_packages(exclude=('tests',)),
     classifiers=[
