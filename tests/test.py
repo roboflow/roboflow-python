@@ -27,12 +27,12 @@ unittest.defaultTestLoader.sortTestMethodsUsing = compare
 os.environ["ROBOFLOW_API_KEY"] = "wat3cgCEVOEybWfCLyTO"
 os.environ["WORKSPACE_NAME"] = "palash-shah"
 os.environ["PROJECT_NAME"] = "test-chess"
-os.environ["IMAGE_NAME"] = "rabbit2.jpg"
+# os.environ["IMAGE_NAME"] = "rabbit2.jpg"
 
 ROBOFLOW_API_KEY = os.environ.get('ROBOFLOW_API_KEY')
 WORKSPACE_NAME = os.environ.get('WORKSPACE_NAME')
 PROJECT_NAME = os.environ.get('PROJECT_NAME')
-IMAGE_NAME = os.environ.get('IMAGE_NAME')
+# IMAGE_NAME = os.environ.get('IMAGE_NAME')
 
 
 class TestQueries(unittest.TestCase):
@@ -81,7 +81,7 @@ class TestQueries(unittest.TestCase):
         version_information = self.project.get_version_information()
         print_versions = self.project.list_versions()
         list_versions = self.project.versions()
-        upload = self.project.upload(IMAGE_NAME)
+        upload = self.project.upload('rabbit2.jpg')
 
         self.assertTrue(len(version_information) == 2)
         self.assertIsNone(print_versions)
