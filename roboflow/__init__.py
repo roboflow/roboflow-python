@@ -40,21 +40,23 @@ class Roboflow():
         self.api_key = api_key
         self.model = model
         self.notebook = notebook
-        self.auth()
         self.onboarding = False
+        self.auth()
 
     def auth(self):
         r = check_key(self.api_key, self.model, self.notebook)
 
         if r == "onboarding":
             self.onboarding = True 
-            return
+            return self
         else:
             w = r['workspace']
             self.current_workspace=w
             return self
 
     def workspace(self, the_workspace=None):
+        if self.onboarding:
+            os._exit(1)
 
         if the_workspace is None:
             the_workspace = self.current_workspace
@@ -64,6 +66,8 @@ class Roboflow():
         return Workspace(list_projects, self.api_key, the_workspace)
 
     def project(self, project_name, the_workspace=None):
+        if self.onboarding:
+            os._exit(1)
 
         if the_workspace is None:
             if "/" in project_name:
