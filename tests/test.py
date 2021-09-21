@@ -81,7 +81,7 @@ class TestQueries(unittest.TestCase):
         version_information = self.project.get_version_information()
         print_versions = self.project.list_versions()
         list_versions = self.project.versions()
-        upload = self.project.upload('rabbit2.jpg')
+        upload = self.project.upload('tests/rabbit2.jpg')
 
         self.assertTrue(len(version_information) == 2)
         self.assertIsNone(print_versions)
