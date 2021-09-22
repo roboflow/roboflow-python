@@ -36,15 +36,15 @@ def auth(api_key):
 
 
 class Roboflow():
-    def __init__(self, api_key, model="yolov5", notebook="roboflow-yolov5"):
+    def __init__(self, api_key, model_format="yolov5", notebook="roboflow-yolov5"):
         self.api_key = api_key
-        self.model = model
+        self.model_format = model_format
         self.notebook = notebook
         self.onboarding = False
         self.auth()
 
     def auth(self):
-        r = check_key(self.api_key, self.model, self.notebook)
+        r = check_key(self.api_key, self.model_format, self.notebook)
 
         if r == "onboarding":
             self.onboarding = True 
@@ -63,7 +63,7 @@ class Roboflow():
 
         list_projects = requests.get(API_URL + "/" + the_workspace + '?api_key=' + self.api_key).json()
 
-        return Workspace(list_projects, self.api_key, the_workspace)
+        return Workspace(list_projects, self.api_key, the_workspace, self.model_format)
 
     def project(self, project_name, the_workspace=None):
         if self.onboarding:

@@ -13,7 +13,7 @@ from roboflow.core.version import Version
 
 #version class that should return
 class Project():
-    def __init__(self, api_key, a_project):
+    def __init__(self, api_key, a_project, model_format):
         self.__api_key = api_key
         self.annotation = a_project['annotation']
         self.classes = a_project['classes']
@@ -27,6 +27,7 @@ class Project():
         self.type = a_project['type']
         self.unannotated = a_project['unannotated']
         self.updated = datetime.datetime.fromtimestamp(a_project['updated'])
+        self.model_format = model_format
 
         temp = self.id.rsplit("/")
         self.__workspace = temp[0]
@@ -62,7 +63,7 @@ class Project():
 
             current_version_num = os.path.basename(version_object['id'])
             if current_version_num == str(version_number):
-                vers = Version(version_object, self.type, self.__api_key, self.name, current_version_num, local=False)
+                vers = Version(version_object, self.type, self.__api_key, self.name, current_version_num, self.model_format, local=False)
                 return vers
 
         raise RuntimeError("Version number {} is not found.".format(version_number))

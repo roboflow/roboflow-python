@@ -4,12 +4,13 @@ from roboflow.core.project import Project
 from roboflow.config import *
 
 class Workspace():
-    def __init__(self, info, api_key, default_workspace):
+    def __init__(self, info, api_key, default_workspace, model_format):
         workspace_info = info['workspace']
         self.name = workspace_info['name']
         self.project_list = workspace_info['projects']
         self.members = workspace_info['members']
         self.url = workspace_info['url']
+        self.model_format = model_format
 
         self.__api_key = api_key
 
@@ -40,7 +41,7 @@ class Workspace():
 
         dataset_info = dataset_info.json()['project']
 
-        return Project(self.__api_key, dataset_info)
+        return Project(self.__api_key, dataset_info, self.model_format)
 
     def __str__(self):
         json_value = {'name': self.name,

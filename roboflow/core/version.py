@@ -16,7 +16,7 @@ load_dotenv()
 
 
 class Version():
-    def __init__(self, version_dict, type, api_key, name, version, local):
+    def __init__(self, version_dict, type, api_key, name, version, model_format, local):
         self.__api_key = api_key
         self.name = name
         self.version = version
@@ -27,6 +27,7 @@ class Version():
         self.images = version_dict['images']
         self.preprocessing = version_dict['preprocessing']
         self.splits = version_dict['splits']
+        self.model_format = model_format
 
         version_without_workspace = os.path.basename(version)
 
@@ -38,7 +39,14 @@ class Version():
             self.model = None
 
 
-    def download(self, download_type):
+    def download(self, download_type=None):
+
+        if download_type == None:
+            if self.model_format == 'yolov5':
+                download_type = 'yolov5pytorch'
+            else:
+                RuntimeError("You must pass a download_type to version.download() or define model in your Roboflow object")
+
         url = self.__get_download_url(download_type)
         resp = requests.get(url)
         if resp.status_code == 200: 
