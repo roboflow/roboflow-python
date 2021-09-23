@@ -39,7 +39,13 @@ class Version():
             self.model = None
 
 
-    def download(self, download_type=None):
+    def download(self, download_type=None, location=None):
+        
+        if location == None:
+            location = '../datasets/' + self.name + "-" +  self.version
+
+        if not os.path.exists(location):
+            os.makedirs(location)
 
         if download_type == None:
             if self.model_format == 'yolov5':
@@ -53,22 +59,22 @@ class Version():
             link = resp.json()['export']['link']
     
             def bar_progress(current, total, width=80):
-                progress_message = "Downloading Dataset Version Zip in " + download_type + ": %d%% [%d / %d] bytes" % (current / total * 100, current, total)
+                progress_message = "Downloading Dataset Version Zip in " + location + " to " + download_type + ": %d%% [%d / %d] bytes" % (current / total * 100, current, total)
                 sys.stdout.write("\r" + progress_message)
                 sys.stdout.flush()
             
-            wget.download(link, out="roboflow.zip", bar=bar_progress)
+            wget.download(link, out=location + "/roboflow.zip", bar=bar_progress)
             sys.stdout.write("\n")
             sys.stdout.flush()
 
-            with zipfile.ZipFile("roboflow.zip", 'r') as zip_ref:
-                for member in tqdm(zip_ref.infolist(), desc="Extracting Dataset Version Zip in " + download_type + ":"):
+            with zipfile.ZipFile(location + "/roboflow.zip", 'r') as zip_ref:
+                for member in tqdm(zip_ref.infolist(), desc="Extracting Dataset Version Zip to " + location + " in " + download_type + ":"):
                     try:
                         zip_ref.extract(member, "./")
                     except zipfile.error as e:
                         pass
 
-            os.remove('./roboflow.zip')
+            os.remove(location + '/roboflow.zip')
         else:
             raise RuntimeError(resp.json())
 

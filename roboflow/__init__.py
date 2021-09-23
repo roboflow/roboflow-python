@@ -16,7 +16,7 @@ def check_key(api_key, model, notebook):
 
     if api_key == "YOUR ROBOFLOW API KEY HERE":
         #enter onboarding
-        sys.stdout.write("upload and label your dataset in Roboflow here: " + APP_URL + "/model=" + model + "&source=" + notebook + "\n")
+        sys.stdout.write("upload and label your dataset in Roboflow here: " + APP_URL + "?model=" + model + "&source=" + notebook + "\n")
         return "onboarding"
 
     response = requests.post(API_URL + "/?api_key=" + api_key)
