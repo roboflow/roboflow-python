@@ -70,7 +70,7 @@ class Version():
             with zipfile.ZipFile(location + "/roboflow.zip", 'r') as zip_ref:
                 for member in tqdm(zip_ref.infolist(), desc="Extracting Dataset Version Zip to " + location + " in " + download_type + ":"):
                     try:
-                        zip_ref.extract(member, "./")
+                        zip_ref.extract(member, location)
                     except zipfile.error as e:
                         pass
 
