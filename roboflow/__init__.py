@@ -14,18 +14,17 @@ def check_key(api_key, model, notebook):
         raise RuntimeError(
             "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key)))
 
-    if api_key == "YOUR ROBOFLOW API KEY HERE":
-        #enter onboarding
-        sys.stdout.write("upload and label your dataset in Roboflow here: " + APP_URL + "?model=" + model + "&source=" + notebook + "\n")
+    if any(c for c in api_key if c.islower()): #check if any of the api key characters are lowercase
+        response = requests.post(API_URL + "/?api_key=" + api_key)
+        r = response.json()
+
+        if "error" in r or response.status_code != 200:
+            raise RuntimeError(response.text)
+        else:
+            return r
+    else: #then you're using a dummy key
+        sys.stdout.write("upload and label your dataset, and get an API KEY here: " + APP_URL + "?model=" + model + "&source=" + notebook + "\n")
         return "onboarding"
-
-    response = requests.post(API_URL + "/?api_key=" + api_key)
-    r = response.json()
-
-    if "error" in r or response.status_code != 200:
-        raise RuntimeError(response.text)
-    else:
-        return r
 
 
 def auth(api_key):
@@ -36,7 +35,7 @@ def auth(api_key):
 
 
 class Roboflow():
-    def __init__(self, api_key, model_format="yolov5", notebook="roboflow-yolov5"):
+    def __init__(self, api_key="YOUR ROBOFLOW API KEY HERE", model_format="yolov5", notebook="roboflow-yolov5"):
         self.api_key = api_key
         self.model_format = model_format
         self.notebook = notebook
