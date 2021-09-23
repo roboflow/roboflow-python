@@ -54,8 +54,6 @@ class Roboflow():
             return self
 
     def workspace(self, the_workspace=None):
-        if self.onboarding:
-            os._exit(1)
 
         if the_workspace is None:
             the_workspace = self.current_workspace
@@ -65,8 +63,6 @@ class Roboflow():
         return Workspace(list_projects, self.api_key, the_workspace, self.model_format)
 
     def project(self, project_name, the_workspace=None):
-        if self.onboarding:
-            os._exit(1)
 
         if the_workspace is None:
             if "/" in project_name:
