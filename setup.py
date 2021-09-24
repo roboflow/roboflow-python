@@ -31,7 +31,7 @@ setuptools.setup(
         "urllib3==1.26.6",
         "wget",
         "tqdm",
-        "pyyaml"
+        "pyyaml",
         "wget"
     ],
     packages=find_packages(exclude=('tests',)),
