@@ -42,8 +42,11 @@ class Version():
 
     def download(self, download_type=None, location=None):
         
-        if location == None:                
-            location = '../datasets/' + self.name + "-" +  self.version
+        if location == None:
+            if "DATASET_DIRECTORY" in os.environ:
+                location = os.environ["DATASET_DIRECTORY"] + "/" + self.name + "-" +  self.version
+            else:             
+                location = self.name + "-" +  self.version
 
         if not os.path.exists(location):
             os.makedirs(location)
@@ -77,7 +80,7 @@ class Version():
 
             if self.model_format == 'yolov5':
                 with open(location + "/data.yaml") as file:
-                    new_yaml = yaml.load(file)
+                    new_yaml = yaml.safe_load(file)
                 new_yaml["train"] = location + new_yaml["train"].lstrip("..")
                 new_yaml["val"] = location + new_yaml["val"].lstrip("..")
 
