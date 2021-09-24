@@ -1,16 +1,12 @@
 import roboflow
 import unittest
-import json
 from _datetime import datetime
-from dotenv import load_dotenv
 
 from roboflow.core.project import Project
 from roboflow.core.version import Version
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.object_detection import ObjectDetectionModel
-
-
-load_dotenv()
+import os
 
 
 def make_orderer():
@@ -29,17 +25,12 @@ def make_orderer():
 ordered, compare = make_orderer()
 unittest.defaultTestLoader.sortTestMethodsUsing = compare
 
+ROBOFLOW_API_KEY = os.environ.get('ROBOFLOW_API_KEY')
+WORKSPACE_NAME = os.environ.get('WORKSPACE_NAME')
+PROJECT_NAME = os.environ.get('PROJECT_NAME')
+
 
 class TestQueries(unittest.TestCase):
-
-    with open('config.json') as f:
-        config = json.load(f)
-
-    ROBOFLOW_API_KEY = config["ROBOFLOW_KEY"]
-    WORKSPACE_NAME = config["WORKSPACE_NAME"]
-    PROJECT_NAME = config["PROJECT_NAME"]
-    IMAGE_NAME = config["IMAGE_NAME"]
-    VERSION_NUMBER = config["VERSION_NUMBER"]
 
     rf = roboflow.Roboflow(api_key=ROBOFLOW_API_KEY)
     workspace = rf.workspace(WORKSPACE_NAME)
@@ -61,7 +52,7 @@ class TestQueries(unittest.TestCase):
     def test_workspace_methods(self):
         print_projects = self.workspace.list_projects()
         project_array = self.workspace.projects()
-        project_obj = self.workspace.project(self.PROJECT_NAME)
+        project_obj = self.workspace.project(PROJECT_NAME)
 
         self.assertIsNone(print_projects)
         self.assertTrue(isinstance(project_array, list))
@@ -85,13 +76,13 @@ class TestQueries(unittest.TestCase):
         version_information = self.project.get_version_information()
         print_versions = self.project.list_versions()
         list_versions = self.project.versions()
-        upload = self.project.upload(self.IMAGE_NAME)
+        upload = self.project.upload('tests/rabbit2.jpg')
 
         self.assertTrue(len(version_information) == 2)
         self.assertIsNone(print_versions)
-        self.assertTrue(all(map(lambda x: isinstance(x, Version), list_versions)))
+        self.assertTrue(
+            all(map(lambda x: isinstance(x, Version), list_versions)))
         self.assertIsNone(upload)
-
 
     @ordered
     def test_version_fields(self):
@@ -110,6 +101,6 @@ class TestQueries(unittest.TestCase):
         self.assertTrue((isinstance(self.version.model, ClassificationModel) or
                          (isinstance(self.version.model, ObjectDetectionModel))))
 
+
 if __name__ == '__main__':
     unittest.main()
-
