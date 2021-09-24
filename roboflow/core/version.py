@@ -1,5 +1,6 @@
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.object_detection import ObjectDetectionModel
+from roboflow.core.dataset import Dataset
 import os
 import json
 import requests
@@ -90,6 +91,8 @@ class Version():
                     yaml.dump(new_yaml, outfile)
 
             os.remove(location + '/roboflow.zip')
+
+            return Dataset(self.name, self.version, self.model_format, location)
         else:
             raise RuntimeError(resp.json())
 
