@@ -9,6 +9,7 @@ import zipfile
 from roboflow.config import *
 import sys
 from tqdm import tqdm
+import yaml
 
 from dotenv import load_dotenv
 
@@ -41,7 +42,7 @@ class Version():
 
     def download(self, download_type=None, location=None):
         
-        if location == None:
+        if location == None:                
             location = '../datasets/' + self.name + "-" +  self.version
 
         if not os.path.exists(location):
@@ -73,6 +74,17 @@ class Version():
                         zip_ref.extract(member, location)
                     except zipfile.error as e:
                         pass
+
+            if self.model_format == 'yolov5':
+                with open(location + "/data.yaml") as file:
+                    new_yaml = yaml.load(file)
+                new_yaml["train"] = location + new_yaml["train"].lstrip("..")
+                new_yaml["val"] = location + new_yaml["val"].lstrip("..")
+
+                os.remove(location + "/data.yaml")
+
+                with open(location + "/data.yaml", 'w') as outfile:
+                    yaml.dump(new_yaml, outfile)
 
             os.remove(location + '/roboflow.zip')
         else:
