@@ -7,7 +7,7 @@ class Workspace():
     def __init__(self, info, api_key, default_workspace):
         workspace_info = info['workspace']
         self.name = workspace_info['name']
-        self.project_list = workspace_info['projects']
+        self.__project_list = workspace_info['projects']
         self.members = workspace_info['members']
         self.url = workspace_info['url']
 
@@ -15,11 +15,11 @@ class Workspace():
 
 
     def list_projects(self):
-        print(self.project_list)
+        print(self.__project_list)
 
     def projects(self):
         projects_array = []
-        for a_project in self.project_list:
+        for a_project in self.__project_list:
             proj = Project(self.__api_key, a_project)
             projects_array.append(proj)
 
@@ -46,7 +46,6 @@ class Workspace():
         json_value = {'name': self.name,
                       'url': self.url,
                       'members': self.members,
-                      'projects': self.projects
                       }
 
         return json.dumps(json_value, indent=2)
