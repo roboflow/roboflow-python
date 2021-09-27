@@ -15,15 +15,20 @@ def check_key(api_key, model, notebook):
             "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key)))
 
     if any(c for c in api_key if c.islower()): #check if any of the api key characters are lowercase
-        response = requests.post(API_URL + "/?api_key=" + api_key)
-        r = response.json()
-
-        if "error" in r or response.status_code != 200:
-            raise RuntimeError(response.text)
+        if api_key == 'coco-128-sample':
+            #passthrough for public download of COCO-128 for the time being
+            return "coco-128-sample"
         else:
-            return r
+            #validate key normally
+            response = requests.post(API_URL + "/?api_key=" + api_key)
+            r = response.json()
+
+            if "error" in r or response.status_code != 200:
+                raise RuntimeError(response.text)
+            else:
+                return r
     else: #then you're using a dummy key
-        sys.stdout.write("upload and label your dataset, and get an API KEY here: " + APP_URL + "?model=" + model + "&source=" + notebook + "\n")
+        sys.stdout.write("upload and label your dataset, and get an API KEY here: " + APP_URL + "/?model=" + model + "&ref=" + notebook + "\n")
         return "onboarding"
 
 
@@ -48,6 +53,9 @@ class Roboflow():
         if r == "onboarding":
             self.onboarding = True 
             return self
+        elif r == "coco-128-sample":
+            self.universe = True
+            return self
         else:
             w = r['workspace']
             self.current_workspace=w
@@ -58,7 +66,11 @@ class Roboflow():
         if the_workspace is None:
             the_workspace = self.current_workspace
 
+        if self.api_key == 'coco-128-sample':
+            return Workspace({}, self.api_key, the_workspace, self.model_format)
+
         list_projects = requests.get(API_URL + "/" + the_workspace + '?api_key=' + self.api_key).json()
+        print(list_projects)
 
         return Workspace(list_projects, self.api_key, the_workspace, self.model_format)
 

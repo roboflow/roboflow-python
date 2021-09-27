@@ -5,14 +5,18 @@ from roboflow.config import *
 
 class Workspace():
     def __init__(self, info, api_key, default_workspace, model_format):
-        workspace_info = info['workspace']
-        self.name = workspace_info['name']
-        self.project_list = workspace_info['projects']
-        self.members = workspace_info['members']
-        self.url = workspace_info['url']
-        self.model_format = model_format
+        if api_key == "coco-128-sample":
+            self.__api_key = api_key
+            self.model_format = model_format
+        else:
+            workspace_info = info['workspace']
+            self.name = workspace_info['name']
+            self.project_list = workspace_info['projects']
+            self.members = workspace_info['members']
+            self.url = workspace_info['url']
+            self.model_format = model_format
 
-        self.__api_key = api_key
+            self.__api_key = api_key
 
 
     def list_projects(self):
@@ -28,6 +32,9 @@ class Workspace():
 
 
     def project(self, project_name):
+        if self.__api_key == "coco-128-sample":
+            return Project(self.__api_key, {}, self.model_format)
+        
         project_name = project_name.replace(self.url + "/", "")
 
         if "/" in project_name:

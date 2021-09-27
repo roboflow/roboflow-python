@@ -14,24 +14,28 @@ from roboflow.core.version import Version
 #version class that should return
 class Project():
     def __init__(self, api_key, a_project, model_format):
-        self.__api_key = api_key
-        self.annotation = a_project['annotation']
-        self.classes = a_project['classes']
-        self.colors = a_project['colors']
-        self.created = datetime.datetime.fromtimestamp(a_project['created'])
-        self.id = a_project['id']
-        self.images = a_project['images']
-        self.name = a_project['name']
-        self.public = a_project['public']
-        self.splits = a_project['splits']
-        self.type = a_project['type']
-        self.unannotated = a_project['unannotated']
-        self.updated = datetime.datetime.fromtimestamp(a_project['updated'])
-        self.model_format = model_format
+        if api_key == "coco-128-sample":
+            self.__api_key = api_key
+            self.model_format = model_format
+        else:
+            self.__api_key = api_key
+            self.annotation = a_project['annotation']
+            self.classes = a_project['classes']
+            self.colors = a_project['colors']
+            self.created = datetime.datetime.fromtimestamp(a_project['created'])
+            self.id = a_project['id']
+            self.images = a_project['images']
+            self.name = a_project['name']
+            self.public = a_project['public']
+            self.splits = a_project['splits']
+            self.type = a_project['type']
+            self.unannotated = a_project['unannotated']
+            self.updated = datetime.datetime.fromtimestamp(a_project['updated'])
+            self.model_format = model_format
 
-        temp = self.id.rsplit("/")
-        self.__workspace = temp[0]
-        self.__project_name = temp[1]
+            temp = self.id.rsplit("/")
+            self.__workspace = temp[0]
+            self.__project_name = temp[1]
 
     def get_version_information(self):
         dataset_info = requests.get(API_URL + "/" + self.__workspace + "/" + self.__project_name + "?api_key=" + self.__api_key)
@@ -56,6 +60,9 @@ class Project():
         return version_array
 
     def version(self, version_number):
+
+        if self.__api_key == "coco-128-sample":
+            return Version({}, "type", self.__api_key, "coco-128", version_number, self.model_format, local=False)
 
         version_info = self.get_version_information()
 

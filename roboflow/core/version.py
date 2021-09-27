@@ -19,26 +19,32 @@ load_dotenv()
 
 class Version():
     def __init__(self, version_dict, type, api_key, name, version, model_format, local):
-        self.__api_key = api_key
-        self.name = name
-        self.version = version
-        self.type = type
-        self.augmentation = version_dict['augmentation']
-        self.created = version_dict['created']
-        self.id = version_dict['id']
-        self.images = version_dict['images']
-        self.preprocessing = version_dict['preprocessing']
-        self.splits = version_dict['splits']
-        self.model_format = model_format
-
-        version_without_workspace = os.path.basename(version)
-
-        if self.type == "object-detection":
-            self.model = ObjectDetectionModel(self.__api_key, self.id, self.name, version_without_workspace, local=local)
-        elif self.type == "classification":
-            self.model = ClassificationModel(self.__api_key, self.id, self.name, version_without_workspace, self.id, local=local)
+        if api_key == 'coco-128-sample':
+            self.__api_key = api_key
+            self.model_format = model_format
+            self.name = "coco-128"
+            self.version = 1
         else:
-            self.model = None
+            self.__api_key = api_key
+            self.name = name
+            self.version = version
+            self.type = type
+            self.augmentation = version_dict['augmentation']
+            self.created = version_dict['created']
+            self.id = version_dict['id']
+            self.images = version_dict['images']
+            self.preprocessing = version_dict['preprocessing']
+            self.splits = version_dict['splits']
+            self.model_format = model_format
+
+            version_without_workspace = os.path.basename(version)
+
+            if self.type == "object-detection":
+                self.model = ObjectDetectionModel(self.__api_key, self.id, self.name, version_without_workspace, local=local)
+            elif self.type == "classification":
+                self.model = ClassificationModel(self.__api_key, self.id, self.name, version_without_workspace, self.id, local=local)
+            else:
+                self.model = None
 
 
     def download(self, download_type=None, location=None):
@@ -58,43 +64,47 @@ class Version():
             else:
                 RuntimeError("You must pass a download_type to version.download() or define model in your Roboflow object")
 
-        url = self.__get_download_url(download_type)
-        resp = requests.get(url)
-        if resp.status_code == 200: 
-            link = resp.json()['export']['link']
-    
-            def bar_progress(current, total, width=80):
-                progress_message = "Downloading Dataset Version Zip in " + location + " to " + download_type + ": %d%% [%d / %d] bytes" % (current / total * 100, current, total)
-                sys.stdout.write("\r" + progress_message)
-                sys.stdout.flush()
-            
-            wget.download(link, out=location + "/roboflow.zip", bar=bar_progress)
-            sys.stdout.write("\n")
-            sys.stdout.flush()
-
-            with zipfile.ZipFile(location + "/roboflow.zip", 'r') as zip_ref:
-                for member in tqdm(zip_ref.infolist(), desc="Extracting Dataset Version Zip to " + location + " in " + download_type + ":"):
-                    try:
-                        zip_ref.extract(member, location)
-                    except zipfile.error as e:
-                        pass
-
-            if self.model_format == 'yolov5':
-                with open(location + "/data.yaml") as file:
-                    new_yaml = yaml.safe_load(file)
-                new_yaml["train"] = location + new_yaml["train"].lstrip("..")
-                new_yaml["val"] = location + new_yaml["val"].lstrip("..")
-
-                os.remove(location + "/data.yaml")
-
-                with open(location + "/data.yaml", 'w') as outfile:
-                    yaml.dump(new_yaml, outfile)
-
-            os.remove(location + '/roboflow.zip')
-
-            return Dataset(self.name, self.version, self.model_format, location)
+        if self.__api_key == "coco-128-sample":
+            link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
         else:
-            raise RuntimeError(resp.json())
+            url = self.__get_download_url(download_type)
+            resp = requests.get(url)
+            if resp.status_code == 200: 
+                link = resp.json()['export']['link']
+            else:
+                raise RuntimeError(resp.json())
+
+        def bar_progress(current, total, width=80):
+            progress_message = "Downloading Dataset Version Zip in " + location + " to " + download_type + ": %d%% [%d / %d] bytes" % (current / total * 100, current, total)
+            sys.stdout.write("\r" + progress_message)
+            sys.stdout.flush()
+        
+        wget.download(link, out=location + "/roboflow.zip", bar=bar_progress)
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
+        with zipfile.ZipFile(location + "/roboflow.zip", 'r') as zip_ref:
+            for member in tqdm(zip_ref.infolist(), desc="Extracting Dataset Version Zip to " + location + " in " + download_type + ":"):
+                try:
+                    zip_ref.extract(member, location)
+                except zipfile.error as e:
+                    pass
+
+        if self.model_format == 'yolov5':
+            with open(location + "/data.yaml") as file:
+                new_yaml = yaml.safe_load(file)
+            new_yaml["train"] = location + new_yaml["train"].lstrip("..")
+            new_yaml["val"] = location + new_yaml["val"].lstrip("..")
+
+            os.remove(location + "/data.yaml")
+
+            with open(location + "/data.yaml", 'w') as outfile:
+                yaml.dump(new_yaml, outfile)
+
+        os.remove(location + '/roboflow.zip')
+
+        return Dataset(self.name, self.version, self.model_format, location)
+            
 
 
 

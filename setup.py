@@ -6,13 +6,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="roboflow",  # Replace with your own username
-    version="0.1.2",
+    version="0.1.3",
     author="Palash Shah",
     author_email="ps9cmk@virginia.edu",
     description="Ergonomic machine learning",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/Palashio/libra",
+    url="https://github.com/roboflow-ai/roboflow-python",
     install_requires=[
         "certifi==2021.5.30",
         "chardet==4.0.0",
