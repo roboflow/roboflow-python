@@ -70,7 +70,6 @@ class Roboflow():
             return Workspace({}, self.api_key, the_workspace, self.model_format)
 
         list_projects = requests.get(API_URL + "/" + the_workspace + '?api_key=' + self.api_key).json()
-        print(list_projects)
 
         return Workspace(list_projects, self.api_key, the_workspace, self.model_format)
 

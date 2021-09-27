@@ -47,7 +47,7 @@ class Version():
                 self.model = None
 
 
-    def download(self, download_type=None, location=None):
+    def download(self, model_format=None, location=None):
         
         if location == None:
             if "DATASET_DIRECTORY" in os.environ:
@@ -58,16 +58,18 @@ class Version():
         if not os.path.exists(location):
             os.makedirs(location)
 
-        if download_type == None:
-            if self.model_format == 'yolov5':
-                download_type = 'yolov5pytorch'
+        if model_format == None:
+            if (self.model_format == 'yolov5'):
+                model_format = 'yolov5pytorch'
             else:
                 RuntimeError("You must pass a download_type to version.download() or define model in your Roboflow object")
+
+        print(model_format)
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
         else:
-            url = self.__get_download_url(download_type)
+            url = self.__get_download_url(model_format)
             resp = requests.get(url)
             if resp.status_code == 200: 
                 link = resp.json()['export']['link']
@@ -75,7 +77,7 @@ class Version():
                 raise RuntimeError(resp.json())
 
         def bar_progress(current, total, width=80):
-            progress_message = "Downloading Dataset Version Zip in " + location + " to " + download_type + ": %d%% [%d / %d] bytes" % (current / total * 100, current, total)
+            progress_message = "Downloading Dataset Version Zip in " + location + " to " + model_format + ": %d%% [%d / %d] bytes" % (current / total * 100, current, total)
             sys.stdout.write("\r" + progress_message)
             sys.stdout.flush()
         
@@ -84,7 +86,7 @@ class Version():
         sys.stdout.flush()
 
         with zipfile.ZipFile(location + "/roboflow.zip", 'r') as zip_ref:
-            for member in tqdm(zip_ref.infolist(), desc="Extracting Dataset Version Zip to " + location + " in " + download_type + ":"):
+            for member in tqdm(zip_ref.infolist(), desc="Extracting Dataset Version Zip to " + location + " in " + model_format + ":"):
                 try:
                     zip_ref.extract(member, location)
                 except zipfile.error as e:
