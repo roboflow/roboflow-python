@@ -51,9 +51,9 @@ class Version():
         
         if location == None:
             if "DATASET_DIRECTORY" in os.environ:
-                location = os.environ["DATASET_DIRECTORY"] + "/" + self.name + "-" +  self.version
+                location = os.environ["DATASET_DIRECTORY"] + "/" + self.name.replace(" ","-") + "-" +  self.version
             else:             
-                location = self.name + "-" +  self.version
+                location = self.name.replace(" ","-") + "-" +  self.version
 
         if not os.path.exists(location):
             os.makedirs(location)
@@ -64,7 +64,8 @@ class Version():
             else:
                 RuntimeError("You must pass a download_type to version.download() or define model in your Roboflow object")
 
-        print(model_format)
+        if model_format == 'yolov5':
+            model_format = 'yolov5pytorch'
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
