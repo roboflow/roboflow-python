@@ -4,6 +4,12 @@ from roboflow.core.project import Project
 from roboflow.config import *
 
 class Workspace():
+    """Workspace class that stores information about a specific workspace
+    :param info: dictionary that contains all of the workspace, project information from the REST API.
+    :param api_key: user private roboflow key
+    :param default_workspace: the workspace name
+    :return workspace object
+    """
     def __init__(self, info, api_key, default_workspace):
         workspace_info = info['workspace']
         self.name = workspace_info['name']
@@ -15,9 +21,14 @@ class Workspace():
 
 
     def list_projects(self):
-        print(self.__project_list)
+        """Lists projects out in the workspace
+        """
+        print(self.project_list)
 
     def projects(self):
+        """Returns all projects as Project() objects in the workspace
+        :return an array of project objects
+        """
         projects_array = []
         for a_project in self.__project_list:
             proj = Project(self.__api_key, a_project)
@@ -27,6 +38,10 @@ class Workspace():
 
 
     def project(self, project_name):
+        """Retrieves all information about a project from the REST API.
+        :param project_name: name of project you're trying to retrieve information about
+        :return a project object.
+        """
         project_name = project_name.replace(self.url + "/", "")
 
         if "/" in project_name:
@@ -43,6 +58,7 @@ class Workspace():
         return Project(self.__api_key, dataset_info)
 
     def __str__(self):
+        """to string for the workspace"""
         json_value = {'name': self.name,
                       'url': self.url,
                       'members': self.members,

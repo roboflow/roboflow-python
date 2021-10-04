@@ -14,7 +14,17 @@ load_dotenv()
 
 
 class Version():
+
     def __init__(self, version_dict, type, api_key, name, version, local):
+        """Version object that stores information about a specific version
+        :param version_dict: dictionary returned from the API containing most of the information
+        :param type: type of task (object detection vs classification)
+        :param api_key: private roboflow key
+        :param name: is the name of the version
+        :param version: the version number
+        :param local: whether the version is stored locally
+        :return a Version object
+        """
         self.__api_key = api_key
         self.name = name
         self.version = version
@@ -64,6 +74,8 @@ class Version():
 
 
     def __str__(self):
+        """string representation of version object.
+        """
         json_value = {
             'name': self.name,
             'type': self.type,
