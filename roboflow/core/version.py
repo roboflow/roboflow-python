@@ -42,7 +42,7 @@ class Version():
             if self.type == "object-detection":
                 self.model = ObjectDetectionModel(self.__api_key, self.id, self.name, version_without_workspace, local=local)
             elif self.type == "classification":
-                self.model = ClassificationModel(self.__api_key, self.id, self.name, version_without_workspace, self.id, local=local)
+                self.model = ClassificationModel(self.__api_key, self.id, self.name, version_without_workspace, local=local)
             else:
                 self.model = None
 
