@@ -25,7 +25,7 @@ class Workspace():
     def projects(self):
         projects_array = []
         for a_project in self.project_list:
-            proj = Project(self.__api_key, a_project)
+            proj = Project(self.__api_key, a_project, self.model_format)
             projects_array.append(proj)
 
         return projects_array
