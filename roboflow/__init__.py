@@ -40,7 +40,7 @@ def auth(api_key):
 
 
 class Roboflow():
-    def __init__(self, api_key="YOUR ROBOFLOW API KEY HERE", model_format="yolov5", notebook="undefined"):
+    def __init__(self, api_key="YOUR ROBOFLOW API KEY HERE", model_format="undefined", notebook="undefined"):
         self.api_key = api_key
         self.model_format = model_format
         self.notebook = notebook
