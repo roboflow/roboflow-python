@@ -48,7 +48,7 @@ class Version():
 
 
     def download(self, model_format=None, location=None):
-        
+
         if location == None:
             if "DATASET_DIRECTORY" in os.environ:
                 location = os.environ["DATASET_DIRECTORY"] + "/" + self.name.replace(" ","-") + "-" +  self.version
@@ -93,7 +93,7 @@ class Version():
                 except zipfile.error as e:
                     pass
 
-        if self.model_format == 'yolov5':
+        if (self.model_format == 'yolov5') or (model_format == 'yolov5pytorch'):
             with open(location + "/data.yaml") as file:
                 new_yaml = yaml.safe_load(file)
             new_yaml["train"] = location + new_yaml["train"].lstrip("..")
