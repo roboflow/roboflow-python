@@ -106,11 +106,8 @@ class Version():
 
         os.remove(location + '/roboflow.zip')
 
-        return Dataset(self.name, self.version, self.model_format, location)
+        return Dataset(self.name, self.version, self.model_format, os.path.abspath(location))
             
-
-
-
     def __get_download_url(self, download_type):
         temporary = self.id.rsplit("/")
         workspace, project = temporary[0], temporary[1]
