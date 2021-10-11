@@ -62,6 +62,9 @@ class Roboflow():
             return self
 
     def workspace(self, the_workspace=None):
+        sys.stdout.write("\r" + "loading Roboflow workspace...")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
         if the_workspace is None:
             the_workspace = self.current_workspace

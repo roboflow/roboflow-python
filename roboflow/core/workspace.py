@@ -2,6 +2,7 @@ import requests
 import json
 from roboflow.core.project import Project
 from roboflow.config import *
+import sys
 
 class Workspace():
     def __init__(self, info, api_key, default_workspace, model_format):
@@ -32,6 +33,10 @@ class Workspace():
 
 
     def project(self, project_name):
+        sys.stdout.write("\r" + "loading Roboflow project...")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
         if self.__api_key == "coco-128-sample":
             return Project(self.__api_key, {}, self.model_format)
         
