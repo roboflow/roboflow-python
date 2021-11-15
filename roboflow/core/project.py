@@ -223,6 +223,9 @@ class Project():
         if not success:
             warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
 
+    def view(self):
+        print("https://app.roboflow.com/"+self.__workspace + "/" + self.__project_name)
+
     def __str__(self):
         # String representation of project
         json_str = {

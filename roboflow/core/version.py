@@ -119,6 +119,11 @@ class Version():
             ])
         return url
 
+    def view(self):
+        temporary = self.id.rsplit("/")
+        workspace, project = temporary[0], temporary[1]
+        print("https://app.roboflow.com/"+workspace+"/"+project+"/"+self.version)
+
 
 
     def __str__(self):

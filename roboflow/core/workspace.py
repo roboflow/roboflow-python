@@ -31,6 +31,9 @@ class Workspace():
 
         return projects_array
 
+    def view(self):
+        print("https://app.roboflow.com/"+self.url)
+
 
     def project(self, project_name):
         sys.stdout.write("\r" + "loading Roboflow project...")
