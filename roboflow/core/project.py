@@ -218,8 +218,11 @@ class Project():
             # Get JSON response values
             try:
                 success, image_id = response.json()['success'], response.json()['id']
+                if not success:
+                    warnings.warn(f"Server rejected image: {response.json()}")
             except Exception:
                 # Image fails to upload
+                warnings.warn(f"Bad response: {response}")
                 success = False
             # Give user warning that image failed to upload
             if not success:
@@ -231,6 +234,8 @@ class Project():
                 annotation_response = self.__annotation_upload(annotation_path, image_id)
                 try:
                     success = annotation_response.json()['success']
+                    if not success:
+                        warnings.warn(f"Server rejected annotation: {annotation_response.json()}")
                 except Exception:
                     success = False
             # Give user warning that annotation failed to upload
@@ -244,10 +249,12 @@ class Project():
             try:
                 success = annotation_response.json()['success']
             except Exception:
+                warnings.warn(f"Bad response: {response}")
                 success = False
         # Give user warning that annotation failed to upload
         if not success:
             warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+        return success
 
     def __str__(self):
         # String representation of project
