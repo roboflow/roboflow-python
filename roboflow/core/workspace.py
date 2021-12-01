@@ -13,7 +13,8 @@ class Workspace():
             workspace_info = info['workspace']
             self.name = workspace_info['name']
             self.project_list = workspace_info['projects']
-            self.members = workspace_info['members']
+            if "members" in workspace_info.keys():
+                self.members = workspace_info['members']
             self.url = workspace_info['url']
             self.model_format = model_format
 
@@ -27,7 +28,7 @@ class Workspace():
         projects_array = []
         for a_project in self.project_list:
             proj = Project(self.__api_key, a_project, self.model_format)
-            projects_array.append(proj)
+            projects_array.append(proj.name)
 
         return projects_array
 
@@ -56,10 +57,10 @@ class Workspace():
         return Project(self.__api_key, dataset_info, self.model_format)
 
     def __str__(self):
+        projects = self.projects()
         json_value = {'name': self.name,
                       'url': self.url,
-                      'members': self.members,
-                      'projects': self.projects
+                      'projects': projects
                       }
 
         return json.dumps(json_value, indent=2)

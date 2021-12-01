@@ -1,9 +1,7 @@
-OBJECT_DETECTION_MODEL = "ObjectDetectionModel"
-CLASSIFICATION_MODEL = "ClassificationModel"
-PREDICTION_OBJECT = "Prediction"
-API_URL = "https://api.roboflow.com"
-APP_URL = "https://app.roboflow.com"
+import os
 
-from dotenv import load_dotenv
-
-load_dotenv()
+OBJECT_DETECTION_MODEL = os.getenv("OBJECT_DETECTION_MODEL", default="ObjectDetectionModel")
+CLASSIFICATION_MODEL = os.getenv("CLASSIFICATION_MODEL", default="ClassificationModel")
+PREDICTION_OBJECT = os.getenv("PREDICTION_OBJECT", default="Prediction")
+API_URL = os.getenv("API_URL", default="https://api.roboflow.com")
+APP_URL = os.getenv("APP_URL", default="https://app.roboflow.com")
