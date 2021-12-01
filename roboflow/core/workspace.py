@@ -2,22 +2,23 @@ import requests
 import json
 from roboflow.core.project import Project
 from roboflow.config import *
+import sys
 
 class Workspace():
-    """Workspace class that stores information about a specific workspace
-    :param info: dictionary that contains all of the workspace, project information from the REST API.
-    :param api_key: user private roboflow key
-    :param default_workspace: the workspace name
-    :return workspace object
-    """
-    def __init__(self, info, api_key, default_workspace):
-        workspace_info = info['workspace']
-        self.name = workspace_info['name']
-        self.__project_list = workspace_info['projects']
-        self.members = workspace_info['members']
-        self.url = workspace_info['url']
+    def __init__(self, info, api_key, default_workspace, model_format):
+        if api_key == "coco-128-sample":
+            self.__api_key = api_key
+            self.model_format = model_format
+        else:
+            workspace_info = info['workspace']
+            self.name = workspace_info['name']
+            self.project_list = workspace_info['projects']
+            if "members" in workspace_info.keys():
+                self.members = workspace_info['members']
+            self.url = workspace_info['url']
+            self.model_format = model_format
 
-        self.__api_key = api_key
+            self.__api_key = api_key
 
 
     def list_projects(self):
@@ -30,18 +31,21 @@ class Workspace():
         :return an array of project objects
         """
         projects_array = []
-        for a_project in self.__project_list:
-            proj = Project(self.__api_key, a_project)
-            projects_array.append(proj)
+        for a_project in self.project_list:
+            proj = Project(self.__api_key, a_project, self.model_format)
+            projects_array.append(proj.name)
 
         return projects_array
 
 
     def project(self, project_name):
-        """Retrieves all information about a project from the REST API.
-        :param project_name: name of project you're trying to retrieve information about
-        :return a project object.
-        """
+        sys.stdout.write("\r" + "loading Roboflow project...")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
+        if self.__api_key == "coco-128-sample":
+            return Project(self.__api_key, {}, self.model_format)
+        
         project_name = project_name.replace(self.url + "/", "")
 
         if "/" in project_name:
@@ -55,13 +59,13 @@ class Workspace():
 
         dataset_info = dataset_info.json()['project']
 
-        return Project(self.__api_key, dataset_info)
+        return Project(self.__api_key, dataset_info, self.model_format)
 
     def __str__(self):
-        """to string for the workspace"""
+        projects = self.projects()
         json_value = {'name': self.name,
                       'url': self.url,
-                      'members': self.members,
+                      'projects': projects
                       }
 
         return json.dumps(json_value, indent=2)

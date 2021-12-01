@@ -13,28 +13,29 @@ from roboflow.core.version import Version
 
 #version class that should return
 class Project():
-    """Object that stores all information and operations that can be performed on a specific project.
-    :param api_key: private roboflow API key
-    :param a_project: dictionary with project information
-    """
-    def __init__(self, api_key, a_project):
-        self.__api_key = api_key
-        self.annotation = a_project['annotation']
-        self.classes = a_project['classes']
-        self.colors = a_project['colors']
-        self.created = datetime.datetime.fromtimestamp(a_project['created'])
-        self.id = a_project['id']
-        self.images = a_project['images']
-        self.name = a_project['name']
-        self.public = a_project['public']
-        self.splits = a_project['splits']
-        self.type = a_project['type']
-        self.unannotated = a_project['unannotated']
-        self.updated = datetime.datetime.fromtimestamp(a_project['updated'])
+    def __init__(self, api_key, a_project, model_format):
+        if api_key == "coco-128-sample":
+            self.__api_key = api_key
+            self.model_format = model_format
+        else:
+            self.__api_key = api_key
+            self.annotation = a_project['annotation']
+            self.classes = a_project['classes']
+            self.colors = a_project['colors']
+            self.created = datetime.datetime.fromtimestamp(a_project['created'])
+            self.id = a_project['id']
+            self.images = a_project['images']
+            self.name = a_project['name']
+            self.public = a_project['public']
+            self.splits = a_project['splits']
+            self.type = a_project['type']
+            self.unannotated = a_project['unannotated']
+            self.updated = datetime.datetime.fromtimestamp(a_project['updated'])
+            self.model_format = model_format
 
-        temp = self.id.rsplit("/")
-        self.__workspace = temp[0]
-        self.__project_name = temp[1]
+            temp = self.id.rsplit("/")
+            self.__workspace = temp[0]
+            self.__project_name = temp[1]
 
     def get_version_information(self):
         """Helper function to get version information from the REST API.
@@ -62,7 +63,7 @@ class Project():
         version_info = self.get_version_information()
         version_array = []
         for a_version in version_info:
-            version_object = Version(a_version, (self.type if 'model' in a_version else None), self.__api_key, self.name, a_version['id'], local=False)
+            version_object = Version(a_version, (self.type if 'model' in a_version else None), self.__api_key, self.name, a_version['id'], self.model_format, local=False)
             version_array.append(version_object)
         return version_array
 
@@ -72,13 +73,16 @@ class Project():
         :return Version() object
         """
 
+        if self.__api_key == "coco-128-sample":
+            return Version({}, "type", self.__api_key, "coco-128", version_number, self.model_format, local=False)
+
         version_info = self.get_version_information()
 
         for version_object in version_info:
 
             current_version_num = os.path.basename(version_object['id'])
             if current_version_num == str(version_number):
-                vers = Version(version_object, self.type, self.__api_key, self.name, current_version_num, local=False)
+                vers = Version(version_object, self.type, self.__api_key, self.name, current_version_num, self.model_format, local=False)
                 return vers
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
