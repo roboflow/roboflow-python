@@ -176,7 +176,7 @@ class Project():
         return is_image
 
 
-    def upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train'):
+    def upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train', num_retry_uploads=0):
 
         """upload function
         :param image_path: path to image you'd like to upload
@@ -200,19 +200,19 @@ class Project():
             if not is_image:
                 raise RuntimeError("The image you provided {} is not a supported file format. We currently support png, jpeg, and jpg.".format(image_path))
 
-            self.single_upload(image_path=image_path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split)
+            self.single_upload(image_path=image_path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split, num_retry_uploads=num_retry_uploads)
         else:
             images = os.listdir(image_path)
             for image in images:
                 path = image_path + "/" + image
                 if self.check_valid_image(image):
-                    self.single_upload(image_path=path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split)
+                    self.single_upload(image_path=path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split, num_retry_uploads=num_retry_uploads)
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
                     print("[ " + path + " ] was skipped.")
                     continue
 
-    def single_upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train'):
+    def single_upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train', num_retry_uploads=0):
 
         success = False
         # User gives image path
@@ -227,7 +227,12 @@ class Project():
                 success = False
             # Give user warning that image failed to upload
             if not success:
-                warnings.warn("Image, " + image_path + ", failed to upload!")
+                if num_retry_uploads > 0:
+                    warnings.warn("Image, " + image_path + ", failed to upload! Retrying for this many times: " + str(num_retry_uploads))
+                    self.single_upload(image_path=image_path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split, num_retry_uploads=num_retry_uploads - 1)
+
+                else:
+                    warnings.warn("Image, " + image_path + ", failed to upload! You can specify num_retry_uploads to retry a number of times.")
 
             # Check if image uploaded successfully + check if there are annotations to upload
             if annotation_path is not None and image_id is not None and success:
