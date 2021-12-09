@@ -227,6 +227,7 @@ class Project():
                 success = False
             # Give user warning that image failed to upload
             if not success:
+                warnings.warn("Upload api failed with response: " + str(response.json()))
                 if num_retry_uploads > 0:
                     warnings.warn("Image, " + image_path + ", failed to upload! Retrying for this many times: " + str(num_retry_uploads))
                     self.single_upload(image_path=image_path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split, num_retry_uploads=num_retry_uploads - 1)
