@@ -230,7 +230,7 @@ class Project():
                 if num_retry_uploads > 0:
                     warnings.warn("Image, " + image_path + ", failed to upload! Retrying for this many times: " + str(num_retry_uploads))
                     self.single_upload(image_path=image_path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split, num_retry_uploads=num_retry_uploads - 1)
-
+                    return
                 else:
                     warnings.warn("Image, " + image_path + ", failed to upload! You can specify num_retry_uploads to retry a number of times.")
 
