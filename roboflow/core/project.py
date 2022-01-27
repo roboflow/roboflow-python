@@ -243,9 +243,10 @@ class Project():
                     success = annotation_response.json()['success']
                 except Exception:
                     success = False
-            # Give user warning that annotation failed to upload
-            if not success:
-                warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+                # Give user warning that annotation failed to upload
+                if not success:
+                    warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+                
         # Upload only annotations to image based on image Id (no image)
         elif annotation_path is not None and image_id is not None:
             # Get annotation upload response
@@ -255,9 +256,9 @@ class Project():
                 success = annotation_response.json()['success']
             except Exception:
                 success = False
-        # Give user warning that annotation failed to upload
-        if not success:
-            warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+            # Give user warning that annotation failed to upload
+            if not success:
+                warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
 
     def __str__(self):
         # String representation of project
