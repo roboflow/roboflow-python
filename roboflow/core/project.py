@@ -10,10 +10,11 @@ import requests
 from PIL import Image
 from roboflow.config import *
 from roboflow.core.version import Version
+from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 #version class that should return
 class Project():
-    def __init__(self, api_key, a_project, model_format):
+    def __init__(self, api_key, a_project, model_format=None):
         if api_key == "coco-128-sample":
             self.__api_key = api_key
             self.model_format = model_format
@@ -101,30 +102,13 @@ class Project():
             image_name = os.path.basename(image_path)
 
             # Construct URL for local image upload
-
             self.image_upload_url = "".join([
                 "https://api.roboflow.com/dataset/", project_name, "/upload",
-                "?api_key=", self.__api_key,
-                "&name=" + image_name,
-                "&split=" + split
+                "?api_key=", self.__api_key
             ])
 
-            # Convert to PIL Image
-            img = cv2.imread(image_path)
-            image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-            pilImage = Image.fromarray(image)
-            # Convert to JPEG Buffer
-            buffered = io.BytesIO()
-            pilImage.save(buffered, quality=100, format="JPEG")
-            # Base 64 Encode
-            img_str = base64.b64encode(buffered.getvalue())
-            img_str = img_str.decode("ascii")
-            # Post Base 64 Data to Upload API
-
-            response = requests.post(self.image_upload_url, data=img_str, headers={
-                "Content-Type": "application/x-www-form-urlencoded"
-            })
+            m = MultipartEncoder(fields={'name': image_name, 'split': split, 'file': ('imageToSave', open(image_path, 'rb'))})
+            response = requests.post(self.image_upload_url, data=m, headers={'Content-Type': m.content_type})
 
 
         else:
