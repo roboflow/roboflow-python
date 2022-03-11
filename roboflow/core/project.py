@@ -107,9 +107,18 @@ class Project():
                 "?api_key=", self.__api_key
             ])
 
-            m = MultipartEncoder(fields={'name': image_name, 'split': split, 'file': ('imageToSave', open(image_path, 'rb'))})
-            response = requests.post(self.image_upload_url, data=m, headers={'Content-Type': m.content_type})
+            # Convert to PIL Image
+            img = cv2.imread(image_path)
+            image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            pilImage = Image.fromarray(image)
 
+            # Convert to JPEG Buffer
+            buffered = io.BytesIO()
+            pilImage.save(buffered, quality=100, format="JPEG")
+
+            # Build multipart form and post request
+            m = MultipartEncoder(fields={'name': image_name, 'split': split, 'file': ("imageToUpload", buffered.getvalue(), "image/jpeg")})
+            response = requests.post(self.image_upload_url, data=m, headers={'Content-Type': m.content_type})
 
         else:
             # Hosted image upload url
