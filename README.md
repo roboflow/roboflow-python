@@ -78,3 +78,11 @@ prediction.json()
 # Save the prediction as an image
 prediction.save(output_path='predictions.jpg')
 ```
+
+## Using this package for a specifc project
+
+If you have a specific project from your workspace you'd like to run in a notebook follow along on this tutorial [Downloading Datasets from Roboflow for Training (Python)](https://www.youtube.com/watch?v=76E6esnez8E)
+
+Selecting the format you'd like your project to be exported as while choosing the `show download code` option will display code snippets you can use in either Jupyter or your terminal. These code snippets will include your `api_key`, project, and workspace names.
+
+![Alt Text](https://media.giphy.com/media/I5g06mUnVzdX7iT2Gf/giphy.gif)
