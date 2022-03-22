@@ -86,3 +86,10 @@ If you have a specific project from your workspace you'd like to run in a notebo
 Selecting the format you'd like your project to be exported as while choosing the `show download code` option will display code snippets you can use in either Jupyter or your terminal. These code snippets will include your `api_key`, project, and workspace names.
 
 ![Alt Text](https://media.giphy.com/media/I5g06mUnVzdX7iT2Gf/giphy.gif)
+
+## Devving locally
+1. clone repo
+2. create a virtual env: `virtualenv local_dev`
+3. activate virtual env: `source local_dev/bin/activate`
+4. install packages from repo: `pip3 install -r requirements.txt`
+5. create script on top level of `ROBOFLOW-PYTHON` and reference local `roboflow` directory: `from roboflow import Roboflow`
