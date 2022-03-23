@@ -35,8 +35,8 @@ Install from Source:
 ```
 git clone https://github.com/roboflow-ai/roboflow-python.git
 cd roboflow-python
-python3 -m venv
-source venv/bin/activate 
+python3 -m venv env
+source env/bin/activate 
 pip3 install -r requirements.txt
 ```
 
