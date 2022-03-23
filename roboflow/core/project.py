@@ -103,7 +103,7 @@ class Project():
             # Construct URL for local image upload
 
             self.image_upload_url = "".join([
-                "https://api.roboflow.com/dataset/", project_name, "/upload",
+                API_URL + "/dataset/", project_name, "/upload",
                 "?api_key=", self.__api_key,
                 "&name=" + image_name,
                 "&split=" + split
@@ -132,7 +132,7 @@ class Project():
             project_name = self.id.rsplit("/")[1]
 
             upload_url = "".join([
-                "https://api.roboflow.com/dataset/" + self.project_name + "/upload",
+                API_URL + "/dataset/" + self.project_name + "/upload",
                 "?api_key=" + self.__api_key,
                 "&name=" + os.path.basename(image_path),
                 "&split=" + split,
@@ -153,7 +153,7 @@ class Project():
         annotation_string = open(annotation_path, "r").read()
         # Set annotation upload url
         self.annotation_upload_url = "".join([
-            "https://api.roboflow.com/dataset/", self.name, "/annotate/", image_id,
+            API_URL + "/dataset/", self.name, "/annotate/", image_id,
             "?api_key=", self.__api_key,
             "&name=" + os.path.basename(annotation_path)
         ])
