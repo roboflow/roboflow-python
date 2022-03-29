@@ -139,3 +139,12 @@ cython_debug/
 
 #config stuff
 tests/config.json
+
+#dataset download stuff
+
+test/
+train/
+valid/
+data.yaml
+README.roboflow.txt
+*.zip

@@ -13,28 +13,29 @@ from roboflow.core.version import Version
 
 #version class that should return
 class Project():
-    """Object that stores all information and operations that can be performed on a specific project.
-    :param api_key: private roboflow API key
-    :param a_project: dictionary with project information
-    """
-    def __init__(self, api_key, a_project):
-        self.__api_key = api_key
-        self.annotation = a_project['annotation']
-        self.classes = a_project['classes']
-        self.colors = a_project['colors']
-        self.created = datetime.datetime.fromtimestamp(a_project['created'])
-        self.id = a_project['id']
-        self.images = a_project['images']
-        self.name = a_project['name']
-        self.public = a_project['public']
-        self.splits = a_project['splits']
-        self.type = a_project['type']
-        self.unannotated = a_project['unannotated']
-        self.updated = datetime.datetime.fromtimestamp(a_project['updated'])
+    def __init__(self, api_key, a_project, model_format):
+        if api_key == "coco-128-sample":
+            self.__api_key = api_key
+            self.model_format = model_format
+        else:
+            self.__api_key = api_key
+            self.annotation = a_project['annotation']
+            self.classes = a_project['classes']
+            self.colors = a_project['colors']
+            self.created = datetime.datetime.fromtimestamp(a_project['created'])
+            self.id = a_project['id']
+            self.images = a_project['images']
+            self.name = a_project['name']
+            self.public = a_project['public']
+            self.splits = a_project['splits']
+            self.type = a_project['type']
+            self.unannotated = a_project['unannotated']
+            self.updated = datetime.datetime.fromtimestamp(a_project['updated'])
+            self.model_format = model_format
 
-        temp = self.id.rsplit("/")
-        self.__workspace = temp[0]
-        self.__project_name = temp[1]
+            temp = self.id.rsplit("/")
+            self.__workspace = temp[0]
+            self.__project_name = temp[1]
 
     def get_version_information(self):
         """Helper function to get version information from the REST API.
@@ -62,7 +63,7 @@ class Project():
         version_info = self.get_version_information()
         version_array = []
         for a_version in version_info:
-            version_object = Version(a_version, (self.type if 'model' in a_version else None), self.__api_key, self.name, a_version['id'], local=False)
+            version_object = Version(a_version, (self.type if 'model' in a_version else None), self.__api_key, self.name, a_version['id'], self.model_format, local=False)
             version_array.append(version_object)
         return version_array
 
@@ -72,13 +73,16 @@ class Project():
         :return Version() object
         """
 
+        if self.__api_key == "coco-128-sample":
+            return Version({}, "type", self.__api_key, "coco-128", version_number, self.model_format, local=False)
+
         version_info = self.get_version_information()
 
         for version_object in version_info:
 
             current_version_num = os.path.basename(version_object['id'])
             if current_version_num == str(version_number):
-                vers = Version(version_object, self.type, self.__api_key, self.name, current_version_num, local=False)
+                vers = Version(version_object, self.type, self.__api_key, self.name, current_version_num, self.model_format, local=False)
                 return vers
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
@@ -172,7 +176,7 @@ class Project():
         return is_image
 
 
-    def upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train'):
+    def upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train', num_retry_uploads=0):
 
         """upload function
         :param image_path: path to image you'd like to upload
@@ -196,19 +200,19 @@ class Project():
             if not is_image:
                 raise RuntimeError("The image you provided {} is not a supported file format. We currently support png, jpeg, and jpg.".format(image_path))
 
-            self.single_upload(image_path=image_path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split)
+            self.single_upload(image_path=image_path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split, num_retry_uploads=num_retry_uploads)
         else:
             images = os.listdir(image_path)
             for image in images:
                 path = image_path + "/" + image
                 if self.check_valid_image(image):
-                    self.single_upload(image_path=path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split)
+                    self.single_upload(image_path=path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split, num_retry_uploads=num_retry_uploads)
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
                     print("[ " + path + " ] was skipped.")
                     continue
 
-    def single_upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train'):
+    def single_upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train', num_retry_uploads=0):
 
         success = False
         # User gives image path
@@ -226,7 +230,13 @@ class Project():
                 success = False
             # Give user warning that image failed to upload
             if not success:
-                warnings.warn("Image, " + image_path + ", failed to upload!")
+                warnings.warn("Upload api failed with response: " + str(response.json()))
+                if num_retry_uploads > 0:
+                    warnings.warn("Image, " + image_path + ", failed to upload! Retrying for this many times: " + str(num_retry_uploads))
+                    self.single_upload(image_path=image_path, annotation_path=annotation_path, hosted_image=hosted_image, image_id=image_id, split=split, num_retry_uploads=num_retry_uploads - 1)
+                    return
+                else:
+                    warnings.warn("Image, " + image_path + ", failed to upload! You can specify num_retry_uploads to retry a number of times.")
 
             # Check if image uploaded successfully + check if there are annotations to upload
             if annotation_path is not None and image_id is not None and success:
@@ -238,9 +248,10 @@ class Project():
                         warnings.warn(f"Server rejected annotation: {annotation_response.json()}")
                 except Exception:
                     success = False
-            # Give user warning that annotation failed to upload
-            if not success:
-                warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+                # Give user warning that annotation failed to upload
+                if not success:
+                    warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+                
         # Upload only annotations to image based on image Id (no image)
         elif annotation_path is not None and image_id is not None:
             # Get annotation upload response

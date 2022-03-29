@@ -21,7 +21,6 @@ def make_orderer():
 
     return ordered, compare
 
-
 ordered, compare = make_orderer()
 unittest.defaultTestLoader.sortTestMethodsUsing = compare
 
@@ -78,7 +77,7 @@ class TestQueries(unittest.TestCase):
         list_versions = self.project.versions()
         upload = self.project.upload('tests/rabbit2.jpg')
 
-        self.assertTrue(len(version_information) == 2)
+        self.assertTrue(len(version_information) == 1)
         self.assertIsNone(print_versions)
         self.assertTrue(
             all(map(lambda x: isinstance(x, Version), list_versions)))

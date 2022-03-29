@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import sys
 
 import requests
 from roboflow.core.workspace import Workspace
@@ -8,22 +9,27 @@ from roboflow.core.project import Project
 from roboflow.config import *
 
 
-def check_key(api_key):
-    """Function that takes in the user provided api_key and calls the REST API for authentication.
-    :param api_key: user provided roboflow private key for authentication
-    :return authenticated response
-    """
+def check_key(api_key, model, notebook):
     if type(api_key) is not str:
         raise RuntimeError(
             "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key)))
 
-    response = requests.post(API_URL + "/?api_key=" + api_key)
-    r = response.json()
+    if any(c for c in api_key if c.islower()): #check if any of the api key characters are lowercase
+        if api_key == 'coco-128-sample':
+            #passthrough for public download of COCO-128 for the time being
+            return "coco-128-sample"
+        else:
+            #validate key normally
+            response = requests.post(API_URL + "/?api_key=" + api_key)
+            r = response.json()
 
-    if "error" in r or response.status_code != 200:
-        raise RuntimeError(response.text)
-    else:
-        return r
+            if "error" in r or response.status_code != 200:
+                raise RuntimeError(response.text)
+            else:
+                return r
+    else: #then you're using a dummy key
+        sys.stdout.write("upload and label your dataset, and get an API KEY here: " + APP_URL + "/?model=" + model + "&ref=" + notebook + "\n")
+        return "onboarding"
 
 
 def auth(api_key):
@@ -34,32 +40,41 @@ def auth(api_key):
 
 
 class Roboflow():
-    """Roboflow class that contains all of the intiial functions to retrieve user information
-    """
-    def __init__(self, api_key):
+    def __init__(self, api_key="YOUR ROBOFLOW API KEY HERE", model_format="undefined", notebook="undefined"):
         self.api_key = api_key
+        self.model_format = model_format
+        self.notebook = notebook
+        self.onboarding = False
         self.auth()
 
     def auth(self):
-        r = check_key(self.api_key)
-        w = r['workspace']
+        r = check_key(self.api_key, self.model_format, self.notebook)
 
-        self.current_workspace=w
-
-        return self
+        if r == "onboarding":
+            self.onboarding = True 
+            return self
+        elif r == "coco-128-sample":
+            self.universe = True
+            return self
+        else:
+            w = r['workspace']
+            self.current_workspace=w
+            return self
 
     def workspace(self, the_workspace=None):
-        """Function that takes in a workspace name and returns a workspace object with appropriate information
-        :param the_workspace: workspace name
-        :return workspace object
-        """
+        sys.stdout.write("\r" + "loading Roboflow workspace...")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
         if the_workspace is None:
             the_workspace = self.current_workspace
 
+        if self.api_key == 'coco-128-sample':
+            return Workspace({}, self.api_key, the_workspace, self.model_format)
+
         list_projects = requests.get(API_URL + "/" + the_workspace + '?api_key=' + self.api_key).json()
 
-        return Workspace(list_projects, self.api_key, the_workspace)
+        return Workspace(list_projects, self.api_key, the_workspace, self.model_format)
 
     def project(self, project_name, the_workspace=None):
         """Function that takes in the name of the project and returns the project object
