@@ -46,7 +46,10 @@ def clip_encode(image1, image2):
     image1 = base64_encode(image1)
     image2 = base64_encode(image2)
 
-    url = 'https://clip-featurize-double-image-li37nwjfaq-uc.a.run.app/predict'
+    if CLIP_FEATURIZE_URL == "CLIP FEATURIZE URL NOT IN ENV":
+        raise Exception("YOU NEED TO ADD CLIP_URL TO YOUR ENVIRONMENT VARIABLES TO USE THIS METHOD")
+    
+    url = CLIP_FEATURIZE_URL
     headers = {
         "Content-Type": "text/plain"
     }
