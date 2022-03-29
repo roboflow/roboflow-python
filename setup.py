@@ -27,6 +27,7 @@ setuptools.setup(
         "python-dateutil",
         "python-dotenv",
         "requests",
+        "requests_toolbelt"
         "six",
         "urllib3==1.26.6",
         "wget",
