@@ -125,7 +125,7 @@ class Project():
             project_name = self.id.rsplit("/")[1]
 
             upload_url = "".join([
-                "https://api.roboflow.com/dataset/" + self.project_name + "/upload",
+                API_URL + "/dataset/" + self.project_name + "/upload",
                 "?api_key=" + self.__api_key,
                 "&name=" + os.path.basename(image_path),
                 "&split=" + split,
@@ -146,7 +146,7 @@ class Project():
         annotation_string = open(annotation_path, "r").read()
         # Set annotation upload url
         self.annotation_upload_url = "".join([
-            "https://api.roboflow.com/dataset/", self.name, "/annotate/", image_id,
+            API_URL + "/dataset/", self.name, "/annotate/", image_id,
             "?api_key=", self.__api_key,
             "&name=" + os.path.basename(annotation_path)
         ])
@@ -215,8 +215,11 @@ class Project():
             # Get JSON response values
             try:
                 success, image_id = response.json()['success'], response.json()['id']
+                if not success:
+                    warnings.warn(f"Server rejected image: {response.json()}")
             except Exception:
                 # Image fails to upload
+                warnings.warn(f"Bad response: {response}")
                 success = False
             # Give user warning that image failed to upload
             if not success:
@@ -234,6 +237,8 @@ class Project():
                 annotation_response = self.__annotation_upload(annotation_path, image_id)
                 try:
                     success = annotation_response.json()['success']
+                    if not success:
+                        warnings.warn(f"Server rejected annotation: {annotation_response.json()}")
                 except Exception:
                     success = False
                 # Give user warning that annotation failed to upload
@@ -248,10 +253,12 @@ class Project():
             try:
                 success = annotation_response.json()['success']
             except Exception:
+                warnings.warn(f"Bad response: {response}")
                 success = False
-            # Give user warning that annotation failed to upload
-            if not success:
-                warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+        # Give user warning that annotation failed to upload
+        if not success:
+            warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+        return success
 
     def __str__(self):
         # String representation of project
