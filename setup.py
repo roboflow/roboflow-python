@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="roboflow",  # Replace with your own username
-    version="0.2.2",
+    version="0.2.4",
     author="Roboflow",
     author_email="jacob@roboflow.com",
     description="python client for the Roboflow application",
@@ -27,7 +27,7 @@ setuptools.setup(
         "python-dateutil",
         "python-dotenv",
         "requests",
-        "requests_toolbelt"
+        "requests_toolbelt",
         "six",
         "urllib3==1.26.6",
         "wget",
