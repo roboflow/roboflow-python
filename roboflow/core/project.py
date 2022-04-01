@@ -243,7 +243,7 @@ class Project():
                     success = False
                 # Give user warning that annotation failed to upload
                 if not success:
-                    warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+                    warnings.warn("Annotation failed to upload!")
                 
         # Upload only annotations to image based on image Id (no image)
         elif annotation_path is not None and image_id is not None:
