@@ -65,7 +65,8 @@ class Workspace():
     def active_learning(self, raw_data_location, raw_data_extension, inference_endpoint, upload_destination, conditionals):
         '''
         @params:
-            raw_data: dir = folder of images, or videos, to be processed
+            raw_data_location: dir = folder of frames to be processed
+            raw_data_extension: extension of frames to be processed
             inference_endpoint: List[str, int] = name of the project
             upload_destination: str = name of the upload project
             conditionals: dict = dictionary of upload conditions
@@ -107,7 +108,8 @@ class Workspace():
                 continue 
 
             # iterate through all predictions
-            for prediction in predictions:
+            for i, prediction in enumerate(predictions):
+                print(i)
 
                 # check if box size of detection fits requirements
                 if not check_box_size(prediction, conditionals["minimum_size_requirement"], conditionals["maximum_size_requirement"]):
