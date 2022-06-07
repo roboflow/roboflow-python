@@ -47,7 +47,7 @@ def clip_encode(image1, image2):
     image2 = base64_encode(image2)
 
     if CLIP_FEATURIZE_URL == "CLIP FEATURIZE URL NOT IN ENV":
-        raise Exception("YOU NEED TO ADD CLIP_URL TO YOUR ENVIRONMENT VARIABLES TO USE THIS METHOD")
+        raise Exception("You need to ad CLIP_FEATURE_URL to your env vars. To learn more about this active learning feature, contact Roboflow sales https://roboflow.com/sales")
     
     url = CLIP_FEATURIZE_URL
     headers = {
