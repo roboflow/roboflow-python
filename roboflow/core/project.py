@@ -12,6 +12,12 @@ from roboflow.config import *
 from roboflow.core.version import Version
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
+def custom_formatwarning(msg, *args, **kwargs):
+    # ignore everything except the message
+    return str(msg) + '\n'
+
+warnings.formatwarning = custom_formatwarning
+
 #version class that should return
 class Project():
     def __init__(self, api_key, a_project, model_format=None):
@@ -208,16 +214,24 @@ class Project():
     def single_upload(self, image_path=None, annotation_path=None, hosted_image=False, image_id=None, split='train', num_retry_uploads=0):
 
         success = False
+        annotation_success = False
         # User gives image path
         if image_path is not None:
             # Upload Image Response
             response = self.__image_upload(image_path, hosted_image=hosted_image, split=split)
             # Get JSON response values
             try:
-                success, image_id = response.json()['success'], response.json()['id']
+                if "duplicate" in response.json().keys():
+                    if response.json()['duplicate']:
+                        success = True
+                        warnings.warn("Duplicate image not uploaded:  " + image_path)
+                else:
+                    success, image_id = response.json()['success'], response.json()['id']
+
                 if not success:
                     warnings.warn(f"Server rejected image: {response.json()}")
-            except Exception:
+                
+            except Exception as e:
                 # Image fails to upload
                 warnings.warn(f"Bad response: {response}")
                 success = False
@@ -230,35 +244,26 @@ class Project():
                     return
                 else:
                     warnings.warn("Image, " + image_path + ", failed to upload! You can specify num_retry_uploads to retry a number of times.")
-
-            # Check if image uploaded successfully + check if there are annotations to upload
-            if annotation_path is not None and image_id is not None and success:
-                # Upload annotation to API
-                annotation_response = self.__annotation_upload(annotation_path, image_id)
-                try:
-                    success = annotation_response.json()['success']
-                    if not success:
-                        warnings.warn(f"Server rejected annotation: {annotation_response.json()}")
-                except Exception:
-                    success = False
-                # Give user warning that annotation failed to upload
-                if not success:
-                    warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
                 
         # Upload only annotations to image based on image Id (no image)
-        elif annotation_path is not None and image_id is not None:
+        if annotation_path is not None and image_id is not None and success:
             # Get annotation upload response
             annotation_response = self.__annotation_upload(annotation_path, image_id)
             # Check if upload was a success
             try:
-                success = annotation_response.json()['success']
+                annotation_success = annotation_response.json()['success']
             except Exception:
                 warnings.warn(f"Bad response: {response}")
-                success = False
-        # Give user warning that annotation failed to upload
-        if not success:
-            warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
-        return success
+                annotation_success = False
+            # Give user warning that annotation failed to upload
+            if not annotation_success:
+                warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+        else:
+            annotation_success = True
+        
+        overall_success = success and annotation_success
+        return overall_success
+
 
     def __str__(self):
         # String representation of project

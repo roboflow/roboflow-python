@@ -3,6 +3,9 @@ import json
 from roboflow.core.project import Project
 from roboflow.config import *
 import sys
+import glob
+
+from roboflow.util.active_learning_utils import count_class_occurances, count_comparisons, check_box_size, base64_encode, clip_encode
 
 class Workspace():
     def __init__(self, info, api_key, default_workspace, model_format):
@@ -20,7 +23,6 @@ class Workspace():
 
             self.__api_key = api_key
 
-
     def list_projects(self):
         """Lists projects out in the workspace
         """
@@ -36,7 +38,6 @@ class Workspace():
             projects_array.append(proj.name)
 
         return projects_array
-
 
     def project(self, project_name):
         sys.stdout.write("\r" + "loading Roboflow project...")
@@ -60,6 +61,78 @@ class Workspace():
         dataset_info = dataset_info.json()['project']
 
         return Project(self.__api_key, dataset_info, self.model_format)
+
+    def active_learning(self, raw_data_location, raw_data_extension, inference_endpoint, upload_destination, conditionals):
+        '''
+        @params:
+            raw_data_location: dir = folder of frames to be processed
+            raw_data_extension: extension of frames to be processed
+            inference_endpoint: List[str, int] = name of the project
+            upload_destination: str = name of the upload project
+            conditionals: dict = dictionary of upload conditions
+        '''
+
+        inference_model = self.project(inference_endpoint[0]).version(inference_endpoint[1]).model
+        upload_project = self.project(upload_destination)
+
+        print("inference reference point: ", inference_model)
+        print("upload destination: ", upload_project)
+
+        globbed_files = glob.glob(raw_data_location + '/*' + raw_data_extension)
+
+        image1 = globbed_files[0]
+        similarity_timeout_counter = 0
+
+        for index, image in enumerate(globbed_files):
+            print("*** Processing image [" + str(index + 1) + "/" + str(len(globbed_files)) + "] - " + image + " ***")
+
+            if "similarity_confidence_threshold" in conditionals.keys():
+                image2 = image
+                # measure the similarity of two images using CLIP (hits an endpoint hosted by Roboflow)
+                similarity = clip_encode(image1,image2, CLIP_FEATURIZE_URL)
+                similarity_timeout_counter += 1
+
+                if(similarity <= conditionals["similarity_confidence_threshold"] or similarity_timeout_counter == conditionals["similarity_timeout_limit"]):
+                    image1 = image
+                    similarity_timeout_counter = 0
+                else:
+                    print(image2 + " --> similarity too high to --> " + image1)
+                    continue        # skip this image if too similar or counter hits limit
+
+
+            predictions = inference_model.predict(image).json()['predictions']
+            
+            # compare object and class count of predictions if enabled, continue if not enough occurances
+            if(not count_comparisons(predictions, conditionals["required_objects_count"], conditionals["required_class_count"], conditionals["target_classes"])):
+                print(' [X] image failed count cases')
+                continue 
+
+            # iterate through all predictions
+            for i, prediction in enumerate(predictions):
+                print(i)
+
+                # check if box size of detection fits requirements
+                if not check_box_size(prediction, conditionals["minimum_size_requirement"], conditionals["maximum_size_requirement"]):
+                    print(' [X] prediction failed box size cases')
+                    continue
+
+                # compare confidence of detected object to confidence thresholds
+                # confidence comes in as a .XXX instead of XXX%
+                if(prediction['confidence'] * 100 >= conditionals["confidence_interval"][0] and 
+                    prediction['confidence'] * 100 <= conditionals["confidence_interval"][1]):
+                
+                    # filter out non-target_class uploads if enabled
+                    if(len(conditionals["target_classes"]) > 0 and
+                        prediction['class'] not in conditionals["target_classes"]):
+                        print(' [X] prediction failed target_classes')
+                        continue
+
+                    # upload on success!
+                    print(' >> image uploaded!')
+                    upload_project.upload(image, num_retry_uploads=3)
+                    break
+
+        return
 
     def __str__(self):
         projects = self.projects()
