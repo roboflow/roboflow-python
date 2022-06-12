@@ -10,6 +10,7 @@ import requests
 from PIL import Image
 from roboflow.config import *
 from roboflow.core.version import Version
+from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 def custom_formatwarning(msg, *args, **kwargs):
     # ignore everything except the message
@@ -19,7 +20,7 @@ warnings.formatwarning = custom_formatwarning
 
 #version class that should return
 class Project():
-    def __init__(self, api_key, a_project, model_format):
+    def __init__(self, api_key, a_project, model_format=None):
         if api_key == "coco-128-sample":
             self.__api_key = api_key
             self.model_format = model_format
@@ -107,38 +108,30 @@ class Project():
             image_name = os.path.basename(image_path)
 
             # Construct URL for local image upload
-
             self.image_upload_url = "".join([
                 "https://api.roboflow.com/dataset/", project_name, "/upload",
-                "?api_key=", self.__api_key,
-                "&name=" + image_name,
-                "&split=" + split
+                "?api_key=", self.__api_key
             ])
 
             # Convert to PIL Image
             img = cv2.imread(image_path)
             image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
             pilImage = Image.fromarray(image)
+
             # Convert to JPEG Buffer
             buffered = io.BytesIO()
             pilImage.save(buffered, quality=100, format="JPEG")
-            # Base 64 Encode
-            img_str = base64.b64encode(buffered.getvalue())
-            img_str = img_str.decode("ascii")
-            # Post Base 64 Data to Upload API
 
-            response = requests.post(self.image_upload_url, data=img_str, headers={
-                "Content-Type": "application/x-www-form-urlencoded"
-            })
-
+            # Build multipart form and post request
+            m = MultipartEncoder(fields={'name': image_name, 'split': split, 'file': ("imageToUpload", buffered.getvalue(), "image/jpeg")})
+            response = requests.post(self.image_upload_url, data=m, headers={'Content-Type': m.content_type})
 
         else:
             # Hosted image upload url
             project_name = self.id.rsplit("/")[1]
 
             upload_url = "".join([
-                "https://api.roboflow.com/dataset/" + self.project_name + "/upload",
+                API_URL + "/dataset/" + self.project_name + "/upload",
                 "?api_key=" + self.__api_key,
                 "&name=" + os.path.basename(image_path),
                 "&split=" + split,
@@ -159,7 +152,7 @@ class Project():
         annotation_string = open(annotation_path, "r").read()
         # Set annotation upload url
         self.annotation_upload_url = "".join([
-            "https://api.roboflow.com/dataset/", self.name, "/annotate/", image_id,
+            API_URL + "/dataset/", self.name, "/annotate/", image_id,
             "?api_key=", self.__api_key,
             "&name=" + os.path.basename(annotation_path)
         ])
@@ -270,6 +263,7 @@ class Project():
         
         overall_success = success and annotation_success
         return overall_success
+
 
     def __str__(self):
         # String representation of project
