@@ -103,6 +103,18 @@ class Version():
 
             with open(location + "/data.yaml", 'w') as outfile:
                 yaml.dump(new_yaml, outfile)
+                
+        if (model_format == "mt-yolov6"):
+            with open(location + "/data.yaml") as file:
+                new_yaml = yaml.safe_load(file)
+            new_yaml["train"] = location + new_yaml["train"].lstrip(".")
+            new_yaml["val"] = location + new_yaml["val"].lstrip(".")
+            new_yaml["test"] = location + new_yaml["test"].lstrip(".")
+
+            os.remove(location + "/data.yaml")
+
+            with open(location + "/data.yaml", 'w') as outfile:
+                yaml.dump(new_yaml, outfile)
 
         os.remove(location + '/roboflow.zip')
 
