@@ -93,7 +93,7 @@ class Version():
                 except zipfile.error as e:
                     pass
 
-        if (self.model_format == 'yolov5') or (model_format == 'yolov5pytorch'):
+        if (self.model_format == 'yolov5') or (model_format == 'yolov5pytorch') or (model_format == "mt-yolov6"):
             with open(location + "/data.yaml") as file:
                 new_yaml = yaml.safe_load(file)
             new_yaml["train"] = location + new_yaml["train"].lstrip("..")
