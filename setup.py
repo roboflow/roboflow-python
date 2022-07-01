@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="roboflow",  # Replace with your own username
-    version="0.2.5",
+    version="0.2.7",
     author="Roboflow",
     author_email="jacob@roboflow.com",
     description="python client for the Roboflow application",
@@ -23,7 +23,7 @@ setuptools.setup(
         "kiwisolver==1.3.1",
         "matplotlib",
         "numpy>=1.18.5",
-        "opencv-python-headless>=4.1.2",
+        "opencv-python-headless==4.1.2.30",
         "Pillow>=7.1.2",
         "pyparsing==2.4.7",
         "python-dateutil",
