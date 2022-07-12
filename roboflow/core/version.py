@@ -61,11 +61,16 @@ class Version():
         if model_format == None:
             if (self.model_format == 'yolov5'):
                 model_format = 'yolov5pytorch'
+            elif (self.model_format == 'yolov7'):
+                model_format = 'yolov7pytorch'
             else:
                 RuntimeError("You must pass a download_type to version.download() or define model in your Roboflow object")
 
         if model_format == 'yolov5':
             model_format = 'yolov5pytorch'
+        
+        if model_format == 'yolov7':
+            model_format = 'yolov7pytorch'
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
@@ -93,7 +98,7 @@ class Version():
                 except zipfile.error as e:
                     pass
 
-        if (self.model_format == 'yolov5') or (model_format == 'yolov5pytorch'):
+        if (self.model_format == 'yolov5') or (model_format == 'yolov5pytorch') or (model_format == 'yolov7') or (model_format == 'yolov7pytorch'):
             with open(location + "/data.yaml") as file:
                 new_yaml = yaml.safe_load(file)
             new_yaml["train"] = location + new_yaml["train"].lstrip("..")
