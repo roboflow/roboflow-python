@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="roboflow",  # Replace with your own username
-    version="0.2.7",
+    version="0.2.8",
     author="Roboflow",
     author_email="jacob@roboflow.com",
     description="python client for the Roboflow application",
