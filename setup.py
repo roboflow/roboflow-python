@@ -19,7 +19,7 @@ setuptools.setup(
         "cycler==0.10.0",
         "glob2",
         "idna==2.10",
-        "Pillow==8.4.0",
+        "Pillow==9.0.1",
         "kiwisolver==1.3.1",
         "matplotlib",
         "numpy>=1.18.5",
