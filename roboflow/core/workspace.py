@@ -35,7 +35,7 @@ class Workspace():
         projects_array = []
         for a_project in self.project_list:
             proj = Project(self.__api_key, a_project, self.model_format)
-            projects_array.append(proj.name)
+            projects_array.append(proj.id)
 
         return projects_array
 
