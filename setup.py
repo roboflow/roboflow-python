@@ -23,7 +23,7 @@ setuptools.setup(
         "kiwisolver==1.3.1",
         "matplotlib",
         "numpy>=1.18.5",
-        "opencv-python-headless==4.1.2.30",
+        "opencv-python-headless==4.2.0.32",
         "Pillow>=7.1.2",
         "pyparsing==2.4.7",
         "python-dateutil",
