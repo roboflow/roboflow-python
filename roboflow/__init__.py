@@ -15,9 +15,9 @@ def check_key(api_key, model, notebook):
             "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key)))
 
     if any(c for c in api_key if c.islower()): #check if any of the api key characters are lowercase
-        if api_key == 'coco-128-sample':
+        if api_key in ['coco-128-sample', 'chess-sample']:
             #passthrough for public download of COCO-128 for the time being
-            return "coco-128-sample"
+            return api_key
         else:
             #validate key normally
             response = requests.post(API_URL + "/?api_key=" + api_key)
