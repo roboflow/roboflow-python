@@ -140,10 +140,7 @@ class ObjectDetectionModel:
                 self.base_url = "https://detect.roboflow.com/"
             else:
                 self.base_url = "http://localhost:9001/"
-        """
-        There is probably a better way to do this lol
-        TODO: Refactor this!
-        """
+                
         # Change any variables that the user wants to change
         if classes is not None:
             self.classes = classes
