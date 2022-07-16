@@ -21,7 +21,7 @@ warnings.formatwarning = custom_formatwarning
 #version class that should return
 class Project():
     def __init__(self, api_key, a_project, model_format=None):
-        if api_key == "coco-128-sample":
+        if api_key in DEMO_KEYS:
             self.__api_key = api_key
             self.model_format = model_format
         else:
@@ -80,8 +80,13 @@ class Project():
         :return Version() object
         """
 
-        if self.__api_key == "coco-128-sample":
-            return Version({}, "type", self.__api_key, "coco-128", version_number, self.model_format, local=False)
+        if self.__api_key in DEMO_KEYS:
+            name = ""
+            if self.__api_key == "coco-128-sample":
+                name = "coco-128"
+            else:
+                name = "chess-pieces-new"
+            return Version({}, "type", self.__api_key, name, version_number, self.model_format, local=False)
 
         version_info = self.get_version_information()
 

@@ -19,11 +19,18 @@ load_dotenv()
 
 class Version():
     def __init__(self, version_dict, type, api_key, name, version, model_format, local):
-        if api_key == 'coco-128-sample':
-            self.__api_key = api_key
-            self.model_format = model_format
-            self.name = "coco-128"
-            self.version = 1
+        if api_key in DEMO_KEYS:
+            if api_key == 'coco-128-sample':
+                self.__api_key = api_key
+                self.model_format = model_format
+                self.name = "coco-128"
+                self.version = "1"
+            else:
+                self.__api_key = api_key
+                self.model_format = model_format
+                self.name = "chess-pieces-new"
+                self.version = "23"
+                self.id = "joseph-nelson/chess-pieces-new"
         else:
             self.__api_key = api_key
             self.name = name

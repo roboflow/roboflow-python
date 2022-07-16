@@ -9,7 +9,7 @@ from roboflow.util.active_learning_utils import count_class_occurances, count_co
 
 class Workspace():
     def __init__(self, info, api_key, default_workspace, model_format):
-        if api_key == "coco-128-sample":
+        if api_key in DEMO_KEYS:
             self.__api_key = api_key
             self.model_format = model_format
         else:
@@ -44,7 +44,7 @@ class Workspace():
         sys.stdout.write("\n")
         sys.stdout.flush()
 
-        if self.__api_key == "coco-128-sample":
+        if self.__api_key in DEMO_KEYS:
             return Project(self.__api_key, {}, self.model_format)
         
         project_name = project_name.replace(self.url + "/", "")
