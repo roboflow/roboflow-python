@@ -8,14 +8,13 @@ from roboflow.core.workspace import Workspace
 from roboflow.core.project import Project
 from roboflow.config import *
 
-
 def check_key(api_key, model, notebook):
     if type(api_key) is not str:
         raise RuntimeError(
             "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key)))
 
     if any(c for c in api_key if c.islower()): #check if any of the api key characters are lowercase
-        if api_key in ['coco-128-sample', 'chess-sample-only-api-key']:
+        if api_key in DEMO_KEYS:
             #passthrough for public download of COCO-128 for the time being
             return api_key
         else:
@@ -53,7 +52,7 @@ class Roboflow():
         if r == "onboarding":
             self.onboarding = True 
             return self
-        elif r == "coco-128-sample":
+        elif r in DEMO_KEYS:
             self.universe = True
             return self
         else:
@@ -69,7 +68,7 @@ class Roboflow():
         if the_workspace is None:
             the_workspace = self.current_workspace
 
-        if self.api_key == 'coco-128-sample':
+        if self.api_key in DEMO_KEYS:
             return Workspace({}, self.api_key, the_workspace, self.model_format)
 
         list_projects = requests.get(API_URL + "/" + the_workspace + '?api_key=' + self.api_key).json()

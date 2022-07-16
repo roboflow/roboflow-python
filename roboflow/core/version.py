@@ -19,11 +19,17 @@ load_dotenv()
 
 class Version():
     def __init__(self, version_dict, type, api_key, name, version, model_format, local):
-        if api_key == 'coco-128-sample':
-            self.__api_key = api_key
-            self.model_format = model_format
-            self.name = "coco-128"
-            self.version = 1
+        if api_key in DEMO_KEYS:
+            if api_key == 'coco-128-sample':
+                self.__api_key = api_key
+                self.model_format = model_format
+                self.name = "coco-128"
+                self.version = "1"
+            else:
+                self.__api_key = api_key
+                self.model_format = model_format
+                self.name = "chess-pieces-new"
+                self.version = "23"
         else:
             self.__api_key = api_key
             self.name = name
@@ -74,6 +80,8 @@ class Version():
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
+        elif self.__api_key == "chess-sample-only-api-key":
+            link = "https://app.roboflow.com/ds/1FEUkS6HDV?key=rV0oCKyFZM"
         else:
             url = self.__get_download_url(model_format)
             resp = requests.get(url)

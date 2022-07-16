@@ -87,7 +87,7 @@ Selecting the format you'd like your project to be exported as while choosing th
 
 ![Alt Text](https://media.giphy.com/media/I5g06mUnVzdX7iT2Gf/giphy.gif)
 
-## Devving locally
+## Deving locally
 1. clone repo
 2. create a virtual env: `virtualenv local_dev`
 3. activate virtual env: `source local_dev/bin/activate`
