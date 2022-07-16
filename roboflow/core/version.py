@@ -30,6 +30,7 @@ class Version():
                 self.model_format = model_format
                 self.name = "chess-pieces-new"
                 self.version = "23"
+                self.id = "joseph-nelson/chess-pieces-new"
         else:
             self.__api_key = api_key
             self.name = name
@@ -80,8 +81,6 @@ class Version():
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
-        elif self.__api_key == "chess-sample-only-api-key":
-            link = "https://app.roboflow.com/ds/1FEUkS6HDV?key=rV0oCKyFZM"
         else:
             url = self.__get_download_url(model_format)
             resp = requests.get(url)
