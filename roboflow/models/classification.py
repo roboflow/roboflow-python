@@ -13,7 +13,7 @@ from roboflow.config import CLASSIFICATION_MODEL
 
 
 class ClassificationModel:
-    def __init__(self, api_key, id, name=None, version=None, local=False):
+    def __init__(self, api_key, id, name=None, version=None):
         """
         :param api_key: private roboflow api key
         :param id: the workspace/project id
@@ -26,10 +26,8 @@ class ClassificationModel:
         self.id=id
         self.name = name
         self.version = version
-        if not local:
-            self.base_url = "https://classify.roboflow.com/"
-        else:
-            self.base_url = "http://localhost:9001/"
+        self.base_url = "https://classify.roboflow.com/"
+
 
         if self.name is not None and version is not None:
             self.__generate_url()
