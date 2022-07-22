@@ -14,7 +14,7 @@ from roboflow.util.image_utils import check_image_url
 
 
 class ObjectDetectionModel:
-    def __init__(self, api_key, id, name=None, version=None, local=False, classes=None, overlap=30, confidence=40,
+    def __init__(self, api_key, id, name=None, version=None, local=None, classes=None, overlap=30, confidence=40,
                  stroke=1, labels=False, format="json"):
         """
         From Roboflow Docs:
@@ -23,7 +23,7 @@ class ObjectDetectionModel:
         :param name: The url-safe version of the dataset name.  You can find it in the web UI by looking at
         the URL on the main project view or by clicking the "Get curl command" button in the train results section of
         your dataset version after training your model.
-        :param local: Boolean value dictating whether to use the local server or hosted API
+        :param local: Address of the local server address if running a local Roboflow deployment server. ex. http://localhost:9001/
         :param version: The version number identifying the version of of your dataset
         :param classes: Restrict the predictions to only those of certain classes. Provide as a comma-separated string.
         :param overlap: The maximum percentage (on a scale of 0-100) that bounding box predictions of the same class are
@@ -52,10 +52,11 @@ class ObjectDetectionModel:
         self.format = format
 
         # local needs to be passed from Project
-        if not local:
+        if local is None:
             self.base_url = "https://detect.roboflow.com/"
         else:
-            self.base_url = "http://localhost:9001/"
+            print("initalizing local object detection model hosted at :" + local)
+            self.base_url = local
 
         # If dataset slug not none, instantiate API URL
         if name is not None and version is not None:
