@@ -35,13 +35,16 @@ setuptools.setup(
         "wget",
         "tqdm>=4.41.0",
         "PyYAML>=5.3.1",
-        "wget"
+        "wget",
     ],
-    packages=find_packages(exclude=('tests',)),
+    packages=find_packages(exclude=("tests",)),
+    extras_require={
+        "dev": ["pytest", "flake8", "black==22.3.0", "isort"],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )
