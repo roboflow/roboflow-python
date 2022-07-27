@@ -95,3 +95,12 @@ Selecting the format you'd like your project to be exported as while choosing th
 5. create script on top level of `ROBOFLOW-PYTHON` and reference local `roboflow` directory: `from roboflow import Roboflow`
 6. when done, uptick the pip package minor version number in `setup.py`
 7. manually add any new dependencies to the `requirements.txt` and list of dependencies in `setup.py` (careful not to overwrite any packages that might screw up backwards dependencies for object detection, etc.) 
+
+### Tests
+
+You can run the test locally by
+
+```
+pip install -e ".[dev].
+```
+
