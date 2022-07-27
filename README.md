@@ -40,6 +40,12 @@ source env/bin/activate
 pip3 install -r requirements.txt
 ```
 
+Install latest version (may be unstable) from GitHub
+
+```
+pip install git+https://github.com/roboflow-ai/roboflow-python.git
+```
+
 ## Quickstart
 
 ```python
