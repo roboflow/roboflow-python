@@ -6,6 +6,7 @@ import sys
 import glob
 
 from roboflow.util.active_learning_utils import count_class_occurances, count_comparisons, check_box_size, base64_encode, clip_encode
+from roboflow.util.object_count_utils import count_object_occurances, object_count_comparisons
 
 class Workspace():
     def __init__(self, info, api_key, default_workspace, model_format):
