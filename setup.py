@@ -38,7 +38,7 @@ setuptools.setup(
     ],
     packages=find_packages(exclude=("tests",)),
     extras_require={
-        "dev": ["pytest", "flake8", "black==22.3.0", "isort"],
+        "dev": ["flake8", "black==22.3.0", "isort"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

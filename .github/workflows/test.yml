@@ -2,7 +2,7 @@ name: Test WorkFlow
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
   build:
@@ -28,5 +28,5 @@ jobs:
       - name: 🧹 Lint with flake8
         run: |
           make check_code_quality
-      - name: 🧪 Test with pytest
-        run: "python -m pytest ."
+      - name: 🧪 Test
+        run: "python -m unittest"
