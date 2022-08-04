@@ -1,25 +1,30 @@
 import io
 import json
 import os
+import urllib.request
 import warnings
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import requests
-
-import matplotlib.pyplot as plt
 from matplotlib import patches
 from PIL import Image
-import urllib.request
 
-from roboflow.config import OBJECT_DETECTION_MODEL, PREDICTION_OBJECT, CLASSIFICATION_MODEL
+from roboflow.config import (
+    CLASSIFICATION_MODEL,
+    OBJECT_DETECTION_MODEL,
+    PREDICTION_OBJECT,
+)
 from roboflow.util.image_utils import check_image_url
 
 
 def exception_check(image_path_check=None):
     # Check if Image path exists exception check (for both hosted URL and local image)
     if image_path_check is not None:
-        if not os.path.exists(image_path_check) and not check_image_url(image_path_check):
+        if not os.path.exists(image_path_check) and not check_image_url(
+            image_path_check
+        ):
             raise Exception("Image does not exist at " + image_path_check + "!")
 
 
@@ -54,23 +59,36 @@ def plot_annotation(axes, prediction=None, stroke=1):
     :return:
     """
     # Object Detection annotation
-    if prediction['prediction_type'] == OBJECT_DETECTION_MODEL:
+    if prediction["prediction_type"] == OBJECT_DETECTION_MODEL:
         # Get height, width, and center coordinates of prediction
         if prediction is not None:
-            height = prediction['height']
-            width = prediction['width']
-            x = prediction['x']
-            y = prediction['y']
-            rect = patches.Rectangle((x - width / 2, y - height / 2), width, height,
-                                     linewidth=stroke, edgecolor='r', facecolor='none')
+            height = prediction["height"]
+            width = prediction["width"]
+            x = prediction["x"]
+            y = prediction["y"]
+            rect = patches.Rectangle(
+                (x - width / 2, y - height / 2),
+                width,
+                height,
+                linewidth=stroke,
+                edgecolor="r",
+                facecolor="none",
+            )
             # Plot Rectangle
             axes.add_patch(rect)
-    elif prediction['prediction_type'] == CLASSIFICATION_MODEL:
-        axes.set_title('Class: ' + prediction['top'] + " | Confidence: " + str(prediction['confidence']))
+    elif prediction["prediction_type"] == CLASSIFICATION_MODEL:
+        axes.set_title(
+            "Class: "
+            + prediction["top"]
+            + " | Confidence: "
+            + str(prediction["confidence"])
+        )
 
 
 class Prediction:
-    def __init__(self, json_prediction, image_path, prediction_type=OBJECT_DETECTION_MODEL):
+    def __init__(
+        self, json_prediction, image_path, prediction_type=OBJECT_DETECTION_MODEL
+    ):
         """
         Generalized Prediction for both Object Detection and Classification Models
 
@@ -78,8 +96,8 @@ class Prediction:
         :param image_path:
         """
         # Set image path in JSON prediction
-        json_prediction['image_path'] = image_path
-        json_prediction['prediction_type'] = prediction_type
+        json_prediction["image_path"] = image_path
+        json_prediction["prediction_type"] = prediction_type
         self.image_path = image_path
         self.json_prediction = json_prediction
 
@@ -98,45 +116,59 @@ class Prediction:
 
     def plot(self, stroke=1):
         # Exception to check if image path exists
-        exception_check(image_path_check=self['image_path'])
-        figure, axes = plot_image(self['image_path'])
+        exception_check(image_path_check=self["image_path"])
+        figure, axes = plot_image(self["image_path"])
 
         plot_annotation(axes, self, stroke)
         plt.show()
 
     # saves a single box or classification on the image
-    def save(self, output_path='predictions.jpg', stroke=2):
+    def save(self, output_path="predictions.jpg", stroke=2):
         image = self.__load_image()
-        if self['prediction_type'] == OBJECT_DETECTION_MODEL:
+        if self["prediction_type"] == OBJECT_DETECTION_MODEL:
             # Get different dimensions/coordinates
-            x = self['x']
-            y = self['y']
-            width = self['width']
-            height = self['height']
-            class_name = self['class']
+            x = self["x"]
+            y = self["y"]
+            width = self["width"]
+            height = self["height"]
+            class_name = self["class"]
             # Draw bounding boxes for object detection prediction
-            cv2.rectangle(image, (
-                int(x - width / 2), int(y + height / 2)),
-                          (int(x + width / 2),
-                           int(y - height / 2)),
-                          (255, 0, 0), stroke)
+            cv2.rectangle(
+                image,
+                (int(x - width / 2), int(y + height / 2)),
+                (int(x + width / 2), int(y - height / 2)),
+                (255, 0, 0),
+                stroke,
+            )
             # Get size of text
             text_size = cv2.getTextSize(class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)[0]
             # Draw background rectangle for text
-            cv2.rectangle(image, (x - width / 2, y - height / 2 + 1),
-                          (x - width / 2 + text_size[0] + 1, y - height / 2 + int(1.5 * text_size[1])), (255, 0, 0),
-                          -1)
+            cv2.rectangle(
+                image,
+                (x - width / 2, y - height / 2 + 1),
+                (
+                    x - width / 2 + text_size[0] + 1,
+                    y - height / 2 + int(1.5 * text_size[1]),
+                ),
+                (255, 0, 0),
+                -1,
+            )
             # Write text onto image
-            cv2.putText(image, class_name,
-                        (int(x - width / 2),
-                         y + text_size[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
-                        (255, 255, 255), thickness=1)
+            cv2.putText(
+                image,
+                class_name,
+                (int(x - width / 2), y + text_size[1]),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.4,
+                (255, 255, 255),
+                thickness=1,
+            )
 
-        elif self['prediction_type'] == CLASSIFICATION_MODEL:
+        elif self["prediction_type"] == CLASSIFICATION_MODEL:
             # Get image dimensions
             height, width = image.shape[:2]
             # Get bottom amount for image
-            bottom = image[height - 2:height, 0:width]
+            bottom = image[height - 2 : height, 0:width]
             # Get mean of bottom amount
             mean = cv2.mean(bottom)[0]
             border_size = 100
@@ -148,12 +180,18 @@ class Prediction:
                 left=border_size,
                 right=border_size,
                 borderType=cv2.BORDER_CONSTANT,
-                value=[mean, mean, mean]
+                value=[mean, mean, mean],
             )
             # Add text and relax
-            cv2.putText(image, (self["top"] + ' | ' + "Confidence: " + self['confidence']), (int(width / 2), 5),
-                        cv2.FONT_HERSHEY_DUPLEX, 0.5,
-                        (255, 255, 255), 1)
+            cv2.putText(
+                image,
+                (self["top"] + " | " + "Confidence: " + self["confidence"]),
+                (int(width / 2), 5),
+                cv2.FONT_HERSHEY_DUPLEX,
+                0.5,
+                (255, 255, 255),
+                1,
+            )
 
         # Write image path
         cv2.imwrite(output_path, image)
@@ -187,15 +225,15 @@ class PredictionGroup:
         # List of predictions (core of the PredictionGroup)
         self.predictions = []
         # Base image path (path of image of first prediction in prediction group)
-        self.base_image_path = ''
+        self.base_image_path = ""
         # Base prediction type (prediction type of image of first prediction in prediction group)
-        self.base_prediction_type = ''
+        self.base_prediction_type = ""
         # Iterate through the arguments
         for index, prediction in enumerate(args):
             # Set base image path based on first prediction
             if index == 0:
-                self.base_image_path = prediction['image_path']
-                self.base_prediction_type = prediction['prediction_type']
+                self.base_image_path = prediction["image_path"]
+                self.base_prediction_type = prediction["prediction_type"]
             # If not a Prediction object then do not allow into the prediction group
             self.__exception_check(is_prediction_check=prediction)
             # Add prediction to prediction group otherwise
@@ -208,14 +246,17 @@ class PredictionGroup:
         """
         # If not a Prediction object then do not allow into the prediction group
         # Also checks if prediction types are the same (i.e. object detection predictions in object detection groups)
-        self.__exception_check(is_prediction_check=prediction, prediction_type_check=prediction['prediction_type'])
+        self.__exception_check(
+            is_prediction_check=prediction,
+            prediction_type_check=prediction["prediction_type"],
+        )
         # If there is more than one prediction and the prediction image path is
         # not the group image path then warn user
         if self.__len__() > 0:
-            self.__exception_check(image_path_check=prediction['image_path'])
+            self.__exception_check(image_path_check=prediction["image_path"])
         # If the prediction group is empty, make the base image path of the prediction
         elif self.__len__() == 0:
-            self.base_image_path = prediction['image_path']
+            self.base_image_path = prediction["image_path"]
         # Append prediction to group
         self.predictions.append(prediction)
 
@@ -250,36 +291,57 @@ class PredictionGroup:
             # Check what type of prediction it is
             if self.base_prediction_type == OBJECT_DETECTION_MODEL:
                 # Get different dimensions/coordinates
-                x = prediction['x']
-                y = prediction['y']
-                width = prediction['width']
-                height = prediction['height']
-                class_name = prediction['class']
+                x = prediction["x"]
+                y = prediction["y"]
+                width = prediction["width"]
+                height = prediction["height"]
+                class_name = prediction["class"]
                 # Draw bounding boxes for object detection prediction
-                cv2.rectangle(image, (
-                    int(x - width / 2), int(y + height / 2)),
-                              (int(x + width / 2),
-                               int(y - height / 2)),
-                              (255, 0, 0), stroke)
+                cv2.rectangle(
+                    image,
+                    (int(x - width / 2), int(y + height / 2)),
+                    (int(x + width / 2), int(y - height / 2)),
+                    (255, 0, 0),
+                    stroke,
+                )
                 # Get size of text
-                text_size = cv2.getTextSize(class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)[0]
+                text_size = cv2.getTextSize(
+                    class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1
+                )[0]
                 # Draw background rectangle for text
-                cv2.rectangle(image, (int(x - width / 2), int(y - height / 2 + 1)),
-                              (int(x - width / 2 + text_size[0] + 1), int(y - height / 2 + int(1.5 * text_size[1]))),
-                              (255, 0, 0),
-                              -1)
+                cv2.rectangle(
+                    image,
+                    (int(x - width / 2), int(y - height / 2 + 1)),
+                    (
+                        int(x - width / 2 + text_size[0] + 1),
+                        int(y - height / 2 + int(1.5 * text_size[1])),
+                    ),
+                    (255, 0, 0),
+                    -1,
+                )
                 # Write text onto image
-                cv2.putText(image, class_name,
-                            (int(x - width / 2),
-                             int(y - height / 2 + text_size[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
-                            (255, 255, 255), thickness=1)
+                cv2.putText(
+                    image,
+                    class_name,
+                    (int(x - width / 2), int(y - height / 2 + text_size[1])),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.4,
+                    (255, 255, 255),
+                    thickness=1,
+                )
             # Plot for classification model
             elif self.base_prediction_type == CLASSIFICATION_MODEL:
                 # Get image dimensions
                 height, width = image.shape[:2]
 
                 border_size = 100
-                text = "Class: " + prediction["top"] + ' | ' + "Confidence: " + str(prediction['confidence'])
+                text = (
+                    "Class: "
+                    + prediction["top"]
+                    + " | "
+                    + "Confidence: "
+                    + str(prediction["confidence"])
+                )
                 text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_COMPLEX, 1, 1)[0]
                 # Apply Border
                 image = cv2.copyMakeBorder(
@@ -289,15 +351,20 @@ class PredictionGroup:
                     left=border_size,
                     right=border_size,
                     borderType=cv2.BORDER_CONSTANT,
-                    value=[255, 255, 255]
+                    value=[255, 255, 255],
                 )
                 # get coords
                 text_x = (image.shape[1] - text_size[0]) / 2
-                text_y = (image.shape[0] + text_size[1]) / 2
                 # Add text and relax
-                cv2.putText(image, text,
-                            (int(text_x), int(border_size / 2)), cv2.FONT_HERSHEY_COMPLEX, 1,
-                            (0, 0, 0), 1)
+                cv2.putText(
+                    image,
+                    text,
+                    (int(text_x), int(border_size / 2)),
+                    cv2.FONT_HERSHEY_COMPLEX,
+                    1,
+                    (0, 0, 0),
+                    1,
+                )
         # Write image path
         cv2.imwrite(output_path, image)
 
@@ -322,32 +389,50 @@ class PredictionGroup:
         # Length of prediction based off of number of predictions
         return len(self.predictions)
 
-    def __exception_check(self, is_prediction_check=None, image_path_check=None, prediction_type_check=None):
+    def __exception_check(
+        self,
+        is_prediction_check=None,
+        image_path_check=None,
+        prediction_type_check=None,
+    ):
         # Ensures only predictions can be added to a prediction group
         if is_prediction_check is not None:
             if type(is_prediction_check).__name__ is not PREDICTION_OBJECT:
-                raise Exception("Cannot add type " + type(is_prediction_check).__name__ + " to PredictionGroup")
+                raise Exception(
+                    "Cannot add type "
+                    + type(is_prediction_check).__name__
+                    + " to PredictionGroup"
+                )
 
         # Warns user if predictions have different prediction types
         if prediction_type_check is not None:
-            if self.__len__() > 0 and prediction_type_check != self.base_prediction_type:
+            if (
+                self.__len__() > 0
+                and prediction_type_check != self.base_prediction_type
+            ):
                 warnings.warn(
-                    "This prediction is a different type (" + prediction_type_check +
-                    ") than the prediction group base type (" + self.base_prediction_type +
-                    ")")
+                    "This prediction is a different type ("
+                    + prediction_type_check
+                    + ") than the prediction group base type ("
+                    + self.base_prediction_type
+                    + ")"
+                )
 
         # Gives user warning that base path is not equal to image path
         if image_path_check is not None:
             if self.base_image_path != image_path_check:
                 warnings.warn(
-                    "This prediction has a different image path (" + image_path_check +
-                    ") than the prediction group base image path (" + self.base_image_path +
-                    ")")
+                    "This prediction has a different image path ("
+                    + image_path_check
+                    + ") than the prediction group base image path ("
+                    + self.base_image_path
+                    + ")"
+                )
 
     def json(self):
         prediction_group_json = {"predictions": []}
         for prediction in self.predictions:
-            prediction_group_json['predictions'].append(prediction.json())
+            prediction_group_json["predictions"].append(prediction.json())
 
         return prediction_group_json
 
@@ -367,9 +452,11 @@ class PredictionGroup:
         # For object detection model
         if prediction_type == OBJECT_DETECTION_MODEL:
             # get all predicted bounding boxes for image
-            for prediction in json_response['predictions']:
+            for prediction in json_response["predictions"]:
                 # Create prediction for bbox
-                prediction = Prediction(prediction, image_path, prediction_type=prediction_type)
+                prediction = Prediction(
+                    prediction, image_path, prediction_type=prediction_type
+                )
                 # Add to prediction list
                 prediction_list.append(prediction)
         # For classification model
