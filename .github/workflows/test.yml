@@ -33,5 +33,4 @@ jobs:
           ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
           PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
           PROJECT_VERSION: ${{ secrets.PROJECT_VERSION }}
-
         run: "python -m unittest"
