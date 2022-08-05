@@ -1,21 +1,32 @@
 import base64
 import io
+import json
 import os
+import urllib
 
 import requests
-import urllib
 from PIL import Image
-import json
 
 from roboflow.config import OBJECT_DETECTION_MODEL
-from roboflow.util.prediction import PredictionGroup
-
 from roboflow.util.image_utils import check_image_url
+from roboflow.util.prediction import PredictionGroup
 
 
 class ObjectDetectionModel:
-    def __init__(self, api_key, id, name=None, version=None, local=None, classes=None, overlap=30, confidence=40,
-                 stroke=1, labels=False, format="json"):
+    def __init__(
+        self,
+        api_key,
+        id,
+        name=None,
+        version=None,
+        local=None,
+        classes=None,
+        overlap=30,
+        confidence=40,
+        stroke=1,
+        labels=False,
+        format="json",
+    ):
         """
         From Roboflow Docs:
 
@@ -62,8 +73,18 @@ class ObjectDetectionModel:
         if name is not None and version is not None:
             self.__generate_url()
 
-    def load_model(self, name, version, local=None, classes=None, overlap=None, confidence=None,
-                   stroke=None, labels=None, format=None):
+    def load_model(
+        self,
+        name,
+        version,
+        local=None,
+        classes=None,
+        overlap=None,
+        confidence=None,
+        stroke=None,
+        labels=None,
+        format=None,
+    ):
         """
         Loads a Model based on a Model Endpoint
 
@@ -73,11 +94,27 @@ class ObjectDetectionModel:
         self.name = name
         self.version = version
         # Generate URL based on parameters
-        self.__generate_url(local=local, classes=classes, overlap=overlap, confidence=confidence,
-                            stroke=stroke, labels=labels, format=format)
+        self.__generate_url(
+            local=local,
+            classes=classes,
+            overlap=overlap,
+            confidence=confidence,
+            stroke=stroke,
+            labels=labels,
+            format=format,
+        )
 
-    def predict(self, image_path, hosted=False, format=None, classes=None, overlap=30, confidence=40,
-                stroke=1, labels=False):
+    def predict(
+        self,
+        image_path,
+        hosted=False,
+        format=None,
+        classes=None,
+        overlap=30,
+        confidence=40,
+        stroke=1,
+        labels=False,
+    ):
         """
         Infers detections based on image from specified model and image path
 
@@ -87,8 +124,14 @@ class ObjectDetectionModel:
         :return: PredictionGroup --> a group of predictions based on Roboflow JSON response
         """
         # Generate url before predicting
-        self.__generate_url(format=format, classes=classes, overlap=overlap, confidence=confidence, stroke=stroke,
-                            labels=labels)
+        self.__generate_url(
+            format=format,
+            classes=classes,
+            overlap=overlap,
+            confidence=confidence,
+            stroke=stroke,
+            labels=labels,
+        )
         # Check if image exists at specified path or URL
         self.__exception_check(image_path_check=image_path)
 
@@ -105,9 +148,11 @@ class ObjectDetectionModel:
             img_str = img_str.decode("ascii")
 
             # Post to API and return response
-            resp = requests.post(self.api_url, data=img_str, headers={
-                "Content-Type": "application/x-www-form-urlencoded"
-            })
+            resp = requests.post(
+                self.api_url,
+                data=img_str,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
 
         else:
             # Create API URL for hosted image (slightly different)
@@ -119,9 +164,11 @@ class ObjectDetectionModel:
             raise Exception(resp.text)
         # Return a prediction group if JSON data
         if self.format == "json":
-            return PredictionGroup.create_prediction_group(resp.json(),
-                                                           image_path=image_path,
-                                                           prediction_type=OBJECT_DETECTION_MODEL)
+            return PredictionGroup.create_prediction_group(
+                resp.json(),
+                image_path=image_path,
+                prediction_type=OBJECT_DETECTION_MODEL,
+            )
         # Returns base64 encoded Data
         elif self.format == "image":
             return resp.content
@@ -129,11 +176,21 @@ class ObjectDetectionModel:
     def __exception_check(self, image_path_check=None):
         # Check if Image path exists exception check (for both hosted URL and local image)
         if image_path_check is not None:
-            if not os.path.exists(image_path_check) and not check_image_url(image_path_check):
+            if not os.path.exists(image_path_check) and not check_image_url(
+                image_path_check
+            ):
                 raise Exception("Image does not exist at " + image_path_check + "!")
 
-    def __generate_url(self, local=None, classes=None, overlap=None, confidence=None,
-                       stroke=None, labels=None, format=None):
+    def __generate_url(
+        self,
+        local=None,
+        classes=None,
+        overlap=None,
+        confidence=None,
+        stroke=None,
+        labels=None,
+        format=None,
+    ):
 
         # Reassign parameters if any parameters are changed
         if local is not None:
@@ -141,7 +198,7 @@ class ObjectDetectionModel:
                 self.base_url = "https://detect.roboflow.com/"
             else:
                 self.base_url = "http://localhost:9001/"
-                
+
         # Change any variables that the user wants to change
         if classes is not None:
             self.classes = classes
@@ -160,35 +217,38 @@ class ObjectDetectionModel:
         splitted = self.id.rsplit("/")
         without_workspace = splitted[1]
 
-        self.api_url = "".join([
-            self.base_url + without_workspace + '/' + str(self.version),
-            "?api_key=" + self.__api_key,
-            "&name=YOUR_IMAGE.jpg",
-            "&overlap=" + str(self.overlap),
-            "&confidence=" + str(self.confidence),
-            "&stroke=" + str(self.stroke),
-            "&labels=" + str(self.labels).lower(),
-            "&format=" + self.format
-        ])
+        self.api_url = "".join(
+            [
+                self.base_url + without_workspace + "/" + str(self.version),
+                "?api_key=" + self.__api_key,
+                "&name=YOUR_IMAGE.jpg",
+                "&overlap=" + str(self.overlap),
+                "&confidence=" + str(self.confidence),
+                "&stroke=" + str(self.stroke),
+                "&labels=" + str(self.labels).lower(),
+                "&format=" + self.format,
+            ]
+        )
         # add classes parameter to api
         if self.classes is not None:
             self.api_url += "&classes=" + self.classes
+
     def __str__(self):
         # Create the new API URL
         splitted = self.id.rsplit("/")
         without_workspace = splitted[1]
 
         json_value = {
-            'id': without_workspace + '/' + str(self.version),
-            'name': self.name,
-            'version': self.version,
-            'classes': self.classes,
-            'overlap': self.overlap,
-            'confidence': self.confidence,
-            'stroke': self.stroke,
-            'labels': self.labels,
-            'format': self.format,
-            'base_url': self.base_url
+            "id": without_workspace + "/" + str(self.version),
+            "name": self.name,
+            "version": self.version,
+            "classes": self.classes,
+            "overlap": self.overlap,
+            "confidence": self.confidence,
+            "stroke": self.stroke,
+            "labels": self.labels,
+            "format": self.format,
+            "base_url": self.base_url,
         }
 
         return json.dumps(json_value, indent=2)

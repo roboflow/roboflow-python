@@ -1,15 +1,15 @@
 import base64
 import io
+import json
 import os
 import urllib
-import json
 
 import requests
 from PIL import Image
 
+from roboflow.config import CLASSIFICATION_MODEL
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
-from roboflow.config import CLASSIFICATION_MODEL
 
 
 class ClassificationModel:
@@ -23,11 +23,10 @@ class ClassificationModel:
         """
         # Instantiate different API URL parameters
         self.__api_key = api_key
-        self.id=id
+        self.id = id
         self.name = name
         self.version = version
         self.base_url = "https://classify.roboflow.com/"
-
 
         if self.name is not None and version is not None:
             self.__generate_url()
@@ -52,9 +51,11 @@ class ClassificationModel:
             img_str = base64.b64encode(buffered.getvalue())
             img_str = img_str.decode("ascii")
             # Post to API and return response
-            resp = requests.post(self.api_url, data=img_str, headers={
-                "Content-Type": "application/x-www-form-urlencoded"
-            })
+            resp = requests.post(
+                self.api_url,
+                data=img_str,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
         else:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
@@ -64,9 +65,9 @@ class ClassificationModel:
         if resp.status_code != 200:
             raise Exception(resp.text)
 
-        return PredictionGroup.create_prediction_group(resp.json(),
-                                                       image_path=image_path,
-                                                       prediction_type=CLASSIFICATION_MODEL)
+        return PredictionGroup.create_prediction_group(
+            resp.json(), image_path=image_path, prediction_type=CLASSIFICATION_MODEL
+        )
 
     def load_model(self, name, version):
         """
@@ -87,10 +88,13 @@ class ClassificationModel:
         splitted = self.id.rsplit("/")
         without_workspace = splitted[1]
 
-        self.api_url = "".join([
-            self.base_url + without_workspace + '/' + str(self.version),
-            "?api_key=" + self.__api_key,
-            "&name=YOUR_IMAGE.jpg"])
+        self.api_url = "".join(
+            [
+                self.base_url + without_workspace + "/" + str(self.version),
+                "?api_key=" + self.__api_key,
+                "&name=YOUR_IMAGE.jpg",
+            ]
+        )
 
     def __exception_check(self, image_path_check=None):
         """
@@ -98,15 +102,19 @@ class ClassificationModel:
         """
         # Checks if image exists
         if image_path_check is not None:
-            if not os.path.exists(image_path_check) and not check_image_url(image_path_check):
+            if not os.path.exists(image_path_check) and not check_image_url(
+                image_path_check
+            ):
                 raise Exception("Image does not exist at " + image_path_check + "!")
 
     def __str__(self):
         """
         String representation of classification object
         """
-        json_value = {'name': self.name,
-                      'version': self.version,
-                      'base_url': self.base_url}
+        json_value = {
+            "name": self.name,
+            "version": self.version,
+            "base_url": self.base_url,
+        }
 
         return json.dumps(json_value, indent=2)
