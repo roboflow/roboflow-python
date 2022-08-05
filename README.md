@@ -96,6 +96,17 @@ Selecting the format you'd like your project to be exported as while choosing th
 6. when done, uptick the pip package minor version number in `setup.py`
 7. manually add any new dependencies to the `requirements.txt` and list of dependencies in `setup.py` (careful not to overwrite any packages that might screw up backwards dependencies for object detection, etc.) 
 
+### Code Quality
+
+We provide a `Makefile` to format and ensure code quality. **Be sure to run them before creating a PR**.
+
+```
+# format your code with `black` and `isort` run
+make style
+# check code with flake8
+make check_code_quality
+```
+
 ### Tests
 
 You need to have the following `env` variables, 
