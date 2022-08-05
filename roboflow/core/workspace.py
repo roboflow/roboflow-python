@@ -18,6 +18,7 @@ class Workspace:
         if api_key in DEMO_KEYS:
             self.__api_key = api_key
             self.model_format = model_format
+            self.project_list = []
         else:
             workspace_info = info["workspace"]
             self.name = workspace_info["name"]

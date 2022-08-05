@@ -98,9 +98,17 @@ Selecting the format you'd like your project to be exported as while choosing th
 
 ### Tests
 
-You can run the test locally by
+You need to have the following `env` variables, 
 
 ```
-pip install -e ".[dev].
+ROBOFLOW_API_KEY="<YOUR_ROBOFLOW_API>"
+PROJECT_NAME="<YOUR_PROJECT_NAME>"
+PROJECT_VERSION="" # by default "1"
 ```
 
+Then, assuming you have installed the `dev` packages (`pip install -e ".[dev]`), you can run the tests
+
+```bash
+
+python -m unittest
+```

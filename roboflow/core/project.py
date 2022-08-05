@@ -87,7 +87,7 @@ class Project:
                 self.name,
                 a_version["id"],
                 self.model_format,
-                local=False,
+                local=None,
             )
             version_array.append(version_object)
         return version_array
@@ -111,7 +111,7 @@ class Project:
                 name,
                 version_number,
                 self.model_format,
-                local=False,
+                local=None,
             )
 
         version_info = self.get_version_information()
@@ -127,7 +127,7 @@ class Project:
                     self.name,
                     current_version_num,
                     self.model_format,
-                    local=False,
+                    local=None,
                 )
                 return vers
 
