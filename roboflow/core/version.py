@@ -60,7 +60,7 @@ class Version:
                     self.id,
                     self.name,
                     version_without_workspace,
-                    local=local
+                    local=local,
                 )
             else:
                 self.model = None
