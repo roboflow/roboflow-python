@@ -107,6 +107,8 @@ make style
 make check_code_quality
 ```
 
+**Note** This tests will be run automatically when you commit thanks to git hooks.
+
 ### Tests
 
 You need to have the following `env` variables, 
