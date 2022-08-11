@@ -87,11 +87,41 @@ Selecting the format you'd like your project to be exported as while choosing th
 
 ![Alt Text](https://media.giphy.com/media/I5g06mUnVzdX7iT2Gf/giphy.gif)
 
-## Devving locally
+## Deving locally
 1. clone repo
 2. create a virtual env: `virtualenv local_dev`
 3. activate virtual env: `source local_dev/bin/activate`
-4. install packages from repo: `pip3 install -r requirements.txt`
+4. install packages from repo: `pip3 install -e ".[dev]"`
 5. create script on top level of `ROBOFLOW-PYTHON` and reference local `roboflow` directory: `from roboflow import Roboflow`
 6. when done, uptick the pip package minor version number in `setup.py`
 7. manually add any new dependencies to the `requirements.txt` and list of dependencies in `setup.py` (careful not to overwrite any packages that might screw up backwards dependencies for object detection, etc.) 
+
+### Code Quality
+
+We provide a `Makefile` to format and ensure code quality. **Be sure to run them before creating a PR**.
+
+```
+# format your code with `black` and `isort` run
+make style
+# check code with flake8
+make check_code_quality
+```
+
+**Note** This tests will be run automatically when you commit thanks to git hooks.
+
+### Tests
+
+You need to have the following `env` variables, 
+
+```
+ROBOFLOW_API_KEY="<YOUR_ROBOFLOW_API>"
+PROJECT_NAME="<YOUR_PROJECT_NAME>"
+PROJECT_VERSION="" # by default "1"
+```
+
+Then, assuming you have installed the `dev` packages (`pip install -e ".[dev]`), you can run the tests
+
+```bash
+
+python -m unittest
+```

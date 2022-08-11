@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="roboflow",  # Replace with your own username
-    version="0.2.8",
+    version="0.2.14",
     author="Roboflow",
     author_email="jacob@roboflow.com",
     description="python client for the Roboflow application",
@@ -19,11 +19,10 @@ setuptools.setup(
         "cycler==0.10.0",
         "glob2",
         "idna==2.10",
-        "Pillow==8.4.0",
         "kiwisolver==1.3.1",
         "matplotlib",
         "numpy>=1.18.5",
-        "opencv-python-headless==4.1.2.30",
+        "opencv-python-headless>=4.5.1.48",
         "Pillow>=7.1.2",
         "pyparsing==2.4.7",
         "python-dateutil",
@@ -35,13 +34,16 @@ setuptools.setup(
         "wget",
         "tqdm>=4.41.0",
         "PyYAML>=5.3.1",
-        "wget"
+        "wget",
     ],
-    packages=find_packages(exclude=('tests',)),
+    packages=find_packages(exclude=("tests",)),
+    extras_require={
+        "dev": ["flake8", "black==22.3.0", "isort"],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )
