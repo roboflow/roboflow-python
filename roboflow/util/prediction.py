@@ -218,7 +218,7 @@ class Prediction:
 
 
 class PredictionGroup:
-    def __init__(self, *args):
+    def __init__(self, image_dims, *args):
         """
         :param args: The prediction(s) to be added to the prediction group
         """
@@ -228,6 +228,8 @@ class PredictionGroup:
         self.base_image_path = ""
         # Base prediction type (prediction type of image of first prediction in prediction group)
         self.base_prediction_type = ""
+
+        self.image_dims = image_dims
         # Iterate through the arguments
         for index, prediction in enumerate(args):
             # Set base image path based on first prediction
@@ -434,6 +436,7 @@ class PredictionGroup:
         for prediction in self.predictions:
             prediction_group_json["predictions"].append(prediction.json())
 
+        prediction_group_json["image"] = self.image_dims
         return prediction_group_json
 
     @staticmethod
@@ -466,5 +469,6 @@ class PredictionGroup:
             # add to prediction list
             prediction_list.append(prediction)
 
+        img_dims = json_response["image"]
         # Seperate list and return as a prediction group
-        return PredictionGroup(*prediction_list)
+        return PredictionGroup(img_dims, *prediction_list)
