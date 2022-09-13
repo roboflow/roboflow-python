@@ -87,14 +87,20 @@ Selecting the format you'd like your project to be exported as while choosing th
 
 ![Alt Text](https://media.giphy.com/media/I5g06mUnVzdX7iT2Gf/giphy.gif)
 
-## Deving locally
-1. clone repo
-2. create a virtual env: `virtualenv local_dev`
-3. activate virtual env: `source local_dev/bin/activate`
-4. install packages from repo: `pip3 install -e ".[dev]"`
-5. create script on top level of `ROBOFLOW-PYTHON` and reference local `roboflow` directory: `from roboflow import Roboflow`
-6. when done, uptick the pip package minor version number in `setup.py`
-7. manually add any new dependencies to the `requirements.txt` and list of dependencies in `setup.py` (careful not to overwrite any packages that might screw up backwards dependencies for object detection, etc.) 
+## Developing locally
+
+1. clone this repo
+1. with docker
+    1. `docker build -t roboflow`
+    1. copy `.env-example` to `.env` and update environment variables for testing
+    1. shell into container: `docker run -it --rm --env-file .env -v /your/path/to/roboflow-python:/roboflow roboflow`
+1. with virtualenv
+    1. create a virtual env: `virtualenv local_dev`
+    1. activate virtual env: `source local_dev/bin/activate`
+    1. install packages from repo: `pip3 install -e ".[dev]"`
+1. create a script on the top level `ROBOFLOW-PYTHON` directory and reference local `roboflow` directory: `from roboflow import Roboflow`
+1. when done, uptick the pip package minor version number in `setup.py`
+1. manually add any new dependencies to the `requirements.txt` and list of dependencies in `setup.py` (careful not to overwrite any packages that might screw up backwards dependencies for object detection, etc.) 
 
 ### Code Quality
 
@@ -111,12 +117,12 @@ make check_code_quality
 
 ### Tests
 
-You need to have the following `env` variables, 
+You need to have the following `env` variables defined. If using docker along with the `.env` file, these will be automatically defined.
 
 ```
-ROBOFLOW_API_KEY="<YOUR_ROBOFLOW_API>"
+ROBOFLOW_API_KEY="<YOUR_ROBOFLOW_PRIVATE_API_KEY>"
 PROJECT_NAME="<YOUR_PROJECT_NAME>"
-PROJECT_VERSION="" # by default "1"
+PROJECT_VERSION="1"
 ```
 
 Then, assuming you have installed the `dev` packages (`pip install -e ".[dev]`), you can run the tests
