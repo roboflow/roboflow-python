@@ -462,6 +462,7 @@ class PredictionGroup:
                 )
                 # Add to prediction list
                 prediction_list.append(prediction)
+            img_dims = json_response["image"]
         # For classification model
         elif prediction_type == CLASSIFICATION_MODEL:
             # Create prediction for predicted class
@@ -469,6 +470,6 @@ class PredictionGroup:
             # add to prediction list
             prediction_list.append(prediction)
 
-        img_dims = json_response["image"]
+            img_dims = {}
         # Seperate list and return as a prediction group
         return PredictionGroup(img_dims, image_path, *prediction_list)
