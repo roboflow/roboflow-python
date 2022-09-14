@@ -87,14 +87,74 @@ Selecting the format you'd like your project to be exported as while choosing th
 
 ![Alt Text](https://media.giphy.com/media/I5g06mUnVzdX7iT2Gf/giphy.gif)
 
-## Deving locally
-1. clone repo
-2. create a virtual env: `virtualenv local_dev`
-3. activate virtual env: `source local_dev/bin/activate`
-4. install packages from repo: `pip3 install -e ".[dev]"`
-5. create script on top level of `ROBOFLOW-PYTHON` and reference local `roboflow` directory: `from roboflow import Roboflow`
-6. when done, uptick the pip package minor version number in `setup.py`
-7. manually add any new dependencies to the `requirements.txt` and list of dependencies in `setup.py` (careful not to overwrite any packages that might screw up backwards dependencies for object detection, etc.) 
+## Developing locally
+
+### Using Docker
+
+To set the Docker container up for the first time:
+
+```bash
+# Clone this repo
+git clone git@github.com:roboflow-ai/roboflow-python.git && cd roboflow-python
+
+# Copy the environment variables template
+# Be sure to update the values with your account's information
+cp .env-example .env
+
+# Build and run a new docker container image
+docker run -it -v $(pwd):/roboflow --name roboflow python:3.8.14-slim /bin/bash
+
+# Install Dependencies
+cd roboflow/ && pip install -e ".[dev]"
+
+# Run tests
+python -m unittest
+```
+
+Running the Docker container after initial build:
+
+```bash
+docker start roboflow
+docker exec -it roboflow /bin/bash
+cd roboflow/ && python -m unittest
+```
+
+### Using Virtualenv
+
+```bash
+# Clone this repo
+git clone git@github.com:roboflow-ai/roboflow-python.git && cd roboflow-python
+
+# create virtual env
+virtualenv local_dev
+
+# activate virtual env
+source local_dev/bin/activate
+
+# install dependencies
+pip3 install -e ".[dev]"
+```
+
+### Testing
+
+You need to have the following `env` variables defined. If using docker along with the `.env` file, these will be automatically defined.
+
+```
+ROBOFLOW_API_KEY="<YOUR_ROBOFLOW_PRIVATE_API_KEY>"
+PROJECT_NAME="<YOUR_PROJECT_NAME>"
+PROJECT_VERSION="1"
+```
+
+Run tests:
+
+```bash
+python -m unittest
+```
+
+### Contributing
+
+1. Increment the pip package minor version number in `setup.py`
+1. Manually add any new dependencies to `requirements.txt` and list of dependencies in `setup.py` (Be careful not to overwrite any packages that might screw up backwards dependencies for object detection, etc.)
 
 ### Code Quality
 
@@ -107,21 +167,4 @@ make style
 make check_code_quality
 ```
 
-**Note** This tests will be run automatically when you commit thanks to git hooks.
-
-### Tests
-
-You need to have the following `env` variables, 
-
-```
-ROBOFLOW_API_KEY="<YOUR_ROBOFLOW_API>"
-PROJECT_NAME="<YOUR_PROJECT_NAME>"
-PROJECT_VERSION="" # by default "1"
-```
-
-Then, assuming you have installed the `dev` packages (`pip install -e ".[dev]`), you can run the tests
-
-```bash
-
-python -m unittest
-```
+**Note** These tests will be run automatically when you commit thanks to git hooks.
