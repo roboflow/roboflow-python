@@ -15,7 +15,7 @@ jobs:
       - name: 🛎️ Checkout
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.event.pull_request.head.ref }}
       - name: 🐍 Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
