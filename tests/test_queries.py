@@ -3,46 +3,15 @@ import unittest
 
 from _datetime import datetime
 
-import roboflow
 from roboflow.core.project import Project
 from roboflow.core.version import Version
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 
-
-def make_orderer():
-    order = {}
-
-    def ordered(f):
-        order[f.__name__] = len(order)
-        return f
-
-    def compare(a, b):
-        return [1, -1][order[a] < order[b]]
-
-    return ordered, compare
+from . import RoboflowTest, ordered, PROJECT_NAME
 
 
-ordered, compare = make_orderer()
-unittest.defaultTestLoader.sortTestMethodsUsing = compare
-
-ROBOFLOW_API_KEY = os.environ.get("ROBOFLOW_API_KEY")
-WORKSPACE_NAME = os.environ.get("WORKSPACE_NAME", "")
-PROJECT_NAME = os.environ.get("PROJECT_NAME")
-PROJECT_VERSION = os.environ.get("PROJECT_VERSION", "1")
-
-
-class TestQueries(unittest.TestCase):
-    
-    rf = roboflow.Roboflow(api_key=ROBOFLOW_API_KEY)
-    workspace = rf.workspace()
-    project = workspace.project(PROJECT_NAME)
-    version = project.version(PROJECT_VERSION)
-    """
-    TEST QUERIES
-
-    Tests some queries in queries.py
-    """
+class TestQueries(RoboflowTest):
 
     @ordered
     def test_workspace_fields(self):
@@ -79,7 +48,7 @@ class TestQueries(unittest.TestCase):
         version_information = self.project.get_version_information()
         print_versions = self.project.list_versions()
         list_versions = self.project.versions()
-        upload = self.project.upload("tests/rabbit2.jpg")
+        upload = self.project.upload("tests/images/rabbit2.jpg")
 
         # [NOTE] we commented this out because the version_information has changed on the real data from the server
         # self.assertTrue(len(version_information) == 1)
@@ -107,7 +76,3 @@ class TestQueries(unittest.TestCase):
                 or (isinstance(self.version.model, ObjectDetectionModel))
             )
         )
-
-
-if __name__ == "__main__":
-    unittest.main()

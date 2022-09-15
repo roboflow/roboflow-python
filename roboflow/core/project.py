@@ -7,12 +7,13 @@ import warnings
 
 import cv2
 import requests
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
 
+ACCEPTED_IMAGE_FORMATS = ['PNG', 'JPEG']
 
 def custom_formatwarning(msg, *args, **kwargs):
     # ignore everything except the message
@@ -226,15 +227,14 @@ class Project:
         return annotation_response
 
     def check_valid_image(self, image_path):
-        acceptable_formats = ["png", "jpeg", "jpg"]
+        try:
+            img = Image.open(image_path)
+            valid = img.format in ACCEPTED_IMAGE_FORMATS
+            img.close()
+        except UnidentifiedImageError:
+            return False
 
-        is_image = False
-
-        for format in acceptable_formats:
-            if format in image_path:
-                is_image = True
-
-        return is_image
+        return valid
 
     def upload(
         self,
@@ -273,8 +273,9 @@ class Project:
 
             if not is_image:
                 raise RuntimeError(
-                    "The image you provided {} is not a supported file format. We currently support png, jpeg, and jpg.".format(
-                        image_path
+                    "The image you provided {} is not a supported file format. We currently support: {}.".format(
+                        image_path,
+                        ", ".join(ACCEPTED_IMAGE_FORMATS)
                     )
                 )
 
