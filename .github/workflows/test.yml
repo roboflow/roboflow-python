@@ -1,7 +1,7 @@
 name: Test WorkFlow
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [master]
 
 jobs:
@@ -14,8 +14,6 @@ jobs:
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v3
-        with:
-          ref: ${{ github.head_ref }}
       - name: 🐍 Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
