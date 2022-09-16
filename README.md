@@ -122,7 +122,7 @@ You can pass the build arg `PYTHON_VERSION` to dynamically change python version
 docker build  -t roboflow-python --build-arg PYTHON_VERSION=3.9 -f Dockerfile.dev .
 ```
 
-Wil use `python:3.9-slim`
+Will use `python:3.9-slim`
 
 **Note** If you are using [VSCode](https://code.visualstudio.com/) we reccomend to read the ["Developing inside a Container"](https://code.visualstudio.com/docs/remote/containers) tutorial.
 
