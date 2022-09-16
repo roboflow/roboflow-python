@@ -50,8 +50,7 @@ class TestQueries(RoboflowTest):
         list_versions = self.project.versions()
         upload = self.project.upload("tests/images/rabbit2.jpg")
 
-        # [NOTE] we commented this out because the version_information has changed on the real data from the server
-        # self.assertTrue(len(version_information) == 1)
+        self.assertEqual(len(version_information), 2)
         self.assertIsNone(print_versions)
         self.assertTrue(all(map(lambda x: isinstance(x, Version), list_versions)))
         self.assertIsNone(upload)
