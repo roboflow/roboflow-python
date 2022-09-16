@@ -101,23 +101,21 @@ git clone git@github.com:roboflow-ai/roboflow-python.git && cd roboflow-python
 # Be sure to update the values with your account's information
 cp .env-example .env
 
-# Build and run a new docker container image
-docker run -it -v $(pwd):/roboflow --name roboflow python:3.8.14-slim /bin/bash
+# Build our development image
+docker build -t roboflow-python -f Dockerfile.dev .
 
-# Install Dependencies
-cd roboflow/ && pip install -e ".[dev]"
+# Run container and map current folder in it
+docker run --rm -it \
+  -v $(pwd)/:/worspace/ \
+  roboflow-python 
 
 # Run tests
 python -m unittest
 ```
 
-Running the Docker container after initial build:
+**Note** If you are using [VSCode](https://code.visualstudio.com/) we reccomend to read the ["Developing inside a Container"](https://code.visualstudio.com/docs/remote/containers) tutorial.
 
-```bash
-docker start roboflow
-docker exec -it roboflow /bin/bash
-cd roboflow/ && python -m unittest
-```
+
 
 ### Using Virtualenv
 
