@@ -106,6 +106,7 @@ docker build -t roboflow-python -f Dockerfile.dev .
 
 # Run container and map current folder in it
 docker run --rm -it \
+  -e .env
   -v $(pwd)/:/worspace/ \
   roboflow-python 
 
