@@ -99,7 +99,6 @@ git clone git@github.com:roboflow-ai/roboflow-python.git && cd roboflow-python
 
 # Copy the environment variables template
 # Be sure to update the values with your account's information
-cp .env-example .env
 
 # Build our development image
 docker build -t roboflow-python -f Dockerfile.dev .
