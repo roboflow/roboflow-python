@@ -13,7 +13,8 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
 
-ACCEPTED_IMAGE_FORMATS = ['PNG', 'JPEG']
+ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
+
 
 def custom_formatwarning(msg, *args, **kwargs):
     # ignore everything except the message
@@ -274,8 +275,7 @@ class Project:
             if not is_image:
                 raise RuntimeError(
                     "The image you provided {} is not a supported file format. We currently support: {}.".format(
-                        image_path,
-                        ", ".join(ACCEPTED_IMAGE_FORMATS)
+                        image_path, ", ".join(ACCEPTED_IMAGE_FORMATS)
                     )
                 )
 
