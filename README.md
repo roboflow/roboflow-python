@@ -61,7 +61,7 @@ project.versions()
 project.upload("UPLOAD_IMAGE.jpg")
 
 # Retrieve the model of a specific project
-project.version("1").model
+model = project.version("1").model
 
 # predict on a local image
 prediction = model.predict("YOUR_IMAGE.jpg")
