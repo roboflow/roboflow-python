@@ -13,6 +13,7 @@ from PIL import Image
 
 from roboflow.config import (
     CLASSIFICATION_MODEL,
+    INSTANCE_SEGMENTATION_MODEL,
     OBJECT_DETECTION_MODEL,
     PREDICTION_OBJECT,
 )
@@ -83,6 +84,15 @@ def plot_annotation(axes, prediction=None, stroke=1):
             + " | Confidence: "
             + str(prediction["confidence"])
         )
+    elif prediction["prediction_type"] == INSTANCE_SEGMENTATION_MODEL:
+        points = [[p["x"], p["y"]] for p in prediction["points"]]
+        polygon = patches.Polygon(
+            points,
+            linewidth=stroke,
+            edgecolor="r",
+            facecolor="none",
+        )
+        axes.add_patch(polygon)
 
 
 class Prediction:
@@ -122,9 +132,13 @@ class Prediction:
         plot_annotation(axes, self, stroke)
         plt.show()
 
-    # saves a single box or classification on the image
     def save(self, output_path="predictions.jpg", stroke=2):
+        """
+        Save annotations on the image
+        """
         image = self.__load_image()
+        stroke_color = (255, 0, 0)
+
         if self["prediction_type"] == OBJECT_DETECTION_MODEL:
             # Get different dimensions/coordinates
             x = self["x"]
@@ -137,7 +151,7 @@ class Prediction:
                 image,
                 (int(x - width / 2), int(y + height / 2)),
                 (int(x + width / 2), int(y - height / 2)),
-                (255, 0, 0),
+                stroke_color,
                 stroke,
             )
             # Get size of text
@@ -150,7 +164,7 @@ class Prediction:
                     x - width / 2 + text_size[0] + 1,
                     y - height / 2 + int(1.5 * text_size[1]),
                 ),
-                (255, 0, 0),
+                stroke_color,
                 -1,
             )
             # Write text onto image
@@ -191,6 +205,12 @@ class Prediction:
                 0.5,
                 (255, 255, 255),
                 1,
+            )
+        elif self["prediction_type"] == INSTANCE_SEGMENTATION_MODEL:
+            points = [[int(p["x"]), int(p["y"])] for p in self["points"]]
+            np_points = np.array(points, dtype=np.int32)
+            cv2.polylines(
+                image, [np_points], isClosed=True, color=stroke_color, thickness=stroke
             )
 
         # Write image path
@@ -288,6 +308,8 @@ class PredictionGroup:
     def save(self, output_path="predictions.jpg", stroke=2):
         # Load image based on image path as an array
         image = self.__load_image()
+        stroke_color = (255, 0, 0)
+
         # Iterate through predictions and add prediction to image
         for prediction in self.predictions:
             # Check what type of prediction it is
@@ -303,7 +325,7 @@ class PredictionGroup:
                     image,
                     (int(x - width / 2), int(y + height / 2)),
                     (int(x + width / 2), int(y - height / 2)),
-                    (255, 0, 0),
+                    stroke_color,
                     stroke,
                 )
                 # Get size of text
@@ -318,7 +340,7 @@ class PredictionGroup:
                         int(x - width / 2 + text_size[0] + 1),
                         int(y - height / 2 + int(1.5 * text_size[1])),
                     ),
-                    (255, 0, 0),
+                    stroke_color,
                     -1,
                 )
                 # Write text onto image
@@ -367,6 +389,17 @@ class PredictionGroup:
                     (0, 0, 0),
                     1,
                 )
+            elif self.base_prediction_type == INSTANCE_SEGMENTATION_MODEL:
+                points = [[int(p["x"]), int(p["y"])] for p in prediction["points"]]
+                np_points = np.array(points, dtype=np.int32)
+                cv2.polylines(
+                    image,
+                    [np_points],
+                    isClosed=True,
+                    color=stroke_color,
+                    thickness=stroke,
+                )
+
         # Write image path
         cv2.imwrite(output_path, image)
 
@@ -450,26 +483,19 @@ class PredictionGroup:
         :param image_path:
         :return:
         """
-        # List of predictions
         prediction_list = []
-        # For object detection model
-        if prediction_type == OBJECT_DETECTION_MODEL:
-            # get all predicted bounding boxes for image
+
+        if prediction_type in [OBJECT_DETECTION_MODEL, INSTANCE_SEGMENTATION_MODEL]:
             for prediction in json_response["predictions"]:
-                # Create prediction for bbox
                 prediction = Prediction(
                     prediction, image_path, prediction_type=prediction_type
                 )
-                # Add to prediction list
                 prediction_list.append(prediction)
             img_dims = json_response["image"]
-        # For classification model
         elif prediction_type == CLASSIFICATION_MODEL:
-            # Create prediction for predicted class
             prediction = Prediction(json_response, image_path, prediction_type)
-            # add to prediction list
             prediction_list.append(prediction)
-
             img_dims = {}
+
         # Seperate list and return as a prediction group
         return PredictionGroup(img_dims, image_path, *prediction_list)
