@@ -144,7 +144,7 @@ class Project:
 
         # If image is not a hosted image
         if not hosted_image:
-            batch_name = batch_name if batch_name and isinstance(batch_name, str) else "Pip Package Upload1"
+            batch_name = batch_name if batch_name and isinstance(batch_name, str) else "Pip Package Upload"
 
             project_name = self.id.rsplit("/")[1]
             image_name = os.path.basename(image_path)
