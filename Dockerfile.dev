@@ -1,0 +1,7 @@
+ARG PYTHON_VERSION=3.8
+FROM python:$PYTHON_VERSION-slim
+RUN apt-get update && apt-get install make && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace
+COPY . .
+RUN pip install -e ".[dev]"
+ENTRYPOINT [ "/bin/bash" ]
