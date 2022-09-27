@@ -9,9 +9,16 @@ import yaml
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-from roboflow.config import API_URL, DEMO_KEYS
+from roboflow.config import (
+    API_URL,
+    DEMO_KEYS,
+    TYPE_CLASSICATION,
+    TYPE_INSTANCE_SEGMENTATION,
+    TYPE_OBJECT_DETECTION,
+)
 from roboflow.core.dataset import Dataset
 from roboflow.models.classification import ClassificationModel
+from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 
 load_dotenv()
@@ -46,7 +53,7 @@ class Version:
 
             version_without_workspace = os.path.basename(version)
 
-            if self.type == "object-detection":
+            if self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
                     self.__api_key,
                     self.id,
@@ -54,13 +61,18 @@ class Version:
                     version_without_workspace,
                     local=local,
                 )
-            elif self.type == "classification":
+            elif self.type == TYPE_CLASSICATION:
                 self.model = ClassificationModel(
                     self.__api_key,
                     self.id,
                     self.name,
                     version_without_workspace,
                     local=local,
+                )
+            elif self.type == TYPE_INSTANCE_SEGMENTATION:
+                self.model = InstanceSegmentationModel(
+                    self.__api_key,
+                    self.id,
                 )
             else:
                 self.model = None
