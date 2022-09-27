@@ -5,12 +5,16 @@ INSTANCE_SEGMENTATION_MODEL = "InstanceSegmentationModel"
 OBJECT_DETECTION_MODEL = os.getenv(
     "OBJECT_DETECTION_MODEL", default="ObjectDetectionModel"
 )
+SEMANTIC_SEGMENTATION_MODEL = "SemanticSegmentationModel"
 PREDICTION_OBJECT = os.getenv("PREDICTION_OBJECT", default="Prediction")
 
 API_URL = os.getenv("API_URL", default="https://api.roboflow.com")
 APP_URL = os.getenv("APP_URL", default="https://app.roboflow.com")
 INSTANCE_SEGMENTATION_URL = os.getenv(
     "INSTANCE_SEGMENTATION_URL", "https://outline.roboflow.com"
+)
+SEMANTIC_SEGMENTATION_URL = os.getenv(
+    "SEMANTIC_SEGMENTATION_URL", "https://segment.roboflow.com"
 )
 
 CLIP_FEATURIZE_URL = os.getenv(

@@ -16,6 +16,7 @@ from roboflow.config import (
     INSTANCE_SEGMENTATION_MODEL,
     OBJECT_DETECTION_MODEL,
     PREDICTION_OBJECT,
+    SEMANTIC_SEGMENTATION_MODEL,
 )
 from roboflow.util.image_utils import check_image_url
 
@@ -93,6 +94,8 @@ def plot_annotation(axes, prediction=None, stroke=1):
             facecolor="none",
         )
         axes.add_patch(polygon)
+    elif prediction["prediction_type"] == SEMANTIC_SEGMENTATION_MODEL:
+        pass
 
 
 class Prediction:
@@ -212,6 +215,8 @@ class Prediction:
             cv2.polylines(
                 image, [np_points], isClosed=True, color=stroke_color, thickness=stroke
             )
+        elif self["prediction_type"] == SEMANTIC_SEGMENTATION_MODEL:
+            pass
 
         # Write image path
         cv2.imwrite(output_path, image)
@@ -399,6 +404,8 @@ class PredictionGroup:
                     color=stroke_color,
                     thickness=stroke,
                 )
+            elif self.base_prediction_type == SEMANTIC_SEGMENTATION_MODEL:
+                pass
 
         # Write image path
         cv2.imwrite(output_path, image)
@@ -496,6 +503,10 @@ class PredictionGroup:
             prediction = Prediction(json_response, image_path, prediction_type)
             prediction_list.append(prediction)
             img_dims = {}
+        elif prediction_type == SEMANTIC_SEGMENTATION_MODEL:
+            prediction = Prediction(json_response, image_path, prediction_type)
+            prediction_list.append(prediction)
+            img_dims = json_response["image"]
 
         # Seperate list and return as a prediction group
         return PredictionGroup(img_dims, image_path, *prediction_list)

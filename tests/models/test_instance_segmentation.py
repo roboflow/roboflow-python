@@ -1,6 +1,6 @@
 import unittest
 
-from requests.exceptions import JSONDecodeError, HTTPError
+from requests.exceptions import HTTPError
 import responses
 
 from roboflow.config import INSTANCE_SEGMENTATION_URL
