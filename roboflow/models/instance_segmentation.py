@@ -29,22 +29,28 @@ class InstanceSegmentationModel:
 
         self.api_url = f"{INSTANCE_SEGMENTATION_URL}/{dataset_id}/{version}"
 
-    def predict(self, image_path):
+    def predict(self, image_path, confidence=40):
         """
         Infers detections based on image from specified model and image path
 
-        :param image_path: Path to image (can be local or hosted)
-        :return: PredictionGroup --> a group of predictions based on Roboflow JSON response
+        :param image_path: Path to image (can be local path or hosted URL)
+        :param confidence: A threshold for the returned predictions on a scale of 0-100. A lower number will return more predictions. A higher number will return fewer, high-certainty predictions.
+
+        :return: PredictionGroup - a group of predictions based on Roboflow JSON response
         """
         validate_image_path(image_path)
 
-        params = {"api_key": self.__api_key}
+        params = {
+            "api_key": self.__api_key,
+            "confidence": confidence,
+        }
         request_kwargs = {}
 
         hosted_image = urllib.parse.urlparse(image_path).scheme in (
             "http",
             "https",
         )
+
         if hosted_image:
             params["image"] = image_path
         else:
@@ -61,6 +67,7 @@ class InstanceSegmentationModel:
 
         url = f"{self.api_url}?{urllib.parse.urlencode(params)}"
         response = requests.post(url, **request_kwargs)
+        response.raise_for_status()
 
         return PredictionGroup.create_prediction_group(
             response.json(),
