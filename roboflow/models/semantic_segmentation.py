@@ -11,16 +11,19 @@ class SemanticSegmentationModel(InferenceModel):
         super(SemanticSegmentationModel, self).__init__(api_key, version_id)
         self.api_url = f"{SEMANTIC_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
 
-    def predict(self, image_path):
+    def predict(self, image_path, confidence=50):
         """
         Infers detections based on image from a specified model and image path
 
         :param image_path: Path to image (can be local path or hosted URL)
+        :param confidence: A threshold for the returned predictions on a scale of 0-100. A lower number will return more predictions. A higher number will return fewer, high-certainty predictions.
 
         :return: PredictionGroup - a group of predictions based on Roboflow JSON response
         """
         return super(SemanticSegmentationModel, self).predict(
-            image_path, prediction_type=SEMANTIC_SEGMENTATION_MODEL
+            image_path,
+            confidence=confidence,
+            prediction_type=SEMANTIC_SEGMENTATION_MODEL,
         )
 
     def __str__(self):

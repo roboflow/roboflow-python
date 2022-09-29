@@ -15,11 +15,13 @@ from roboflow.config import (
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_OBJECT_DETECTION,
+    TYPE_SEMANTIC_SEGMENTATION,
 )
 from roboflow.core.dataset import Dataset
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.object_detection import ObjectDetectionModel
+from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 
 load_dotenv()
 
@@ -71,6 +73,11 @@ class Version:
                 )
             elif self.type == TYPE_INSTANCE_SEGMENTATION:
                 self.model = InstanceSegmentationModel(
+                    self.__api_key,
+                    self.id,
+                )
+            elif self.type == TYPE_SEMANTIC_SEGMENTATION:
+                self.model = SemanticSegmentationModel(
                     self.__api_key,
                     self.id,
                 )

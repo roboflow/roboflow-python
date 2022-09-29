@@ -1,10 +1,11 @@
+import base64
 import io
 import json
-import os
 import urllib.request
 import warnings
 
 import cv2
+import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import numpy as np
 import requests
@@ -18,16 +19,7 @@ from roboflow.config import (
     PREDICTION_OBJECT,
     SEMANTIC_SEGMENTATION_MODEL,
 )
-from roboflow.util.image_utils import check_image_url
-
-
-def exception_check(image_path_check=None):
-    # Check if Image path exists exception check (for both hosted URL and local image)
-    if image_path_check is not None:
-        if not os.path.exists(image_path_check) and not check_image_url(
-            image_path_check
-        ):
-            raise Exception("Image does not exist at " + image_path_check + "!")
+from roboflow.util.image_utils import mask_image, validate_image_path
 
 
 def plot_image(image_path):
@@ -37,27 +29,27 @@ def plot_image(image_path):
     :param image_path: path of image to be plotted (can be hosted or local)
     :return:
     """
-    # Exception to check if image path exists
-    exception_check(image_path_check=image_path)
-    # Try opening local image
+    validate_image_path(image_path)
     try:
         img = Image.open(image_path)
     except OSError:
         # Try opening Hosted image
         response = requests.get(image_path)
         img = Image.open(io.BytesIO(response.content))
-    # Plot image axes
+
     figure, axes = plt.subplots()
     axes.imshow(img)
     return figure, axes
 
 
-def plot_annotation(axes, prediction=None, stroke=1):
+def plot_annotation(axes, prediction=None, stroke=1, transparency=60):
     """
     Helper method to plot annotations
 
-    :param axes:
-    :param prediction:
+    :param axes: Matplotlib axes
+    :param prediction: prediction dictionary from the Roboflow API
+    :param stroke: line width to use when drawing rectangles and polygons
+    :param transparency: alpha transparency of masks for semantic overlays
     :return:
     """
     # Object Detection annotation
@@ -95,7 +87,11 @@ def plot_annotation(axes, prediction=None, stroke=1):
         )
         axes.add_patch(polygon)
     elif prediction["prediction_type"] == SEMANTIC_SEGMENTATION_MODEL:
-        pass
+        encoded_mask = prediction["segmentation_mask"]
+        mask_bytes = io.BytesIO(base64.b64decode(encoded_mask))
+        mask = mpimg.imread(mask_bytes, format="JPG")
+        alpha = transparency / 100
+        axes.imshow(mask, alpha=alpha)
 
 
 class Prediction:
@@ -129,15 +125,19 @@ class Prediction:
 
     def plot(self, stroke=1):
         # Exception to check if image path exists
-        exception_check(image_path_check=self["image_path"])
-        figure, axes = plot_image(self["image_path"])
+        validate_image_path(self["image_path"])
+        _, axes = plot_image(self["image_path"])
 
         plot_annotation(axes, self, stroke)
         plt.show()
 
-    def save(self, output_path="predictions.jpg", stroke=2):
+    def save(self, output_path="predictions.jpg", stroke=2, transparency=60):
         """
-        Save annotations on the image
+        Annotate an image with predictions and save it
+
+        :param output_path: filename to save the image as
+        :param stroke: line width to use when drawing rectangles and polygons
+        :param transparency: alpha transparency of masks for semantic overlays
         """
         image = self.__load_image()
         stroke_color = (255, 0, 0)
@@ -216,9 +216,8 @@ class Prediction:
                 image, [np_points], isClosed=True, color=stroke_color, thickness=stroke
             )
         elif self["prediction_type"] == SEMANTIC_SEGMENTATION_MODEL:
-            pass
+            image = mask_image(image, self["segmentation_mask"], transparency)
 
-        # Write image path
         cv2.imwrite(output_path, image)
 
     def __str__(self) -> str:
@@ -289,11 +288,8 @@ class PredictionGroup:
 
     def plot(self, stroke=1):
         if len(self) > 0:
-            # Check if image path exists
-            exception_check(image_path_check=self.base_image_path)
-            # Plot image if image path exists
-            figure, axes = plot_image(self.base_image_path)
-            # Plot annotations in prediction group
+            validate_image_path(self.base_image_path)
+            _, axes = plot_image(self.base_image_path)
             for single_prediction in self:
                 plot_annotation(axes, single_prediction, stroke)
         # Show the plot to the user
@@ -405,7 +401,7 @@ class PredictionGroup:
                     thickness=stroke,
                 )
             elif self.base_prediction_type == SEMANTIC_SEGMENTATION_MODEL:
-                pass
+                image = mask_image(image, prediction["segmentation_mask"])
 
         # Write image path
         cv2.imwrite(output_path, image)

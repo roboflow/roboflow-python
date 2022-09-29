@@ -30,7 +30,7 @@ class TestSemanticSegmentation(unittest.TestCase):
 
     api_url = f"https://segment.roboflow.com/{dataset_id}/{version}"
 
-    _default_params = { "api_key": api_key }
+    _default_params = { "api_key": api_key, "confidence": "50" }
 
     version_id = f"{workspace}/{dataset_id}/{version}"
 
@@ -88,6 +88,27 @@ class TestSemanticSegmentation(unittest.TestCase):
         self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, expected_params)
         self.assertIsNone(request.body)
+
+    @responses.activate
+    def test_predict_with_confidence_request(self):
+        confidence = "100"
+        image_path = "tests/images/rabbit.JPG"
+        expected_params = {
+            **self._default_params,
+            "confidence": confidence
+        }
+        instance = SemanticSegmentationModel(self.api_key, self.version_id)
+
+        responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
+
+        instance.predict(image_path, confidence=confidence)
+
+        request = responses.calls[0].request
+
+        self.assertEqual(request.method, 'POST')
+        self.assertRegex(request.url, rf"^{self.api_url}")
+        self.assertDictEqual(request.params, expected_params)
+        self.assertIsNotNone(request.body)
 
     @responses.activate
     def test_predict_with_non_200_response_raises_http_error(self):
