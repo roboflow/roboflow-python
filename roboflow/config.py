@@ -58,8 +58,8 @@ if RF_WORKSPACE == None:
     RF_API_KEY = None
 else:
     RF_API_KEY = None
-    for k in WORKPACES.keys():
-        workspace = WORKPACES[k]
+    for k in RF_WORKPACES.keys():
+        workspace = RF_WORKPACES[k]
         if workspace["url"] == RF_WORKSPACE:
             RF_API_KEY = workspace["apiKey"]
 # ENV API_KEY OVERRIDE

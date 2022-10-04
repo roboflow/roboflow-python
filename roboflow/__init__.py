@@ -1,5 +1,6 @@
 import json
 import sys
+import os
 
 import requests
 
@@ -66,7 +67,11 @@ class Roboflow:
         self.model_format = model_format
         self.notebook = notebook
         self.onboarding = False
-        self.auth()
+
+        if api_key == None:
+            self.login()
+        else:
+            self.auth()
 
     def auth(self):
         r = check_key(self.api_key, self.model_format, self.notebook)
@@ -80,7 +85,43 @@ class Roboflow:
         else:
             w = r["workspace"]
             self.current_workspace = w
-            return self
+            return self        
+
+    def login(self):
+        sys.stdout.write("\r" + "visit " + APP_URL + "/auth-cli" " to get an API KEY")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        token = input("Paste the authentication here token here: ")
+        print(token)
+
+        """
+            const cli_auth_token = token_input.cli_auth_token;
+            const authDataResponse = await axios.get(
+                `https://${conf.get("app_domain")}/query/cliAuthToken/${cli_auth_token}`
+            );
+            const authData = authDataResponse.data;
+            conf.set("workspaces", authData);
+        """
+
+        r_login = requests.get("https://localhost.roboflow.one/query/cliAuthToken/" + token, verify=False)
+        print(r_login.text)
+        r_login = r_login.json()
+
+        print(r_login)
+
+        # conf_location = os.getenv(
+        #     "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
+        # )
+
+        return None
+
+        with open(conf_location, "w") as outfile:
+            json.dump(r_login, outfile)
+
+
+
+        return self.auth()
+        #return self.auth()
 
     def workspace(self, the_workspace=None):
         sys.stdout.write("\r" + "loading Roboflow workspace...")
