@@ -24,6 +24,7 @@ class TestCheckImageURL(unittest.TestCase):
         paths = [
             "ftp://example.com/found.png",
             "/found.png",
+            None,
         ]
         for path in paths:
             self.assertFalse(check_image_url(path))

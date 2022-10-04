@@ -1,17 +1,17 @@
-from roboflow.config import INSTANCE_SEGMENTATION_MODEL, INSTANCE_SEGMENTATION_URL
+from roboflow.config import SEMANTIC_SEGMENTATION_MODEL, SEMANTIC_SEGMENTATION_URL
 from roboflow.models.inference import InferenceModel
 
 
-class InstanceSegmentationModel(InferenceModel):
+class SemanticSegmentationModel(InferenceModel):
     def __init__(self, api_key, version_id):
         """
         :param api_key: Your API key (obtained via your workspace API settings page)
         :param version_id: The ID of the dataset version to use for predicting
         """
-        super(InstanceSegmentationModel, self).__init__(api_key, version_id)
-        self.api_url = f"{INSTANCE_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
+        super(SemanticSegmentationModel, self).__init__(api_key, version_id)
+        self.api_url = f"{SEMANTIC_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
 
-    def predict(self, image_path, confidence=40):
+    def predict(self, image_path, confidence=50):
         """
         Infers detections based on image from a specified model and image path
 
@@ -20,10 +20,10 @@ class InstanceSegmentationModel(InferenceModel):
 
         :return: PredictionGroup - a group of predictions based on Roboflow JSON response
         """
-        return super(InstanceSegmentationModel, self).predict(
+        return super(SemanticSegmentationModel, self).predict(
             image_path,
             confidence=confidence,
-            prediction_type=INSTANCE_SEGMENTATION_MODEL,
+            prediction_type=SEMANTIC_SEGMENTATION_MODEL,
         )
 
     def __str__(self):

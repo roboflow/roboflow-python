@@ -3,94 +3,47 @@ import unittest
 from requests.exceptions import HTTPError
 import responses
 
-from roboflow.config import INSTANCE_SEGMENTATION_URL
-from roboflow.models.instance_segmentation import InstanceSegmentationModel
+from roboflow.config import SEMANTIC_SEGMENTATION_URL
+from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.prediction import PredictionGroup
 
 
 MOCK_RESPONSE = {
-    "predictions": [
-        {
-            "x": 812.0,
-            "y": 362.9,
-            "width": 277,
-            "height": 206,
-            "class": "J",
-            "confidence": 0.598,
-            "points": [
-                {
-                    "x": 831.0,
-                    "y": 527.0
-                },
-                {
-                    "x": 931.0,
-                    "y": 389.0
-                },
-                {
-                    "x": 831.0,
-                    "y": 527.0
-                }
-            ]
-        },
-        {
-            "x": 363.8,
-            "y": 665.5,
-            "width": 707,
-            "height": 669,
-            "class": "K",
-            "confidence": 0.52,
-            "points": [
-                {
-                    "x": 131.0,
-                    "y": 999.0
-                },
-                {
-                    "x": 269.0,
-                    "y": 666.0
-                },
 
-                {
-                    "x": 131.0,
-                    "y": 999.0
-                }
-            ]
-        }
-    ],
+    "segmentation_mask": "iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAAAAADRE4smAAACjElEQVR4nO3bzXKbMBiGUanT+79ldVHXwSmmFmJGfcU5i8SZbDR8DzL4pxQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgKXUOnsFTGX+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMuosxewklpKm72GXj9mLyBf/etBEgGMqqVGTv5BADcngEF151GSn7MXkO116HFXgMUOMCZ//gK4TuT8BTCkvfyKJICbE8CQ9vyRSgBDMm/9tgQwLHoDWCDhaWopj+nXkpuBHeBT9dtL/t9OndQzSQCf2j/Fa8mdfSlFAD3a3l+H20IAAXzszbN83fw3b/4COO9PEIFT3xDAeW2zJ6TeBHg7eEjLvgUsxQ4wrGXPXwDDoscvgHE1+ypQAGfU/U8CJpaQuObpvt4FeBy/9vIoigD6fR2z9nwZaPtyUBQB9Ds6ZnEFuAa4OQF0O9w043ZUAdxcXLGT/eN4xV0C2AH6LDd/AVwpcP4CuFDi/AVwocjrKQF0iTzJDwmgz3IFCKDTagUI4OYEcJ3IzUEAnSIv9Q/4VHCXd+NvsWGkrnum9xUE8hTQL3LQ7wjghJUKEMBlMrMQwBm7s868nMpc9X/iefB+fzc8cgtwGzjg8XWAyMFzOZspAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACwil+AQDJrnsYcnwAAAABJRU5ErkJggg==",
+    "class_map": {
+        "0": "background",
+        "1": "object"
+    },
     "image": {
-        "width": 1333,
-        "height": 1000
+        "width": 800,
+        "height": 600
     }
 }
 
 
-class TestInstanceSegmentation(unittest.TestCase):
-
+class TestSemanticSegmentation(unittest.TestCase):
     api_key = "my-api-key"
     workspace = "roboflow"
     dataset_id = "test-123"
     version = "23"
 
-    api_url = f"https://outline.roboflow.com/{dataset_id}/{version}"
+    api_url = f"https://segment.roboflow.com/{dataset_id}/{version}"
 
-    _default_params = {
-        "api_key": api_key,
-        "confidence": "40",
-    }
+    _default_params = { "api_key": api_key, "confidence": "50" }
 
-    def setUp(self):
-        super(TestInstanceSegmentation, self).setUp()
-        self.version_id = f"{self.workspace}/{self.dataset_id}/{self.version}"
+    version_id = f"{workspace}/{dataset_id}/{version}"
 
     def test_init_sets_attributes(self):
-        instance = InstanceSegmentationModel(self.api_key, self.version_id)
+        instance = SemanticSegmentationModel(self.api_key, self.version_id)
 
         self.assertEqual(instance.id, self.version_id)
-        self.assertEqual(instance.api_url, f"{INSTANCE_SEGMENTATION_URL}/{self.dataset_id}/{self.version}")
+        self.assertEqual(instance.api_url, f"{SEMANTIC_SEGMENTATION_URL}/{self.dataset_id}/{self.version}")
 
     @responses.activate
     def test_predict_returns_prediction_group(self):
         image_path = "tests/images/rabbit.JPG"
-        instance = InstanceSegmentationModel(self.api_key, self.version_id)
+        instance = SemanticSegmentationModel(self.api_key, self.version_id)
 
         responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
 
@@ -101,7 +54,7 @@ class TestInstanceSegmentation(unittest.TestCase):
     @responses.activate
     def test_predict_with_local_image_request(self):
         image_path = "tests/images/rabbit.JPG"
-        instance = InstanceSegmentationModel(self.api_key, self.version_id)
+        instance = SemanticSegmentationModel(self.api_key, self.version_id)
 
         responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
 
@@ -121,7 +74,7 @@ class TestInstanceSegmentation(unittest.TestCase):
             **self._default_params,
             "image": image_path,
         }
-        instance = InstanceSegmentationModel(self.api_key, self.version_id)
+        instance = SemanticSegmentationModel(self.api_key, self.version_id)
 
         # Mock the library validating that the URL is valid before sending to the API
         responses.add(responses.HEAD, image_path)
@@ -144,7 +97,7 @@ class TestInstanceSegmentation(unittest.TestCase):
             **self._default_params,
             "confidence": confidence
         }
-        instance = InstanceSegmentationModel(self.api_key, self.version_id)
+        instance = SemanticSegmentationModel(self.api_key, self.version_id)
 
         responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
 
@@ -162,7 +115,7 @@ class TestInstanceSegmentation(unittest.TestCase):
         image_path = "tests/images/rabbit.JPG"
         responses.add(responses.POST, self.api_url, status=403)
 
-        instance = InstanceSegmentationModel(self.api_key, self.version_id)
+        instance = SemanticSegmentationModel(self.api_key, self.version_id)
 
         with self.assertRaises(HTTPError):
             instance.predict(image_path)
