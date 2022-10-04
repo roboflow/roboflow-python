@@ -3,7 +3,7 @@ import sys
 
 import requests
 
-from roboflow.config import API_URL, APP_URL, DEMO_KEYS
+from roboflow.config import API_URL, APP_URL, DEMO_KEYS, RF_API_KEY
 from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
 
@@ -55,10 +55,13 @@ def auth(api_key):
 class Roboflow:
     def __init__(
         self,
-        api_key="YOUR ROBOFLOW API KEY HERE",
+        api_key=None,
         model_format="undefined",
         notebook="undefined",
     ):
+        if api_key == None:
+            if RF_API_KEY != None:
+                api_key = RF_API_KEY
         self.api_key = api_key
         self.model_format = model_format
         self.notebook = notebook
