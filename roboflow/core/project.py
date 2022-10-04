@@ -145,14 +145,13 @@ class Project:
         # If image is not a hosted image
         if not hosted_image:
 
-            project_name = self.id.rsplit("/")[1]
             image_name = os.path.basename(image_path)
 
             # Construct URL for local image upload
             self.image_upload_url = "".join(
                 [
-                    "https://api.roboflow.com/dataset/",
-                    project_name,
+                    API_URL + "/dataset/",
+                    self.__project_name,
                     "/upload",
                     "?api_key=",
                     self.__api_key,
@@ -182,11 +181,10 @@ class Project:
 
         else:
             # Hosted image upload url
-            project_name = self.id.rsplit("/")[1]
 
             upload_url = "".join(
                 [
-                    API_URL + "/dataset/" + self.project_name + "/upload",
+                    API_URL + "/dataset/" + self.__project_name + "/upload",
                     "?api_key=" + self.__api_key,
                     "&name=" + os.path.basename(image_path),
                     "&split=" + split,
@@ -259,6 +257,9 @@ class Project:
             "https://"
         )
 
+        if not hosted_image:
+            hosted_image = is_hosted
+
         is_file = os.path.isfile(image_path) or is_hosted
         is_dir = os.path.isdir(image_path)
 
@@ -270,7 +271,10 @@ class Project:
             )
 
         if is_file:
-            is_image = self.check_valid_image(image_path) or is_hosted
+            if is_hosted:
+                is_image = True
+            else:
+                is_image = self.check_valid_image(image_path) or is_hosted
 
             if not is_image:
                 raise RuntimeError(
