@@ -47,6 +47,7 @@ def check_key(api_key, model, notebook):
 
 
 def auth(api_key):
+
     r = check_key(api_key)
     w = r["workspace"]
 
@@ -74,6 +75,16 @@ class Roboflow:
             self.auth()
 
     def auth(self):
+
+        if self.api_key == None:
+            from roboflow.config import RF_API_KEY
+
+            print()
+
+            if RF_API_KEY != None:
+                self.api_key = RF_API_KEY
+
+        print("API KEY IS : ", self.api_key)
         r = check_key(self.api_key, self.model_format, self.notebook)
 
         if r == "onboarding":
@@ -92,7 +103,6 @@ class Roboflow:
         sys.stdout.write("\n")
         sys.stdout.flush()
         token = input("Paste the authentication here token here: ")
-        print(token)
 
         """
             const cli_auth_token = token_input.cli_auth_token;
@@ -103,24 +113,24 @@ class Roboflow:
             conf.set("workspaces", authData);
         """
 
-        r_login = requests.get("https://localhost.roboflow.one/query/cliAuthToken/" + token, verify=False)
-        print(r_login.text)
-        r_login = r_login.json()
-
-        print(r_login)
-
-        # conf_location = os.getenv(
-        #     "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
-        # )
-
-        return None
-
-        with open(conf_location, "w") as outfile:
-            json.dump(r_login, outfile)
+        r_login = requests.get("https://app.roboflow.one/query/cliAuthToken/" + token)
+        
 
 
+        if r_login.status_code == 200:
 
-        return self.auth()
+            r_login = r_login.json()
+
+            conf_location = os.getenv(
+                "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
+            )
+
+            with open(conf_location, "w") as outfile:
+                json.dump(r_login, outfile)
+
+            return self.auth()
+        else:
+            raise RuntimeError("Error logging in")
         #return self.auth()
 
     def workspace(self, the_workspace=None):
