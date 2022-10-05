@@ -36,6 +36,7 @@ setuptools.setup(
         "tqdm>=4.41.0",
         "PyYAML>=5.3.1",
         "wget",
+        "inquirer==2.10.0"
     ],
     packages=find_packages(exclude=("tests",)),
     extras_require={

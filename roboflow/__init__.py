@@ -3,10 +3,13 @@ import sys
 import os
 
 import requests
+#import inquirer
 
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS, RF_API_KEY
 from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
+from roboflow.util.general import write_line
+
 
 
 def check_key(api_key, model, notebook):
@@ -63,6 +66,7 @@ class Roboflow:
     ):
         if api_key == None:
             if RF_API_KEY != None:
+
                 api_key = RF_API_KEY
         self.api_key = api_key
         self.model_format = model_format
@@ -78,9 +82,6 @@ class Roboflow:
 
         if self.api_key == None:
             from roboflow.config import RF_API_KEY
-
-            print()
-
             if RF_API_KEY != None:
                 self.api_key = RF_API_KEY
 
@@ -99,9 +100,8 @@ class Roboflow:
             return self        
 
     def login(self):
-        sys.stdout.write("\r" + "visit " + APP_URL + "/auth-cli" " to get an API KEY")
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+        write_line("visit " + APP_URL + "/auth-cli" " to get an API KEY")
+
         token = input("Paste the authentication here token here: ")
 
         """
@@ -117,13 +117,34 @@ class Roboflow:
         
 
 
-        if r_login.status_code == 200:
+        if r_login.status_code == 200 or r_login.json() == None:
 
             r_login = r_login.json()
 
             conf_location = os.getenv(
                 "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
             )
+
+            print("r_login repsonse is : ", r_login)
+
+            r_login = {"workspaces": r_login}
+
+            workpace_selector = []
+            for k in r_login["workspaces"].keys():
+                workspace = r_login["workspaces"][k]
+                workpace_selector.append(workspace["name"] + " " + "(" + workspace["url"] + ")")
+
+            questions = [
+            inquirer.List('workspace',
+                            message="What size do you need?",
+                            choices=workpace_selector,
+                        ),
+            ]
+            answers = inquirer.prompt(questions)
+            s = answers["workspace"]
+            r_login["RF_WORKSPACE"] = s[s.find("(")+1:s.find(")")]
+
+            print("r_login", r_login)
 
             with open(conf_location, "w") as outfile:
                 json.dump(r_login, outfile)
@@ -134,9 +155,7 @@ class Roboflow:
         #return self.auth()
 
     def workspace(self, the_workspace=None):
-        sys.stdout.write("\r" + "loading Roboflow workspace...")
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+        write_line("loading Roboflow workspace...")
 
         if the_workspace is None:
             the_workspace = self.current_workspace
