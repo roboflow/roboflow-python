@@ -40,7 +40,7 @@ INSTANCE_SEGMENTATION_URL = get_var_conditional(
     "INSTANCE_SEGMENTATION_URL", "https://outline.roboflow.com"
 )
 
-RF_WORKPACES = get_var_conditional("workspaces", default={})
+RF_WORKSPACES = get_var_conditional("workspaces", default={})
 
 CLIP_FEATURIZE_URL = get_var_conditional(
     "CLIP_FEATURIZE_URL", default="CLIP FEATURIZE URL NOT IN ENV"
@@ -58,8 +58,8 @@ if RF_WORKSPACE == None:
     RF_API_KEY = None
 else:
     RF_API_KEY = None
-    for k in WORKPACES.keys():
-        workspace = WORKPACES[k]
+    for k in RF_WORKSPACES.keys():
+        workspace = RF_WORKSPACES[k]
         if workspace["url"] == RF_WORKSPACE:
             RF_API_KEY = workspace["apiKey"]
 # ENV API_KEY OVERRIDE
