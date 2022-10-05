@@ -1,15 +1,11 @@
 import json
 import sys
-import os
 
 import requests
-#import inquirer
 
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS, RF_API_KEY
 from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
-from roboflow.util.general import write_line
-
 
 
 def check_key(api_key, model, notebook):
@@ -50,7 +46,6 @@ def check_key(api_key, model, notebook):
 
 
 def auth(api_key):
-
     r = check_key(api_key)
     w = r["workspace"]
 
@@ -66,26 +61,14 @@ class Roboflow:
     ):
         if api_key == None:
             if RF_API_KEY != None:
-
                 api_key = RF_API_KEY
         self.api_key = api_key
         self.model_format = model_format
         self.notebook = notebook
         self.onboarding = False
-
-        if api_key == None:
-            self.login()
-        else:
-            self.auth()
+        self.auth()
 
     def auth(self):
-
-        if self.api_key == None:
-            from roboflow.config import RF_API_KEY
-            if RF_API_KEY != None:
-                self.api_key = RF_API_KEY
-
-        print("API KEY IS : ", self.api_key)
         r = check_key(self.api_key, self.model_format, self.notebook)
 
         if r == "onboarding":
@@ -97,65 +80,12 @@ class Roboflow:
         else:
             w = r["workspace"]
             self.current_workspace = w
-            return self        
-
-    def login(self):
-        write_line("visit " + APP_URL + "/auth-cli" " to get an API KEY")
-
-        token = input("Paste the authentication here token here: ")
-
-        """
-            const cli_auth_token = token_input.cli_auth_token;
-            const authDataResponse = await axios.get(
-                `https://${conf.get("app_domain")}/query/cliAuthToken/${cli_auth_token}`
-            );
-            const authData = authDataResponse.data;
-            conf.set("workspaces", authData);
-        """
-
-        r_login = requests.get("https://app.roboflow.one/query/cliAuthToken/" + token)
-        
-
-
-        if r_login.status_code == 200 or r_login.json() == None:
-
-            r_login = r_login.json()
-
-            conf_location = os.getenv(
-                "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
-            )
-
-            print("r_login repsonse is : ", r_login)
-
-            r_login = {"workspaces": r_login}
-
-            workpace_selector = []
-            for k in r_login["workspaces"].keys():
-                workspace = r_login["workspaces"][k]
-                workpace_selector.append(workspace["name"] + " " + "(" + workspace["url"] + ")")
-
-            questions = [
-            inquirer.List('workspace',
-                            message="What size do you need?",
-                            choices=workpace_selector,
-                        ),
-            ]
-            answers = inquirer.prompt(questions)
-            s = answers["workspace"]
-            r_login["RF_WORKSPACE"] = s[s.find("(")+1:s.find(")")]
-
-            print("r_login", r_login)
-
-            with open(conf_location, "w") as outfile:
-                json.dump(r_login, outfile)
-
-            return self.auth()
-        else:
-            raise RuntimeError("Error logging in")
-        #return self.auth()
+            return self
 
     def workspace(self, the_workspace=None):
-        write_line("loading Roboflow workspace...")
+        sys.stdout.write("\r" + "loading Roboflow workspace...")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
         if the_workspace is None:
             the_workspace = self.current_workspace
