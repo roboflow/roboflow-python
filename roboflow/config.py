@@ -32,12 +32,16 @@ INSTANCE_SEGMENTATION_MODEL = "InstanceSegmentationModel"
 OBJECT_DETECTION_MODEL = get_var_conditional(
     "OBJECT_DETECTION_MODEL", default="ObjectDetectionModel"
 )
+SEMANTIC_SEGMENTATION_MODEL = get_var_conditional(SEMANTIC_SEGMENTATION_MODEL, default="SemanticSegmentationModel")
 PREDICTION_OBJECT = get_var_conditional("PREDICTION_OBJECT", default="Prediction")
 
 API_URL = get_var_conditional("RF_API_URL", default="https://api.roboflow.com")
 APP_URL = get_var_conditional("RF_APP_URL", default="https://app.roboflow.com")
 INSTANCE_SEGMENTATION_URL = get_var_conditional(
-    "INSTANCE_SEGMENTATION_URL", "https://outline.roboflow.com"
+    "INSTANCE_SEGMENTATION_URL", default="https://outline.roboflow.com"
+)
+SEMANTIC_SEGMENTATION_URL = get_var_conditional(
+    "SEMANTIC_SEGMENTATION_URL", default="https://segment.roboflow.com"
 )
 
 RF_WORKSPACES = get_var_conditional("workspaces", default={})
@@ -50,6 +54,7 @@ DEMO_KEYS = ["coco-128-sample", "chess-sample-only-api-key"]
 TYPE_CLASSICATION = "classification"
 TYPE_OBJECT_DETECTION = "object-detection"
 TYPE_INSTANCE_SEGMENTATION = "instance-segmentation"
+TYPE_SEMANTIC_SEGMENTATION = "semantic-segmentation"
 # pull default workspace and API key
 
 RF_WORKSPACE = get_var_conditional("RF_WORKSPACE", default=None)
