@@ -62,6 +62,9 @@ class Roboflow:
         if api_key == None:
             if RF_API_KEY != None:
                 api_key = RF_API_KEY
+
+        if api_key == None:
+            raise(RuntimeError("You must provide an api_key on init or use the Roboflow CLI to authenticate"))
         self.api_key = api_key
         self.model_format = model_format
         self.notebook = notebook
