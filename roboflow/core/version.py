@@ -109,7 +109,7 @@ class Version:
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
         else:
             url = self.__get_download_url(model_format)
-            resp = requests.get(url, params={'api_key': self.__api_key })
+            resp = requests.get(url, params={"api_key": self.__api_key})
             if resp.status_code == 200:
                 link = resp.json()["export"]["link"]
             else:
@@ -134,7 +134,7 @@ class Version:
         :raises RuntimeError / HTTPError:
         """
         url = self.__get_download_url(model_format)
-        response = requests.post(url, params={'api_key': self.__api_key })
+        response = requests.post(url, params={"api_key": self.__api_key})
         if not response.ok:
             try:
                 raise RuntimeError(response.json())
@@ -153,6 +153,7 @@ class Version:
 
         :return None:
         """
+
         def bar_progress(current, total, width=80):
             progress_message = (
                 "Downloading Dataset Version Zip in "
@@ -186,7 +187,7 @@ class Version:
                 try:
                     zip_ref.extract(member, location)
                 except zipfile.error:
-                    raise RuntimeError('Error unzipping download')
+                    raise RuntimeError("Error unzipping download")
 
         os.remove(location + "/roboflow.zip")
 
