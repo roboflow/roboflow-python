@@ -1,5 +1,4 @@
 import os
-from sys import intern
 
 import requests
 import responses
@@ -7,72 +6,103 @@ import unittest
 from unittest.mock import patch
 
 from .helpers import get_version
+from roboflow.core.version import Version
 
 
-class TestVersion(unittest.TestCase):
+class TestDownload(unittest.TestCase):
+    def setUp(self):
+        super(TestDownload, self).setUp()
+        self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/coco"
+        self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="4")
+
+    @responses.activate
+    def test_download_raises_exception_on_bad_request(self):
+        responses.add(responses.GET, self.api_url, status=404, json={"error": "Broken"})
+        with self.assertRaises(RuntimeError):
+            self.version.download("coco")
+
+    @responses.activate
+    def test_download_raises_exception_on_api_failure(self):
+        responses.add(responses.GET, self.api_url, status=500)
+        with self.assertRaises(requests.exceptions.HTTPError):
+            self.version.download("coco")
+
+    @responses.activate
+    @patch.object(Version, "_Version__download_zip")
+    @patch.object(Version, "_Version__extract_zip")
+    @patch.object(Version, "_Version__reformat_yaml")
+    def test_download_returns_dataset(self, *_):
+        responses.add(responses.GET, self.api_url, json={"export": { "link": None }})
+        dataset = self.version.download("coco", location="/my-spot")
+        self.assertEqual(dataset.name, self.version.name)
+        self.assertEqual(dataset.version, self.version.version)
+        self.assertEqual(dataset.model_format, "coco")
+        self.assertEqual(dataset.location, "/my-spot")
+
+
+class TestExport(unittest.TestCase):
 
     def setUp(self):
-        super(TestVersion, self).setUp()
-        self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="3")
-
-    def test_get_download_location_with_env_variable(self):
-        with patch.dict(os.environ, { "DATASET_DIRECTORY": "/my/exports"}, clear=True):
-
-            # This is a weird python thing to get access to the private function for testing.
-            __get_download_location = self.version._Version__get_download_location
-            location = __get_download_location()
-            self.assertEqual(location, "/my/exports/Test-Dataset-3")
-
-    def test_get_download_location_without_env_variable(self):
-        # This is a weird python thing to get access to the private function for testing.
-        __get_download_location = self.version._Version__get_download_location
-        location = __get_download_location()
-        self.assertEqual(location, "Test-Dataset-3")
-
-    def test_get_download_url(self):
-        # This is a weird python thing to get access to the private function for testing.
-        __get_download_url = self.version._Version__get_download_url
-        url = __get_download_url("yolo1337")
-        self.assertEqual(url, "https://api.roboflow.com/test-workspace/test-project/3/yolo1337")
-
-    def test_download_with_location_overwrites_location(self):
-        pass
-
-    def test_download_without_format_raises_error(self):
-        with self.assertRaises(RuntimeError):
-            self.version.download()
+        super(TestExport, self).setUp()
+        self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/test-format"
+        self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="4")
 
     @responses.activate
     def test_export_returns_true_on_api_success(self):
-        version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="4")
-        api_url = f"https://api.roboflow.com/test-workspace/test-project/4/test-format"
-        responses.add(responses.POST, api_url, status=204)
+        responses.add(responses.POST, self.api_url, status=204)
         
-        export = version.export("test-format")
+        export = self.version.export("test-format")
         request = responses.calls[0].request
 
         self.assertTrue(export)
         self.assertEqual(request.method, "POST")
-        self.assertRegex(request.url, rf"^{api_url}")
+        self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, { "api_key": "test-api-key" })
 
     @responses.activate
     def test_export_raises_error_on_bad_request(self):
-        version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="4")
-        api_url = f"https://api.roboflow.com/test-workspace/test-project/4/test-format"
-        responses.add(responses.POST, api_url, status=400, json={ "error": "BROKEN!!"})
+        responses.add(responses.POST, self.api_url, status=400, json={ "error": "BROKEN!!"})
         
         with self.assertRaises(RuntimeError):
-            version.export("test-format")
+            self.version.export("test-format")
 
     @responses.activate
     def test_export_raises_error_on_api_failure(self):
-        version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="4")
-        api_url = f"https://api.roboflow.com/test-workspace/test-project/4/test-format"
-        responses.add(responses.POST, api_url, status=500)
+        responses.add(responses.POST, self.api_url, status=500)
         
         with self.assertRaises(requests.exceptions.HTTPError):
-            version.export("test-format")
+            self.version.export("test-format")
+
+
+@patch.object(os, "makedirs")
+class TestGetDownloadLocation(unittest.TestCase):
+    def setUp(self, *_):
+        super(TestGetDownloadLocation, self).setUp()
+        self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="3")
+
+        # This is a weird python thing to get access to the private function for testing.
+        self.get_download_location = self.version._Version__get_download_location
+
+    def test_get_download_location_with_env_variable(self, *_):
+        with patch.dict(os.environ, { "DATASET_DIRECTORY": "/my/exports"}, clear=True):
+            self.assertEqual(self.get_download_location(), "/my/exports/Test-Dataset-3")
+
+    def test_get_download_location_without_env_variable(self, *_):
+        self.assertEqual(self.get_download_location(), "Test-Dataset-3")
+
+
+class TestGetDownloadURL(unittest.TestCase):
+    def setUp(self):
+        super(TestGetDownloadURL, self).setUp()
+        self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="3")
+
+        # This is a weird python thing to get access to the private function for testing.
+        self.get_download_url = self.version._Version__get_download_url
+
+    def test_get_download_url(self):
+        url = self.get_download_url("yolo1337")
+        self.assertEqual(url, "https://api.roboflow.com/test-workspace/test-project/3/yolo1337")
+
 
 class TestGetFormatIdentifier(unittest.TestCase):
     def setUp(self):

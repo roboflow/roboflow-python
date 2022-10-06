@@ -100,27 +100,27 @@ class Version:
         if location is None:
             location = self.__get_download_location()
 
-        if not os.path.exists(location):
-            os.makedirs(location)
-
         model_format = self.__get_format_identifier(model_format)
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
         else:
             url = self.__get_download_url(model_format)
-            resp = requests.get(url, params={"api_key": self.__api_key})
-            if resp.status_code == 200:
-                link = resp.json()["export"]["link"]
+            response = requests.get(url, params={"api_key": self.__api_key})
+            if response.status_code == 200:
+                link = response.json()["export"]["link"]
             else:
-                raise RuntimeError(resp.json())
+                try:
+                    raise RuntimeError(response.json())
+                except requests.exceptions.JSONDecodeError:
+                    response.raise_for_status()
 
         self.__download_zip(link, location, model_format)
         self.__extract_zip(location, model_format)
         self.__reformat_yaml(location, model_format)
 
         return Dataset(
-            self.name, self.version, self.model_format, os.path.abspath(location)
+            self.name, self.version, model_format, os.path.abspath(location)
         )
 
     def export(self, model_format=None):
@@ -153,6 +153,8 @@ class Version:
 
         :return None:
         """
+        if not os.path.exists(location):
+            os.makedirs(location)
 
         def bar_progress(current, total, width=80):
             progress_message = (
