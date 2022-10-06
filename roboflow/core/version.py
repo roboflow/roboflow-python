@@ -43,6 +43,10 @@ class Version:
         else:
             self.__api_key = api_key
             self.name = name
+
+            # FIXME: the version argument is inconsistently passed into this object.
+            # Sometimes it is passed as: test-workspace/test-project/2
+            # Other times, it is passed as: 2
             self.version = version
             self.type = type
             self.augmentation = version_dict["augmentation"]
@@ -53,7 +57,7 @@ class Version:
             self.splits = version_dict["splits"]
             self.model_format = model_format
 
-            version_without_workspace = os.path.basename(version)
+            version_without_workspace = os.path.basename(str(version))
 
             if self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
@@ -85,54 +89,76 @@ class Version:
                 self.model = None
 
     def download(self, model_format=None, location=None):
+        """
+        Download and extract a ZIP of a version's dataset in a given format
 
+        :param model_format: A format to use for downloading
+        :param location: An optional path for saving the file
+
+        :return: Dataset
+        """
         if location is None:
-            if "DATASET_DIRECTORY" in os.environ:
-                location = (
-                    os.environ["DATASET_DIRECTORY"]
-                    + "/"
-                    + self.name.replace(" ", "-")
-                    + "-"
-                    + self.version
-                )
-            else:
-                location = self.name.replace(" ", "-") + "-" + self.version
+            location = self.__get_download_location()
 
         if not os.path.exists(location):
             os.makedirs(location)
 
-        if model_format is None:
-            if self.model_format == "yolov5":
-                model_format = "yolov5pytorch"
-            elif self.model_format == "yolov7":
-                model_format = "yolov7pytorch"
-            else:
-                RuntimeError(
-                    "You must pass a download_type to version.download() or define model in your Roboflow object"
-                )
-
-        if model_format == "yolov5":
-            model_format = "yolov5pytorch"
-
-        if model_format == "yolov7":
-            model_format = "yolov7pytorch"
+        model_format = self.__get_format_identifier(model_format)
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
         else:
             url = self.__get_download_url(model_format)
-            resp = requests.get(url)
+            resp = requests.get(url, params={'api_key': self.__api_key })
             if resp.status_code == 200:
                 link = resp.json()["export"]["link"]
             else:
                 raise RuntimeError(resp.json())
 
+        self.__download_zip(link, location, model_format)
+        self.__extract_zip(location, model_format)
+        self.__reformat_yaml(location, model_format)
+
+        return Dataset(
+            self.name, self.version, self.model_format, os.path.abspath(location)
+        )
+
+    def export(self, model_format=None):
+        """
+        Ask the Roboflow API to generate a version's dataset in a given format so that it can be downloaded via the `download()` method.
+        The export will be asynchronously generated and available for download after some amount of seconds - depending on dataset size.
+
+        :param model_format: A format to use for downloading
+
+        :return: True
+        :raises RuntimeError / HTTPError:
+        """
+        url = self.__get_download_url(model_format)
+        response = requests.post(url, params={'api_key': self.__api_key })
+        if not response.ok:
+            try:
+                raise RuntimeError(response.json())
+            except requests.exceptions.JSONDecodeError:
+                response.raise_for_status()
+
+        return True
+
+    def __download_zip(self, link, location, format):
+        """
+        Download a dataset's zip file from the given URL and save it in the desired location
+
+        :param location: link the URL of the remote zip file
+        :param location: filepath of the data directory to save the zip file to
+        :param format: the format identifier string
+
+        :return None:
+        """
         def bar_progress(current, total, width=80):
             progress_message = (
                 "Downloading Dataset Version Zip in "
                 + location
                 + " to "
-                + model_format
+                + format
                 + ": %d%% [%d / %d] bytes" % (current / total * 100, current, total)
             )
             sys.stdout.write("\r" + progress_message)
@@ -142,27 +168,89 @@ class Version:
         sys.stdout.write("\n")
         sys.stdout.flush()
 
+    def __extract_zip(self, location, format):
+        """
+        This simply extracts the contents of a downloaded zip file and then deletes the zip
+
+        :param location: filepath of the data directory that contains the zip file
+        :param format: the format identifier string
+
+        :return None:
+        :raises RuntimeError:
+        """
         with zipfile.ZipFile(location + "/roboflow.zip", "r") as zip_ref:
             for member in tqdm(
                 zip_ref.infolist(),
-                desc="Extracting Dataset Version Zip to "
-                + location
-                + " in "
-                + model_format
-                + ":",
+                desc=f"Extracting Dataset Version Zip to {location} in {format}:",
             ):
                 try:
                     zip_ref.extract(member, location)
                 except zipfile.error:
-                    # [TODO] sure we want to pass here?
-                    pass
+                    raise RuntimeError('Error unzipping download')
 
-        if (
-            (self.model_format == "yolov5")
-            or (model_format == "yolov5pytorch")
-            or (model_format == "yolov7")
-            or (model_format == "yolov7pytorch")
-        ):
+        os.remove(location + "/roboflow.zip")
+
+    def __get_download_location(self):
+        """
+        Get the local path to save a downloaded dataset to
+
+        :return local path string:
+        """
+        version_slug = self.name.replace(" ", "-")
+        filename = f"{version_slug}-{self.version}"
+
+        directory = os.environ.get("DATASET_DIRECTORY")
+        if directory:
+            return f"{directory}/{filename}"
+
+        return filename
+
+    def __get_download_url(self, format):
+        """
+        Get the Roboflow API URL for downloading (and exporting downloadable zips)
+
+        :param format: the format identifier string
+
+        :return Roboflow API URL string:
+        """
+        workspace, project, *_ = self.id.rsplit("/")
+        return f"{API_URL}/{workspace}/{project}/{self.version}/{format}"
+
+    def __get_format_identifier(self, format):
+        """
+        If `format` is none, fall back to the instance's `model_format` value.
+        If a human readable format name was passed, return the identifier that should be used for Roboflow API calls
+        Otherwise, assume that the passed in format is also the identifier
+
+        :param format: a human readable format string
+
+        :return: format identifier string
+        """
+        if not format:
+            format = self.model_format
+
+        if not format:
+            raise RuntimeError(
+                "You must pass a format argument to version.download() or define a model in your Roboflow object"
+            )
+
+        friendly_formats = {
+            "yolov5": "yolov5pytorch",
+            "yolov7": "yolov7pytorch",
+        }
+        return friendly_formats.get(format, format)
+
+    def __reformat_yaml(self, location, format):
+        """
+        Certain formats seem to require reformatting the downloaded YAML.
+        It'd be nice if the API did this, but we're doing it in python for now.
+
+        :param location: filepath of the data directory that contains the yaml file
+        :param format: the format identifier string
+
+        :return None:
+        """
+        if format in ["yolov5pytorch", "yolov7pytorch"]:
             with open(location + "/data.yaml") as file:
                 new_yaml = yaml.safe_load(file)
             new_yaml["train"] = location + new_yaml["train"].lstrip("..")
@@ -173,7 +261,7 @@ class Version:
             with open(location + "/data.yaml", "w") as outfile:
                 yaml.dump(new_yaml, outfile)
 
-        if model_format == "mt-yolov6":
+        if format == "mt-yolov6":
             with open(location + "/data.yaml") as file:
                 new_yaml = yaml.safe_load(file)
             new_yaml["train"] = location + new_yaml["train"].lstrip(".")
@@ -184,25 +272,6 @@ class Version:
 
             with open(location + "/data.yaml", "w") as outfile:
                 yaml.dump(new_yaml, outfile)
-
-        os.remove(location + "/roboflow.zip")
-
-        return Dataset(
-            self.name, self.version, self.model_format, os.path.abspath(location)
-        )
-
-    def __get_download_url(self, download_type):
-        temporary = self.id.rsplit("/")
-        workspace, project = temporary[0], temporary[1]
-        url = "".join(
-            [
-                API_URL + "/" + workspace + "/" + project,
-                "/" + self.version,
-                "/" + download_type,
-                "?api_key=" + self.__api_key,
-            ]
-        )
-        return url
 
     def __str__(self):
         """string representation of version object."""
