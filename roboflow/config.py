@@ -32,7 +32,7 @@ INSTANCE_SEGMENTATION_MODEL = "InstanceSegmentationModel"
 OBJECT_DETECTION_MODEL = get_var_conditional(
     "OBJECT_DETECTION_MODEL", default="ObjectDetectionModel"
 )
-SEMANTIC_SEGMENTATION_MODEL = get_var_conditional(SEMANTIC_SEGMENTATION_MODEL, default="SemanticSegmentationModel")
+SEMANTIC_SEGMENTATION_MODEL = get_var_conditional('SEMANTIC_SEGMENTATION_MODEL", default="SemanticSegmentationModel")
 PREDICTION_OBJECT = get_var_conditional("PREDICTION_OBJECT", default="Prediction")
 
 API_URL = get_var_conditional("RF_API_URL", default="https://api.roboflow.com")
