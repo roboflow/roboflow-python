@@ -12,7 +12,6 @@ from roboflow.util.active_learning_utils import (
     count_comparisons,
 )
 
-
 class Workspace:
     def __init__(self, info, api_key, default_workspace, model_format):
         if api_key in DEMO_KEYS:
@@ -90,6 +89,17 @@ class Workspace:
             upload_destination: str = name of the upload project
             conditionals: dict = dictionary of upload conditions
         """
+
+
+        # ensure that all fields of conditionals have a key:value pair
+
+        conditionals["target_classes"] = [] if "target_classes" not in conditionals else conditionals["target_classes"]
+        conditionals["confidence_interval"] = [30,99] if "confidence_interval" not in conditionals else conditionals["confidence_interval"]
+        conditionals["required_class_variance_count"] = 1 if "required_class_variance_count" not in conditionals else conditionals["required_class_variance_count"]
+        conditionals["required_objects_count"] = 1 if "required_objects_count" not in conditionals else conditionals["required_objects_count"]
+        conditionals["required_class_count"] = 0 if "required_class_count" not in conditionals else conditionals["required_class_count"]
+        conditionals["minimum_size_requirement"] = float('-inf') if "minimum_size_requirement" not in conditionals else conditionals["minimum_size_requirement"]
+        conditionals["maximum_size_requirement"] = float('inf')  if "maximum_size_requirement" not in conditionals else conditionals["maximum_size_requirement"]
 
         inference_model = (
             self.project(inference_endpoint[0]).version(inference_endpoint[1]).model
