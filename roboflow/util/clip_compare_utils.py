@@ -5,6 +5,8 @@ import base64, io
 import requests
 from PIL import Image
 
+from roboflow.config import CLIP_FEATURIZE_URL
+
 # rf.predict requires images formatted and base64 encoded
 def base64_encode(image_path):
     """
@@ -33,7 +35,8 @@ def clip_encode(image1, image2):
     image1 = base64_encode(image1)
     image2 = base64_encode(image2)
 
-    url = 'https://clip-featurize-double-image-li37nwjfaq-uc.a.run.app/predict'
+    url = CLIP_FEATURIZE_URL
+    
     headers = {
         "Content-Type": "text/plain"
     }
