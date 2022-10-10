@@ -14,6 +14,7 @@ from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
 
 ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
+ACCEPTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png"]
 
 
 def custom_formatwarning(msg, *args, **kwargs):
@@ -135,15 +136,15 @@ class Project:
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
 
-    def __image_upload(self, image_path, hosted_image=False, split="train"):
+    def __image_upload(self, image_path, is_hosted=False, split="train"):
         """function to upload image to the specific project
         :param image_path: path to image you'd like to upload.
-        :param hosted_image: if the image is hosted online, then this should be modified
+        :param is_hosted: if the image is hosted online, then this should be modified
         :param split: the dataset split to upload the project to.
         """
 
         # If image is not a hosted image
-        if not hosted_image:
+        if not is_hosted:
 
             image_name = os.path.basename(image_path)
 
@@ -225,13 +226,20 @@ class Project:
         # Return annotation response
         return annotation_response
 
-    def check_valid_image(self, image_path):
-        try:
-            img = Image.open(image_path)
-            valid = img.format in ACCEPTED_IMAGE_FORMATS
-            img.close()
-        except UnidentifiedImageError:
-            return False
+    def check_valid_image(self, image_path, is_hosted=False):
+        if not is_hosted:
+            try:
+                img = Image.open(image_path)
+                valid = img.format in ACCEPTED_IMAGE_FORMATS
+                img.close()
+            except UnidentifiedImageError:
+                return False
+        else:
+            #for hosted images check to see if the extension is in our list of valid extensions
+            if any(ext in image_path for ext in ACCEPTED_IMAGE_EXTENSIONS):
+                valid = True
+            else:
+                return False
 
         return valid
 
@@ -239,7 +247,6 @@ class Project:
         self,
         image_path=None,
         annotation_path=None,
-        hosted_image=False,
         image_id=None,
         split="train",
         num_retry_uploads=0,
@@ -248,7 +255,7 @@ class Project:
         """upload function
         :param image_path: path to image you'd like to upload
         :param annotation_path: if you're upload annotation, path to it
-        :param hosted_image: whether the image is hosted
+        :param is_hosted: whether the image is hosted
         :param image_id: id of the image
         :param split: split to upload the image to
         """
@@ -256,9 +263,6 @@ class Project:
         is_hosted = image_path.startswith("http://") or image_path.startswith(
             "https://"
         )
-
-        if not hosted_image:
-            hosted_image = is_hosted
 
         is_file = os.path.isfile(image_path) or is_hosted
         is_dir = os.path.isdir(image_path)
@@ -271,10 +275,7 @@ class Project:
             )
 
         if is_file:
-            if is_hosted:
-                is_image = True
-            else:
-                is_image = self.check_valid_image(image_path) or is_hosted
+            is_image = self.check_valid_image(image_path, is_hosted=is_hosted)
 
             if not is_image:
                 raise RuntimeError(
@@ -286,7 +287,7 @@ class Project:
             self.single_upload(
                 image_path=image_path,
                 annotation_path=annotation_path,
-                hosted_image=hosted_image,
+                is_hosted=is_hosted,
                 image_id=image_id,
                 split=split,
                 num_retry_uploads=num_retry_uploads,
@@ -299,7 +300,7 @@ class Project:
                     self.single_upload(
                         image_path=path,
                         annotation_path=annotation_path,
-                        hosted_image=hosted_image,
+                        is_hosted=is_hosted,
                         image_id=image_id,
                         split=split,
                         num_retry_uploads=num_retry_uploads,
@@ -313,7 +314,7 @@ class Project:
         self,
         image_path=None,
         annotation_path=None,
-        hosted_image=False,
+        is_hosted=False,
         image_id=None,
         split="train",
         num_retry_uploads=0,
@@ -325,7 +326,7 @@ class Project:
         if image_path is not None:
             # Upload Image Response
             response = self.__image_upload(
-                image_path, hosted_image=hosted_image, split=split
+                image_path, is_hosted=is_hosted, split=split
             )
             # Get JSON response values
             try:
@@ -361,7 +362,7 @@ class Project:
                     self.single_upload(
                         image_path=image_path,
                         annotation_path=annotation_path,
-                        hosted_image=hosted_image,
+                        is_hosted=is_hosted,
                         image_id=image_id,
                         split=split,
                         num_retry_uploads=num_retry_uploads - 1,
