@@ -5,10 +5,10 @@ class TestProject(RoboflowTest):
 
     def test_check_valid_image_with_accepted_formats(self):
         images_to_test = [
-          'rabbit.JPG',
-          'rabbit2.jpg',
-          'hand-rabbit.PNG',
-          'woodland-rabbit.png',
+            'rabbit.JPG',
+            'rabbit2.jpg',
+            'hand-rabbit.PNG',
+            'woodland-rabbit.png',
         ]
 
         for image in images_to_test:
@@ -16,8 +16,8 @@ class TestProject(RoboflowTest):
 
     def test_check_valid_image_with_unaccepted_formats(self):
         images_to_test = [
-          'sky-rabbit.gif',
-          'sky-rabbit.heic',
+            'sky-rabbit.gif',
+            'sky-rabbit.heic',
         ]
 
         for image in images_to_test:
