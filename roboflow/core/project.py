@@ -235,7 +235,7 @@ class Project:
             except UnidentifiedImageError:
                 return False
         else:
-            #for hosted images check to see if the extension is in our list of valid extensions
+            # for hosted images check to see if the extension is in our list of valid extensions
             if any(ext in image_path for ext in ACCEPTED_IMAGE_EXTENSIONS):
                 valid = True
             else:
@@ -325,9 +325,7 @@ class Project:
         # User gives image path
         if image_path is not None:
             # Upload Image Response
-            response = self.__image_upload(
-                image_path, is_hosted=is_hosted, split=split
-            )
+            response = self.__image_upload(image_path, is_hosted=is_hosted, split=split)
             # Get JSON response values
             try:
                 if "duplicate" in response.json().keys():
