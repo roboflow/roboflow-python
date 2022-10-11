@@ -22,3 +22,5 @@ TYPE_CLASSICATION = "classification"
 TYPE_OBJECT_DETECTION = "object-detection"
 TYPE_INSTANCE_SEGMENTATION = "instance-segmentation"
 TYPE_SEMANTIC_SEGMENTATION = "semantic-segmentation"
+
+DEFAULT_BATCH_NAME = "Pip Package Upload"

@@ -145,13 +145,7 @@ pip3 install -e ".[dev]"
 
 ### Testing
 
-You need to have the following `env` variables defined. If using docker along with the `.env` file, these will be automatically defined.
-
-```
-ROBOFLOW_API_KEY="<YOUR_ROBOFLOW_PRIVATE_API_KEY>"
-PROJECT_NAME="<YOUR_PROJECT_NAME>"
-PROJECT_VERSION="1"
-```
+Make sure you have your `virtualenv` spun up before running tests. Execute the `unittest` command at the `/root` level directory.
 
 Run tests:
 
@@ -162,7 +156,7 @@ python -m unittest
 ### Contributing
 
 1. Increment the pip package minor version number in `setup.py`
-1. Manually add any new dependencies to `requirements.txt` and list of dependencies in `setup.py` (Be careful not to overwrite any packages that might screw up backwards dependencies for object detection, etc.)
+1. Manually add any new dependencies to `requirements.txt` with a version such as `chardet==4.0.0` and list of dependencies in `setup.py` (Be careful not to overwrite any packages that might screw up backwards dependencies for object detection, etc.)
 
 ### Code Quality
 
