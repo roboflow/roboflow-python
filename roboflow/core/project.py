@@ -10,7 +10,7 @@ import requests
 from PIL import Image, UnidentifiedImageError
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
-from roboflow.config import API_URL, DEMO_KEYS
+from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEMO_KEYS
 from roboflow.core.version import Version
 
 ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
@@ -140,7 +140,7 @@ class Project:
         image_path,
         hosted_image=False,
         split="train",
-        batch_name="Pip Package Upload",
+        batch_name=DEFAULT_BATCH_NAME,
     ):
         """function to upload image to the specific project
         :param image_path: path to image you'd like to upload.
@@ -153,7 +153,7 @@ class Project:
             batch_name = (
                 batch_name
                 if batch_name and isinstance(batch_name, str)
-                else "Pip Package Upload"
+                else DEFAULT_BATCH_NAME
             )
 
             project_name = self.id.rsplit("/")[1]
@@ -258,7 +258,7 @@ class Project:
         image_id=None,
         split="train",
         num_retry_uploads=0,
-        batch_name="Pip Package Upload",
+        batch_name=DEFAULT_BATCH_NAME,
     ):
 
         """upload function
@@ -329,7 +329,7 @@ class Project:
         image_id=None,
         split="train",
         num_retry_uploads=0,
-        batch_name="Pip Package Upload",
+        batch_name=DEFAULT_BATCH_NAME,
     ):
 
         success = False
