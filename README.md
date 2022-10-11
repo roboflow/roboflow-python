@@ -61,7 +61,7 @@ project.versions()
 project.upload("UPLOAD_IMAGE.jpg")
 
 # Retrieve the model of a specific project
-project.version("1").model
+model = project.version("1").model
 
 # predict on a local image
 prediction = model.predict("YOUR_IMAGE.jpg")
@@ -99,25 +99,33 @@ git clone git@github.com:roboflow-ai/roboflow-python.git && cd roboflow-python
 
 # Copy the environment variables template
 # Be sure to update the values with your account's information
-cp .env-example .env
 
-# Build and run a new docker container image
-docker run -it -v $(pwd):/roboflow --name roboflow python:3.8.14-slim /bin/bash
+# Build our development image
+docker build -t roboflow-python -f Dockerfile.dev .
 
-# Install Dependencies
-cd roboflow/ && pip install -e ".[dev]"
+# Run container and map current folder in it
+docker run --rm -it \
+  -v $(pwd)/:/workspace/ \
+  --env-file .env \
+  roboflow-python 
 
 # Run tests
 python -m unittest
 ```
 
-Running the Docker container after initial build:
+#### Change Python version
 
-```bash
-docker start roboflow
-docker exec -it roboflow /bin/bash
-cd roboflow/ && python -m unittest
+You can pass the build arg `PYTHON_VERSION` to dynamically change python version at build time
+
 ```
+docker build  -t roboflow-python --build-arg PYTHON_VERSION=3.9 -f Dockerfile.dev .
+```
+
+Will use `python:3.9-slim`
+
+**Note** If you are using [VSCode](https://code.visualstudio.com/) we reccomend to read the ["Developing inside a Container"](https://code.visualstudio.com/docs/remote/containers) tutorial.
+
+
 
 ### Using Virtualenv
 

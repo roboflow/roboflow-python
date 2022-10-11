@@ -1,8 +1,10 @@
 name: Test WorkFlow
 
 on:
+  push:
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   build:
