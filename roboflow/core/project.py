@@ -135,7 +135,13 @@ class Project:
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
 
-    def __image_upload(self, image_path, hosted_image=False, split="train", batch_name="Pip Package Upload"):
+    def __image_upload(
+        self,
+        image_path,
+        hosted_image=False,
+        split="train",
+        batch_name="Pip Package Upload",
+    ):
         """function to upload image to the specific project
         :param image_path: path to image you'd like to upload.
         :param hosted_image: if the image is hosted online, then this should be modified
@@ -144,7 +150,11 @@ class Project:
 
         # If image is not a hosted image
         if not hosted_image:
-            batch_name = batch_name if batch_name and isinstance(batch_name, str) else "Pip Package Upload"
+            batch_name = (
+                batch_name
+                if batch_name and isinstance(batch_name, str)
+                else "Pip Package Upload"
+            )
 
             project_name = self.id.rsplit("/")[1]
             image_name = os.path.basename(image_path)
@@ -158,7 +168,7 @@ class Project:
                     "?api_key=",
                     self.__api_key,
                     "&batch=",
-                    batch_name
+                    batch_name,
                 ]
             )
 
@@ -248,7 +258,7 @@ class Project:
         image_id=None,
         split="train",
         num_retry_uploads=0,
-        batch_name="Pip Package Upload"
+        batch_name="Pip Package Upload",
     ):
 
         """upload function
@@ -290,7 +300,7 @@ class Project:
                 image_id=image_id,
                 split=split,
                 num_retry_uploads=num_retry_uploads,
-                batch_name=batch_name
+                batch_name=batch_name,
             )
         else:
             images = os.listdir(image_path)
@@ -304,7 +314,7 @@ class Project:
                         image_id=image_id,
                         split=split,
                         num_retry_uploads=num_retry_uploads,
-                        batch_name=batch_name
+                        batch_name=batch_name,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
@@ -319,7 +329,7 @@ class Project:
         image_id=None,
         split="train",
         num_retry_uploads=0,
-        batch_name="Pip Package Upload"
+        batch_name="Pip Package Upload",
     ):
 
         success = False
@@ -328,7 +338,10 @@ class Project:
         if image_path is not None:
             # Upload Image Response
             response = self.__image_upload(
-                image_path, hosted_image=hosted_image, split=split, batch_name=batch_name
+                image_path,
+                hosted_image=hosted_image,
+                split=split,
+                batch_name=batch_name,
             )
             # Get JSON response values
             try:
