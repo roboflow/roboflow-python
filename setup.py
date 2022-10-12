@@ -20,7 +20,7 @@ setuptools.setup(
         "cycler==0.10.0",
         "glob2",
         "idna==2.10",
-        "kiwisolver==1.3.1",
+        "kiwisolver>=1.3.1",
         "matplotlib",
         "numpy>=1.18.5",
         "opencv-python-headless>=4.5.1.48",
