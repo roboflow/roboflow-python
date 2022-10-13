@@ -75,7 +75,7 @@ class Workspace:
 
         return Project(self.__api_key, dataset_info, self.model_format)
 
-    def clip_compare(self, dir="", image_ext=".png", target_image=""):
+def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> Dict[str, float]:
         """
         @params:
             dir: (str) = name reference to a directory of images for comparison
