@@ -1,6 +1,7 @@
 import glob
 import json
 import sys
+from PIL import Image
 
 import requests
 
@@ -75,7 +76,9 @@ class Workspace:
 
         return Project(self.__api_key, dataset_info, self.model_format)
 
-def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> Dict[str, float]:
+    def clip_compare(
+        self, dir: str = "", image_ext: str = ".png", target_image: str = ""
+    ) -> dict[str, float]:
         """
         @params:
             dir: (str) = name reference to a directory of images for comparison
@@ -85,10 +88,6 @@ def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str
             returns: (dict) = a key:value mapping of image_name:comparison_score_to_target
         """
 
-        assert isinstance(dir, str), "valid directory string required!"
-        assert isinstance(image_ext, str), "valid image ext string required!"
-        assert isinstance(target_image, str), "valid target image string required!"
-
         # list to store comparison results in
         comparisons = []
         # grab all images in a given directory with ext type
@@ -97,7 +96,7 @@ def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str
             similarity = clip_encode(image, target_image)
             # map image name to similarity score
             comparisons.append({image: similarity})
-comparisons = sorted(comparisons, key=lambda item: -list(item.values())[0])
+            comparisons = sorted(comparisons, key=lambda item: -list(item.values())[0])
         return comparisons
 
     def active_learning(

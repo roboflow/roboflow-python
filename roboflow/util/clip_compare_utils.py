@@ -10,7 +10,7 @@ from roboflow.config import CLIP_FEATURIZE_URL
 
 
 def base64_encode(image_path):
-""" `rf.predict` requires images formatted and base64 encoded
+    """`rf.predict` requires images formatted and base64 encoded
     @params:
         iamge_path: (str) = name reference to a given image for encoding
 
@@ -26,10 +26,8 @@ def base64_encode(image_path):
 
 
 def clip_encode(image1: str, image2: str) -> float:
-    """
-""" This function base64 encodes two images and send them to the clip endpoint for further encoding and comparison
-
-@params 
+    """This function base64 encodes two images and send them to the clip endpoint for further encoding and comparison
+    @params
 
         image1: (str) = name referenceto a given image for encoding
         image2: (str) = name referenceto a given image for encoding
@@ -38,7 +36,6 @@ def clip_encode(image1: str, image2: str) -> float:
     """
     image1 = base64_encode(image1)
     image2 = base64_encode(image2)
-
 
     headers = {"Content-Type": "text/plain"}
     data = json.dumps({"image1": image1, "image2": image2})
