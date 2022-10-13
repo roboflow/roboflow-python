@@ -25,7 +25,7 @@ def base64_encode(image_path):
     return img_str.decode("ascii")
 
 
-def clip_encode(image1, image2):
+def clip_encode(image1: str, image2: str) -> float:
     """
     @params:
         image1: (str) = name referenceto a given image for encoding
