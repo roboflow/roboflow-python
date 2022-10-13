@@ -3,8 +3,8 @@ import io
 import json
 import os
 import urllib
-import cv2
 
+import cv2
 import requests
 from PIL import Image
 
@@ -133,7 +133,7 @@ class ObjectDetectionModel:
             stroke=stroke,
             labels=labels,
         )
-        
+
         # Check if image exists at specified path or URL or is an array
         if hasattr(image_path, "__len__") == True:
             pass
@@ -142,7 +142,7 @@ class ObjectDetectionModel:
 
         # If image is local image
         if not hosted:
-            if ".jpg" in image_path or ".png" in image_path: # Open Image in RGB Format
+            if ".jpg" in image_path or ".png" in image_path:  # Open Image in RGB Format
                 image = Image.open(image_path).convert("RGB")
 
                 # Create buffer
@@ -160,7 +160,7 @@ class ObjectDetectionModel:
                 )
             else:
                 # Performing inference on a OpenCV2 frame
-                retval, buffer = cv2.imencode('.jpg', image_path)
+                retval, buffer = cv2.imencode(".jpg", image_path)
                 img_str = base64.b64encode(buffer)
                 # print(img_str)
                 img_str = img_str.decode("ascii")
@@ -192,7 +192,9 @@ class ObjectDetectionModel:
     def __exception_check(self, image_path_check=None):
         # Check if Image path exists exception check (for both hosted URL and local image)
         if image_path_check is not None:
-            if not os.path.exists(image_path_check) and not check_image_url(image_path_check):
+            if not os.path.exists(image_path_check) and not check_image_url(
+                image_path_check
+            ):
                 raise Exception("Image does not exist at " + image_path_check + "!")
 
     def __generate_url(
