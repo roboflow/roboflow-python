@@ -91,7 +91,6 @@ def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str
 
         # list to store comparison results in
         comparisons = []
-
         # grab all images in a given directory with ext type
         for image in glob.glob(f"./{dir}/*{image_ext}"):
             # compare image
