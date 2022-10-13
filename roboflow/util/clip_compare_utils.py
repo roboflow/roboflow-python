@@ -10,7 +10,7 @@ from roboflow.config import CLIP_FEATURIZE_URL
 
 
 def base64_encode(image_path):
-    """
+""" `rf.predict` requires images formatted and base64 encoded
     @params:
         iamge_path: (str) = name reference to a given image for encoding
 
