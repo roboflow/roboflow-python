@@ -43,6 +43,6 @@ def clip_encode(image1: str, image2: str) -> float:
     headers = {"Content-Type": "text/plain"}
     data = json.dumps({"image1": image1, "image2": image2})
 
-    r = requests.post(url, data=data, headers=headers)
+    r = requests.post(CLIP_FEATURIZE_URL, data=data, headers=headers)
 
     return float(r.json()["similarity"])
