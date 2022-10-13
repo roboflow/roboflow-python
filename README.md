@@ -158,6 +158,21 @@ python -m unittest
 
 ### Code Quality
 
+When creating new functions, please follow the [Google style Python docstrings](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html). See example below:
+```
+def example_function(param1: int, param2: str) -> bool:
+    """Example function that does something.
+
+    Args:
+        param1: The first parameter.
+        param2: The second parameter.
+
+    Returns:
+        The return value. True for success, False otherwise.
+
+    """
+```
+
 We provide a `Makefile` to format and ensure code quality. **Be sure to run them before creating a PR**.
 
 ```
