@@ -39,7 +39,6 @@ def clip_encode(image1: str, image2: str) -> float:
     image1 = base64_encode(image1)
     image2 = base64_encode(image2)
 
-    url = CLIP_FEATURIZE_URL
 
     headers = {"Content-Type": "text/plain"}
     data = json.dumps({"image1": image1, "image2": image2})
