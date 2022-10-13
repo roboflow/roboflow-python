@@ -9,7 +9,6 @@ from PIL import Image
 from roboflow.config import CLIP_FEATURIZE_URL
 
 
-# rf.predict requires images formatted and base64 encoded
 def base64_encode(image_path):
     """
     @params:
