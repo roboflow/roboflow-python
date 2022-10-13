@@ -95,7 +95,6 @@ def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str
         for image in glob.glob(f"./{dir}/*{image_ext}"):
             # compare image
             similarity = clip_encode(image, target_image)
-
             # map image name to similarity score
             comparisons.append({image: similarity})
 
