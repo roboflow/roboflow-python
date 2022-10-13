@@ -27,7 +27,10 @@ def base64_encode(image_path):
 
 def clip_encode(image1: str, image2: str) -> float:
     """
-    @params:
+""" This function base64 encodes two images and send them to the clip endpoint for further encoding and comparison
+
+@params 
+
         image1: (str) = name referenceto a given image for encoding
         image2: (str) = name referenceto a given image for encoding
 
