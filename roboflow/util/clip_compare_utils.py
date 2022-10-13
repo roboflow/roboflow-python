@@ -25,7 +25,6 @@ def base64_encode(image_path):
     return img_str.decode("ascii")
 
 
-# base64 encode two images and send them to the clip endpoint for further encoding and comparison
 def clip_encode(image1, image2):
     """
     @params:
