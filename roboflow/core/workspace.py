@@ -78,7 +78,7 @@ class Workspace:
 
     def clip_compare(
         self, dir: str = "", image_ext: str = ".png", target_image: str = ""
-    ) -> dict[str, float]:
+    ) -> dict:
         """
         @params:
             dir: (str) = name reference to a directory of images for comparison
