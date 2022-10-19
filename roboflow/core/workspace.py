@@ -3,6 +3,7 @@ import json
 import sys
 
 import requests
+from PIL import Image
 
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
@@ -11,6 +12,7 @@ from roboflow.util.active_learning_utils import (
     clip_encode,
     count_comparisons,
 )
+from roboflow.util.clip_compare_utils import clip_encode
 
 
 class Workspace:
@@ -73,6 +75,29 @@ class Workspace:
         dataset_info = dataset_info.json()["project"]
 
         return Project(self.__api_key, dataset_info, self.model_format)
+
+    def clip_compare(
+        self, dir: str = "", image_ext: str = ".png", target_image: str = ""
+    ) -> dict:
+        """
+        @params:
+            dir: (str) = name reference to a directory of images for comparison
+            image_ext: (str) = file format for expected images (don't include the . before the file type name)
+            target_image: (str) = name reference for target image to compare individual images from directory against
+
+            returns: (dict) = a key:value mapping of image_name:comparison_score_to_target
+        """
+
+        # list to store comparison results in
+        comparisons = []
+        # grab all images in a given directory with ext type
+        for image in glob.glob(f"./{dir}/*{image_ext}"):
+            # compare image
+            similarity = clip_encode(image, target_image)
+            # map image name to similarity score
+            comparisons.append({image: similarity})
+            comparisons = sorted(comparisons, key=lambda item: -list(item.values())[0])
+        return comparisons
 
     def active_learning(
         self,
