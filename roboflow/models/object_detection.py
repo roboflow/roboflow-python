@@ -147,7 +147,7 @@ class ObjectDetectionModel:
 
                 # Create buffer
                 buffered = io.BytesIO()
-                image.save(buffered, quality=90, format="JPEG")
+                image.save(buffered, format="PNG")
                 # Base64 encode image
                 img_str = base64.b64encode(buffered.getvalue())
                 img_str = img_str.decode("ascii")
