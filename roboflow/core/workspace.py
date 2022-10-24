@@ -4,15 +4,10 @@ import os
 import sys
 
 import requests
-from PIL import Image
 
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
-from roboflow.util.active_learning_utils import (
-    check_box_size,
-    clip_encode,
-    count_comparisons,
-)
+from roboflow.util.active_learning_utils import check_box_size, count_comparisons
 from roboflow.util.clip_compare_utils import clip_encode
 from roboflow.util.two_stage_utils import ocr_infer
 

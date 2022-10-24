@@ -41,7 +41,6 @@ class TestDownload(unittest.TestCase):
 
 
 class TestExport(unittest.TestCase):
-
     def setUp(self):
         super(TestExport, self).setUp()
         self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/test-format"
@@ -50,7 +49,7 @@ class TestExport(unittest.TestCase):
     @responses.activate
     def test_export_returns_true_on_api_success(self):
         responses.add(responses.POST, self.api_url, status=204)
-        
+
         export = self.version.export("test-format")
         request = responses.calls[0].request
 
@@ -62,16 +61,51 @@ class TestExport(unittest.TestCase):
     @responses.activate
     def test_export_raises_error_on_bad_request(self):
         responses.add(responses.POST, self.api_url, status=400, json={ "error": "BROKEN!!"})
-        
+
         with self.assertRaises(RuntimeError):
             self.version.export("test-format")
 
     @responses.activate
     def test_export_raises_error_on_api_failure(self):
         responses.add(responses.POST, self.api_url, status=500)
-        
+
         with self.assertRaises(requests.exceptions.HTTPError):
             self.version.export("test-format")
+
+
+class TestTrain(unittest.TestCase):
+    def setUp(self):
+        super(TestTrain, self).setUp()
+        self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/test-format/train"
+        self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="4")
+
+    @responses.activate
+    def test_train_returns_true_on_api_success(self):
+        responses.add(responses.POST, self.api_url, status=204)  # FIXME: this _may_ return data?
+
+        train = self.version.train("test-format")
+        request = responses.calls[0].request
+
+        self.assertTrue(train)
+        self.assertEqual(request.method, "POST")
+        self.assertRegex(request.url, rf"^{self.api_url}")
+        self.assertDictEqual(request.params, { "api_key": "test-api-key" })
+
+    # TODO: test sending request body, like fast vs accurate
+
+    @responses.activate
+    def test_train_raises_error_on_bad_request(self):
+        responses.add(responses.POST, self.api_url, status=400, json={ "error": "BROKEN!!"})
+
+        with self.assertRaises(RuntimeError):
+            self.version.train("test-format")
+
+    @responses.activate
+    def test_train_raises_error_on_api_failure(self):
+        responses.add(responses.POST, self.api_url, status=500)
+
+        with self.assertRaises(requests.exceptions.HTTPError):
+            self.version.train("test-format")
 
 
 @patch.object(os, "makedirs")

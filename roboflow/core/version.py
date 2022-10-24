@@ -92,10 +92,16 @@ class Version:
         """
         Download and extract a ZIP of a version's dataset in a given format
 
-        :param model_format: A format to use for downloading
-        :param location: An optional path for saving the file
+        Args:
+            model_format: A format to use for downloading
+            location: An optional path for saving the file
 
-        :return: Dataset
+        Returns:
+            Dataset
+
+        Raises:
+            RuntimeError: If the Roboflow API returns an error with a helpful JSON body
+            HTTPError: If the Network/Roboflow API fails and does not return JSON
         """
         if location is None:
             location = self.__get_download_location()
@@ -121,18 +127,48 @@ class Version:
 
         return Dataset(self.name, self.version, model_format, os.path.abspath(location))
 
-    def export(self, model_format=None):
+    def export(self, model_format: str) -> bool:
         """
         Ask the Roboflow API to generate a version's dataset in a given format so that it can be downloaded via the `download()` method.
         The export will be asynchronously generated and available for download after some amount of seconds - depending on dataset size.
 
-        :param model_format: A format to use for downloading
+        Args:
+            model_format: A format to use for downloading
 
-        :return: True
-        :raises RuntimeError / HTTPError:
+        Returns:
+            True
+
+        Raises:
+            RuntimeError: If the Roboflow API returns an error with a helpful JSON body
+            HTTPError: If the Network/Roboflow API fails and does not return JSON
         """
         url = self.__get_download_url(model_format)
         response = requests.post(url, params={"api_key": self.__api_key})
+        if not response.ok:
+            try:
+                raise RuntimeError(response.json())
+            except requests.exceptions.JSONDecodeError:
+                response.raise_for_status()
+
+        return True
+
+    def train(self, model_format: str) -> bool:
+        """
+        Ask the Roboflow API to train a previously exported version's dataset in a given format.
+
+        Args:
+            model_format: A format to use for downloading
+
+        Returns:
+            True
+
+        Raises:
+            RuntimeError: If the Roboflow API returns an error with a helpful JSON body
+            HTTPError: If the Network/Roboflow API fails and does not return JSON
+        """
+        download_url = self.__get_download_url(model_format)
+        train_url = f"{download_url}/train"
+        response = requests.post(train_url, params={"api_key": self.__api_key})
         if not response.ok:
             try:
                 raise RuntimeError(response.json())
@@ -145,11 +181,13 @@ class Version:
         """
         Download a dataset's zip file from the given URL and save it in the desired location
 
-        :param location: link the URL of the remote zip file
-        :param location: filepath of the data directory to save the zip file to
-        :param format: the format identifier string
+        Args:
+            link: the URL of the remote zip file
+            location: filepath of the data directory to save the zip file to
+            format: the format identifier string
 
-        :return None:
+        Returns:
+            None
         """
         if not os.path.exists(location):
             os.makedirs(location)
@@ -173,11 +211,15 @@ class Version:
         """
         This simply extracts the contents of a downloaded zip file and then deletes the zip
 
-        :param location: filepath of the data directory that contains the zip file
-        :param format: the format identifier string
+        Args:
+            location: filepath of the data directory that contains the zip file
+            format: the format identifier string
 
-        :return None:
-        :raises RuntimeError:
+        Returns:
+            None
+
+        Raises:
+            RuntimeError: If there's an issue extracting the zip file
         """
         with zipfile.ZipFile(location + "/roboflow.zip", "r") as zip_ref:
             for member in tqdm(
@@ -195,7 +237,8 @@ class Version:
         """
         Get the local path to save a downloaded dataset to
 
-        :return local path string:
+        Returns:
+            local path string
         """
         version_slug = self.name.replace(" ", "-")
         filename = f"{version_slug}-{self.version}"
@@ -210,9 +253,11 @@ class Version:
         """
         Get the Roboflow API URL for downloading (and exporting downloadable zips)
 
-        :param format: the format identifier string
+        Args:
+            format: the format identifier string
 
-        :return Roboflow API URL string:
+        Returns:
+            Roboflow API URL string
         """
         workspace, project, *_ = self.id.rsplit("/")
         return f"{API_URL}/{workspace}/{project}/{self.version}/{format}"
@@ -223,9 +268,14 @@ class Version:
         If a human readable format name was passed, return the identifier that should be used for Roboflow API calls
         Otherwise, assume that the passed in format is also the identifier
 
-        :param format: a human readable format string
+        Args:
+            format: a human readable format string
 
-        :return: format identifier string
+        Returns:
+            format identifier string
+
+        Raises:
+            RuntimeError: If a format was not provided
         """
         if not format:
             format = self.model_format
@@ -246,10 +296,12 @@ class Version:
         Certain formats seem to require reformatting the downloaded YAML.
         It'd be nice if the API did this, but we're doing it in python for now.
 
-        :param location: filepath of the data directory that contains the yaml file
-        :param format: the format identifier string
+        Args:
+            location: filepath of the data directory that contains the yaml file
+            format: the format identifier string
 
-        :return None:
+        Returns:
+            None
         """
         if format in ["yolov5pytorch", "yolov7pytorch"]:
             with open(location + "/data.yaml") as file:
