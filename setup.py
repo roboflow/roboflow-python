@@ -38,7 +38,7 @@ setuptools.setup(
     ],
     packages=find_packages(exclude=("tests",)),
     extras_require={
-        "dev": ["flake8", "black==22.3.0", "isort", "responses","twine"],
+        "dev": ["flake8", "black==22.3.0", "isort", "responses","twine", "wheel"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
