@@ -4,6 +4,7 @@ import json
 import os
 import urllib
 
+import cv2
 import requests
 from PIL import Image
 
@@ -118,7 +119,7 @@ class ObjectDetectionModel:
         """
         Infers detections based on image from specified model and image path
 
-        :param image_path: Path to image (can be local or hosted)
+        :param image_path: Path to image or image array (can be local or hosted)
         :param hosted: If image located on a hosted server, hosted should be True
         :param format: output format from this method
         :return: PredictionGroup --> a group of predictions based on Roboflow JSON response
@@ -132,27 +133,42 @@ class ObjectDetectionModel:
             stroke=stroke,
             labels=labels,
         )
-        # Check if image exists at specified path or URL
-        self.__exception_check(image_path_check=image_path)
+
+        # Check if image exists at specified path or URL or is an array
+        if hasattr(image_path, "__len__") == True:
+            pass
+        else:
+            self.__exception_check(image_path_check=image_path)
 
         # If image is local image
         if not hosted:
-            # Open Image in RGB Format
-            image = Image.open(image_path).convert("RGB")
+            if ".jpg" in image_path or ".png" in image_path:  # Open Image in RGB Format
+                image = Image.open(image_path).convert("RGB")
 
-            # Create buffer
-            buffered = io.BytesIO()
-            image.save(buffered, quality=90, format="JPEG")
-            # Base64 encode image
-            img_str = base64.b64encode(buffered.getvalue())
-            img_str = img_str.decode("ascii")
+                # Create buffer
+                buffered = io.BytesIO()
+                image.save(buffered, format="PNG")
+                # Base64 encode image
+                img_str = base64.b64encode(buffered.getvalue())
+                img_str = img_str.decode("ascii")
 
-            # Post to API and return response
-            resp = requests.post(
-                self.api_url,
-                data=img_str,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-            )
+                # Post to API and return response
+                resp = requests.post(
+                    self.api_url,
+                    data=img_str,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+            else:
+                # Performing inference on a OpenCV2 frame
+                retval, buffer = cv2.imencode(".jpg", image_path)
+                img_str = base64.b64encode(buffer)
+                # print(img_str)
+                img_str = img_str.decode("ascii")
+                resp = requests.post(
+                    self.api_url,
+                    data=img_str,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
 
         else:
             # Create API URL for hosted image (slightly different)
