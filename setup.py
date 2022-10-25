@@ -1,13 +1,19 @@
 import setuptools
 from setuptools import find_packages
+import re
+
+with open("./src/__init__.py", 'r') as f:
+    content = f.read()
+    # from https://www.py4u.net/discuss/139845
+    version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content).group(1)
+    
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-
 setuptools.setup(
-    name="roboflow",  # Replace with your own username
-    version="0.2.17",
+    name="roboflow",
+    version=version,
     author="Roboflow",
     author_email="jacob@roboflow.com",
     description="python client for the Roboflow application",
