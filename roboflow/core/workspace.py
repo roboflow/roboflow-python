@@ -14,7 +14,7 @@ from roboflow.util.active_learning_utils import (
     count_comparisons,
 )
 from roboflow.util.clip_compare_utils import clip_encode
-
+from roboflow.util.two_stage_utils import ocr_infer
 
 class Workspace:
     def __init__(self, info, api_key, default_workspace, model_format):
@@ -156,6 +156,55 @@ class Workspace:
 
             # capture results of second stage inference from cropped image
             results.append(stage_two_model.predict("./temp.png")[0])
+
+        return results
+
+    def two_stage_ocr(
+        self,
+        image: str = "",
+        first_stage_model_name: str = "",
+        first_stage_model_version: int = 0,
+    ) -> dict:
+        """for each prediction in the first stage detection, perform detection with the second stage model
+        @params:
+            image: (str) = name of the image to be processed
+            first_stage_model: (str) = URL path to the first stage detection model
+            first_stage_model_version: (int) = version number for the first stage model
+
+            returns: (dict) = a json obj containing
+        """
+        results = []
+
+        # create PIL image for cropping
+        pil_image = Image.open(image).convert("RGB")
+
+        # grab first and second stage model from project
+        stage_one_model = (
+            self.project(first_stage_model_name)
+            .version(first_stage_model_version)
+            .model
+        )
+
+        # perform first inference
+        predictions = stage_one_model.predict(image)
+
+        # interact with each detected object from stage one inference results
+        for boundingbox in predictions:
+            # rip bounding box coordinates from json1
+            # note: infer returns center points of box as (x,y) and width, height
+            # ----- but pillow crop requires the top left and bottom right points to crop
+            box = (
+                boundingbox["x"] - boundingbox["width"] / 2,
+                boundingbox["y"] - boundingbox["height"] / 2,
+                boundingbox["x"] + boundingbox["width"] / 2,
+                boundingbox["y"] + boundingbox["height"] / 2,
+            )
+
+            # create a new cropped image using the first stage prediction coordinates (for each box!)
+            croppedImg = pil_image.crop(box)
+
+            # capture OCR results from cropped image
+            results.append(ocr_infer(croppedImg)['results'])
 
         return results
 

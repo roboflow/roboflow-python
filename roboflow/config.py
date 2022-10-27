@@ -16,6 +16,8 @@ SEMANTIC_SEGMENTATION_URL = os.getenv(
 )
 
 CLIP_FEATURIZE_URL = os.getenv("CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV")
+OCR_URL = os.getenv("OCR_URL", "OCR URL NOT IN ENV")
+
 DEMO_KEYS = ["coco-128-sample", "chess-sample-only-api-key"]
 
 TYPE_CLASSICATION = "classification"
