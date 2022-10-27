@@ -2,7 +2,6 @@ import glob
 import json
 import sys
 
-import numpy
 import requests
 from PIL import Image
 
@@ -15,6 +14,7 @@ from roboflow.util.active_learning_utils import (
 )
 from roboflow.util.clip_compare_utils import clip_encode
 from roboflow.util.two_stage_utils import ocr_infer
+
 
 class Workspace:
     def __init__(self, info, api_key, default_workspace, model_format):
@@ -165,7 +165,7 @@ class Workspace:
         first_stage_model_name: str = "",
         first_stage_model_version: int = 0,
     ) -> dict:
-        """for each prediction in the first stage detection, perform detection with the second stage model
+        """for each prediction in the first stage object detection, perform OCR as second stage
         @params:
             image: (str) = name of the image to be processed
             first_stage_model: (str) = URL path to the first stage detection model
@@ -204,7 +204,7 @@ class Workspace:
             croppedImg = pil_image.crop(box)
 
             # capture OCR results from cropped image
-            results.append(ocr_infer(croppedImg)['results'])
+            results.append(ocr_infer(croppedImg)["results"])
 
         return results
 

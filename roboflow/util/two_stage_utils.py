@@ -1,7 +1,10 @@
-import io, base64
+import base64
+import io
+
 import requests
 
 from roboflow.config import OCR_URL
+
 
 def ocr_infer(image):
 
@@ -14,14 +17,14 @@ def ocr_infer(image):
     img_str = img_str.decode("ascii")
 
     # Construct the URL
-    upload_url = "".join([
-        OCR_URL
-    ])
+    upload_url = "".join([OCR_URL])
 
     # POST to the API
-    r = requests.post(upload_url, data=img_str, headers={
-        "Content-Type": "application/x-www-form-urlencoded"
-    })
+    r = requests.post(
+        upload_url,
+        data=img_str,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
 
     # Output result
-    return(r.json())
+    return r.json()
