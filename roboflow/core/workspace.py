@@ -115,7 +115,6 @@ class Workspace:
             first_stage_model_version: (int) = version number for the first stage model
             second_stage_mode: (str) = URL path to the second stage detection model
             second_stage_model_version: (int) = version number for the second stage model
-
             returns: (dict) = a json obj containing
         """
         results = []
@@ -124,38 +123,39 @@ class Workspace:
         pil_image = Image.open(image).convert("RGB")
 
         # grab first and second stage model from project
-        stage_one_model = (
-            self.project(first_stage_model_name)
-            .version(first_stage_model_version)
-            .model
-        )
-        stage_two_model = (
-            self.project(second_stage_model_name)
-            .version(second_stage_model_version)
-            .model
-        )
+        stage_one_project = self.project(first_stage_model_name)
+        stage_one_model = stage_one_project.version(first_stage_model_version).model
+        stage_two_project = self.project(second_stage_model_name)
+        stage_two_model = stage_two_project.version(second_stage_model_version).model
+
+        print(self.project(first_stage_model_name))
 
         # perform first inference
         predictions = stage_one_model.predict(image)
 
-        # interact with each detected object from stage one inference results
-        for boundingbox in predictions:
-            # rip bounding box coordinates from json1
-            # note: infer returns center points of box as (x,y) and width, height
-            # ----- but pillow crop requires the top left and bottom right points to crop
-            box = (
-                boundingbox["x"] - boundingbox["width"] / 2,
-                boundingbox["y"] - boundingbox["height"] / 2,
-                boundingbox["x"] + boundingbox["width"] / 2,
-                boundingbox["y"] + boundingbox["height"] / 2,
+        if stage_one_project.type == "object-detection":
+            # interact with each detected object from stage one inference results
+            for boundingbox in predictions:
+                # rip bounding box coordinates from json1
+                # note: infer returns center points of box as (x,y) and width, height
+                # ----- but pillow crop requires the top left and bottom right points to crop
+                box = (
+                    boundingbox["x"] - boundingbox["width"] / 2,
+                    boundingbox["y"] - boundingbox["height"] / 2,
+                    boundingbox["x"] + boundingbox["width"] / 2,
+                    boundingbox["y"] + boundingbox["height"] / 2,
+                )
+
+                # create a new cropped image using the first stage prediction coordinates (for each box!)
+                croppedImg = pil_image.crop(box)
+                croppedImg.save("./temp.png")
+
+                # capture results of second stage inference from cropped image
+                results.append(stage_two_model.predict("./temp.png")[0])
+        elif stage_one_project.type == "classification":
+            print(
+                "please use an object detection model--can only perform two stage with bounding box results"
             )
-
-            # create a new cropped image using the first stage prediction coordinates (for each box!)
-            croppedImg = pil_image.crop(box)
-            croppedImg.save("./temp.png")
-
-            # capture results of second stage inference from cropped image
-            results.append(stage_two_model.predict("./temp.png")[0])
 
         return results
 
@@ -179,32 +179,34 @@ class Workspace:
         pil_image = Image.open(image).convert("RGB")
 
         # grab first and second stage model from project
-        stage_one_model = (
-            self.project(first_stage_model_name)
-            .version(first_stage_model_version)
-            .model
-        )
+        stage_one_project = self.project(first_stage_model_name)
+        stage_one_model = stage_one_project.version(first_stage_model_version).model
 
         # perform first inference
         predictions = stage_one_model.predict(image)
 
         # interact with each detected object from stage one inference results
-        for boundingbox in predictions:
-            # rip bounding box coordinates from json1
-            # note: infer returns center points of box as (x,y) and width, height
-            # ----- but pillow crop requires the top left and bottom right points to crop
-            box = (
-                boundingbox["x"] - boundingbox["width"] / 2,
-                boundingbox["y"] - boundingbox["height"] / 2,
-                boundingbox["x"] + boundingbox["width"] / 2,
-                boundingbox["y"] + boundingbox["height"] / 2,
+        if stage_one_project.type == "object-detection":
+            for boundingbox in predictions:
+                # rip bounding box coordinates from json1
+                # note: infer returns center points of box as (x,y) and width, height
+                # ----- but pillow crop requires the top left and bottom right points to crop
+                box = (
+                    boundingbox["x"] - boundingbox["width"] / 2,
+                    boundingbox["y"] - boundingbox["height"] / 2,
+                    boundingbox["x"] + boundingbox["width"] / 2,
+                    boundingbox["y"] + boundingbox["height"] / 2,
+                )
+
+                # create a new cropped image using the first stage prediction coordinates (for each box!)
+                croppedImg = pil_image.crop(box)
+
+                # capture OCR results from cropped image
+                results.append(ocr_infer(croppedImg)["results"])
+        else:
+            print(
+                "please use an object detection model--can only perform two stage with bounding box results"
             )
-
-            # create a new cropped image using the first stage prediction coordinates (for each box!)
-            croppedImg = pil_image.crop(box)
-
-            # capture OCR results from cropped image
-            results.append(ocr_infer(croppedImg)["results"])
 
         return results
 
