@@ -1,8 +1,8 @@
 import glob
 import json
 import sys
-import numpy
 
+import numpy
 import requests
 from PIL import Image
 
@@ -108,7 +108,7 @@ class Workspace:
         second_stage_model_name: str = "",
         second_stage_model_version: int = 0,
     ) -> dict:
-        """ for each prediction in the first stage detection, perform detection with the second stage model
+        """for each prediction in the first stage detection, perform detection with the second stage model
         @params:
             image: (str) = name of the image to be processed
             first_stage_model: (str) = URL path to the first stage detection model
@@ -124,10 +124,18 @@ class Workspace:
         pil_image = Image.open(image).convert("RGB")
 
         # grab first and second stage model from project
-        stage_one_model = self.project(first_stage_model_name).version(first_stage_model_version).model
-        stage_two_model = self.project(second_stage_model_name).version(second_stage_model_version).model
+        stage_one_model = (
+            self.project(first_stage_model_name)
+            .version(first_stage_model_version)
+            .model
+        )
+        stage_two_model = (
+            self.project(second_stage_model_name)
+            .version(second_stage_model_version)
+            .model
+        )
 
-        # perform first inference        
+        # perform first inference
         predictions = stage_one_model.predict(image)
 
         # interact with each detected object from stage one inference results
@@ -135,17 +143,19 @@ class Workspace:
             # rip bounding box coordinates from json1
             # note: infer returns center points of box as (x,y) and width, height
             # ----- but pillow crop requires the top left and bottom right points to crop
-            box = (boundingbox['x'] - boundingbox['width'] / 2,
-                boundingbox['y'] - boundingbox['height'] / 2,
-                boundingbox['x'] + boundingbox['width'] / 2,
-                boundingbox['y'] + boundingbox['height'] / 2)
+            box = (
+                boundingbox["x"] - boundingbox["width"] / 2,
+                boundingbox["y"] - boundingbox["height"] / 2,
+                boundingbox["x"] + boundingbox["width"] / 2,
+                boundingbox["y"] + boundingbox["height"] / 2,
+            )
 
             # create a new cropped image using the first stage prediction coordinates (for each box!)
             croppedImg = pil_image.crop(box)
-            croppedImg.save('./temp.png')
+            croppedImg.save("./temp.png")
 
             # capture results of second stage inference from cropped image
-            results.append(stage_two_model.predict('./temp.png')[0])
+            results.append(stage_two_model.predict("./temp.png")[0])
 
         return results
 
