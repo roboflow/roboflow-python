@@ -1,7 +1,7 @@
 import glob
 import json
-import sys
 import os
+import sys
 
 import requests
 from PIL import Image
@@ -134,7 +134,10 @@ class Workspace:
         # perform first inference
         predictions = stage_one_model.predict(image)
 
-        if stage_one_project.type == "object-detection" and stage_two_project == "classification":
+        if (
+            stage_one_project.type == "object-detection"
+            and stage_two_project == "classification"
+        ):
             # interact with each detected object from stage one inference results
             for boundingbox in predictions:
                 # rip bounding box coordinates from json1
@@ -153,12 +156,12 @@ class Workspace:
 
                 # capture results of second stage inference from cropped image
                 results.append(stage_two_model.predict("./temp.png")[0])
-            
+
             # delete the written image artifact
             try:
                 os.remove("./temp.png")
             except FileNotFoundError:
-                print('no detections')
+                print("no detections")
 
         else:
             print(
