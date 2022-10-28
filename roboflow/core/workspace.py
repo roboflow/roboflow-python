@@ -134,7 +134,7 @@ class Workspace:
         # perform first inference
         predictions = stage_one_model.predict(image)
 
-        if stage_one_project.type == "object-detection":
+        if stage_one_project.type == "object-detection" and stage_two_project == "classification":
             # interact with each detected object from stage one inference results
             for boundingbox in predictions:
                 # rip bounding box coordinates from json1
@@ -162,7 +162,8 @@ class Workspace:
 
         else:
             print(
-                "please use an object detection model--can only perform two stage with bounding box results"
+                "please use an object detection model for the first stage--can only perform two stage with bounding box results",
+                "please use a classification model for the second stage",
             )
 
         return results
