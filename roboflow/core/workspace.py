@@ -1,6 +1,7 @@
 import glob
 import json
 import sys
+import os
 
 import requests
 from PIL import Image
@@ -152,7 +153,7 @@ class Workspace:
 
                 # capture results of second stage inference from cropped image
                 results.append(stage_two_model.predict("./temp.png")[0])
-        elif stage_one_project.type == "classification":
+        else:
             print(
                 "please use an object detection model--can only perform two stage with bounding box results"
             )
