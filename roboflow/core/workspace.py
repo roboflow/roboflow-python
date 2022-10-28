@@ -153,6 +153,13 @@ class Workspace:
 
                 # capture results of second stage inference from cropped image
                 results.append(stage_two_model.predict("./temp.png")[0])
+            
+            # delete the written image artifact
+            try:
+                os.remove("./temp.png")
+            except FileNotFoundError:
+                print('no detections')
+
         else:
             print(
                 "please use an object detection model--can only perform two stage with bounding box results"
