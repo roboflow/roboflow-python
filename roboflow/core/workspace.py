@@ -4,6 +4,7 @@ import os
 import sys
 
 import requests
+from PIL import Image
 
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project

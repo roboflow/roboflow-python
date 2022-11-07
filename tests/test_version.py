@@ -1,5 +1,6 @@
 import os
 
+import json
 import requests
 import responses
 import unittest
@@ -56,11 +57,11 @@ class TestExport(unittest.TestCase):
         self.assertTrue(export)
         self.assertEqual(request.method, "POST")
         self.assertRegex(request.url, rf"^{self.api_url}")
-        self.assertDictEqual(request.params, { "api_key": "test-api-key" })
+        self.assertDictEqual(request.params, {"api_key": "test-api-key"})
 
     @responses.activate
     def test_export_raises_error_on_bad_request(self):
-        responses.add(responses.POST, self.api_url, status=400, json={ "error": "BROKEN!!"})
+        responses.add(responses.POST, self.api_url, status=400, json={"error": "BROKEN!!"})
 
         with self.assertRaises(RuntimeError):
             self.version.export("test-format")
@@ -76,36 +77,73 @@ class TestExport(unittest.TestCase):
 class TestTrain(unittest.TestCase):
     def setUp(self):
         super(TestTrain, self).setUp()
-        self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/test-format/train"
+        self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/train"
         self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="4")
 
     @responses.activate
-    def test_train_returns_true_on_api_success(self):
-        responses.add(responses.POST, self.api_url, status=204)  # FIXME: this _may_ return data?
+    def test_train_calls_api_appropriately_and_returns_true_on_success(self):
+        responses.add(responses.POST, self.api_url, status=204)
 
-        train = self.version.train("test-format")
+        train = self.version.train()
         request = responses.calls[0].request
+        data = json.loads(request.body)
 
         self.assertTrue(train)
         self.assertEqual(request.method, "POST")
         self.assertRegex(request.url, rf"^{self.api_url}")
-        self.assertDictEqual(request.params, { "api_key": "test-api-key" })
+        self.assertDictEqual(data, {})
+        self.assertDictEqual(request.params, {"api_key": "test-api-key"})
+        self.assertEqual(request.headers["Content-Type"], "application/json")
 
-    # TODO: test sending request body, like fast vs accurate
+    @responses.activate
+    def test_train_with_defined_speed_calls_api_appropriately(self):
+        responses.add(responses.POST, self.api_url, status=204)
+
+        self.version.train(speed="accurate")
+        request = responses.calls[0].request
+        data = json.loads(request.body)
+
+        self.assertDictEqual(data, {"speed": "accurate"})
+        self.assertDictEqual(request.params, {"api_key": "test-api-key"})
+        self.assertEqual(request.headers["Content-Type"], "application/json")
+
+    @responses.activate
+    def test_train_with_defined_checkpoint_calls_api_appropriately(self):
+        responses.add(responses.POST, self.api_url, status=204)
+
+        self.version.train(checkpoint="COCO")
+        request = responses.calls[0].request
+        data = json.loads(request.body)
+
+        self.assertDictEqual(data, {"checkpoint": "COCO"})
+        self.assertDictEqual(request.params, {"api_key": "test-api-key"})
+        self.assertEqual(request.headers["Content-Type"], "application/json")
+
+    @responses.activate
+    def test_train_with_defined_speed_and_checkpoint_calls_api_appropriately(self):
+        responses.add(responses.POST, self.api_url, status=204)
+
+        self.version.train(checkpoint="COCO", speed="fast")
+        request = responses.calls[0].request
+        data = json.loads(request.body)
+
+        self.assertDictEqual(data, {"checkpoint": "COCO", "speed": "fast"})
+        self.assertDictEqual(request.params, {"api_key": "test-api-key"})
+        self.assertEqual(request.headers["Content-Type"], "application/json")
 
     @responses.activate
     def test_train_raises_error_on_bad_request(self):
-        responses.add(responses.POST, self.api_url, status=400, json={ "error": "BROKEN!!"})
+        responses.add(responses.POST, self.api_url, status=400, json={"error": "BROKEN!!"})
 
         with self.assertRaises(RuntimeError):
-            self.version.train("test-format")
+            self.version.train()
 
     @responses.activate
     def test_train_raises_error_on_api_failure(self):
         responses.add(responses.POST, self.api_url, status=500)
 
         with self.assertRaises(requests.exceptions.HTTPError):
-            self.version.train("test-format")
+            self.version.train()
 
 
 @patch.object(os, "makedirs")

@@ -152,12 +152,13 @@ class Version:
 
         return True
 
-    def train(self, model_format: str) -> bool:
+    def train(self, speed: str = None, checkpoint: str = None) -> bool:
         """
-        Ask the Roboflow API to train a previously exported version's dataset in a given format.
+        Ask the Roboflow API to train a previously exported version's dataset.
 
         Args:
-            model_format: A format to use for downloading
+            speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
+            checkpoint: A string representing the checkpoint to use while training
 
         Returns:
             True
@@ -166,9 +167,17 @@ class Version:
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
             HTTPError: If the Network/Roboflow API fails and does not return JSON
         """
-        download_url = self.__get_download_url(model_format)
-        train_url = f"{download_url}/train"
-        response = requests.post(train_url, params={"api_key": self.__api_key})
+        workspace, project, *_ = self.id.rsplit("/")
+        url = f"{API_URL}/{workspace}/{project}/{self.version}/train"
+
+        data = {}
+        if speed:
+            data["speed"] = speed
+
+        if checkpoint:
+            data["checkpoint"] = checkpoint
+
+        response = requests.post(url, json=data, params={"api_key": self.__api_key})
         if not response.ok:
             try:
                 raise RuntimeError(response.json())
