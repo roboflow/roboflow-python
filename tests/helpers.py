@@ -2,7 +2,7 @@ from roboflow.config import TYPE_OBJECT_DETECTION
 from roboflow.core.version import Version
 
 
-def get_version(api_key="test-api-key", project_name="Test Project Name", version_number="1", type=TYPE_OBJECT_DETECTION, **kwargs):
+def get_version(api_key="test-api-key", project_name="Test Project Name", version_number="1", type=TYPE_OBJECT_DETECTION, workspace_name="Test Workspace Name", **kwargs):
     version_data = {
         "id": f"test-workspace/test-project/2",
         "name": "augmented-416x416",
@@ -23,4 +23,6 @@ def get_version(api_key="test-api-key", project_name="Test Project Name", versio
                 version_number,
                 model_format=None,
                 local=None,
+                workspace=workspace_name,
+                project_name=project_name
             )

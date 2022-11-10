@@ -90,6 +90,8 @@ class Project:
                 a_version["id"],
                 self.model_format,
                 local=None,
+                workspace=self.__workspace,
+                project=self.__project_name
             )
             version_array.append(version_object)
         return version_array
@@ -114,6 +116,8 @@ class Project:
                 version_number,
                 self.model_format,
                 local=None,
+                workspace="",
+                project=""
             )
 
         version_info = self.get_version_information()
@@ -130,6 +134,8 @@ class Project:
                     current_version_num,
                     self.model_format,
                     local=None,
+                    workspace=self.__workspace,
+                    project=self.__project_name
                 )
                 return vers
 
