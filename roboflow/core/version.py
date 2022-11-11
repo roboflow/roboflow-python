@@ -27,7 +27,18 @@ load_dotenv()
 
 
 class Version:
-    def __init__(self, version_dict, type, api_key, name, version, model_format, local, workspace, project):
+    def __init__(
+        self,
+        version_dict,
+        type,
+        api_key,
+        name,
+        version,
+        model_format,
+        local,
+        workspace,
+        project,
+    ):
         if api_key in DEMO_KEYS:
             if api_key == "coco-128-sample":
                 self.__api_key = api_key
@@ -143,26 +154,26 @@ class Version:
 
         return True
 
-    def upload_model(self, model_path:str) -> None:
+    def upload_model(self, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
 
         Args:
             model_path (str): File path to model weights to be uploaded
         """
-        res = requests.get(f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}")
+        res = requests.get(
+            f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}"
+        )
         try:
             res.raise_for_status()
         except Exception as e:
             print(f"An error occured when getting the model upload URL: {e}")
             return
-        res = requests.put(res.json()["url"], data=open(model_path, 'rb'))
+        res = requests.put(res.json()["url"], data=open(model_path, "rb"))
         try:
             res.raise_for_status()
             print("Model uploaded")
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
-        
-
 
     def __download_zip(self, link, location, format):
         """
