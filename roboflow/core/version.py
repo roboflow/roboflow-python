@@ -164,7 +164,12 @@ class Version:
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}"
         )
         try:
-            res.raise_for_status()
+            if res.status_code == 429:
+                raise RuntimeError(
+                    f"This version already has a trained model. Please generate and train a new version in order to upload model to Roboflow."
+                )
+            else:
+                res.raise_for_status()
         except Exception as e:
             print(f"An error occured when getting the model upload URL: {e}")
             return
