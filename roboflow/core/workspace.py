@@ -280,12 +280,13 @@ class Workspace:
         )
 
         # check if inference_model references endpoint or local
-        if use_localhost == True:
-            inference_model = f"http://localhost:9001/{inference_endpoint[0]}/{inference_endpoint[1]}?api_key={self.__api_key}"
-        else:
-            inference_model = (
-                self.project(inference_endpoint[0]).version(inference_endpoint[1]).model
-            )
+        local = "http://localhost:9001/" if use_localhost else None
+
+        inference_model = (
+            self.project(inference_endpoint[0])
+            .version(version_number=inference_endpoint[1], local=local)
+            .model
+        )
         upload_project = self.project(upload_destination)
 
         print("inference reference point: ", inference_model)

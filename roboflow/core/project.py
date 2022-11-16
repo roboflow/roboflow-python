@@ -96,9 +96,10 @@ class Project:
             version_array.append(version_object)
         return version_array
 
-    def version(self, version_number):
+    def version(self, version_number, local=None):
         """Retrieves information about a specific version, and throws it into an object.
         :param version_number: the version number that you want to retrieve
+        :local: specifies the localhost address and port if pointing towards local inference engine
         :return Version() object
         """
 
@@ -133,7 +134,7 @@ class Project:
                     self.name,
                     current_version_num,
                     self.model_format,
-                    local=None,
+                    local=local,
                     workspace=self.__workspace,
                     project=self.__project_name,
                 )
