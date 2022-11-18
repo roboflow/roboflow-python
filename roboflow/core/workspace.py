@@ -224,19 +224,21 @@ class Workspace:
 
     def active_learning(
         self,
-        raw_data_location,
-        raw_data_extension,
-        inference_endpoint,
-        upload_destination,
-        conditionals,
-    ):
-        """
+        raw_data_location: str = "",
+        raw_data_extension: str = "",
+        inference_endpoint: list = [],
+        upload_destination: str = "",
+        conditionals: dict = {},
+        use_localhost: bool = False,
+    ) -> str:
+        """perform inference on each image in directory and upload based on conditions
         @params:
-            raw_data_location: dir = folder of frames to be processed
-            raw_data_extension: extension of frames to be processed
-            inference_endpoint: List[str, int] = name of the project
-            upload_destination: str = name of the upload project
-            conditionals: dict = dictionary of upload conditions
+            raw_data_location: (str) = folder of frames to be processed
+            raw_data_extension: (str) = extension of frames to be processed
+            inference_endpoint: (List[str, int]) = name of the project
+            upload_destination: (str) = name of the upload project
+            conditionals: (dict) = dictionary of upload conditions
+            use_localhost: (bool) = determines if local http format used or remote endpoint
         """
 
         # ensure that all fields of conditionals have a key:value pair
@@ -277,8 +279,13 @@ class Workspace:
             else conditionals["maximum_size_requirement"]
         )
 
+        # check if inference_model references endpoint or local
+        local = "http://localhost:9001/" if use_localhost else None
+
         inference_model = (
-            self.project(inference_endpoint[0]).version(inference_endpoint[1]).model
+            self.project(inference_endpoint[0])
+            .version(version_number=inference_endpoint[1], local=local)
+            .model
         )
         upload_project = self.project(upload_destination)
 
@@ -365,7 +372,7 @@ class Workspace:
                     upload_project.upload(image, num_retry_uploads=3)
                     break
 
-        return
+        return "complete"
 
     def __str__(self):
         projects = self.projects()
