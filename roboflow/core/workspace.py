@@ -1,5 +1,6 @@
 import glob
 import json
+import os
 import sys
 
 import requests
@@ -13,6 +14,7 @@ from roboflow.util.active_learning_utils import (
     count_comparisons,
 )
 from roboflow.util.clip_compare_utils import clip_encode
+from roboflow.util.two_stage_utils import ocr_infer
 
 
 class Workspace:
@@ -99,21 +101,144 @@ class Workspace:
             comparisons = sorted(comparisons, key=lambda item: -list(item.values())[0])
         return comparisons
 
+    def two_stage(
+        self,
+        image: str = "",
+        first_stage_model_name: str = "",
+        first_stage_model_version: int = 0,
+        second_stage_model_name: str = "",
+        second_stage_model_version: int = 0,
+    ) -> dict:
+        """for each prediction in the first stage detection, perform detection with the second stage model
+        @params:
+            image: (str) = name of the image to be processed
+            first_stage_model: (str) = URL path to the first stage detection model
+            first_stage_model_version: (int) = version number for the first stage model
+            second_stage_mode: (str) = URL path to the second stage detection model
+            second_stage_model_version: (int) = version number for the second stage model
+            returns: (dict) = a json obj containing
+        """
+        results = []
+
+        # create PIL image for cropping
+        pil_image = Image.open(image).convert("RGB")
+
+        # grab first and second stage model from project
+        stage_one_project = self.project(first_stage_model_name)
+        stage_one_model = stage_one_project.version(first_stage_model_version).model
+        stage_two_project = self.project(second_stage_model_name)
+        stage_two_model = stage_two_project.version(second_stage_model_version).model
+
+        print(self.project(first_stage_model_name))
+
+        # perform first inference
+        predictions = stage_one_model.predict(image)
+
+        if (
+            stage_one_project.type == "object-detection"
+            and stage_two_project == "classification"
+        ):
+            # interact with each detected object from stage one inference results
+            for boundingbox in predictions:
+                # rip bounding box coordinates from json1
+                # note: infer returns center points of box as (x,y) and width, height
+                # ----- but pillow crop requires the top left and bottom right points to crop
+                box = (
+                    boundingbox["x"] - boundingbox["width"] / 2,
+                    boundingbox["y"] - boundingbox["height"] / 2,
+                    boundingbox["x"] + boundingbox["width"] / 2,
+                    boundingbox["y"] + boundingbox["height"] / 2,
+                )
+
+                # create a new cropped image using the first stage prediction coordinates (for each box!)
+                croppedImg = pil_image.crop(box)
+                croppedImg.save("./temp.png")
+
+                # capture results of second stage inference from cropped image
+                results.append(stage_two_model.predict("./temp.png")[0])
+
+            # delete the written image artifact
+            try:
+                os.remove("./temp.png")
+            except FileNotFoundError:
+                print("no detections")
+
+        else:
+            print(
+                "please use an object detection model for the first stage--can only perform two stage with bounding box results",
+                "please use a classification model for the second stage",
+            )
+
+        return results
+
+    def two_stage_ocr(
+        self,
+        image: str = "",
+        first_stage_model_name: str = "",
+        first_stage_model_version: int = 0,
+    ) -> dict:
+        """for each prediction in the first stage object detection, perform OCR as second stage
+        @params:
+            image: (str) = name of the image to be processed
+            first_stage_model: (str) = URL path to the first stage detection model
+            first_stage_model_version: (int) = version number for the first stage model
+
+            returns: (dict) = a json obj containing
+        """
+        results = []
+
+        # create PIL image for cropping
+        pil_image = Image.open(image).convert("RGB")
+
+        # grab first and second stage model from project
+        stage_one_project = self.project(first_stage_model_name)
+        stage_one_model = stage_one_project.version(first_stage_model_version).model
+
+        # perform first inference
+        predictions = stage_one_model.predict(image)
+
+        # interact with each detected object from stage one inference results
+        if stage_one_project.type == "object-detection":
+            for boundingbox in predictions:
+                # rip bounding box coordinates from json1
+                # note: infer returns center points of box as (x,y) and width, height
+                # ----- but pillow crop requires the top left and bottom right points to crop
+                box = (
+                    boundingbox["x"] - boundingbox["width"] / 2,
+                    boundingbox["y"] - boundingbox["height"] / 2,
+                    boundingbox["x"] + boundingbox["width"] / 2,
+                    boundingbox["y"] + boundingbox["height"] / 2,
+                )
+
+                # create a new cropped image using the first stage prediction coordinates (for each box!)
+                croppedImg = pil_image.crop(box)
+
+                # capture OCR results from cropped image
+                results.append(ocr_infer(croppedImg)["results"])
+        else:
+            print(
+                "please use an object detection model--can only perform two stage with bounding box results"
+            )
+
+        return results
+
     def active_learning(
         self,
-        raw_data_location,
-        raw_data_extension,
-        inference_endpoint,
-        upload_destination,
-        conditionals,
-    ):
-        """
+        raw_data_location: str = "",
+        raw_data_extension: str = "",
+        inference_endpoint: list = [],
+        upload_destination: str = "",
+        conditionals: dict = {},
+        use_localhost: bool = False,
+    ) -> str:
+        """perform inference on each image in directory and upload based on conditions
         @params:
-            raw_data_location: dir = folder of frames to be processed
-            raw_data_extension: extension of frames to be processed
-            inference_endpoint: List[str, int] = name of the project
-            upload_destination: str = name of the upload project
-            conditionals: dict = dictionary of upload conditions
+            raw_data_location: (str) = folder of frames to be processed
+            raw_data_extension: (str) = extension of frames to be processed
+            inference_endpoint: (List[str, int]) = name of the project
+            upload_destination: (str) = name of the upload project
+            conditionals: (dict) = dictionary of upload conditions
+            use_localhost: (bool) = determines if local http format used or remote endpoint
         """
 
         # ensure that all fields of conditionals have a key:value pair
@@ -154,8 +279,13 @@ class Workspace:
             else conditionals["maximum_size_requirement"]
         )
 
+        # check if inference_model references endpoint or local
+        local = "http://localhost:9001/" if use_localhost else None
+
         inference_model = (
-            self.project(inference_endpoint[0]).version(inference_endpoint[1]).model
+            self.project(inference_endpoint[0])
+            .version(version_number=inference_endpoint[1], local=local)
+            .model
         )
         upload_project = self.project(upload_destination)
 
@@ -242,7 +372,7 @@ class Workspace:
                     upload_project.upload(image, num_retry_uploads=3)
                     break
 
-        return
+        return "complete"
 
     def __str__(self):
         projects = self.projects()

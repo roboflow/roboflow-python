@@ -27,7 +27,18 @@ load_dotenv()
 
 
 class Version:
-    def __init__(self, version_dict, type, api_key, name, version, model_format, local):
+    def __init__(
+        self,
+        version_dict,
+        type,
+        api_key,
+        name,
+        version,
+        model_format,
+        local,
+        workspace,
+        project,
+    ):
         if api_key in DEMO_KEYS:
             if api_key == "coco-128-sample":
                 self.__api_key = api_key
@@ -56,6 +67,8 @@ class Version:
             self.preprocessing = version_dict["preprocessing"]
             self.splits = version_dict["splits"]
             self.model_format = model_format
+            self.workspace = workspace
+            self.project = project
 
             version_without_workspace = os.path.basename(str(version))
 
@@ -140,6 +153,32 @@ class Version:
                 response.raise_for_status()
 
         return True
+
+    def upload_model(self, model_path: str) -> None:
+        """Uploads provided weights file to Roboflow
+
+        Args:
+            model_path (str): File path to model weights to be uploaded
+        """
+        res = requests.get(
+            f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}"
+        )
+        try:
+            if res.status_code == 429:
+                raise RuntimeError(
+                    f"This version already has a trained model. Please generate and train a new version in order to upload model to Roboflow."
+                )
+            else:
+                res.raise_for_status()
+        except Exception as e:
+            print(f"An error occured when getting the model upload URL: {e}")
+            return
+        res = requests.put(res.json()["url"], data=open(model_path, "rb"))
+        try:
+            res.raise_for_status()
+            print("Model uploaded")
+        except Exception as e:
+            print(f"An error occured when uploading the model: {e}")
 
     def __download_zip(self, link, location, format):
         """
@@ -284,5 +323,6 @@ class Version:
             "created": self.created,
             "preprocessing": self.preprocessing,
             "splits": self.splits,
+            "workspace": self.workspace,
         }
         return json.dumps(json_value, indent=2)
