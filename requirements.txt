@@ -12,7 +12,7 @@ python-dateutil
 python-dotenv
 requests
 six
-urllib3==1.26.12
+urllib3>=1.26.6
 wget
 tqdm>=4.41.0
 PyYAML>=5.3.1
