@@ -1,13 +1,19 @@
 import setuptools
 from setuptools import find_packages
+import re
+
+with open("./roboflow/__init__.py", "r") as f:
+    content = f.read()
+    # from https://www.py4u.net/discuss/139845
+    version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content).group(1)
+
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-
 setuptools.setup(
-    name="roboflow",  # Replace with your own username
-    version="0.2.21",
+    name="roboflow",
+    version=version,
     author="Roboflow",
     author_email="jacob@roboflow.com",
     description="python client for the Roboflow application",
@@ -38,7 +44,7 @@ setuptools.setup(
     ],
     packages=find_packages(exclude=("tests",)),
     extras_require={
-        "dev": ["flake8", "black==22.3.0", "isort", "responses","twine"],
+        "dev": ["flake8", "black==22.3.0", "isort", "responses", "twine", "wheel"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
