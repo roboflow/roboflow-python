@@ -151,3 +151,4 @@ valid/
 data.yaml
 README.roboflow.txt
 *.zip
+.DS_Store
