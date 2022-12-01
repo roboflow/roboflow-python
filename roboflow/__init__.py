@@ -34,14 +34,16 @@ def check_key(api_key, model, notebook, num_retries=0):
                 raise RuntimeError(response.text)
 
             if response.status_code != 200:
-                #retry 5 times
+                # retry 5 times
                 if num_retries < 5:
                     print("retrying...")
                     time.sleep(1)
                     num_retries += 1
                     return check_key(api_key, model, notebook, num_retries)
                 else:
-                    raise RuntimeError("There was an error validating the api key with Roboflow server.")
+                    raise RuntimeError(
+                        "There was an error validating the api key with Roboflow server."
+                    )
             else:
                 r = response.json()
                 return r
