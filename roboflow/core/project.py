@@ -157,8 +157,8 @@ class Project:
         
         #if the generation succeeds, return the version that is being generated
         if r.status_code == 200:
-            print(r_json["message"])
-            return r_json["version"]
+            print(r_json["message"] + " for new version " + str(r_json["version"]) + ".")
+            return int(r_json["version"])
         else:
             if "error" in r_json.keys():
                 raise RuntimeError(r_json["error"])

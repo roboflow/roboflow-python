@@ -101,6 +101,18 @@ class Version:
             else:
                 self.model = None
 
+    def check_is_generating(self):
+        #checks if a given version is still in the progress of generating
+        url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}/checkGenerating"
+        response = requests.get(url, params={"api_key": self.__api_key})
+        
+        response.raise_for_status()
+
+        if response.json()["generating"]:
+            return True
+        else:
+            return False
+
     def download(self, model_format=None, location=None):
         """
         Download and extract a ZIP of a version's dataset in a given format
