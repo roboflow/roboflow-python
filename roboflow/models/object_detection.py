@@ -12,10 +12,12 @@ from roboflow.config import OBJECT_DETECTION_MODEL
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 
+
 class FileFormatNotSupported(Exception):
     """
     An attempt was made to upload an image whose format is not supported.
     """
+
     pass
 
 
@@ -165,7 +167,9 @@ class ObjectDetectionModel:
                 img_str = base64.b64encode(buffer)
                 img_str = img_str.decode("ascii")
             else:
-                raise FileFormatNotSupported("Only .jpg, .png, and .jpeg files are supported.")
+                raise FileFormatNotSupported(
+                    "Only .jpg, .png, and .jpeg files are supported."
+                )
 
             # Post to API and return response
             resp = requests.post(
