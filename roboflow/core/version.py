@@ -70,7 +70,13 @@ class Version:
             self.model_format = model_format
             self.workspace = workspace
             self.project = project
+            if "exports" in version_dict.keys():
+                self.exports = version_dict["exports"]
+            else:
+                self.exports = []
 
+
+            print("exports: ", self.exports)
             version_without_workspace = os.path.basename(str(version))
 
             if self.type == TYPE_OBJECT_DETECTION:
@@ -125,8 +131,13 @@ class Version:
         """
 
         while self.check_is_generating():
-            print("This version is still generating. Waiting 10 seconds...")
+            print("This version is still generating. Waiting 10 seconds to retry download...")
             time.sleep(10)
+
+        if model_format not in self.exports:
+            self.export(model_format)
+
+        # if model_format is not in 
 
         if location is None:
             location = self.__get_download_location()
@@ -168,14 +179,31 @@ class Version:
             time.sleep(10)
 
         url = self.__get_download_url(model_format)
-        response = requests.post(url, params={"api_key": self.__api_key})
+        response = requests.get(url, params={"api_key": self.__api_key})
         if not response.ok:
             try:
                 raise RuntimeError(response.json())
             except requests.exceptions.JSONDecodeError:
                 response.raise_for_status()
 
-        return True
+        if response.status_code == 202:
+            print("version export initialized...")
+            status_code_check = 202
+            while status_code_check == 202:
+                time.sleep(10)
+                response = requests.get(url, params={"api_key": self.__api_key})
+                status_code_check = response.status_code
+                if status_code_check == 202:
+                    print("version export still in progress...")
+
+        if response.status_code == 200:
+            print("version export complete for " + model_format + " format")   
+            return True
+        else:
+            try:
+                raise RuntimeError(response.json())
+            except requests.exceptions.JSONDecodeError:
+                response.raise_for_status()
 
     def upload_model(self, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
