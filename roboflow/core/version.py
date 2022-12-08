@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import zipfile
+import time
 
 import requests
 import wget
@@ -122,6 +123,11 @@ class Version:
 
         :return: Dataset
         """
+
+        while self.check_is_generating():
+            print("This version is still generating. Waiting 10 seconds...")
+            time.sleep(10)
+
         if location is None:
             location = self.__get_download_location()
 
@@ -156,6 +162,11 @@ class Version:
         :return: True
         :raises RuntimeError / HTTPError:
         """
+
+        while self.check_is_generating():
+            print("This version is still generating. Waiting 10 seconds...")
+            time.sleep(10)
+
         url = self.__get_download_url(model_format)
         response = requests.post(url, params={"api_key": self.__api_key})
         if not response.ok:
