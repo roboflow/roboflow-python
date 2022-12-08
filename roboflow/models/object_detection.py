@@ -12,6 +12,12 @@ from roboflow.config import OBJECT_DETECTION_MODEL
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 
+class FileFormatNotSupported(Exception):
+    """
+    An attempt was made to upload an image whose format is not supported.
+    """
+    pass
+
 
 class ObjectDetectionModel:
     def __init__(
@@ -142,7 +148,8 @@ class ObjectDetectionModel:
 
         # If image is local image
         if not hosted:
-            if ".jpg" in image_path or ".png" in image_path:  # Open Image in RGB Format
+            extension = os.path.splitext(image_path)[-1]
+            if extension in (".jpg", ".png"):  # Open Image in RGB Format
                 image = Image.open(image_path).convert("RGB")
 
                 # Create buffer
@@ -152,23 +159,20 @@ class ObjectDetectionModel:
                 img_str = base64.b64encode(buffered.getvalue())
                 img_str = img_str.decode("ascii")
 
-                # Post to API and return response
-                resp = requests.post(
-                    self.api_url,
-                    data=img_str,
-                    headers={"Content-Type": "application/x-www-form-urlencoded"},
-                )
-            else:
+            elif extension == ".jpeg":
                 # Performing inference on a OpenCV2 frame
-                retval, buffer = cv2.imencode(".jpg", image_path)
+                _, buffer = cv2.imencode(".jpeg", image_path)
                 img_str = base64.b64encode(buffer)
-                # print(img_str)
                 img_str = img_str.decode("ascii")
-                resp = requests.post(
-                    self.api_url,
-                    data=img_str,
-                    headers={"Content-Type": "application/x-www-form-urlencoded"},
-                )
+            else:
+                raise FileFormatNotSupported("Only .jpg, .png, and .jpeg files are supported.")
+
+            # Post to API and return response
+            resp = requests.post(
+                self.api_url,
+                data=img_str,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
 
         else:
             # Create API URL for hosted image (slightly different)
