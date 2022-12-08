@@ -75,8 +75,6 @@ class Version:
             else:
                 self.exports = []
 
-
-            print("exports: ", self.exports)
             version_without_workspace = os.path.basename(str(version))
 
             if self.type == TYPE_OBJECT_DETECTION:
@@ -116,9 +114,9 @@ class Version:
         response.raise_for_status()
 
         if response.json()["generating"]:
-            return True
+            return True, response.json()["progress"]
         else:
-            return False
+            return False, 1.0
 
     def download(self, model_format=None, location=None):
         """
@@ -130,9 +128,18 @@ class Version:
         :return: Dataset
         """
 
-        while self.check_is_generating():
-            print("This version is still generating. Waiting 10 seconds to retry download...")
-            time.sleep(10)
+        still_generating = True
+
+        while still_generating:
+
+            still_generating, progress = self.check_is_generating()
+            if still_generating:
+                progress_message = (
+                    "Generating version still in progress. Progress: " + str(round(progress * 100, 2)) + "%"
+                )
+                sys.stdout.write("\r" + progress_message)
+                sys.stdout.flush()
+                time.sleep(5)
 
         if model_format not in self.exports:
             self.export(model_format)
@@ -174,9 +181,17 @@ class Version:
         :raises RuntimeError / HTTPError:
         """
 
-        while self.check_is_generating():
-            print("This version is still generating. Waiting 10 seconds...")
-            time.sleep(10)
+        still_generating = True
+
+        while still_generating:
+            still_generating, progress = self.check_is_generating()
+            if still_generating:
+                progress_message = (
+                    "Generating version still in progress. Progress: " + str(round(progress * 100, 2)) + "%"
+                )
+                sys.stdout.write("\r" + progress_message)
+                sys.stdout.flush()
+                time.sleep(5)
 
         url = self.__get_download_url(model_format)
         response = requests.get(url, params={"api_key": self.__api_key})
@@ -186,15 +201,23 @@ class Version:
             except requests.exceptions.JSONDecodeError:
                 response.raise_for_status()
 
+        #the rest api returns 202 if the export is still in progress
         if response.status_code == 202:
             print("version export initialized...")
             status_code_check = 202
             while status_code_check == 202:
-                time.sleep(10)
+                time.sleep(1)
                 response = requests.get(url, params={"api_key": self.__api_key})
                 status_code_check = response.status_code
                 if status_code_check == 202:
-                    print("version export still in progress...")
+                    progress = response.json()["progress"]
+                    progress_message = (
+                        "Exporting format"
+                        + model_format
+                        + " in progress : " + str(round(progress * 100, 2)) + "%"
+                    )
+                    sys.stdout.write("\r" + progress_message)
+                    sys.stdout.flush()
 
         if response.status_code == 200:
             print("version export complete for " + model_format + " format")   
