@@ -12,7 +12,7 @@ from PIL import Image
 from roboflow.config import OBJECT_DETECTION_MODEL
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
-
+import numpy as np
 
 class ObjectDetectionModel:
     def __init__(
@@ -157,7 +157,7 @@ class ObjectDetectionModel:
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
-            else:
+            elif isinstance(image_path, np.ndarray):
                 # Performing inference on a OpenCV2 frame
                 retval, buffer = cv2.imencode(".jpg", image_path)
                 img_str = base64.b64encode(buffer)
@@ -168,6 +168,8 @@ class ObjectDetectionModel:
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
+            else:
+                raise ValueError("image_path must be a string or a numpy array.")
         else:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
