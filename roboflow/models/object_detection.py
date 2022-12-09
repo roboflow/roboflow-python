@@ -141,8 +141,6 @@ class ObjectDetectionModel:
         else:
             self.__exception_check(image_path_check=image_path)
 
-        is_local_image = Path(image_path).exists()
-        print(is_local_image)
         # If image is local image
         if not hosted:
             image = Image.open(image_path).convert("RGB")
