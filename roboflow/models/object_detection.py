@@ -6,13 +6,14 @@ import urllib
 from pathlib import Path
 
 import cv2
+import numpy as np
 import requests
 from PIL import Image
 
 from roboflow.config import OBJECT_DETECTION_MODEL
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
-import numpy as np
+
 
 class ObjectDetectionModel:
     def __init__(
