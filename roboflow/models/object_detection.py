@@ -3,6 +3,7 @@ import io
 import json
 import os
 import urllib
+from pathlib import Path
 
 import cv2
 import requests
@@ -140,35 +141,23 @@ class ObjectDetectionModel:
         else:
             self.__exception_check(image_path_check=image_path)
 
+        is_local_image = Path(image_path).exists()
+        print(is_local_image)
         # If image is local image
         if not hosted:
-            if ".jpg" in image_path or ".png" in image_path:  # Open Image in RGB Format
-                image = Image.open(image_path).convert("RGB")
-
-                # Create buffer
-                buffered = io.BytesIO()
-                image.save(buffered, format="PNG")
-                # Base64 encode image
-                img_str = base64.b64encode(buffered.getvalue())
-                img_str = img_str.decode("ascii")
-
-                # Post to API and return response
-                resp = requests.post(
-                    self.api_url,
-                    data=img_str,
-                    headers={"Content-Type": "application/x-www-form-urlencoded"},
-                )
-            else:
-                # Performing inference on a OpenCV2 frame
-                retval, buffer = cv2.imencode(".jpg", image_path)
-                img_str = base64.b64encode(buffer)
-                # print(img_str)
-                img_str = img_str.decode("ascii")
-                resp = requests.post(
-                    self.api_url,
-                    data=img_str,
-                    headers={"Content-Type": "application/x-www-form-urlencoded"},
-                )
+            image = Image.open(image_path).convert("RGB")
+            # Create buffer
+            buffered = io.BytesIO()
+            image.save(buffered, format="PNG")
+            # Base64 encode image
+            img_str = base64.b64encode(buffered.getvalue())
+            img_str = img_str.decode("ascii")
+            # Post to API and return response
+            resp = requests.post(
+                self.api_url,
+                data=img_str,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
 
         else:
             # Create API URL for hosted image (slightly different)
