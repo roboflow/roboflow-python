@@ -143,20 +143,31 @@ class ObjectDetectionModel:
 
         # If image is local image
         if not hosted:
-            image = Image.open(image_path).convert("RGB")
-            # Create buffer
-            buffered = io.BytesIO()
-            image.save(buffered, format="PNG")
-            # Base64 encode image
-            img_str = base64.b64encode(buffered.getvalue())
-            img_str = img_str.decode("ascii")
-            # Post to API and return response
-            resp = requests.post(
-                self.api_url,
-                data=img_str,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-            )
-
+            if type(image_path) is str:
+                image = Image.open(image_path).convert("RGB")
+                # Create buffer
+                buffered = io.BytesIO()
+                image.save(buffered, format="PNG")
+                # Base64 encode image
+                img_str = base64.b64encode(buffered.getvalue())
+                img_str = img_str.decode("ascii")
+                # Post to API and return response
+                resp = requests.post(
+                    self.api_url,
+                    data=img_str,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+            else:
+                # Performing inference on a OpenCV2 frame
+                retval, buffer = cv2.imencode(".jpg", image_path)
+                img_str = base64.b64encode(buffer)
+                # print(img_str)
+                img_str = img_str.decode("ascii")
+                resp = requests.post(
+                    self.api_url,
+                    data=img_str,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
         else:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
