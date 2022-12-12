@@ -177,8 +177,7 @@ class ObjectDetectionModel:
             # POST to the API
             resp = requests.get(self.api_url)
 
-        if resp.status_code != 200:
-            raise Exception(resp.text)
+        resp.raise_for_status()
         # Return a prediction group if JSON data
         if self.format == "json":
             return PredictionGroup.create_prediction_group(

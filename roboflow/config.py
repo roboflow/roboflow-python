@@ -14,6 +14,9 @@ INSTANCE_SEGMENTATION_URL = os.getenv(
 SEMANTIC_SEGMENTATION_URL = os.getenv(
     "SEMANTIC_SEGMENTATION_URL", "https://segment.roboflow.com"
 )
+OBJECT_DETECTION_URL = os.getenv(
+    "SEMANTIC_SEGMENTATION_URL", "https://detect.roboflow.com"
+)
 
 CLIP_FEATURIZE_URL = os.getenv("CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV")
 OCR_URL = os.getenv("OCR_URL", "OCR URL NOT IN ENV")

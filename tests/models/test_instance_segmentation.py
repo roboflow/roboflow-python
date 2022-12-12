@@ -18,19 +18,10 @@ MOCK_RESPONSE = {
             "class": "J",
             "confidence": 0.598,
             "points": [
-                {
-                    "x": 831.0,
-                    "y": 527.0
-                },
-                {
-                    "x": 931.0,
-                    "y": 389.0
-                },
-                {
-                    "x": 831.0,
-                    "y": 527.0
-                }
-            ]
+                {"x": 831.0, "y": 527.0},
+                {"x": 931.0, "y": 389.0},
+                {"x": 831.0, "y": 527.0},
+            ],
         },
         {
             "x": 363.8,
@@ -40,26 +31,13 @@ MOCK_RESPONSE = {
             "class": "K",
             "confidence": 0.52,
             "points": [
-                {
-                    "x": 131.0,
-                    "y": 999.0
-                },
-                {
-                    "x": 269.0,
-                    "y": 666.0
-                },
-
-                {
-                    "x": 131.0,
-                    "y": 999.0
-                }
-            ]
-        }
+                {"x": 131.0, "y": 999.0},
+                {"x": 269.0, "y": 666.0},
+                {"x": 131.0, "y": 999.0},
+            ],
+        },
     ],
-    "image": {
-        "width": 1333,
-        "height": 1000
-    }
+    "image": {"width": 1333, "height": 1000},
 }
 
 
@@ -85,7 +63,10 @@ class TestInstanceSegmentation(unittest.TestCase):
         instance = InstanceSegmentationModel(self.api_key, self.version_id)
 
         self.assertEqual(instance.id, self.version_id)
-        self.assertEqual(instance.api_url, f"{INSTANCE_SEGMENTATION_URL}/{self.dataset_id}/{self.version}")
+        self.assertEqual(
+            instance.api_url,
+            f"{INSTANCE_SEGMENTATION_URL}/{self.dataset_id}/{self.version}",
+        )
 
     @responses.activate
     def test_predict_returns_prediction_group(self):
@@ -109,7 +90,7 @@ class TestInstanceSegmentation(unittest.TestCase):
 
         request = responses.calls[0].request
 
-        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.method, "POST")
         self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, self._default_params)
         self.assertIsNotNone(request.body)
@@ -131,7 +112,7 @@ class TestInstanceSegmentation(unittest.TestCase):
 
         request = responses.calls[1].request
 
-        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.method, "POST")
         self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, expected_params)
         self.assertIsNone(request.body)
@@ -140,10 +121,7 @@ class TestInstanceSegmentation(unittest.TestCase):
     def test_predict_with_confidence_request(self):
         confidence = "100"
         image_path = "tests/images/rabbit.JPG"
-        expected_params = {
-            **self._default_params,
-            "confidence": confidence
-        }
+        expected_params = {**self._default_params, "confidence": confidence}
         instance = InstanceSegmentationModel(self.api_key, self.version_id)
 
         responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
@@ -152,7 +130,7 @@ class TestInstanceSegmentation(unittest.TestCase):
 
         request = responses.calls[0].request
 
-        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.method, "POST")
         self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, expected_params)
         self.assertIsNotNone(request.body)
