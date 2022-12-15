@@ -4,6 +4,7 @@ import json
 import os
 import urllib
 import warnings
+import sys
 
 import cv2
 import requests
@@ -157,7 +158,9 @@ class Project:
         
         #if the generation succeeds, return the version that is being generated
         if r.status_code == 200:
-            print(r_json["message"] + " for new version " + str(r_json["version"]) + ".")
+            sys.stdout.write("\r" + r_json["message"] + " for new version " + str(r_json["version"]) + ".")
+            sys.stdout.write("\n")
+            sys.stdout.flush()
             return int(r_json["version"])
         else:
             if "error" in r_json.keys():

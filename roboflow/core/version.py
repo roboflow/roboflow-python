@@ -133,7 +133,10 @@ class Version:
         while still_generating:
 
             still_generating, progress = self.check_is_generating()
+
             if still_generating:
+                if progress == None:
+                    progress = 0.0
                 progress_message = (
                     "Generating version still in progress. Progress: " + str(round(progress * 100, 2)) + "%"
                 )
@@ -185,6 +188,7 @@ class Version:
 
         while still_generating:
             still_generating, progress = self.check_is_generating()
+            
             if still_generating:
                 progress_message = (
                     "Generating version still in progress. Progress: " + str(round(progress * 100, 2)) + "%"
@@ -203,7 +207,10 @@ class Version:
 
         #the rest api returns 202 if the export is still in progress
         if response.status_code == 202:
-            print("version export initialized...")
+            sys.stdout.write("\r" + "version export initialized...")
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+
             status_code_check = 202
             while status_code_check == 202:
                 time.sleep(1)
@@ -212,7 +219,7 @@ class Version:
                 if status_code_check == 202:
                     progress = response.json()["progress"]
                     progress_message = (
-                        "Exporting format"
+                        "Exporting format "
                         + model_format
                         + " in progress : " + str(round(progress * 100, 2)) + "%"
                     )
@@ -220,7 +227,9 @@ class Version:
                     sys.stdout.flush()
 
         if response.status_code == 200:
-            print("version export complete for " + model_format + " format")   
+            print("\r" + "version export complete for " + model_format + " format")
+            sys.stdout.writ("\n")
+            sys.stdout.flush()   
             return True
         else:
             try:
