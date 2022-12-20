@@ -106,17 +106,41 @@ class Version:
             else:
                 self.model = None
 
-    def check_is_generating(self):
-        #checks if a given version is still in the progress of generating
+    def __check_if_generating(self):
+        #check Roboflow API to see if this version is still generating
+       
         url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}/checkGenerating"
         response = requests.get(url, params={"api_key": self.__api_key})
-        
         response.raise_for_status()
 
-        if response.json()["generating"]:
-            return True, response.json()["progress"]
+        if (response.json()["progress"] == None):
+            progress = 0.0
         else:
-            return False, 1.0
+            progress = int(response.json()["progress"])
+
+        return response.json()["generating"], progress
+
+
+
+    def __wait_if_generating(self, recurse=False):
+        #checks if a given version is still in the progress of generating
+
+        still_generating, progress = self.__check_if_generating()
+
+        if still_generating:
+                progress_message = (
+                    "Generating version still in progress. Progress: " + str(round(progress * 100, 2)) + "%"
+                )
+                sys.stdout.write("\r" + progress_message)
+                sys.stdout.flush()
+                time.sleep(5)
+                return self.__wait_if_generating(recurse=True)
+
+        else:
+            if recurse:
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+            return
 
     def download(self, model_format=None, location=None):
         """
@@ -128,21 +152,7 @@ class Version:
         :return: Dataset
         """
 
-        still_generating = True
-
-        while still_generating:
-
-            still_generating, progress = self.check_is_generating()
-
-            if still_generating:
-                if progress == None:
-                    progress = 0.0
-                progress_message = (
-                    "Generating version still in progress. Progress: " + str(round(progress * 100, 2)) + "%"
-                )
-                sys.stdout.write("\r" + progress_message)
-                sys.stdout.flush()
-                time.sleep(5)
+        self.__wait_if_generating()
 
         if model_format not in self.exports:
             self.export(model_format)
@@ -184,18 +194,7 @@ class Version:
         :raises RuntimeError / HTTPError:
         """
 
-        still_generating = True
-
-        while still_generating:
-            still_generating, progress = self.check_is_generating()
-            
-            if still_generating:
-                progress_message = (
-                    "Generating version still in progress. Progress: " + str(round(progress * 100, 2)) + "%"
-                )
-                sys.stdout.write("\r" + progress_message)
-                sys.stdout.flush()
-                time.sleep(5)
+        self.__wait_if_generating()
 
         url = self.__get_download_url(model_format)
         response = requests.get(url, params={"api_key": self.__api_key})
@@ -207,10 +206,6 @@ class Version:
 
         #the rest api returns 202 if the export is still in progress
         if response.status_code == 202:
-            sys.stdout.write("\r" + "version export initialized...")
-            sys.stdout.write("\n")
-            sys.stdout.flush()
-
             status_code_check = 202
             while status_code_check == 202:
                 time.sleep(1)
@@ -227,8 +222,8 @@ class Version:
                     sys.stdout.flush()
 
         if response.status_code == 200:
-            print("\r" + "version export complete for " + model_format + " format")
-            sys.stdout.writ("\n")
+            sys.stdout.write("\n")
+            print("\r" + "Version export complete for " + model_format + " format")
             sys.stdout.flush()   
             return True
         else:
@@ -236,6 +231,52 @@ class Version:
                 raise RuntimeError(response.json())
             except requests.exceptions.JSONDecodeError:
                 response.raise_for_status()
+
+    def train(self, speed=None, checkpoint=None) -> bool:
+        """
+        Ask the Roboflow API to train a previously exported version's dataset.
+        Args:
+            speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
+            checkpoint: A string representing the checkpoint to use while training
+        Returns:
+            True
+            RuntimeError: If the Roboflow API returns an error with a helpful JSON body
+            HTTPError: If the Network/Roboflow API fails and does not return JSON
+        """
+
+
+        self.__wait_if_generating()
+
+        train_model_format = "yolov5pytorch"
+
+        if train_model_format not in self.exports:
+            self.export(train_model_format)
+
+        workspace, project, *_ = self.id.rsplit("/")
+        url = f"{API_URL}/{workspace}/{project}/{self.version}/train"
+
+        data = {}
+        if speed:
+            data["speed"] = speed
+
+        if checkpoint:
+            data["checkpoint"] = checkpoint
+
+        sys.stdout.write("\r" + "Reaching out to Roboflow to start training...")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
+        response = requests.post(url, json=data, params={"api_key": self.__api_key})
+        if not response.ok:
+            try:
+                raise RuntimeError(response.json())
+            except requests.exceptions.JSONDecodeError:
+                response.raise_for_status()
+
+        sys.stdout.write("\r" + "Training model in progress...")
+        sys.stdout.flush()
+
+        return True
 
     def upload_model(self, model_path: str) -> None:
         """Uploads provided weights file to Roboflow

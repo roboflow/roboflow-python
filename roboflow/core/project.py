@@ -168,6 +168,23 @@ class Project:
             else:
                 raise RuntimeError(json.dumps(r_json))
 
+    def train(self, new_version_settings={"preprocessing": {"auto-orient": True, "resize": { "width": 640, "height": 640, "format": "Stretch to" }}, "augmentation": {}}, speed=None, checkpoint=None) -> bool:
+        """
+        Ask the Roboflow API to train a previously exported version's dataset.
+        Args:
+            speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
+            checkpoint: A string representing the checkpoint to use while training
+        Returns:
+            True
+            RuntimeError: If the Roboflow API returns an error with a helpful JSON body
+            HTTPError: If the Network/Roboflow API fails and does not return JSON
+        """
+
+        new_version = self.generate_version(settings=new_version_settings)
+        new_version = self.version(new_version)
+        new_version.train(speed=speed, checkpoint=checkpoint)
+
+        return True
 
     def version(self, version_number, local=None):
         """Retrieves information about a specific version, and throws it into an object.
