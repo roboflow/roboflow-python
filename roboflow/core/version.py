@@ -116,7 +116,7 @@ class Version:
         if (response.json()["progress"] == None):
             progress = 0.0
         else:
-            progress = int(response.json()["progress"])
+            progress = float(response.json()["progress"])
 
         return response.json()["generating"], progress
 
