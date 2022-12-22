@@ -7,7 +7,7 @@ from roboflow.config import API_URL, APP_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
 
-__version__ = "0.2.20"
+__version__ = "0.2.22"
 
 
 def check_key(api_key, model, notebook):
