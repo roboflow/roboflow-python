@@ -2,9 +2,9 @@ import datetime
 import io
 import json
 import os
+import sys
 import urllib
 import warnings
-import sys
 
 import cv2
 import requests
@@ -147,18 +147,31 @@ class Project:
         """
 
         if not {"augmentation", "preprocessing"} <= settings.keys():
-            raise(RuntimeError("augmentation and preprocessing keys are required to generate. If none are desired specify empty dict associated with that key."))
-        
-        r = requests.post(f'{API_URL}/{self.__workspace}/{self.__project_name}/generate?api_key={self.__api_key}', json=settings)
+            raise (
+                RuntimeError(
+                    "augmentation and preprocessing keys are required to generate. If none are desired specify empty dict associated with that key."
+                )
+            )
+
+        r = requests.post(
+            f"{API_URL}/{self.__workspace}/{self.__project_name}/generate?api_key={self.__api_key}",
+            json=settings,
+        )
 
         try:
             r_json = r.json()
         except:
-            raise("Error when requesting to generate a new version for project.")
-        
-        #if the generation succeeds, return the version that is being generated
+            raise ("Error when requesting to generate a new version for project.")
+
+        # if the generation succeeds, return the version that is being generated
         if r.status_code == 200:
-            sys.stdout.write("\r" + r_json["message"] + " for new version " + str(r_json["version"]) + ".")
+            sys.stdout.write(
+                "\r"
+                + r_json["message"]
+                + " for new version "
+                + str(r_json["version"])
+                + "."
+            )
             sys.stdout.write("\n")
             sys.stdout.flush()
             return int(r_json["version"])
@@ -168,7 +181,18 @@ class Project:
             else:
                 raise RuntimeError(json.dumps(r_json))
 
-    def train(self, new_version_settings={"preprocessing": {"auto-orient": True, "resize": { "width": 640, "height": 640, "format": "Stretch to" }}, "augmentation": {}}, speed=None, checkpoint=None) -> bool:
+    def train(
+        self,
+        new_version_settings={
+            "preprocessing": {
+                "auto-orient": True,
+                "resize": {"width": 640, "height": 640, "format": "Stretch to"},
+            },
+            "augmentation": {},
+        },
+        speed=None,
+        checkpoint=None,
+    ) -> bool:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
         Args:

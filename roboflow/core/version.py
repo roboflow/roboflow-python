@@ -1,8 +1,8 @@
 import json
 import os
 import sys
-import zipfile
 import time
+import zipfile
 
 import requests
 import wget
@@ -107,34 +107,36 @@ class Version:
                 self.model = None
 
     def __check_if_generating(self):
-        #check Roboflow API to see if this version is still generating
-       
-        url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}/checkGenerating"
+        # check Roboflow API to see if this version is still generating
+
+        url = (
+            f"{API_URL}/{self.workspace}/{self.project}/{self.version}/checkGenerating"
+        )
         response = requests.get(url, params={"api_key": self.__api_key})
         response.raise_for_status()
 
-        if (response.json()["progress"] == None):
+        if response.json()["progress"] == None:
             progress = 0.0
         else:
             progress = float(response.json()["progress"])
 
         return response.json()["generating"], progress
 
-
-
     def __wait_if_generating(self, recurse=False):
-        #checks if a given version is still in the progress of generating
+        # checks if a given version is still in the progress of generating
 
         still_generating, progress = self.__check_if_generating()
 
         if still_generating:
-                progress_message = (
-                    "Generating version still in progress. Progress: " + str(round(progress * 100, 2)) + "%"
-                )
-                sys.stdout.write("\r" + progress_message)
-                sys.stdout.flush()
-                time.sleep(5)
-                return self.__wait_if_generating(recurse=True)
+            progress_message = (
+                "Generating version still in progress. Progress: "
+                + str(round(progress * 100, 2))
+                + "%"
+            )
+            sys.stdout.write("\r" + progress_message)
+            sys.stdout.flush()
+            time.sleep(5)
+            return self.__wait_if_generating(recurse=True)
 
         else:
             if recurse:
@@ -157,7 +159,7 @@ class Version:
         if model_format not in self.exports:
             self.export(model_format)
 
-        # if model_format is not in 
+        # if model_format is not in
 
         if location is None:
             location = self.__get_download_location()
@@ -204,7 +206,7 @@ class Version:
             except requests.exceptions.JSONDecodeError:
                 response.raise_for_status()
 
-        #the rest api returns 202 if the export is still in progress
+        # the rest api returns 202 if the export is still in progress
         if response.status_code == 202:
             status_code_check = 202
             while status_code_check == 202:
@@ -216,7 +218,9 @@ class Version:
                     progress_message = (
                         "Exporting format "
                         + model_format
-                        + " in progress : " + str(round(progress * 100, 2)) + "%"
+                        + " in progress : "
+                        + str(round(progress * 100, 2))
+                        + "%"
                     )
                     sys.stdout.write("\r" + progress_message)
                     sys.stdout.flush()
@@ -224,7 +228,7 @@ class Version:
         if response.status_code == 200:
             sys.stdout.write("\n")
             print("\r" + "Version export complete for " + model_format + " format")
-            sys.stdout.flush()   
+            sys.stdout.flush()
             return True
         else:
             try:
@@ -243,7 +247,6 @@ class Version:
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
             HTTPError: If the Network/Roboflow API fails and does not return JSON
         """
-
 
         self.__wait_if_generating()
 
