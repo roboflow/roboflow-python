@@ -13,7 +13,11 @@ class TestDownload(unittest.TestCase):
     def setUp(self):
         super(TestDownload, self).setUp()
         self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/coco"
-        self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="4")
+        self.version = get_version(
+            project_name="Test Dataset",
+            id="test-workspace/test-project/2",
+            version_number="4",
+        )
 
         self.generating_url = "https://api.roboflow.com/Test Workspace Name/Test Dataset/4/checkGenerating"
         
@@ -47,7 +51,6 @@ class TestDownload(unittest.TestCase):
 
 
 class TestExport(unittest.TestCase):
-
     def setUp(self):
         super(TestExport, self).setUp()
         self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/test-format"
@@ -58,7 +61,6 @@ class TestExport(unittest.TestCase):
     def test_export_returns_true_on_api_success(self):
         responses.add(responses.GET, self.api_url, status=200)
         responses.add(responses.GET, self.generating_url, json={"generating": False, "progress": 1.0})
-        
         export = self.version.export("test-format")
         request = responses.calls[0].request
 
@@ -70,7 +72,6 @@ class TestExport(unittest.TestCase):
     def test_export_raises_error_on_bad_request(self):
         responses.add(responses.GET, self.api_url, status=400, json={ "error": "BROKEN!!"})
         responses.add(responses.GET, self.generating_url, json={"generating": False, "progress": 1.0})
-        
         with self.assertRaises(RuntimeError):
             self.version.export("test-format")
 
@@ -78,7 +79,6 @@ class TestExport(unittest.TestCase):
     def test_export_raises_error_on_api_failure(self):
         responses.add(responses.GET, self.api_url, status=500)
         responses.add(responses.GET, self.generating_url, json={"generating": False, "progress": 1.0})
-        
         with self.assertRaises(requests.exceptions.HTTPError):
             self.version.export("test-format")
 
@@ -87,7 +87,11 @@ class TestExport(unittest.TestCase):
 class TestGetDownloadLocation(unittest.TestCase):
     def setUp(self, *_):
         super(TestGetDownloadLocation, self).setUp()
-        self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="3")
+        self.version = get_version(
+            project_name="Test Dataset",
+            id="test-workspace/test-project/2",
+            version_number="3",
+        )
 
         # This is a weird python thing to get access to the private function for testing.
         self.get_download_location = self.version._Version__get_download_location
@@ -108,7 +112,11 @@ class TestGetDownloadLocation(unittest.TestCase):
 class TestGetDownloadURL(unittest.TestCase):
     def setUp(self):
         super(TestGetDownloadURL, self).setUp()
-        self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="3")
+        self.version = get_version(
+            project_name="Test Dataset",
+            id="test-workspace/test-project/2",
+            version_number="3",
+        )
 
         # This is a weird python thing to get access to the private function for testing.
         self.get_download_url = self.version._Version__get_download_url
@@ -118,13 +126,19 @@ class TestGetDownloadURL(unittest.TestCase):
     def test_get_download_url(self):
         responses.add(responses.GET, self.generating_url, json={"generating": False, "progress": 1.0})
         url = self.get_download_url("yolo1337")
-        self.assertEqual(url, "https://api.roboflow.com/test-workspace/test-project/3/yolo1337")
+        self.assertEqual(
+            url, "https://api.roboflow.com/test-workspace/test-project/3/yolo1337"
+        )
 
 
 class TestGetFormatIdentifier(unittest.TestCase):
     def setUp(self):
         super(TestGetFormatIdentifier, self).setUp()
-        self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="3")
+        self.version = get_version(
+            project_name="Test Dataset",
+            id="test-workspace/test-project/2",
+            version_number="3",
+        )
 
         # This is a weird python thing to get access to the private function for testing.
         self.get_format_identifier = self.version._Version__get_format_identifier
@@ -135,13 +149,17 @@ class TestGetFormatIdentifier(unittest.TestCase):
     def test_returns_friendly_names_for_supported_formats(self):
         formats = [("yolov5", "yolov5pytorch"), ("yolov7", "yolov7pytorch")]
         for external_format, internal_format in formats:
-            self.assertEqual(self.get_format_identifier(external_format), internal_format)
+            self.assertEqual(
+                self.get_format_identifier(external_format), internal_format
+            )
 
     def test_falls_back_to_instance_variable_if_model_format_is_none(self):
         self.version.model_format = "fallback"
         self.assertEqual(self.get_format_identifier(None), "fallback")
 
-    def test_falls_back_to_instance_variable_if_model_format_is_none_and_converts_human_readable_format_to_identifier(self):
+    def test_falls_back_to_instance_variable_if_model_format_is_none_and_converts_human_readable_format_to_identifier(
+        self,
+    ):
         self.version.model_format = "yolov5"
         self.assertEqual(self.get_format_identifier(None), "yolov5pytorch")
 

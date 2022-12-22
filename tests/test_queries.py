@@ -12,7 +12,6 @@ from . import RoboflowTest, ordered, PROJECT_NAME
 
 
 class TestQueries(RoboflowTest):
-
     @ordered
     def test_workspace_fields(self):
         self.assertTrue(isinstance(self.workspace.name, str))
