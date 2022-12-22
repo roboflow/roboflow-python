@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 
 import requests
 
@@ -7,10 +8,10 @@ from roboflow.config import API_URL, APP_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
 
-__version__ = "0.2.20"
+__version__ = "0.2.21"
 
 
-def check_key(api_key, model, notebook):
+def check_key(api_key, model, notebook, num_retries=0):
     if type(api_key) is not str:
         raise RuntimeError(
             "API Key is of Incorrect Type \n Expected Type: "
@@ -28,11 +29,23 @@ def check_key(api_key, model, notebook):
         else:
             # validate key normally
             response = requests.post(API_URL + "/?api_key=" + api_key)
-            r = response.json()
 
-            if "error" in r or response.status_code != 200:
+            if response.status_code == 401:
                 raise RuntimeError(response.text)
+
+            if response.status_code != 200:
+                # retry 5 times
+                if num_retries < 5:
+                    print("retrying...")
+                    time.sleep(1)
+                    num_retries += 1
+                    return check_key(api_key, model, notebook, num_retries)
+                else:
+                    raise RuntimeError(
+                        "There was an error validating the api key with Roboflow server."
+                    )
             else:
+                r = response.json()
                 return r
     else:  # then you're using a dummy key
         sys.stdout.write(

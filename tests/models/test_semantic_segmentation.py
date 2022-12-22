@@ -9,16 +9,9 @@ from roboflow.util.prediction import PredictionGroup
 
 
 MOCK_RESPONSE = {
-
     "segmentation_mask": "iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAAAAADRE4smAAACjElEQVR4nO3bzXKbMBiGUanT+79ldVHXwSmmFmJGfcU5i8SZbDR8DzL4pxQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgKXUOnsFTGX+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMuosxewklpKm72GXj9mLyBf/etBEgGMqqVGTv5BADcngEF151GSn7MXkO116HFXgMUOMCZ//gK4TuT8BTCkvfyKJICbE8CQ9vyRSgBDMm/9tgQwLHoDWCDhaWopj+nXkpuBHeBT9dtL/t9OndQzSQCf2j/Fa8mdfSlFAD3a3l+H20IAAXzszbN83fw3b/4COO9PEIFT3xDAeW2zJ6TeBHg7eEjLvgUsxQ4wrGXPXwDDoscvgHE1+ypQAGfU/U8CJpaQuObpvt4FeBy/9vIoigD6fR2z9nwZaPtyUBQB9Ds6ZnEFuAa4OQF0O9w043ZUAdxcXLGT/eN4xV0C2AH6LDd/AVwpcP4CuFDi/AVwocjrKQF0iTzJDwmgz3IFCKDTagUI4OYEcJ3IzUEAnSIv9Q/4VHCXd+NvsWGkrnum9xUE8hTQL3LQ7wjghJUKEMBlMrMQwBm7s868nMpc9X/iefB+fzc8cgtwGzjg8XWAyMFzOZspAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACwil+AQDJrnsYcnwAAAABJRU5ErkJggg==",
-    "class_map": {
-        "0": "background",
-        "1": "object"
-    },
-    "image": {
-        "width": 800,
-        "height": 600
-    }
+    "class_map": {"0": "background", "1": "object"},
+    "image": {"width": 800, "height": 600},
 }
 
 
@@ -30,7 +23,7 @@ class TestSemanticSegmentation(unittest.TestCase):
 
     api_url = f"https://segment.roboflow.com/{dataset_id}/{version}"
 
-    _default_params = { "api_key": api_key, "confidence": "50" }
+    _default_params = {"api_key": api_key, "confidence": "50"}
 
     version_id = f"{workspace}/{dataset_id}/{version}"
 
@@ -38,7 +31,10 @@ class TestSemanticSegmentation(unittest.TestCase):
         instance = SemanticSegmentationModel(self.api_key, self.version_id)
 
         self.assertEqual(instance.id, self.version_id)
-        self.assertEqual(instance.api_url, f"{SEMANTIC_SEGMENTATION_URL}/{self.dataset_id}/{self.version}")
+        self.assertEqual(
+            instance.api_url,
+            f"{SEMANTIC_SEGMENTATION_URL}/{self.dataset_id}/{self.version}",
+        )
 
     @responses.activate
     def test_predict_returns_prediction_group(self):
@@ -62,7 +58,7 @@ class TestSemanticSegmentation(unittest.TestCase):
 
         request = responses.calls[0].request
 
-        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.method, "POST")
         self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, self._default_params)
         self.assertIsNotNone(request.body)
@@ -84,7 +80,7 @@ class TestSemanticSegmentation(unittest.TestCase):
 
         request = responses.calls[1].request
 
-        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.method, "POST")
         self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, expected_params)
         self.assertIsNone(request.body)
@@ -93,10 +89,7 @@ class TestSemanticSegmentation(unittest.TestCase):
     def test_predict_with_confidence_request(self):
         confidence = "100"
         image_path = "tests/images/rabbit.JPG"
-        expected_params = {
-            **self._default_params,
-            "confidence": confidence
-        }
+        expected_params = {**self._default_params, "confidence": confidence}
         instance = SemanticSegmentationModel(self.api_key, self.version_id)
 
         responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
@@ -105,7 +98,7 @@ class TestSemanticSegmentation(unittest.TestCase):
 
         request = responses.calls[0].request
 
-        self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.method, "POST")
         self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, expected_params)
         self.assertIsNotNone(request.body)
