@@ -5,6 +5,7 @@ import sys
 
 import requests
 from PIL import Image
+from numpy import ndarray
 
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
@@ -292,7 +293,11 @@ class Workspace:
         print("inference reference point: ", inference_model)
         print("upload destination: ", upload_project)
 
-        globbed_files = glob.glob(raw_data_location + "/*" + raw_data_extension)
+        # check if raw data type is cv2 frame
+        if type(raw_data_location is type(ndarray)):
+            globbed_files = [raw_data_location]
+        else:
+            globbed_files = glob.glob(raw_data_location + "/*" + raw_data_extension)
 
         image1 = globbed_files[0]
         similarity_timeout_counter = 0
