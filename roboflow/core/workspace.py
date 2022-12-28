@@ -4,8 +4,8 @@ import os
 import sys
 
 import requests
-from PIL import Image
 from numpy import ndarray
+from PIL import Image
 
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
@@ -332,12 +332,7 @@ class Workspace:
 
             predictions = inference_model.predict(image).json()["predictions"]
             # collect all predictions to return to user at end
-            prediction_results.append(
-                {
-                    "image":image,
-                    "predictions":predictions
-                }
-            )
+            prediction_results.append({"image": image, "predictions": predictions})
 
             # compare object and class count of predictions if enabled, continue if not enough occurances
             if not count_comparisons(
@@ -383,9 +378,13 @@ class Workspace:
                     print(" >> image uploaded!")
                     upload_project.upload(image, num_retry_uploads=3)
                     break
-        
+
         # return predictions with filenames if globbed images from dir, otherwise return latest prediction result
-        return prediction_results if type(raw_data_location) is not ndarray else prediction_results[-1]["predictions"]
+        return (
+            prediction_results
+            if type(raw_data_location) is not ndarray
+            else prediction_results[-1]["predictions"]
+        )
 
     def __str__(self):
         projects = self.projects()
