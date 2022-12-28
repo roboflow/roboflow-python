@@ -241,9 +241,9 @@ class Workspace:
             conditionals: (dict) = dictionary of upload conditions
             use_localhost: (bool) = determines if local http format used or remote endpoint
         """
+        prediction_results = []
 
         # ensure that all fields of conditionals have a key:value pair
-
         conditionals["target_classes"] = (
             []
             if "target_classes" not in conditionals
@@ -331,6 +331,13 @@ class Workspace:
                     continue  # skip this image if too similar or counter hits limit
 
             predictions = inference_model.predict(image).json()["predictions"]
+            # collect all predictions to return to user at end
+            prediction_results.append(
+                {
+                    "image":image,
+                    "predictions":predictions
+                }
+            )
 
             # compare object and class count of predictions if enabled, continue if not enough occurances
             if not count_comparisons(
@@ -376,8 +383,9 @@ class Workspace:
                     print(" >> image uploaded!")
                     upload_project.upload(image, num_retry_uploads=3)
                     break
-
-        return "complete"
+        
+        # return predictions with filenames if globbed images from dir, otherwise return latest prediction result
+        return prediction_results if type(raw_data_location) is not ndarray else prediction_results[-1]["predictions"]
 
     def __str__(self):
         projects = self.projects()
