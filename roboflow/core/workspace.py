@@ -4,6 +4,7 @@ import os
 import sys
 
 import requests
+from numpy import ndarray
 from PIL import Image
 
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
@@ -240,9 +241,9 @@ class Workspace:
             conditionals: (dict) = dictionary of upload conditions
             use_localhost: (bool) = determines if local http format used or remote endpoint
         """
+        prediction_results = []
 
         # ensure that all fields of conditionals have a key:value pair
-
         conditionals["target_classes"] = (
             []
             if "target_classes" not in conditionals
@@ -292,7 +293,11 @@ class Workspace:
         print("inference reference point: ", inference_model)
         print("upload destination: ", upload_project)
 
-        globbed_files = glob.glob(raw_data_location + "/*" + raw_data_extension)
+        # check if raw data type is cv2 frame
+        if type(raw_data_location is type(ndarray)):
+            globbed_files = [raw_data_location]
+        else:
+            globbed_files = glob.glob(raw_data_location + "/*" + raw_data_extension)
 
         image1 = globbed_files[0]
         similarity_timeout_counter = 0
@@ -326,6 +331,8 @@ class Workspace:
                     continue  # skip this image if too similar or counter hits limit
 
             predictions = inference_model.predict(image).json()["predictions"]
+            # collect all predictions to return to user at end
+            prediction_results.append({"image": image, "predictions": predictions})
 
             # compare object and class count of predictions if enabled, continue if not enough occurances
             if not count_comparisons(
@@ -372,7 +379,12 @@ class Workspace:
                     upload_project.upload(image, num_retry_uploads=3)
                     break
 
-        return "complete"
+        # return predictions with filenames if globbed images from dir, otherwise return latest prediction result
+        return (
+            prediction_results
+            if type(raw_data_location) is not ndarray
+            else prediction_results[-1]["predictions"]
+        )
 
     def __str__(self):
         projects = self.projects()
