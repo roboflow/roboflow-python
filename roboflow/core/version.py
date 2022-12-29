@@ -109,9 +109,7 @@ class Version:
     def __check_if_generating(self):
         # check Roboflow API to see if this version is still generating
 
-        url = (
-            f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
-        )
+        url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
         response = requests.get(url, params={"api_key": self.__api_key})
         response.raise_for_status()
 
