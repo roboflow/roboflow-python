@@ -110,17 +110,17 @@ class Version:
         # check Roboflow API to see if this version is still generating
 
         url = (
-            f"{API_URL}/{self.workspace}/{self.project}/{self.version}/checkGenerating"
+            f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
         )
         response = requests.get(url, params={"api_key": self.__api_key})
         response.raise_for_status()
 
-        if response.json()["progress"] == None:
+        if response.json()["version"]["progress"] == None:
             progress = 0.0
         else:
-            progress = float(response.json()["progress"])
+            progress = float(response.json()["version"]["progress"])
 
-        return response.json()["generating"], progress
+        return response.json()["version"]["generating"], progress
 
     def __wait_if_generating(self, recurse=False):
         # checks if a given version is still in the progress of generating
