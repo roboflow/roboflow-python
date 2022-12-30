@@ -303,15 +303,18 @@ class Workspace:
         similarity_timeout_counter = 0
 
         for index, image in enumerate(globbed_files):
-            print(
-                "*** Processing image ["
-                + str(index + 1)
-                + "/"
-                + str(len(globbed_files))
-                + "] - "
-                + image
-                + " ***"
-            )
+            try:
+                print(
+                    "*** Processing image ["
+                    + str(index + 1)
+                    + "/"
+                    + str(len(globbed_files))
+                    + "] - "
+                    + image
+                    + " ***"
+                )
+            except:
+                pass
 
             if "similarity_confidence_threshold" in conditionals.keys():
                 image2 = image
