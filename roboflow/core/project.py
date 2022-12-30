@@ -2,6 +2,7 @@ import datetime
 import io
 import json
 import os
+import sys
 import urllib
 import warnings
 
@@ -95,6 +96,119 @@ class Project:
             )
             version_array.append(version_object)
         return version_array
+
+    def generate_version(self, settings):
+
+        """
+        Settings, a python dict with augmentation and preprocessing keys and specifications for generation.
+        These settings mirror capabilities available via the Roboflow UI.
+        For example:
+             {
+                "augmentation": {
+                    "bbblur": { "pixels": 1.5 },
+                    "bbbrightness": { "brighten": true, "darken": false, "percent": 91 },
+                    "bbcrop": { "min": 12, "max": 71 },
+                    "bbexposure": { "percent": 30 },
+                    "bbflip": { "horizontal": true, "vertical": false },
+                    "bbnoise": { "percent": 50 },
+                    "bbninety": { "clockwise": true, "counter-clockwise": false, "upside-down": false },
+                    "bbrotate": { "degrees": 45 },
+                    "bbshear": { "horizontal": 45, "vertical": 45 },
+                    "blur": { "pixels": 1.5 },
+                    "brightness": { "brighten": true, "darken": false, "percent": 91 },
+                    "crop": { "min": 12, "max": 71 },
+                    "cutout": { "count": 26, "percent": 71 },
+                    "exposure": { "percent": 30 },
+                    "flip": { "horizontal": true, "vertical": false },
+                    "hue": { "degrees": 180 },
+                    "image": { "versions": 32 },
+                    "mosaic": true,
+                    "ninety": { "clockwise": true, "counter-clockwise": false, "upside-down": false },
+                    "noise": { "percent": 50 },
+                    "rgrayscale": { "percent": 50 },
+                    "rotate": { "degrees": 45 },
+                    "saturation": { "percent": 50 },
+                    "shear": { "horizontal": 45, "vertical": 45 }
+                },
+                "preprocessing": {
+                    "auto-orient": true,
+                    "contrast": { "type": "Contrast Stretching" },
+                    "filter-null": { "percent": 50 },
+                    "grayscale": true,
+                    "isolate": true,
+                    "remap": { "original_class_name": "new_class_name" },
+                    "resize": { "width": 200, "height": 200, "format": "Stretch to" },
+                    "static-crop": { "x_min": 10, "x_max": 90, "y_min": 10, "y_max": 90 },
+                    "tile": { "rows": 2, "columns": 2 }
+                }
+            }
+
+        Returns: The version number that is being generated
+        """
+
+        if not {"augmentation", "preprocessing"} <= settings.keys():
+            raise (
+                RuntimeError(
+                    "augmentation and preprocessing keys are required to generate. If none are desired specify empty dict associated with that key."
+                )
+            )
+
+        r = requests.post(
+            f"{API_URL}/{self.__workspace}/{self.__project_name}/generate?api_key={self.__api_key}",
+            json=settings,
+        )
+
+        try:
+            r_json = r.json()
+        except:
+            raise ("Error when requesting to generate a new version for project.")
+
+        # if the generation succeeds, return the version that is being generated
+        if r.status_code == 200:
+            sys.stdout.write(
+                "\r"
+                + r_json["message"]
+                + " for new version "
+                + str(r_json["version"])
+                + "."
+            )
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            return int(r_json["version"])
+        else:
+            if "error" in r_json.keys():
+                raise RuntimeError(r_json["error"])
+            else:
+                raise RuntimeError(json.dumps(r_json))
+
+    def train(
+        self,
+        new_version_settings={
+            "preprocessing": {
+                "auto-orient": True,
+                "resize": {"width": 640, "height": 640, "format": "Stretch to"},
+            },
+            "augmentation": {},
+        },
+        speed=None,
+        checkpoint=None,
+    ) -> bool:
+        """
+        Ask the Roboflow API to train a previously exported version's dataset.
+        Args:
+            speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
+            checkpoint: A string representing the checkpoint to use while training
+        Returns:
+            True
+            RuntimeError: If the Roboflow API returns an error with a helpful JSON body
+            HTTPError: If the Network/Roboflow API fails and does not return JSON
+        """
+
+        new_version = self.generate_version(settings=new_version_settings)
+        new_version = self.version(new_version)
+        new_version.train(speed=speed, checkpoint=checkpoint)
+
+        return True
 
     def version(self, version_number, local=None):
         """Retrieves information about a specific version, and throws it into an object.

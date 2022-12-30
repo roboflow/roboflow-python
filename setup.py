@@ -21,7 +21,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/roboflow-ai/roboflow-python",
     install_requires=[
-        "certifi==2021.5.30",
+        "certifi==2022.12.7",
         "chardet==4.0.0",
         "cycler==0.10.0",
         "glob2",

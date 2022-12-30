@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import time
 import zipfile
 
 import requests
@@ -69,6 +70,10 @@ class Version:
             self.model_format = model_format
             self.workspace = workspace
             self.project = project
+            if "exports" in version_dict.keys():
+                self.exports = version_dict["exports"]
+            else:
+                self.exports = []
 
             version_without_workspace = os.path.basename(str(version))
 
@@ -101,6 +106,42 @@ class Version:
             else:
                 self.model = None
 
+    def __check_if_generating(self):
+        # check Roboflow API to see if this version is still generating
+
+        url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
+        response = requests.get(url, params={"api_key": self.__api_key})
+        response.raise_for_status()
+
+        if response.json()["version"]["progress"] == None:
+            progress = 0.0
+        else:
+            progress = float(response.json()["version"]["progress"])
+
+        return response.json()["version"]["generating"], progress
+
+    def __wait_if_generating(self, recurse=False):
+        # checks if a given version is still in the progress of generating
+
+        still_generating, progress = self.__check_if_generating()
+
+        if still_generating:
+            progress_message = (
+                "Generating version still in progress. Progress: "
+                + str(round(progress * 100, 2))
+                + "%"
+            )
+            sys.stdout.write("\r" + progress_message)
+            sys.stdout.flush()
+            time.sleep(5)
+            return self.__wait_if_generating(recurse=True)
+
+        else:
+            if recurse:
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+            return
+
     def download(self, model_format=None, location=None):
         """
         Download and extract a ZIP of a version's dataset in a given format
@@ -110,10 +151,18 @@ class Version:
 
         :return: Dataset
         """
-        if location is None:
-            location = self.__get_download_location()
+
+        self.__wait_if_generating()
 
         model_format = self.__get_format_identifier(model_format)
+
+        if model_format not in self.exports:
+            self.export(model_format)
+
+        # if model_format is not in
+
+        if location is None:
+            location = self.__get_download_location()
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
@@ -144,13 +193,91 @@ class Version:
         :return: True
         :raises RuntimeError / HTTPError:
         """
+
+        model_format = self.__get_format_identifier(model_format)
+
+        self.__wait_if_generating()
+
         url = self.__get_download_url(model_format)
-        response = requests.post(url, params={"api_key": self.__api_key})
+        response = requests.get(url, params={"api_key": self.__api_key})
         if not response.ok:
             try:
                 raise RuntimeError(response.json())
             except requests.exceptions.JSONDecodeError:
                 response.raise_for_status()
+
+        # the rest api returns 202 if the export is still in progress
+        if response.status_code == 202:
+            status_code_check = 202
+            while status_code_check == 202:
+                time.sleep(1)
+                response = requests.get(url, params={"api_key": self.__api_key})
+                status_code_check = response.status_code
+                if status_code_check == 202:
+                    progress = response.json()["progress"]
+                    progress_message = (
+                        "Exporting format "
+                        + model_format
+                        + " in progress : "
+                        + str(round(progress * 100, 2))
+                        + "%"
+                    )
+                    sys.stdout.write("\r" + progress_message)
+                    sys.stdout.flush()
+
+        if response.status_code == 200:
+            sys.stdout.write("\n")
+            print("\r" + "Version export complete for " + model_format + " format")
+            sys.stdout.flush()
+            return True
+        else:
+            try:
+                raise RuntimeError(response.json())
+            except requests.exceptions.JSONDecodeError:
+                response.raise_for_status()
+
+    def train(self, speed=None, checkpoint=None) -> bool:
+        """
+        Ask the Roboflow API to train a previously exported version's dataset.
+        Args:
+            speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
+            checkpoint: A string representing the checkpoint to use while training
+        Returns:
+            True
+            RuntimeError: If the Roboflow API returns an error with a helpful JSON body
+            HTTPError: If the Network/Roboflow API fails and does not return JSON
+        """
+
+        self.__wait_if_generating()
+
+        train_model_format = "yolov5pytorch"
+
+        if train_model_format not in self.exports:
+            self.export(train_model_format)
+
+        workspace, project, *_ = self.id.rsplit("/")
+        url = f"{API_URL}/{workspace}/{project}/{self.version}/train"
+
+        data = {}
+        if speed:
+            data["speed"] = speed
+
+        if checkpoint:
+            data["checkpoint"] = checkpoint
+
+        sys.stdout.write("\r" + "Reaching out to Roboflow to start training...")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
+        response = requests.post(url, json=data, params={"api_key": self.__api_key})
+        if not response.ok:
+            try:
+                raise RuntimeError(response.json())
+            except requests.exceptions.JSONDecodeError:
+                response.raise_for_status()
+
+        sys.stdout.write("\r" + "Training model in progress...")
+        sys.stdout.flush()
 
         return True
 
