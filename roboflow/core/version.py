@@ -154,6 +154,8 @@ class Version:
 
         self.__wait_if_generating()
 
+        model_format = self.__get_format_identifier(model_format)
+
         if model_format not in self.exports:
             self.export(model_format)
 
@@ -161,8 +163,6 @@ class Version:
 
         if location is None:
             location = self.__get_download_location()
-
-        model_format = self.__get_format_identifier(model_format)
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
@@ -193,6 +193,8 @@ class Version:
         :return: True
         :raises RuntimeError / HTTPError:
         """
+
+        model_format = self.__get_format_identifier(model_format)
 
         self.__wait_if_generating()
 
