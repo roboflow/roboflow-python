@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from roboflow.config import (
     API_URL,
+    APP_URL,
     DEMO_KEYS,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
@@ -281,12 +282,18 @@ class Version:
 
         return True
 
-    def upload_model(self, model_path: str) -> None:
+    def deploy(self, model_path: str, model_type) -> None:
         """Uploads provided weights file to Roboflow
 
         Args:
             model_path (str): File path to model weights to be uploaded
         """
+        
+        supported_models = ["yolov5", "yolov8"]
+        
+        if model_type not in supported_models:
+            raise(ValueError(f"Model type {model_type} not supported. Supported models are {supported_models}"))
+        
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}"
         )
@@ -303,7 +310,9 @@ class Version:
         res = requests.put(res.json()["url"], data=open(model_path, "rb"))
         try:
             res.raise_for_status()
-            print("Model uploaded")
+            
+            print(f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}")
+            print(f"Share your model with the world at: {UNIVERSE_URL}/{self.workspace}/{self.project}/{self.version}")
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
 
