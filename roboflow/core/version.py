@@ -13,12 +13,12 @@ from tqdm import tqdm
 from roboflow.config import (
     API_URL,
     APP_URL,
-    UNIVERSE_URL,
     DEMO_KEYS,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_OBJECT_DETECTION,
     TYPE_SEMANTIC_SEGMENTATION,
+    UNIVERSE_URL,
 )
 from roboflow.core.dataset import Dataset
 from roboflow.models.classification import ClassificationModel
@@ -307,7 +307,6 @@ class Version:
                 "The ultralytics python package is required to deploy yolov8 models. Please install it with `pip install ultralytics`"
             )
 
-
         # add logic to save torch state dict safely
         if model_type == "yolov8":
             model = torch.load(model_path + "weights/best.pt")
@@ -354,7 +353,7 @@ class Version:
         except Exception as e:
             print(f"An error occured when getting the model upload URL: {e}")
             return
-                
+
         res = requests.put(
             res.json()["url"], data=open(model_path + "roboflow_deploy.zip", "rb")
         )
