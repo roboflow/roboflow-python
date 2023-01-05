@@ -320,7 +320,6 @@ class Version:
                 },
                 "ultralytics_version": ultralytics.__version__,
                 "model_type": model_type,
-                "yaml_file": model["model"].yaml_file,
             }
 
             with open(model_path + "model_artifacts.json", "w") as fp:
@@ -355,6 +354,7 @@ class Version:
         except Exception as e:
             print(f"An error occured when getting the model upload URL: {e}")
             return
+                
         res = requests.put(
             res.json()["url"], data=open(model_path + "roboflow_deploy.zip", "rb")
         )
