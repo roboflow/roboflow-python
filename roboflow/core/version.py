@@ -317,7 +317,7 @@ class Version:
                     k: val for k, val in model["model"].args.items() if k != "hydra"
                 },
                 "ultralytics_version": ultralytics.__version__,
-                "model_type": model_type
+                "model_type": model_type,
             }
 
             with open(model_path + "model_artifacts.json", "w") as fp:
