@@ -282,18 +282,62 @@ class Version:
 
         return True
 
-    def deploy(self, model_path: str, model_type) -> None:
+    def deploy(self, model_type: str, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
 
         Args:
             model_path (str): File path to model weights to be uploaded
         """
-        
-        supported_models = ["yolov5", "yolov8"]
-        
+
+        supported_models = ["yolov8"]
+
         if model_type not in supported_models:
-            raise(ValueError(f"Model type {model_type} not supported. Supported models are {supported_models}"))
-        
+            raise (
+                ValueError(
+                    f"Model type {model_type} not supported. Supported models are {supported_models}"
+                )
+            )
+
+        try:
+            import torch
+            import ultralytics
+        except ImportError as e:
+            raise (
+                "The ultralytics python package is required to deploy yolov8 models. Please install it with `pip install ultralytics`"
+            )
+
+        # add logic to save torch state dict safely
+        if model_type == "yolov8":
+            model = torch.load(model_path + "weights/best.pt")
+            model_artifacts = {
+                "names": model["model"].names,
+                "yaml": model["model"].yaml,
+                "nc": model["model"].nc,
+                "args": {
+                    k: val for k, val in model["model"].args.items() if k != "hydra"
+                },
+                "ultralytics_version": ultralytics.__version__,
+            }
+
+            with open(model_path + "model_artifacts.json", "w") as fp:
+                json.dump(model_artifacts, fp)
+
+            torch.save(model["model"].state_dict(), model_path + "state_dict.pt")
+
+            lista_files = [
+                "results.csv",
+                "results.png",
+                "model_artifacts.json",
+                "state_dict.pt",
+            ]
+            with zipfile.ZipFile(model_path + "roboflow_deploy.zip", "w") as zipMe:
+                for file in lista_files:
+                    zipMe.write(
+                        model_path + file,
+                        arcname=file,
+                        compress_type=zipfile.ZIP_DEFLATED,
+                    )
+
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}"
         )
@@ -307,14 +351,22 @@ class Version:
         except Exception as e:
             print(f"An error occured when getting the model upload URL: {e}")
             return
-        res = requests.put(res.json()["url"], data=open(model_path, "rb"))
+        res = requests.put(
+            res.json()["url"], data=open(model_path + "roboflow_deploy.zip", "rb")
+        )
         try:
             res.raise_for_status()
-            
-            print(f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}")
-            print(f"Share your model with the world at: {UNIVERSE_URL}/{self.workspace}/{self.project}/{self.version}")
+
+            print(
+                f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
+            )
+            print(
+                f"Share your model with the world at: {UNIVERSE_URL}/{self.workspace}/{self.project}/{self.version}"
+            )
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
+
+    # torch.load("state_dict.pt", weights_only=True)
 
     def __download_zip(self, link, location, format):
         """
