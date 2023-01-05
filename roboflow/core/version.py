@@ -13,6 +13,7 @@ from tqdm import tqdm
 from roboflow.config import (
     API_URL,
     APP_URL,
+    UNIVERSE_URL,
     DEMO_KEYS,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
@@ -306,6 +307,7 @@ class Version:
                 "The ultralytics python package is required to deploy yolov8 models. Please install it with `pip install ultralytics`"
             )
 
+
         # add logic to save torch state dict safely
         if model_type == "yolov8":
             model = torch.load(model_path + "weights/best.pt")
@@ -318,6 +320,7 @@ class Version:
                 },
                 "ultralytics_version": ultralytics.__version__,
                 "model_type": model_type,
+                "yaml_file": model["model"].yaml_file,
             }
 
             with open(model_path + "model_artifacts.json", "w") as fp:
