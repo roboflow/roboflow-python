@@ -488,8 +488,10 @@ class PredictionGroup:
         """
         prediction_list = []
 
+        # LOADING PHOTO TAKES TIME - PASS VARIABLES IF POSSIBLE
         image_loaded = Image.open(image_path)
         dimensions = image_loaded.size
+        # LOADING PHOTO TAKES TIME - PASS VARIABLES IF POSSIBLE
 
         if prediction_type in [OBJECT_DETECTION_MODEL, INSTANCE_SEGMENTATION_MODEL]:
             for prediction in json_response["predictions"]:
