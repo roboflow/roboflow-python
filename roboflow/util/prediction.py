@@ -488,20 +488,29 @@ class PredictionGroup:
         """
         prediction_list = []
 
+        image_loaded = cv2.imread(image_path)
+        dimensions = image_loaded.shape
+
         if prediction_type in [OBJECT_DETECTION_MODEL, INSTANCE_SEGMENTATION_MODEL]:
             for prediction in json_response["predictions"]:
                 prediction = Prediction(
                     prediction, image_path, prediction_type=prediction_type
                 )
                 prediction_list.append(prediction)
+                if "image" not in json_response:
+                    json_response["image"] = {'width': dimensions[0], 'height': dimensions[1]}
             img_dims = json_response["image"]
         elif prediction_type == CLASSIFICATION_MODEL:
             prediction = Prediction(json_response, image_path, prediction_type)
             prediction_list.append(prediction)
-            img_dims = {}
+            if "image" not in json_response:
+                    json_response["image"] = {'width': dimensions[0], 'height': dimensions[1]}
+            img_dims = json_response["image"]
         elif prediction_type == SEMANTIC_SEGMENTATION_MODEL:
             prediction = Prediction(json_response, image_path, prediction_type)
             prediction_list.append(prediction)
+            if "image" not in json_response:
+                    json_response["image"] = {'width': dimensions[0], 'height': dimensions[1]}
             img_dims = json_response["image"]
 
         # Seperate list and return as a prediction group
