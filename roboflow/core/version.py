@@ -94,15 +94,9 @@ class Version:
                     local=local,
                 )
             elif self.type == TYPE_INSTANCE_SEGMENTATION:
-                self.model = InstanceSegmentationModel(
-                    self.__api_key,
-                    self.id,
-                )
+                self.model = InstanceSegmentationModel(self.__api_key, self.id)
             elif self.type == TYPE_SEMANTIC_SEGMENTATION:
-                self.model = SemanticSegmentationModel(
-                    self.__api_key,
-                    self.id,
-                )
+                self.model = SemanticSegmentationModel(self.__api_key, self.id)
             else:
                 self.model = None
 
@@ -401,10 +395,7 @@ class Version:
                 "You must pass a format argument to version.download() or define a model in your Roboflow object"
             )
 
-        friendly_formats = {
-            "yolov5": "yolov5pytorch",
-            "yolov7": "yolov7pytorch",
-        }
+        friendly_formats = {"yolov5": "yolov5pytorch", "yolov7": "yolov7pytorch"}
         return friendly_formats.get(format, format)
 
     def __reformat_yaml(self, location, format):

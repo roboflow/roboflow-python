@@ -80,10 +80,7 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60):
     elif prediction["prediction_type"] == INSTANCE_SEGMENTATION_MODEL:
         points = [[p["x"], p["y"]] for p in prediction["points"]]
         polygon = patches.Polygon(
-            points,
-            linewidth=stroke,
-            edgecolor="r",
-            facecolor="none",
+            points, linewidth=stroke, edgecolor="r", facecolor="none"
         )
         axes.add_patch(polygon)
     elif prediction["prediction_type"] == SEMANTIC_SEGMENTATION_MODEL:
@@ -500,19 +497,28 @@ class PredictionGroup:
                 )
                 prediction_list.append(prediction)
                 if "image" not in json_response:
-                    json_response["image"] = {'width': dimensions[0], 'height': dimensions[1]}
+                    json_response["image"] = {
+                        "width": dimensions[0],
+                        "height": dimensions[1],
+                    }
             img_dims = json_response["image"]
         elif prediction_type == CLASSIFICATION_MODEL:
             prediction = Prediction(json_response, image_path, prediction_type)
             prediction_list.append(prediction)
             if "image" not in json_response:
-                    json_response["image"] = {'width': dimensions[0], 'height': dimensions[1]}
+                json_response["image"] = {
+                    "width": dimensions[0],
+                    "height": dimensions[1],
+                }
             img_dims = json_response["image"]
         elif prediction_type == SEMANTIC_SEGMENTATION_MODEL:
             prediction = Prediction(json_response, image_path, prediction_type)
             prediction_list.append(prediction)
             if "image" not in json_response:
-                    json_response["image"] = {'width': dimensions[0], 'height': dimensions[1]}
+                json_response["image"] = {
+                    "width": dimensions[0],
+                    "height": dimensions[1],
+                }
             img_dims = json_response["image"]
 
         # Seperate list and return as a prediction group

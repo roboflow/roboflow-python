@@ -31,10 +31,7 @@ class InferenceModel:
         """
         validate_image_path(image_path)
 
-        hosted_image = urllib.parse.urlparse(image_path).scheme in (
-            "http",
-            "https",
-        )
+        hosted_image = urllib.parse.urlparse(image_path).scheme in ("http", "https")
 
         if hosted_image:
             return {"image": image_path}, {}
@@ -45,10 +42,7 @@ class InferenceModel:
         data = MultipartEncoder(
             fields={"file": ("imageToUpload", buffered.getvalue(), "image/jpeg")}
         )
-        return {}, {
-            "data": data,
-            "headers": {"Content-Type": data.content_type},
-        }
+        return {}, {"data": data, "headers": {"Content-Type": data.content_type}}
 
     def predict(self, image_path, prediction_type=None, **kwargs):
         """
@@ -71,7 +65,5 @@ class InferenceModel:
         response.raise_for_status()
 
         return PredictionGroup.create_prediction_group(
-            response.json(),
-            image_path=image_path,
-            prediction_type=prediction_type,
+            response.json(), image_path=image_path, prediction_type=prediction_type
         )
