@@ -488,8 +488,8 @@ class PredictionGroup:
         """
         prediction_list = []
 
-        image_loaded = cv2.imread(image_path)
-        dimensions = image_loaded.shape
+        image_loaded = Image.open(image_path)
+        dimensions = image_loaded.size
 
         if prediction_type in [OBJECT_DETECTION_MODEL, INSTANCE_SEGMENTATION_MODEL]:
             for prediction in json_response["predictions"]:
