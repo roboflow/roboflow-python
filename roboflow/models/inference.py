@@ -34,15 +34,22 @@ class InferenceModel:
         hosted_image = urllib.parse.urlparse(image_path).scheme in ("http", "https")
 
         if hosted_image:
-            return {"image": image_path}, {}
+            image_dims = {"width": "Undefined", "height": "Undefined"}
+            return {"image": image_path}, {}, image_dims
 
         image = Image.open(image_path)
+        dimensions = image.size
+        image_dims = {"width": str(dimensions[0]), "height": str(dimensions[1])}
         buffered = io.BytesIO()
         image.save(buffered, quality=90, format="JPEG")
         data = MultipartEncoder(
             fields={"file": ("imageToUpload", buffered.getvalue(), "image/jpeg")}
         )
-        return {}, {"data": data, "headers": {"Content-Type": data.content_type}}
+        return (
+            {},
+            {"data": data, "headers": {"Content-Type": data.content_type}},
+            image_dims,
+        )
 
     def predict(self, image_path, prediction_type=None, **kwargs):
         """
@@ -54,7 +61,7 @@ class InferenceModel:
         :return: PredictionGroup - a group of predictions based on Roboflow JSON response
         :raises Exception: Image path is not valid
         """
-        params, request_kwargs = self.__get_image_params(image_path)
+        params, request_kwargs, image_dims = self.__get_image_params(image_path)
 
         params["api_key"] = self.__api_key
 
@@ -65,5 +72,8 @@ class InferenceModel:
         response.raise_for_status()
 
         return PredictionGroup.create_prediction_group(
-            response.json(), image_path=image_path, prediction_type=prediction_type
+            response.json(),
+            image_path=image_path,
+            prediction_type=prediction_type,
+            image_dims=image_dims,
         )
