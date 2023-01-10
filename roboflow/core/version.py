@@ -307,15 +307,16 @@ class Version:
                 "The ultralytics python package is required to deploy yolov8 models. Please install it with `pip install ultralytics`"
             )
 
-        class_names = []
-        for i, val in enumerate(m["model"].names):
-            class_names.append((val, m["model"].names[val]))
-        class_names.sort(key=lambda x: x[0])
-        class_names = [x[1] for x in class_names]
-
         # add logic to save torch state dict safely
         if model_type == "yolov8":
             model = torch.load(model_path + "weights/best.pt")
+
+            class_names = []
+            for i, val in enumerate(model["model"].names):
+                class_names.append((val, model["model"].names[val]))
+            class_names.sort(key=lambda x: x[0])
+            class_names = [x[1] for x in class_names]
+
             model_artifacts = {
                 "names": class_names,
                 "yaml": model["model"].yaml,
