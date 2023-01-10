@@ -488,7 +488,7 @@ class Version:
 
         :return None:
         """
-        if format in ["yolov5pytorch", "yolov7pytorch"]:
+        if format in ["yolov5pytorch", "yolov7pytorch", "yolov8"]:
             with open(location + "/data.yaml") as file:
                 new_yaml = yaml.safe_load(file)
             new_yaml["train"] = location + new_yaml["train"].lstrip("..")
