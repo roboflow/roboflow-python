@@ -93,7 +93,7 @@ class Project:
                 local=None,
                 workspace=self.__workspace,
                 project=self.__project_name,
-                public=self.public
+                public=self.public,
             )
             version_array.append(version_object)
         return version_array
