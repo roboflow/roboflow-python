@@ -41,6 +41,7 @@ class Version:
         local,
         workspace,
         project,
+        public,
     ):
         if api_key in DEMO_KEYS:
             if api_key == "coco-128-sample":
@@ -72,6 +73,7 @@ class Version:
             self.model_format = model_format
             self.workspace = workspace
             self.project = project
+            self.public = public
             if "exports" in version_dict.keys():
                 self.exports = version_dict["exports"]
             else:
@@ -367,12 +369,18 @@ class Version:
         try:
             res.raise_for_status()
 
-            print(
-                f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
-            )
-            print(
-                f"Share your model with the world at: {UNIVERSE_URL}/{self.workspace}/{self.project}/{self.version}"
-            )
+            if self.public:
+                print(
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/deploy/{self.version}"
+                )
+                print(
+                    f"Share your model with the world at: {UNIVERSE_URL}/{self.workspace}/{self.project}/model/{self.version}"
+                )
+            else:
+                print(
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/deploy/{self.version}"
+                )
+
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
 

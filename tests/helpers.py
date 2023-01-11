@@ -5,6 +5,7 @@ from roboflow.core.version import Version
 def get_version(
     api_key="test-api-key",
     project_name="Test Project Name",
+    public=True,
     version_number="1",
     type=TYPE_OBJECT_DETECTION,
     workspace_name="Test Workspace Name",
@@ -46,4 +47,5 @@ def get_version(
         local=None,
         workspace=workspace_name,
         project=project_name,
+        public=public
     )
