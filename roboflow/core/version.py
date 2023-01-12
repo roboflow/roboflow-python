@@ -167,7 +167,9 @@ class Version:
         if location is None:
             location = self.__get_download_location()
         if os.path.exists(location) and not overwrite:
-            return Dataset(self.name, self.version, model_format, os.path.abspath(location))
+            return Dataset(
+                self.name, self.version, model_format, os.path.abspath(location)
+            )
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
