@@ -144,12 +144,13 @@ class Version:
                 sys.stdout.flush()
             return
 
-    def download(self, model_format=None, location=None):
+    def download(self, model_format=None, location=None, overwrite: bool = True):
         """
         Download and extract a ZIP of a version's dataset in a given format
 
         :param model_format: A format to use for downloading
         :param location: An optional path for saving the file
+        :param overwrite: An optional flag to prevent dataset overwrite when dataset is already downloaded
 
         :return: Dataset
         """
@@ -165,6 +166,8 @@ class Version:
 
         if location is None:
             location = self.__get_download_location()
+        if os.path.exists(location) and not overwrite:
+            return Dataset(self.name, self.version, model_format, os.path.abspath(location))
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
