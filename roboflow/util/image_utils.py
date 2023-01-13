@@ -22,10 +22,7 @@ def check_image_url(url):
     :param url: URL of image
     :returns: Boolean
     """
-    if urllib.parse.urlparse(url).scheme not in (
-        "http",
-        "https",
-    ):
+    if urllib.parse.urlparse(url).scheme not in ("http", "https"):
         return False
 
     r = requests.head(url)

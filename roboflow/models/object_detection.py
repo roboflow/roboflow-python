@@ -146,6 +146,7 @@ class ObjectDetectionModel:
         if not hosted:
             if type(image_path) is str:
                 image = Image.open(image_path).convert("RGB")
+                dimensions = image.size
                 # Create buffer
                 buffered = io.BytesIO()
                 image.save(buffered, format="PNG")
@@ -158,22 +159,27 @@ class ObjectDetectionModel:
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
+                image_dims = {"width": str(dimensions[0]), "height": str(dimensions[1])}
             elif isinstance(image_path, np.ndarray):
                 # Performing inference on a OpenCV2 frame
                 retval, buffer = cv2.imencode(".jpg", image_path)
+                # Currently cv2.imencode does not properly return shape
+                dimensions = buffer.shape
                 img_str = base64.b64encode(buffer)
-                # print(img_str)
                 img_str = img_str.decode("ascii")
                 resp = requests.post(
                     self.api_url,
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
+                # Replace with dimensions variable once cv2.imencode shape solution is found
+                image_dims = {"width": "0", "height": "0"}
             else:
                 raise ValueError("image_path must be a string or a numpy array.")
         else:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
+            image_dims = {"width": "0", "height": "0"}
             # POST to the API
             resp = requests.get(self.api_url)
 
@@ -184,6 +190,7 @@ class ObjectDetectionModel:
                 resp.json(),
                 image_path=image_path,
                 prediction_type=OBJECT_DETECTION_MODEL,
+                image_dims=image_dims,
             )
         # Returns base64 encoded Data
         elif self.format == "image":

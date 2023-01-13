@@ -80,10 +80,7 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60):
     elif prediction["prediction_type"] == INSTANCE_SEGMENTATION_MODEL:
         points = [[p["x"], p["y"]] for p in prediction["points"]]
         polygon = patches.Polygon(
-            points,
-            linewidth=stroke,
-            edgecolor="r",
-            facecolor="none",
+            points, linewidth=stroke, edgecolor="r", facecolor="none"
         )
         axes.add_patch(polygon)
     elif prediction["prediction_type"] == SEMANTIC_SEGMENTATION_MODEL:
@@ -476,7 +473,7 @@ class PredictionGroup:
         return prediction_group_json
 
     @staticmethod
-    def create_prediction_group(json_response, image_path, prediction_type):
+    def create_prediction_group(json_response, image_path, prediction_type, image_dims):
         """
         Method to create a prediction group based on the JSON Response
 
@@ -484,6 +481,7 @@ class PredictionGroup:
         :param json_response: Based on Roboflow JSON Response from Inference API
         :param model:
         :param image_path:
+        :param image_dims:
         :return:
         """
         prediction_list = []
@@ -494,15 +492,15 @@ class PredictionGroup:
                     prediction, image_path, prediction_type=prediction_type
                 )
                 prediction_list.append(prediction)
-            img_dims = json_response["image"]
+            img_dims = image_dims
         elif prediction_type == CLASSIFICATION_MODEL:
             prediction = Prediction(json_response, image_path, prediction_type)
             prediction_list.append(prediction)
-            img_dims = {}
+            img_dims = image_dims
         elif prediction_type == SEMANTIC_SEGMENTATION_MODEL:
             prediction = Prediction(json_response, image_path, prediction_type)
             prediction_list.append(prediction)
-            img_dims = json_response["image"]
+            img_dims = image_dims
 
         # Seperate list and return as a prediction group
         return PredictionGroup(img_dims, image_path, *prediction_list)

@@ -534,10 +534,6 @@ class Project:
 
     def __str__(self):
         # String representation of project
-        json_str = {
-            "name": self.name,
-            "type": self.type,
-            "workspace": self.__workspace,
-        }
+        json_str = {"name": self.name, "type": self.type, "workspace": self.__workspace}
 
         return json.dumps(json_str, indent=2)
