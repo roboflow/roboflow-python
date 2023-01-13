@@ -12,11 +12,13 @@ from tqdm import tqdm
 
 from roboflow.config import (
     API_URL,
+    APP_URL,
     DEMO_KEYS,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_OBJECT_DETECTION,
     TYPE_SEMANTIC_SEGMENTATION,
+    UNIVERSE_URL,
 )
 from roboflow.core.dataset import Dataset
 from roboflow.models.classification import ClassificationModel
@@ -39,6 +41,7 @@ class Version:
         local,
         workspace,
         project,
+        public,
     ):
         if api_key in DEMO_KEYS:
             if api_key == "coco-128-sample":
@@ -70,6 +73,7 @@ class Version:
             self.model_format = model_format
             self.workspace = workspace
             self.project = project
+            self.public = public
             if "exports" in version_dict.keys():
                 self.exports = version_dict["exports"]
             else:
@@ -136,12 +140,13 @@ class Version:
                 sys.stdout.flush()
             return
 
-    def download(self, model_format=None, location=None):
+    def download(self, model_format=None, location=None, overwrite: bool = True):
         """
         Download and extract a ZIP of a version's dataset in a given format
 
         :param model_format: A format to use for downloading
         :param location: An optional path for saving the file
+        :param overwrite: An optional flag to prevent dataset overwrite when dataset is already downloaded
 
         :return: Dataset
         """
@@ -157,6 +162,10 @@ class Version:
 
         if location is None:
             location = self.__get_download_location()
+        if os.path.exists(location) and not overwrite:
+            return Dataset(
+                self.name, self.version, model_format, os.path.abspath(location)
+            )
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
@@ -275,12 +284,70 @@ class Version:
 
         return True
 
-    def upload_model(self, model_path: str) -> None:
+    def deploy(self, model_type: str, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
 
         Args:
             model_path (str): File path to model weights to be uploaded
         """
+
+        supported_models = ["yolov8"]
+
+        if model_type not in supported_models:
+            raise (
+                ValueError(
+                    f"Model type {model_type} not supported. Supported models are {supported_models}"
+                )
+            )
+
+        try:
+            import torch
+            import ultralytics
+        except ImportError as e:
+            raise (
+                "The ultralytics python package is required to deploy yolov8 models. Please install it with `pip install ultralytics`"
+            )
+
+        # add logic to save torch state dict safely
+        if model_type == "yolov8":
+            model = torch.load(model_path + "weights/best.pt")
+
+            class_names = []
+            for i, val in enumerate(model["model"].names):
+                class_names.append((val, model["model"].names[val]))
+            class_names.sort(key=lambda x: x[0])
+            class_names = [x[1] for x in class_names]
+
+            model_artifacts = {
+                "names": class_names,
+                "yaml": model["model"].yaml,
+                "nc": model["model"].nc,
+                "args": {
+                    k: val for k, val in model["model"].args.items() if k != "hydra"
+                },
+                "ultralytics_version": ultralytics.__version__,
+                "model_type": model_type,
+            }
+
+            with open(model_path + "model_artifacts.json", "w") as fp:
+                json.dump(model_artifacts, fp)
+
+            torch.save(model["model"].state_dict(), model_path + "state_dict.pt")
+
+            lista_files = [
+                "results.csv",
+                "results.png",
+                "model_artifacts.json",
+                "state_dict.pt",
+            ]
+            with zipfile.ZipFile(model_path + "roboflow_deploy.zip", "w") as zipMe:
+                for file in lista_files:
+                    zipMe.write(
+                        model_path + file,
+                        arcname=file,
+                        compress_type=zipfile.ZIP_DEFLATED,
+                    )
+
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}"
         )
@@ -294,12 +361,29 @@ class Version:
         except Exception as e:
             print(f"An error occured when getting the model upload URL: {e}")
             return
-        res = requests.put(res.json()["url"], data=open(model_path, "rb"))
+
+        res = requests.put(
+            res.json()["url"], data=open(model_path + "roboflow_deploy.zip", "rb")
+        )
         try:
             res.raise_for_status()
-            print("Model uploaded")
+
+            if self.public:
+                print(
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/deploy/{self.version}"
+                )
+                print(
+                    f"Share your model with the world at: {UNIVERSE_URL}/{self.workspace}/{self.project}/model/{self.version}"
+                )
+            else:
+                print(
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/deploy/{self.version}"
+                )
+
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
+
+    # torch.load("state_dict.pt", weights_only=True)
 
     def __download_zip(self, link, location, format):
         """
@@ -408,7 +492,7 @@ class Version:
 
         :return None:
         """
-        if format in ["yolov5pytorch", "yolov7pytorch"]:
+        if format in ["yolov5pytorch", "yolov7pytorch", "yolov8"]:
             with open(location + "/data.yaml") as file:
                 new_yaml = yaml.safe_load(file)
             new_yaml["train"] = location + new_yaml["train"].lstrip("..")

@@ -8,6 +8,7 @@ PREDICTION_OBJECT = os.getenv("PREDICTION_OBJECT", "Prediction")
 
 API_URL = os.getenv("API_URL", "https://api.roboflow.com")
 APP_URL = os.getenv("APP_URL", "https://app.roboflow.com")
+UNIVERSE_URL = os.getenv("UNIVERSE_URL", "https://universe.roboflow.com")
 INSTANCE_SEGMENTATION_URL = os.getenv(
     "INSTANCE_SEGMENTATION_URL", "https://outline.roboflow.com"
 )
