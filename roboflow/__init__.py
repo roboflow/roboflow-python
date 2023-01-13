@@ -10,6 +10,7 @@ from roboflow.core.workspace import Workspace
 
 __version__ = "0.2.25"
 
+
 def check_key(api_key, model, notebook, num_retries=0):
     if type(api_key) is not str:
         raise RuntimeError(
