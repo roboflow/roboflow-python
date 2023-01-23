@@ -323,7 +323,9 @@ class Version:
                 "yaml": model["model"].yaml,
                 "nc": model["model"].nc,
                 "args": {
-                    k: val for k, val in model["model"].args.__dict__.items() if k != "hydra"
+                    k: val
+                    for k, val in model["model"].args.__dict__.items()
+                    if k != "hydra"
                 },
                 "ultralytics_version": ultralytics.__version__,
                 "model_type": model_type,
