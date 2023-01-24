@@ -284,7 +284,7 @@ class Version:
 
         return True
 
-   def deploy(self, model_type: str, model_path: str) -> None:
+    def deploy(self, model_type: str, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
 
         Args:
