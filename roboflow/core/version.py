@@ -284,7 +284,7 @@ class Version:
 
         return True
 
-    def deploy(self, model_type: str, model_path: str) -> None:
+   def deploy(self, model_type: str, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
 
         Args:
@@ -318,18 +318,32 @@ class Version:
             class_names.sort(key=lambda x: x[0])
             class_names = [x[1] for x in class_names]
 
-            model_artifacts = {
-                "names": class_names,
-                "yaml": model["model"].yaml,
-                "nc": model["model"].nc,
-                "args": {
-                    k: val
-                    for k, val in model["model"].args.__dict__.items()
-                    if k != "hydra"
-                },
-                "ultralytics_version": ultralytics.__version__,
-                "model_type": model_type,
-            }
+            try:
+                model_artifacts = {
+                    "names": class_names,
+                    "yaml": model["model"].yaml,
+                    "nc": model["model"].nc,
+                    "args": {
+                        k: val
+                        for k, val in model["model"].args.items()
+                        if ((k == "model") or (k == "imgsz") or (k == "batch"))
+                    },
+                    "ultralytics_version": ultralytics.__version__,
+                    "model_type": model_type,
+                }
+            except:
+                model_artifacts = {
+                    "names": class_names,
+                    "yaml": model["model"].yaml,
+                    "nc": model["model"].nc,
+                    "args": {
+                        k: val
+                        for k, val in model["model"].args.__dict__.items()
+                        if ((k == "model") or (k == "imgsz") or (k == "batch"))
+                    },
+                    "ultralytics_version": ultralytics.__version__,
+                    "model_type": model_type,
+                }
 
             with open(model_path + "model_artifacts.json", "w") as fp:
                 json.dump(model_artifacts, fp)
