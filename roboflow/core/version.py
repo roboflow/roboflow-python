@@ -348,7 +348,9 @@ class Version:
             with open(os.path.join(model_path + "model_artifacts.json", "w")) as fp:
                 json.dump(model_artifacts, fp)
 
-            torch.save(model["model"].state_dict(), os.path.join(model_path + "state_dict.pt"))
+            torch.save(
+                model["model"].state_dict(), os.path.join(model_path + "state_dict.pt")
+            )
 
             lista_files = [
                 "results.csv",
@@ -356,7 +358,9 @@ class Version:
                 "model_artifacts.json",
                 "state_dict.pt",
             ]
-            with zipfile.ZipFile(os.path.join(model_path + "roboflow_deploy.zip", "w")) as zipMe:
+            with zipfile.ZipFile(
+                os.path.join(model_path + "roboflow_deploy.zip", "w")
+            ) as zipMe:
                 for file in lista_files:
                     zipMe.write(
                         os.path.join(model_path + file),
@@ -379,7 +383,8 @@ class Version:
             return
 
         res = requests.put(
-            res.json()["url"], data=open(os.path.join(model_path + "roboflow_deploy.zip", "rb"))
+            res.json()["url"],
+            data=open(os.path.join(model_path + "roboflow_deploy.zip", "rb")),
         )
         try:
             res.raise_for_status()
