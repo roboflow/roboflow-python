@@ -310,7 +310,7 @@ class Version:
 
         # add logic to save torch state dict safely
         if model_type == "yolov8":
-            model = torch.load(model_path + "weights/best.pt")
+            model = torch.load(os.path.join(model_path + "weights/best.pt"))
 
             class_names = []
             for i, val in enumerate(model["model"].names):
@@ -345,10 +345,10 @@ class Version:
                     "model_type": model_type,
                 }
 
-            with open(model_path + "model_artifacts.json", "w") as fp:
+            with open(os.path.join(model_path + "model_artifacts.json", "w")) as fp:
                 json.dump(model_artifacts, fp)
 
-            torch.save(model["model"].state_dict(), model_path + "state_dict.pt")
+            torch.save(model["model"].state_dict(), os.path.join(model_path + "state_dict.pt"))
 
             lista_files = [
                 "results.csv",
@@ -356,10 +356,10 @@ class Version:
                 "model_artifacts.json",
                 "state_dict.pt",
             ]
-            with zipfile.ZipFile(model_path + "roboflow_deploy.zip", "w") as zipMe:
+            with zipfile.ZipFile(os.path.join(model_path + "roboflow_deploy.zip", "w")) as zipMe:
                 for file in lista_files:
                     zipMe.write(
-                        model_path + file,
+                        os.path.join(model_path + file),
                         arcname=file,
                         compress_type=zipfile.ZIP_DEFLATED,
                     )
@@ -379,7 +379,7 @@ class Version:
             return
 
         res = requests.put(
-            res.json()["url"], data=open(model_path + "roboflow_deploy.zip", "rb")
+            res.json()["url"], data=open(os.path.join(model_path + "roboflow_deploy.zip", "rb"))
         )
         try:
             res.raise_for_status()
