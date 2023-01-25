@@ -402,7 +402,7 @@ class Version:
         
         res = requests.put(
             res.json()["url"],
-            data=open(os.path.join(model_path + "roboflow_deploy.zip", "rb")),
+            data=open(os.path.join(model_path + "roboflow_deploy.zip"), "rb")),
         )
         try:
             res.raise_for_status()
