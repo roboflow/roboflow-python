@@ -299,7 +299,7 @@ class Version:
                     f"Model type {model_type} not supported. Supported models are {supported_models}"
                 )
             )
-        
+
         if model_type == "yolov8":
             try:
                 import torch
@@ -325,7 +325,7 @@ class Version:
         class_names = [x[1] for x in class_names]
 
         if model_type == "yolov8":
-            #try except for backwards compatibility with older versions of ultralytics
+            # try except for backwards compatibility with older versions of ultralytics
             try:
                 model_artifacts = {
                     "names": class_names,
@@ -353,11 +353,11 @@ class Version:
                     "model_type": model_type,
                 }
         elif model_type == "yolov5":
-            #parse from yaml for yolov5
-            
+            # parse from yaml for yolov5
+
             with open(os.path.join(model_path, "opt.yaml"), "r") as stream:
                 opts = yaml.safe_load(stream)
-        
+
             model_artifacts = {
                 "names": class_names,
                 "yaml": model["model"].yaml,
@@ -377,7 +377,7 @@ class Version:
             "model_artifacts.json",
             "state_dict.pt",
         ]
-        
+
         with zipfile.ZipFile(model_path + "roboflow_deploy.zip", "w") as zipMe:
             for file in lista_files:
                 zipMe.write(
@@ -399,10 +399,10 @@ class Version:
         except Exception as e:
             print(f"An error occured when getting the model upload URL: {e}")
             return
-        
+
         res = requests.put(
             res.json()["url"],
-            data=open(os.path.join(model_path + "roboflow_deploy.zip"), "rb")),
+            data=open(os.path.join(model_path + "roboflow_deploy.zip"), "rb"),
         )
         try:
             res.raise_for_status()
@@ -421,7 +421,6 @@ class Version:
 
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
-        
 
     def __download_zip(self, link, location, format):
         """
