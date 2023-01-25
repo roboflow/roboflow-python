@@ -316,7 +316,7 @@ class Version:
                     "The torch python package is required to deploy yolov5 models. Please install it with `pip install torch`"
                 )
 
-        model = torch.load(model_path + "weights/best.pt")
+        model = torch.load(os.path.join(model_path, "weights/best.pt"))
 
         class_names = []
         for i, val in enumerate(model["model"].names):
@@ -355,7 +355,7 @@ class Version:
         elif model_type == "yolov5":
             #parse from yaml for yolov5
             
-            with open(os.path.join(model_path + "opt.yaml"), "r") as stream:
+            with open(os.path.join(model_path, "opt.yaml"), "r") as stream:
                 opts = yaml.safe_load(stream)
         
             model_artifacts = {
@@ -399,6 +399,29 @@ class Version:
         except Exception as e:
             print(f"An error occured when getting the model upload URL: {e}")
             return
+        
+        res = requests.put(
+            res.json()["url"],
+            data=open(os.path.join(model_path + "roboflow_deploy.zip", "rb")),
+        )
+        try:
+            res.raise_for_status()
+
+            if self.public:
+                print(
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/deploy/{self.version}"
+                )
+                print(
+                    f"Share your model with the world at: {UNIVERSE_URL}/{self.workspace}/{self.project}/model/{self.version}"
+                )
+            else:
+                print(
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/deploy/{self.version}"
+                )
+
+        except Exception as e:
+            print(f"An error occured when uploading the model: {e}")
+        
 
     def __download_zip(self, link, location, format):
         """
