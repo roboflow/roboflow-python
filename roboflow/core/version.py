@@ -294,7 +294,7 @@ class Version:
 
         return True
 
-    @warn_for_wrong_dependencies_versions([("ultralytics", "<=", "8.0.20")])
+    # @warn_for_wrong_dependencies_versions([("ultralytics", "<=", "8.0.20")])
     def deploy(self, model_type: str, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
 
@@ -315,10 +315,16 @@ class Version:
             try:
                 import torch
                 import ultralytics
+
             except ImportError as e:
                 raise (
                     "The ultralytics python package is required to deploy yolov8 models. Please install it with `pip install ultralytics`"
                 )
+
+            print_warn_for_wrong_dependencies_versions(
+                [("ultralytics", "<=", "8.0.20")]
+            )
+
         elif model_type == "yolov5":
             try:
                 import torch
