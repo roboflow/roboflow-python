@@ -25,6 +25,10 @@ from roboflow.models.classification import ClassificationModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
+from roboflow.util.versions import (
+    print_warn_for_wrong_dependencies_versions,
+    warn_for_wrong_dependencies_versions,
+)
 
 load_dotenv()
 
@@ -152,6 +156,12 @@ class Version:
         """
 
         self.__wait_if_generating()
+
+        if model_format == "yolov8":
+            # we assume the user will want to use yolov8, for now we only support ultralytics=="8.11.0"
+            print_warn_for_wrong_dependencies_versions(
+                [("ultralytics", "<=", "8.0.20")]
+            )
 
         model_format = self.__get_format_identifier(model_format)
 
@@ -284,6 +294,7 @@ class Version:
 
         return True
 
+    # @warn_for_wrong_dependencies_versions([("ultralytics", "<=", "8.0.20")])
     def deploy(self, model_type: str, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
 
@@ -291,7 +302,7 @@ class Version:
             model_path (str): File path to model weights to be uploaded
         """
 
-        supported_models = ["yolov8"]
+        supported_models = ["yolov8", "yolov5"]
 
         if model_type not in supported_models:
             raise (
@@ -300,24 +311,38 @@ class Version:
                 )
             )
 
-        try:
-            import torch
-            import ultralytics
-        except ImportError as e:
-            raise (
-                "The ultralytics python package is required to deploy yolov8 models. Please install it with `pip install ultralytics`"
+        if model_type == "yolov8":
+            try:
+                import torch
+                import ultralytics
+
+            except ImportError as e:
+                raise (
+                    "The ultralytics python package is required to deploy yolov8 models. Please install it with `pip install ultralytics`"
+                )
+
+            print_warn_for_wrong_dependencies_versions(
+                [("ultralytics", "<=", "8.0.20")]
             )
 
-        # add logic to save torch state dict safely
+        elif model_type == "yolov5":
+            try:
+                import torch
+            except ImportError as e:
+                raise (
+                    "The torch python package is required to deploy yolov5 models. Please install it with `pip install torch`"
+                )
+
+        model = torch.load(os.path.join(model_path, "weights/best.pt"))
+
+        class_names = []
+        for i, val in enumerate(model["model"].names):
+            class_names.append((val, model["model"].names[val]))
+        class_names.sort(key=lambda x: x[0])
+        class_names = [x[1] for x in class_names]
+
         if model_type == "yolov8":
-            model = torch.load(os.path.join(model_path + "weights/best.pt"))
-
-            class_names = []
-            for i, val in enumerate(model["model"].names):
-                class_names.append((val, model["model"].names[val]))
-            class_names.sort(key=lambda x: x[0])
-            class_names = [x[1] for x in class_names]
-
+            # try except for backwards compatibility with older versions of ultralytics
             try:
                 model_artifacts = {
                     "names": class_names,
@@ -344,29 +369,39 @@ class Version:
                     "ultralytics_version": ultralytics.__version__,
                     "model_type": model_type,
                 }
+        elif model_type == "yolov5":
+            # parse from yaml for yolov5
 
-            with open(os.path.join(model_path + "model_artifacts.json", "w")) as fp:
-                json.dump(model_artifacts, fp)
+            with open(os.path.join(model_path, "opt.yaml"), "r") as stream:
+                opts = yaml.safe_load(stream)
 
-            torch.save(
-                model["model"].state_dict(), os.path.join(model_path + "state_dict.pt")
-            )
+            model_artifacts = {
+                "names": class_names,
+                "yaml": model["model"].yaml,
+                "nc": model["model"].nc,
+                "args": {"imgsz": opts["imgsz"], "batch": opts["batch_size"]},
+                "model_type": model_type,
+            }
 
-            lista_files = [
-                "results.csv",
-                "results.png",
-                "model_artifacts.json",
-                "state_dict.pt",
-            ]
-            with zipfile.ZipFile(
-                os.path.join(model_path + "roboflow_deploy.zip", "w")
-            ) as zipMe:
-                for file in lista_files:
-                    zipMe.write(
-                        os.path.join(model_path + file),
-                        arcname=file,
-                        compress_type=zipfile.ZIP_DEFLATED,
-                    )
+        with open(model_path + "model_artifacts.json", "w") as fp:
+            json.dump(model_artifacts, fp)
+
+        torch.save(model["model"].state_dict(), model_path + "state_dict.pt")
+
+        lista_files = [
+            "results.csv",
+            "results.png",
+            "model_artifacts.json",
+            "state_dict.pt",
+        ]
+
+        with zipfile.ZipFile(model_path + "roboflow_deploy.zip", "w") as zipMe:
+            for file in lista_files:
+                zipMe.write(
+                    model_path + file,
+                    arcname=file,
+                    compress_type=zipfile.ZIP_DEFLATED,
+                )
 
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}"
@@ -384,7 +419,7 @@ class Version:
 
         res = requests.put(
             res.json()["url"],
-            data=open(os.path.join(model_path + "roboflow_deploy.zip", "rb")),
+            data=open(os.path.join(model_path + "roboflow_deploy.zip"), "rb"),
         )
         try:
             res.raise_for_status()
@@ -403,8 +438,6 @@ class Version:
 
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
-
-    # torch.load("state_dict.pt", weights_only=True)
 
     def __download_zip(self, link, location, format):
         """
