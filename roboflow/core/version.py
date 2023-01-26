@@ -159,7 +159,7 @@ class Version:
 
         if model_format == "yolov8":
             # we assume the user will want to use yolov8, for now we only support ultralytics=="8.11.0"
-            print_warn_for_wrong_dependencies_versions([["ultralytics", "<=", "8.0.20"]])
+            print_warn_for_wrong_dependencies_versions([("ultralytics", "<=", "8.0.20")])
 
         model_format = self.__get_format_identifier(model_format)
 
@@ -292,7 +292,7 @@ class Version:
 
         return True
 
-    @warn_for_wrong_dependencies_versions([["ultralytics", "<=", "8.0.20"]])
+    @warn_for_wrong_dependencies_versions([("ultralytics", "<=", "8.0.20")])
     def deploy(self, model_type: str, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
 
