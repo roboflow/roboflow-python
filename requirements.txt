@@ -18,4 +18,4 @@ tqdm>=4.41.0
 PyYAML>=5.3.1
 wget
 requests_toolbelt
-ultralytics==0.11
+ultralytics==8.0.11

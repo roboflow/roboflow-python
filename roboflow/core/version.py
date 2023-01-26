@@ -25,6 +25,10 @@ from roboflow.models.classification import ClassificationModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
+from roboflow.util.versions import (
+    print_warn_for_wrong_dependencies_versions,
+    warn_for_wrong_dependencies_versions,
+)
 
 load_dotenv()
 
@@ -152,6 +156,10 @@ class Version:
         """
 
         self.__wait_if_generating()
+
+        if model_format == "yolov8":
+            # we assume the user will want to use yolov8, for now we only support ultralytics=="8.11.0"
+            print_warn_for_wrong_dependencies_versions(["ultralytics", "<=", "8.11.0"])
 
         model_format = self.__get_format_identifier(model_format)
 
@@ -284,6 +292,7 @@ class Version:
 
         return True
 
+    @warn_for_wrong_dependencies_versions(["ultralytics", "<=", "8.11.0"])
     def deploy(self, model_type: str, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
 
