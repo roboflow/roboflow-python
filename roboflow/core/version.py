@@ -166,7 +166,9 @@ class Version:
                     [("ultralytics", "<=", "8.0.20")]
                 )
             except ImportError as e:
-                print("[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. Roboflow `.deploy` supports only models trained with `ultralytics<=8.0.20`, to intall it `pip install ultralytics<=8.0.20`.")
+                print(
+                    "[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. Roboflow `.deploy` supports only models trained with `ultralytics<=8.0.20`, to intall it `pip install ultralytics<=8.0.20`."
+                )
                 # silently fail
                 pass
 
