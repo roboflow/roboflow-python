@@ -166,6 +166,7 @@ class Version:
                     [("ultralytics", "<=", "8.0.20")]
                 )
             except ImportError as e:
+                print("[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. You will need to install it to call `.deploy` later, you can use: `pip install ultralytics<=8.0.20`.")
                 # silently fail
                 pass
 
