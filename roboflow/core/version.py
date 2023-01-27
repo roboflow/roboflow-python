@@ -463,7 +463,11 @@ class Version:
             sys.stdout.write("\r" + progress_message)
             sys.stdout.flush()
 
-        wget.download(link, out=location + "/roboflow.zip", bar=bar_progress)
+        try:
+            wget.download(link, out=location + "/roboflow.zip", bar=bar_progress)
+        except Exception as e:
+            print(f"Error when trying to download dataset @ {link}")
+            raise e
         sys.stdout.write("\n")
         sys.stdout.flush()
 
