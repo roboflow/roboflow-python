@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import zipfile
+from importlib import import_module
 
 import requests
 import wget
@@ -29,7 +30,6 @@ from roboflow.util.versions import (
     print_warn_for_wrong_dependencies_versions,
     warn_for_wrong_dependencies_versions,
 )
-from importlib import import_module
 
 load_dotenv()
 
