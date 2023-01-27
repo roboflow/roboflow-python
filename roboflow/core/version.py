@@ -29,6 +29,7 @@ from roboflow.util.versions import (
     print_warn_for_wrong_dependencies_versions,
     warn_for_wrong_dependencies_versions,
 )
+from importlib import import_module
 
 load_dotenv()
 
@@ -158,10 +159,15 @@ class Version:
         self.__wait_if_generating()
 
         if model_format == "yolov8":
-            # we assume the user will want to use yolov8, for now we only support ultralytics=="8.11.0"
-            print_warn_for_wrong_dependencies_versions(
-                [("ultralytics", "<=", "8.0.20")]
-            )
+            # if ultralytics is installed, we will assume users will want to use yolov8 and we check for the supported version
+            try:
+                import_module("ultralytics")
+                print_warn_for_wrong_dependencies_versions(
+                    [("ultralytics", "<=", "8.0.20")]
+                )
+            except ImportError as e:
+                # silently fail
+                pass
 
         model_format = self.__get_format_identifier(model_format)
 
