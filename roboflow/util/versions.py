@@ -1,6 +1,8 @@
 from importlib import import_module
 from typing import List, Tuple
 
+from packaging.version import Version
+
 
 def get_wrong_dependencies_versions(
     dependencies_versions: List[Tuple[str, str, str]]
@@ -18,8 +20,6 @@ def get_wrong_dependencies_versions(
         List[Tuple[str, str, str]]: List of dependencies with wrong version, [("<package_name>", "<version_number_to_check", "<current_version>")]
     """
     wrong_dependencies_versions = []
-    # from e.g. "1.12.0" -> 1120
-    parse_version_to_int = lambda x: int(x.replace(".", ""))
     order_funcs = {
         "==": lambda x, y: x == y,
         ">=": lambda x, y: x >= y,
@@ -32,9 +32,8 @@ def get_wrong_dependencies_versions(
             raise ValueError(
                 f"order={order} not supported, please use `{', '.join(order_funcs.keys())}`"
             )
-        is_okay = order_funcs[order](
-            parse_version_to_int(module_version), parse_version_to_int(version)
-        )
+
+        is_okay = order_funcs[order](Version(module_version), Version(version))
         if not is_okay:
             wrong_dependencies_versions.append(
                 (dependency, order, version, module_version)

@@ -1,8 +1,6 @@
 from importlib import import_module
 from roboflow.util.versions import get_wrong_dependencies_versions
 import unittest
-import sys
-from pathlib import Path
 
 class TestVersions(unittest.TestCase):
 
@@ -14,11 +12,13 @@ class TestVersions(unittest.TestCase):
             ("tests.util.dummy_module", "<=", "0.2.0"),
             ("tests.util.dummy_module", "<=", "1.0.0"),
             ("tests.util.dummy_module", ">=", "0.1.0"),
-            ("tests.util.dummy_module", ">=", "0.6.0")
+            ("tests.util.dummy_module", ">=", "0.6.0"),
+            ("tests.util.dummy_module", ">=", "0.1.34")
+
 
         ]
         # true if dep is correc
-        expected_results = [True, False, True, True, False]
+        expected_results = [True, False, True, True, False, True]
 
         for (test, expected_result) in zip(tests, expected_results):
             wrong_dependencies_versions = get_wrong_dependencies_versions([test])
