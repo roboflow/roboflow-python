@@ -80,7 +80,21 @@ def login():
         conf_location = os.getenv(
             "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
         )
-
+        
+        #make config directory if it doesn't exist
+        if not os.path.exists(os.path.dirname(conf_location)):
+            os.mkdir(os.path.dirname(conf_location))
+            
+        r_login = {"workspaces": r_login}
+        #set first workspace as default workspace
+        
+        default_workspace_id = list(r_login["workspaces"].keys())[0]
+        r_login["RF_WORKSPACE"] = workspace["url"]
+        
+        #write config file
+        with open(conf_location, "w") as f:
+            json.dump(r_login, f, indent=2)
+        
     else:
         raise RuntimeError("Error logging in")
 
