@@ -1,15 +1,16 @@
 import json
 import sys
 import time
+import os
 
 import requests
 
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
+from roboflow.util.general import write_line
 
 __version__ = "0.2.29"
-
 
 def check_key(api_key, model, notebook, num_retries=0):
     if type(api_key) is not str:
@@ -59,13 +60,29 @@ def check_key(api_key, model, notebook, num_retries=0):
         )
         return "onboarding"
 
-
 def auth(api_key):
     r = check_key(api_key)
     w = r["workspace"]
 
     return Roboflow(api_key, w)
 
+def login():
+    write_line("visit " + APP_URL + "/auth-cli" " to get your authentication token.")
+
+    token = input("Paste the authentication here token here: ")
+
+    r_login = requests.get(APP_URL + "/query/cliAuthToken/" + token)
+
+    if r_login.status_code == 200:
+
+        r_login = r_login.json()
+
+        conf_location = os.getenv(
+            "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
+        )
+
+    else:
+        raise RuntimeError("Error logging in")
 
 class Roboflow:
     def __init__(
