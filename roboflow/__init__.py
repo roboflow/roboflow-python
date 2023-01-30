@@ -50,7 +50,6 @@ def check_key(api_key, model, notebook, num_retries=0):
                 return r
     else:  # then you're using a dummy key
         
-        print("API_KEY: " + api_key)
         sys.stdout.write(
             "upload and label your dataset, and get an API KEY here: "
             + APP_URL
@@ -101,6 +100,51 @@ def login():
     else:
         raise RuntimeError("Error logging in")
 
+
+#import roboflow
+#roboflow.#action
+
+active_workspace = None
+
+def initialize_roboflow():
+    
+    global active_workspace
+    
+    conf_location = os.getenv(
+        "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
+    )
+    
+    if not os.path.isfile(conf_location):
+        raise("To use this method, you must first login - run roboflow.login()")
+    else:
+        if active_workspace == None:
+            print("activating")
+            active_workspace = Roboflow().workspace()   
+        
+        return active_workspace       
+    
+def train():
+    operate_workspace = initialize_roboflow()
+    
+    #check if project or version is set
+    
+    print("training from " + operate_workspace.name)
+    
+    
+# def set_project()
+
+# def set_version()
+
+
+#infer()
+
+#download()
+
+#deploy()
+
+
+
+#continue distributing this object for back compatibility
 class Roboflow:
     def __init__(
         self,
