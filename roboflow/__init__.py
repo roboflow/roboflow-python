@@ -67,7 +67,15 @@ def auth(api_key):
 
     return Roboflow(api_key, w)
 
-def login():
+def login(force=False):
+    
+    conf_location = os.getenv(
+        "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
+    )
+    
+    if os.path.isfile(conf_location) and not force:
+        raise(Exception("You are already logged in. To re-login, run roboflow.login(force=True)"))
+    
     write_line("visit " + APP_URL + "/auth-cli" " to get your authentication token.")
 
     token = input("Paste the authentication here token here: ")
@@ -77,10 +85,6 @@ def login():
     if r_login.status_code == 200:
 
         r_login = r_login.json()
-
-        conf_location = os.getenv(
-            "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
-        )
         
         #make config directory if it doesn't exist
         if not os.path.exists(os.path.dirname(conf_location)):
@@ -118,26 +122,31 @@ def initialize_roboflow():
         raise("To use this method, you must first login - run roboflow.login()")
     else:
         if active_workspace == None:
-            print("activating")
             active_workspace = Roboflow().workspace()   
         
         return active_workspace       
     
 def train():
+    
     operate_workspace = initialize_roboflow()
     
     #check if project or version is set
     
     print("training from " + operate_workspace.name)
     
-    
-# def set_project()
+
+def load_model(project=None, version=None):
+    operate_workspace = initialize_roboflow()
+    project = operate_workspace.project(project)
+    version = project.version(version)
+    model = version.model
+    return model
+
+
+#def set_project()
 
 # def set_version()
-
-
-#infer()
-
+    
 #download()
 
 #deploy()
