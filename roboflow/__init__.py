@@ -5,7 +5,7 @@ import os
 
 import requests
 
-from roboflow.config import API_URL, APP_URL, DEMO_KEYS
+from roboflow.config import API_URL, APP_URL, DEMO_KEYS, GET_RF_API_KEY
 from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
 from roboflow.util.general import write_line
@@ -49,6 +49,8 @@ def check_key(api_key, model, notebook, num_retries=0):
                 r = response.json()
                 return r
     else:  # then you're using a dummy key
+        
+        print("API_KEY: " + api_key)
         sys.stdout.write(
             "upload and label your dataset, and get an API KEY here: "
             + APP_URL
@@ -89,6 +91,7 @@ def login():
         #set first workspace as default workspace
         
         default_workspace_id = list(r_login["workspaces"].keys())[0]
+        workspace = r_login["workspaces"][default_workspace_id]
         r_login["RF_WORKSPACE"] = workspace["url"]
         
         #write config file
@@ -101,11 +104,14 @@ def login():
 class Roboflow:
     def __init__(
         self,
-        api_key="YOUR ROBOFLOW API KEY HERE",
+        api_key=None,
         model_format="undefined",
         notebook="undefined",
     ):
         self.api_key = api_key
+        if self.api_key == None:
+            self.api_key = GET_RF_API_KEY()
+        
         self.model_format = model_format
         self.notebook = notebook
         self.onboarding = False

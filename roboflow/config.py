@@ -62,16 +62,20 @@ TYPE_SEMANTIC_SEGMENTATION = "semantic-segmentation"
 DEFAULT_BATCH_NAME = "Pip Package Upload"
 
 RF_WORKSPACES = get_var_conditional("workspaces", default={})
-RF_WORKSPACE = get_var_conditional("RF_WORKSPACE", default=None)
-# DEFAULT_WORKSPACE = get_var_conditional("default_workspace", default=None)
-if RF_WORKSPACE == None:
-    RF_API_KEY = None
-else:
-    RF_API_KEY = None
-    for k in RF_WORKSPACES.keys():
-        workspace = RF_WORKSPACES[k]
-        if workspace["url"] == RF_WORKSPACE:
-            RF_API_KEY = workspace["apiKey"]
-# ENV API_KEY OVERRIDE
-if os.getenv("RF_API_KEY") != None:
-    RF_API_KEY = os.getenv("RF_API_KEY")
+    
+def GET_RF_API_KEY():
+    RF_WORKSPACE = get_var_conditional("RF_WORKSPACE", default=None)
+    # DEFAULT_WORKSPACE = get_var_conditional("default_workspace", default=None)
+    if RF_WORKSPACE == None:
+        RF_API_KEY = None
+    else:
+        RF_API_KEY = None
+        for k in RF_WORKSPACES.keys():
+            workspace = RF_WORKSPACES[k]
+            if workspace["url"] == RF_WORKSPACE:
+                RF_API_KEY = workspace["apiKey"]
+    # ENV API_KEY OVERRIDE
+    if os.getenv("RF_API_KEY") != None:
+        RF_API_KEY = os.getenv("RF_API_KEY")
+    
+    return RF_API_KEY
