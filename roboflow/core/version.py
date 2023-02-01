@@ -344,11 +344,14 @@ class Version:
 
         model = torch.load(os.path.join(model_path, "weights/best.pt"))
 
-        class_names = []
-        for i, val in enumerate(model["model"].names):
-            class_names.append((val, model["model"].names[val]))
-        class_names.sort(key=lambda x: x[0])
-        class_names = [x[1] for x in class_names]
+        if isinstance(model["model"].names, list):
+            class_names = model["model"].names
+        else:
+            class_names = []
+            for i, val in enumerate(model["model"].names):
+                class_names.append((val, model["model"].names[val]))
+            class_names.sort(key=lambda x: x[0])
+            class_names = [x[1] for x in class_names]
 
         if model_type == "yolov8":
             # try except for backwards compatibility with older versions of ultralytics
