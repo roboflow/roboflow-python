@@ -47,6 +47,7 @@ class Version:
         workspace,
         project,
         public,
+        colors,
     ):
         if api_key in DEMO_KEYS:
             if api_key == "coco-128-sample":
@@ -79,6 +80,7 @@ class Version:
             self.workspace = workspace
             self.project = project
             self.public = public
+            self.colors = colors
             if "exports" in version_dict.keys():
                 self.exports = version_dict["exports"]
             else:
@@ -93,6 +95,7 @@ class Version:
                     self.name,
                     version_without_workspace,
                     local=local,
+                    colors=self.colors,
                 )
             elif self.type == TYPE_CLASSICATION:
                 self.model = ClassificationModel(
@@ -101,9 +104,12 @@ class Version:
                     self.name,
                     version_without_workspace,
                     local=local,
+                    colors=self.colors,
                 )
             elif self.type == TYPE_INSTANCE_SEGMENTATION:
-                self.model = InstanceSegmentationModel(self.__api_key, self.id)
+                self.model = InstanceSegmentationModel(
+                    self.__api_key, self.id, colors=self.colors
+                )
             elif self.type == TYPE_SEMANTIC_SEGMENTATION:
                 self.model = SemanticSegmentationModel(self.__api_key, self.id)
             else:

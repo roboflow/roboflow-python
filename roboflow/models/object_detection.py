@@ -32,6 +32,7 @@ class ObjectDetectionModel:
         stroke=1,
         labels=False,
         format="json",
+        colors={},
     ):
         """
         From Roboflow Docs:
@@ -67,6 +68,7 @@ class ObjectDetectionModel:
         self.stroke = stroke
         self.labels = labels
         self.format = format
+        self.colors = colors
 
         # local needs to be passed from Project
         if local is None:
@@ -194,6 +196,7 @@ class ObjectDetectionModel:
                 image_path=image_path,
                 prediction_type=OBJECT_DETECTION_MODEL,
                 image_dims=image_dims,
+                colors=self.colors,
             )
         # Returns base64 encoded Data
         elif self.format == "image":

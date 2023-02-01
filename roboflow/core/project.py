@@ -94,6 +94,7 @@ class Project:
                 workspace=self.__workspace,
                 project=self.__project_name,
                 public=self.public,
+                colors=self.colors,
             )
             version_array.append(version_object)
         return version_array
@@ -253,6 +254,7 @@ class Project:
                     workspace=self.__workspace,
                     project=self.__project_name,
                     public=self.public,
+                    colors=self.colors,
                 )
                 return vers
 

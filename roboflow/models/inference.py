@@ -10,7 +10,14 @@ from roboflow.util.prediction import PredictionGroup
 
 
 class InferenceModel:
-    def __init__(self, api_key, version_id, *args, **kwargs):
+    def __init__(
+        self,
+        api_key,
+        version_id,
+        colors={},
+        *args,
+        **kwargs,
+    ):
         """
         :param api_key: Your API key (obtained via your workspace API settings page)
         :param version_id: The ID of the dataset version to use for predicting
@@ -76,4 +83,5 @@ class InferenceModel:
             image_path=image_path,
             prediction_type=prediction_type,
             image_dims=image_dims,
+            colors=self.colors,
         )
