@@ -6,14 +6,12 @@ import urllib
 from pathlib import Path
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import requests
+from IPython.display import Image as IPythonImage
+from IPython.display import display
 from PIL import Image
-import matplotlib.pyplot as plt
-import cv2
-from IPython.display import display, Image
-import base64
-import requests
 
 from roboflow.config import OBJECT_DETECTION_MODEL
 from roboflow.util.image_utils import check_image_url
@@ -200,8 +198,19 @@ class ObjectDetectionModel:
         # Returns base64 encoded Data
         elif self.format == "image":
             return resp.content
-        
-    def webcam(self, webcam_id=0, inference_engine_url="https://detect.roboflow.com/", in_jupyter=False, confidence=40, overlap=30, stroke=1, labels=False):
+
+    def webcam(
+        self,
+        webcam_id=0,
+        inference_engine_url="https://detect.roboflow.com/",
+        within_jupyter=False,
+        confidence=40,
+        overlap=30,
+        stroke=1,
+        labels=False,
+        num_frames=30,
+        web_cam_res=(416, 416),
+    ):
         """
         Infers detections based on webcam feed from specified model
 
@@ -213,22 +222,26 @@ class ObjectDetectionModel:
         :param stroke: Stroke width for bounding box
         :param labels: Whether to show labels on bounding box
         """
+
+        os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
+
         # Generate url before predicting
         self.__generate_url(
             confidence=confidence,
             overlap=overlap,
             stroke=stroke,
             labels=labels,
-            inference_engine_url=inference_engine_url
+            inference_engine_url=inference_engine_url,
         )
-        
+
         def plot_one_box(x, img, color=None, label=None, line_thickness=None):
             # Plots one bounding box on image img
-            
-            tl = line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1  # line/font thickness
-            #color = color or [random.randint(0, 255) for _ in range(3)]
-            
-            
+
+            tl = (
+                line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1
+            )  # line/font thickness
+            # color = color or [random.randint(0, 255) for _ in range(3)]
+
             c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
             cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
             if label:
@@ -236,29 +249,42 @@ class ObjectDetectionModel:
                 t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
                 c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
                 cv2.rectangle(img, c1, c2, color, -1, cv2.LINE_AA)  # filled
-                cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
+                cv2.putText(
+                    img,
+                    label,
+                    (c1[0], c1[1] - 2),
+                    0,
+                    tl / 3,
+                    [225, 255, 255],
+                    thickness=tf,
+                    lineType=cv2.LINE_AA,
+                )
 
         cap = cv2.VideoCapture(webcam_id)
-        display_handle=display(None, display_id=True)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, web_cam_res[0])
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, web_cam_res[1])
+
+        display_handle = display(None, display_id=True)
         i = 0
-        while True:
+        count_frames = 0
+        while count_frames < num_frames:
+            count_frames += 1
+
             _, frame = cap.read()
-            frame = cv2.flip(frame, 1) # if your camera reverses your image
+            frame = cv2.resize(frame, web_cam_res)
 
+            frame = cv2.flip(frame, 1)  # if your camera reverses your image
 
-            _, frame_upload = cv2.imencode('.jpeg', frame)
+            _, frame_upload = cv2.imencode(".jpeg", frame)
             img_str = base64.b64encode(frame_upload)
             img_str = img_str.decode("ascii")
 
-            # POST to the API
-            print(self.api_url)
-            
-            
-            r = requests.post(self.api_url, data=img_str, headers={
-                "Content-Type": "application/x-www-form-urlencoded"
-            })
-            
-            print(r.status_code)
+            # post frame to the Roboflow API
+            r = requests.post(
+                self.api_url,
+                data=img_str,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
 
             json = r.json()
 
@@ -269,27 +295,37 @@ class ObjectDetectionModel:
 
             for pred in predictions:
 
-                formatted_pred = [pred["x"], pred["y"], pred["x"], pred["y"], pred["confidence"]]
+                formatted_pred = [
+                    pred["x"],
+                    pred["y"],
+                    pred["x"],
+                    pred["y"],
+                    pred["confidence"],
+                ]
 
                 # convert to top-left x/y from center
-                formatted_pred[0] = int(formatted_pred[0]  - pred["width"]/2)
-                formatted_pred[1] = int(formatted_pred[1]  - pred["height"]/2)
-                formatted_pred[2] = int(formatted_pred[2]  + pred["width"]/2)
-                formatted_pred[3] = int(formatted_pred[3]  + pred["height"]/2)
+                formatted_pred[0] = int(formatted_pred[0] - pred["width"] / 2)
+                formatted_pred[1] = int(formatted_pred[1] - pred["height"] / 2)
+                formatted_pred[2] = int(formatted_pred[2] + pred["width"] / 2)
+                formatted_pred[3] = int(formatted_pred[3] + pred["height"] / 2)
 
                 formatted_predictions.append(formatted_pred)
                 classes.append(pred["class"])
-                color = np.random.randint(0, 255, size=(3, ))
+                color = np.random.randint(0, 255, size=(3,))
 
                 try:
 
-                    plot_one_box(formatted_pred, frame, label=pred["class"], line_thickness=2)
+                    plot_one_box(
+                        formatted_pred, frame, label=pred["class"], line_thickness=2
+                    )
                 except:
                     print("error plot one box")
 
-            _, frame_display = cv2.imencode('.jpeg', frame)
-                
-            display_handle.update(Image(data=frame_display.tobytes()))
+            _, frame_display = cv2.imencode(".jpeg", frame)
+
+            display_handle.update(IPythonImage(data=frame_display.tobytes()))
+
+        cap.release()
 
     def __exception_check(self, image_path_check=None):
         # Check if Image path exists exception check (for both hosted URL and local image)
@@ -317,7 +353,7 @@ class ObjectDetectionModel:
                 self.base_url = "https://detect.roboflow.com/"
             else:
                 self.base_url = "http://localhost:9001/"
-                
+
         if inference_engine_url is not None:
             self.base_url = inference_engine_url
 

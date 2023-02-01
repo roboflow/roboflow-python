@@ -1,12 +1,12 @@
-import os
 import json
+import os
 
-#default configuration location
+# default configuration location
 conf_location = os.getenv(
     "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
 )
 
-#read config file for roboflow if logged in from python or CLI
+# read config file for roboflow if logged in from python or CLI
 if os.path.exists(conf_location):
     with open(conf_location) as f:
         config = json.load(f)
@@ -14,7 +14,7 @@ else:
     config = {}
 
 
-#read configuration variables conditionally
+# read configuration variables conditionally
 
 ##1. check if variable is in environment
 ##2. check if variable is in config file
@@ -27,7 +27,6 @@ def get_var_conditional(key, default):
     else:
         return default
 
-    
 
 CLASSIFICATION_MODEL = os.getenv("CLASSIFICATION_MODEL", "ClassificationModel")
 INSTANCE_SEGMENTATION_MODEL = "InstanceSegmentationModel"
@@ -49,7 +48,9 @@ OBJECT_DETECTION_URL = get_var_conditional(
     "SEMANTIC_SEGMENTATION_URL", "https://detect.roboflow.com"
 )
 
-CLIP_FEATURIZE_URL = get_var_conditional("CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV")
+CLIP_FEATURIZE_URL = get_var_conditional(
+    "CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV"
+)
 OCR_URL = get_var_conditional("OCR_URL", "OCR URL NOT IN ENV")
 
 DEMO_KEYS = ["coco-128-sample", "chess-sample-only-api-key"]
@@ -62,7 +63,8 @@ TYPE_SEMANTIC_SEGMENTATION = "semantic-segmentation"
 DEFAULT_BATCH_NAME = "Pip Package Upload"
 
 RF_WORKSPACES = get_var_conditional("workspaces", default={})
-    
+
+
 def GET_RF_API_KEY():
     RF_WORKSPACE = get_var_conditional("RF_WORKSPACE", default=None)
     # DEFAULT_WORKSPACE = get_var_conditional("default_workspace", default=None)
@@ -77,5 +79,5 @@ def GET_RF_API_KEY():
     # ENV API_KEY OVERRIDE
     if os.getenv("RF_API_KEY") != None:
         RF_API_KEY = os.getenv("RF_API_KEY")
-    
+
     return RF_API_KEY

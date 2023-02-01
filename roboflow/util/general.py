@@ -1,4 +1,5 @@
-import sys 
+import sys
+
 
 def write_line(line):
     sys.stdout.write("\r" + line)

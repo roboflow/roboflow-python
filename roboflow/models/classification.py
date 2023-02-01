@@ -60,13 +60,18 @@ class ClassificationModel:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
             # POST to the API
-            resp = requests.get(self.api_url)
+            resp = requests.post(self.api_url)
+
+        image_dims = {"width": "0", "height": "0"}
 
         if resp.status_code != 200:
             raise Exception(resp.text)
 
         return PredictionGroup.create_prediction_group(
-            resp.json(), image_path=image_path, prediction_type=CLASSIFICATION_MODEL
+            resp.json(),
+            image_path=image_path,
+            prediction_type=CLASSIFICATION_MODEL,
+            image_dims=image_dims,
         )
 
     def load_model(self, name, version):

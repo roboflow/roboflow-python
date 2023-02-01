@@ -1,7 +1,7 @@
 import json
+import os
 import sys
 import time
-import os
 
 import requests
 
@@ -11,6 +11,7 @@ from roboflow.core.workspace import Workspace
 from roboflow.util.general import write_line
 
 __version__ = "0.2.29"
+
 
 def check_key(api_key, model, notebook, num_retries=0):
     if type(api_key) is not str:
@@ -49,7 +50,7 @@ def check_key(api_key, model, notebook, num_retries=0):
                 r = response.json()
                 return r
     else:  # then you're using a dummy key
-        
+
         sys.stdout.write(
             "upload and label your dataset, and get an API KEY here: "
             + APP_URL
@@ -61,21 +62,27 @@ def check_key(api_key, model, notebook, num_retries=0):
         )
         return "onboarding"
 
+
 def auth(api_key):
     r = check_key(api_key)
     w = r["workspace"]
 
     return Roboflow(api_key, w)
 
+
 def login(force=False):
-    
+
     conf_location = os.getenv(
-        "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
+        "ROBOFLOW_CONFIG_DIR",
+        default=os.getenv("HOME") + "/.config/roboflow/config.json",
     )
-    
+
     if os.path.isfile(conf_location) and not force:
-        raise(Exception("You are already logged in. To re-login, run roboflow.login(force=True)"))
-    
+        write_line(
+            "You are already logged into Roboflow. To make a different login, run roboflow.login(force=True)."
+        )
+        return
+
     write_line("visit " + APP_URL + "/auth-cli" " to get your authentication token.")
 
     token = input("Paste the authentication here token here: ")
@@ -85,55 +92,58 @@ def login(force=False):
     if r_login.status_code == 200:
 
         r_login = r_login.json()
-        
-        #make config directory if it doesn't exist
+
+        # make config directory if it doesn't exist
         if not os.path.exists(os.path.dirname(conf_location)):
             os.mkdir(os.path.dirname(conf_location))
-            
+
         r_login = {"workspaces": r_login}
-        #set first workspace as default workspace
-        
+        # set first workspace as default workspace
+
         default_workspace_id = list(r_login["workspaces"].keys())[0]
         workspace = r_login["workspaces"][default_workspace_id]
         r_login["RF_WORKSPACE"] = workspace["url"]
-        
-        #write config file
+
+        # write config file
         with open(conf_location, "w") as f:
             json.dump(r_login, f, indent=2)
-        
+
     else:
         raise RuntimeError("Error logging in")
 
 
-#import roboflow
-#roboflow.#action
+# import roboflow
+# roboflow.#action
 
 active_workspace = None
 
+
 def initialize_roboflow():
-    
+
     global active_workspace
-    
+
     conf_location = os.getenv(
-        "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
+        "ROBOFLOW_CONFIG_DIR",
+        default=os.getenv("HOME") + "/.config/roboflow/config.json",
     )
-    
+
     if not os.path.isfile(conf_location):
-        raise("To use this method, you must first login - run roboflow.login()")
+        raise ("To use this method, you must first login - run roboflow.login()")
     else:
         if active_workspace == None:
-            active_workspace = Roboflow().workspace()   
-        
-        return active_workspace       
-    
+            active_workspace = Roboflow().workspace()
+
+        return active_workspace
+
+
 def train():
-    
+
     operate_workspace = initialize_roboflow()
-    
-    #check if project or version is set
-    
+
+    # check if project or version is set
+
     print("training from " + operate_workspace.name)
-    
+
 
 def load_model(project=None, version=None):
     operate_workspace = initialize_roboflow()
@@ -143,17 +153,16 @@ def load_model(project=None, version=None):
     return model
 
 
-#def set_project()
+# def set_project()
 
 # def set_version()
-    
-#download()
 
-#deploy()
+# download()
+
+# deploy()
 
 
-
-#continue distributing this object for back compatibility
+# continue distributing this object for back compatibility
 class Roboflow:
     def __init__(
         self,
@@ -164,7 +173,7 @@ class Roboflow:
         self.api_key = api_key
         if self.api_key == None:
             self.api_key = GET_RF_API_KEY()
-        
+
         self.model_format = model_format
         self.notebook = notebook
         self.onboarding = False
