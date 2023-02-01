@@ -9,6 +9,11 @@ import cv2
 import numpy as np
 import requests
 from PIL import Image
+import matplotlib.pyplot as plt
+import cv2
+from IPython.display import display, Image
+import base64
+import requests
 
 from roboflow.config import OBJECT_DETECTION_MODEL
 from roboflow.util.image_utils import check_image_url
@@ -181,7 +186,7 @@ class ObjectDetectionModel:
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
             image_dims = {"width": "0", "height": "0"}
             # POST to the API
-            resp = requests.get(self.api_url)
+            resp = requests.post(self.api_url)
 
         resp.raise_for_status()
         # Return a prediction group if JSON data
@@ -195,6 +200,96 @@ class ObjectDetectionModel:
         # Returns base64 encoded Data
         elif self.format == "image":
             return resp.content
+        
+    def webcam(self, webcam_id=0, inference_engine_url="https://detect.roboflow.com/", in_jupyter=False, confidence=40, overlap=30, stroke=1, labels=False):
+        """
+        Infers detections based on webcam feed from specified model
+
+        :param webcam_id: Webcam ID (default 0)
+        :param inference_engine_url: Inference engine address to use (default https://detect.roboflow.com)
+        :param in_jupyter: Whether or not to display the webcam within Jupyter notebook (default True)
+        :param confidence: Confidence threshold for detections
+        :param overlap: Overlap threshold for detections
+        :param stroke: Stroke width for bounding box
+        :param labels: Whether to show labels on bounding box
+        """
+        # Generate url before predicting
+        self.__generate_url(
+            confidence=confidence,
+            overlap=overlap,
+            stroke=stroke,
+            labels=labels,
+            inference_engine_url=inference_engine_url
+        )
+        
+        def plot_one_box(x, img, color=None, label=None, line_thickness=None):
+            # Plots one bounding box on image img
+            
+            tl = line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1  # line/font thickness
+            #color = color or [random.randint(0, 255) for _ in range(3)]
+            
+            
+            c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
+            cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
+            if label:
+                tf = max(tl - 1, 1)  # font thickness
+                t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
+                c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
+                cv2.rectangle(img, c1, c2, color, -1, cv2.LINE_AA)  # filled
+                cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
+
+        cap = cv2.VideoCapture(webcam_id)
+        display_handle=display(None, display_id=True)
+        i = 0
+        while True:
+            _, frame = cap.read()
+            frame = cv2.flip(frame, 1) # if your camera reverses your image
+
+
+            _, frame_upload = cv2.imencode('.jpeg', frame)
+            img_str = base64.b64encode(frame_upload)
+            img_str = img_str.decode("ascii")
+
+            # POST to the API
+            print(self.api_url)
+            
+            
+            r = requests.post(self.api_url, data=img_str, headers={
+                "Content-Type": "application/x-www-form-urlencoded"
+            })
+            
+            print(r.status_code)
+
+            json = r.json()
+
+            predictions = json["predictions"]
+
+            formatted_predictions = []
+            classes = []
+
+            for pred in predictions:
+
+                formatted_pred = [pred["x"], pred["y"], pred["x"], pred["y"], pred["confidence"]]
+
+                # convert to top-left x/y from center
+                formatted_pred[0] = int(formatted_pred[0]  - pred["width"]/2)
+                formatted_pred[1] = int(formatted_pred[1]  - pred["height"]/2)
+                formatted_pred[2] = int(formatted_pred[2]  + pred["width"]/2)
+                formatted_pred[3] = int(formatted_pred[3]  + pred["height"]/2)
+
+                formatted_predictions.append(formatted_pred)
+                classes.append(pred["class"])
+                color = np.random.randint(0, 255, size=(3, ))
+
+                try:
+
+                    plot_one_box(formatted_pred, frame, label=pred["class"], line_thickness=2)
+                except:
+                    print("error plot one box")
+
+            _, frame_display = cv2.imencode('.jpeg', frame)
+                
+            display_handle.update(Image(data=frame_display.tobytes()))
 
     def __exception_check(self, image_path_check=None):
         # Check if Image path exists exception check (for both hosted URL and local image)
@@ -213,6 +308,7 @@ class ObjectDetectionModel:
         stroke=None,
         labels=None,
         format=None,
+        inference_engine_url=None,
     ):
 
         # Reassign parameters if any parameters are changed
@@ -221,6 +317,9 @@ class ObjectDetectionModel:
                 self.base_url = "https://detect.roboflow.com/"
             else:
                 self.base_url = "http://localhost:9001/"
+                
+        if inference_engine_url is not None:
+            self.base_url = inference_engine_url
 
         # Change any variables that the user wants to change
         if classes is not None:
