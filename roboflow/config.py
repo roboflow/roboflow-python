@@ -16,6 +16,7 @@ else:
 
 # read configuration variables conditionally
 
+
 ##1. check if variable is in environment
 ##2. check if variable is in config file
 ##3. return default value

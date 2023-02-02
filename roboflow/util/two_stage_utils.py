@@ -7,7 +7,6 @@ from roboflow.config import OCR_URL
 
 
 def ocr_infer(image):
-
     # Convert to JPEG Buffer
     buffered = io.BytesIO()
     image.save(buffered, quality=90, format="PNG")

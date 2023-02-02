@@ -110,7 +110,10 @@ class Version:
                 )
             elif self.type == TYPE_INSTANCE_SEGMENTATION:
                 self.model = InstanceSegmentationModel(
-                    self.__api_key, self.id, colors=self.colors, preprocessing=self.preprocessing
+                    self.__api_key,
+                    self.id,
+                    colors=self.colors,
+                    preprocessing=self.preprocessing,
                 )
             elif self.type == TYPE_SEMANTIC_SEGMENTATION:
                 self.model = SemanticSegmentationModel(self.__api_key, self.id)
@@ -282,6 +285,16 @@ class Version:
 
         train_model_format = "yolov5pytorch"
 
+        if self.type == TYPE_CLASSICATION:
+            train_model_format = "folder"
+
+        if self.type == TYPE_INSTANCE_SEGMENTATION:
+            train_model_format = "yolov5pytorch"
+
+        if self.type == TYPE_SEMANTIC_SEGMENTATION:
+            train_model_format = "png-mask-semantic"
+
+        # if classification
         if train_model_format not in self.exports:
             self.export(train_model_format)
 

@@ -50,7 +50,6 @@ def check_key(api_key, model, notebook, num_retries=0):
                 r = response.json()
                 return r
     else:  # then you're using a dummy key
-
         sys.stdout.write(
             "upload and label your dataset, and get an API KEY here: "
             + APP_URL
@@ -71,7 +70,6 @@ def auth(api_key):
 
 
 def login(force=False):
-
     conf_location = os.getenv(
         "ROBOFLOW_CONFIG_DIR",
         default=os.getenv("HOME") + "/.config/roboflow/config.json",
@@ -90,7 +88,6 @@ def login(force=False):
     r_login = requests.get(APP_URL + "/query/cliAuthToken/" + token)
 
     if r_login.status_code == 200:
-
         r_login = r_login.json()
 
         # make config directory if it doesn't exist
@@ -119,7 +116,6 @@ active_workspace = None
 
 
 def initialize_roboflow():
-
     global active_workspace
 
     conf_location = os.getenv(
@@ -137,7 +133,6 @@ def initialize_roboflow():
 
 
 def train():
-
     operate_workspace = initialize_roboflow()
 
     # check if project or version is set
@@ -145,7 +140,7 @@ def train():
     print("training from " + operate_workspace.name)
 
 
-def load_model(project=None, version=None):
+def load_model(project=None, version=None, local=None):
     operate_workspace = initialize_roboflow()
     project = operate_workspace.project(project)
     version = project.version(version)

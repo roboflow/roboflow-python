@@ -100,7 +100,6 @@ class Project:
         return version_array
 
     def generate_version(self, settings):
-
         """
         Settings, a python dict with augmentation and preprocessing keys and specifications for generation.
         These settings mirror capabilities available via the Roboflow UI.
@@ -240,7 +239,6 @@ class Project:
         version_info = self.get_version_information()
 
         for version_object in version_info:
-
             current_version_num = os.path.basename(version_object["id"])
             if current_version_num == str(version_number):
                 vers = Version(
@@ -385,7 +383,6 @@ class Project:
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
     ):
-
         """upload function
         :param image_path: path to image you'd like to upload
         :param annotation_path: if you're upload annotation, path to it
@@ -456,7 +453,6 @@ class Project:
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
     ):
-
         success = False
         annotation_success = False
         # User gives image path

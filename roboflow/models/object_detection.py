@@ -1,10 +1,10 @@
 import base64
+import copy
 import io
 import json
 import os
 import urllib
 from pathlib import Path
-import copy
 
 import cv2
 import matplotlib.pyplot as plt
@@ -157,13 +157,20 @@ class ObjectDetectionModel:
                 image = Image.open(image_path).convert("RGB")
                 dimensions = image.size
                 original_dimensions = copy.deepcopy(dimensions)
-                
+
                 if "resize" in self.preprocessing.keys():
-                    if dimensions[0] > int(self.preprocessing["resize"]["width"]) or dimensions[1] > int(self.preprocessing["resize"]["height"]):
-                        image = image.resize((int(self.preprocessing["resize"]["width"]), int(self.preprocessing["resize"]["height"])))
+                    if dimensions[0] > int(
+                        self.preprocessing["resize"]["width"]
+                    ) or dimensions[1] > int(self.preprocessing["resize"]["height"]):
+                        image = image.resize(
+                            (
+                                int(self.preprocessing["resize"]["width"]),
+                                int(self.preprocessing["resize"]["height"]),
+                            )
+                        )
                         dimensions = image.size
                         resize = True
-                
+
                 # Create buffer
                 buffered = io.BytesIO()
                 image.save(buffered, format="PNG")
@@ -176,8 +183,11 @@ class ObjectDetectionModel:
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
-                
-                image_dims = {"width": str(original_dimensions[0]), "height": str(original_dimensions[1])}
+
+                image_dims = {
+                    "width": str(original_dimensions[0]),
+                    "height": str(original_dimensions[1]),
+                }
             elif isinstance(image_path, np.ndarray):
                 # Performing inference on a OpenCV2 frame
                 retval, buffer = cv2.imencode(".jpg", image_path)
@@ -204,21 +214,44 @@ class ObjectDetectionModel:
         resp.raise_for_status()
         # Return a prediction group if JSON data
         if self.format == "json":
-            
             resp_json = resp.json()
-            
+
             if resize:
                 new_preds = []
                 for p in resp_json["predictions"]:
-                    p["x"] = int(p["x"] * (int(original_dimensions[0]) / int(self.preprocessing["resize"]["width"])))
-                    p["y"] = int(p["y"] * (int(original_dimensions[1]) / int(self.preprocessing["resize"]["height"])))
-                    p["width"] = int(p["width"] * (int(original_dimensions[0]) / int(self.preprocessing["resize"]["width"])))
-                    p["height"] = int(p["height"] * (int(original_dimensions[1]) / int(self.preprocessing["resize"]["height"])))
-                    
+                    p["x"] = int(
+                        p["x"]
+                        * (
+                            int(original_dimensions[0])
+                            / int(self.preprocessing["resize"]["width"])
+                        )
+                    )
+                    p["y"] = int(
+                        p["y"]
+                        * (
+                            int(original_dimensions[1])
+                            / int(self.preprocessing["resize"]["height"])
+                        )
+                    )
+                    p["width"] = int(
+                        p["width"]
+                        * (
+                            int(original_dimensions[0])
+                            / int(self.preprocessing["resize"]["width"])
+                        )
+                    )
+                    p["height"] = int(
+                        p["height"]
+                        * (
+                            int(original_dimensions[1])
+                            / int(self.preprocessing["resize"]["height"])
+                        )
+                    )
+
                     new_preds.append(p)
-                    
+
                 resp_json["predictions"] = new_preds
-                
+
             return PredictionGroup.create_prediction_group(
                 resp_json,
                 image_path=image_path,
@@ -343,7 +376,6 @@ class ObjectDetectionModel:
             classes = []
 
             for pred in predictions:
-
                 formatted_pred = [
                     pred["x"],
                     pred["y"],
@@ -403,7 +435,6 @@ class ObjectDetectionModel:
         format=None,
         inference_engine_url=None,
     ):
-
         # Reassign parameters if any parameters are changed
         if local is not None:
             if not local:

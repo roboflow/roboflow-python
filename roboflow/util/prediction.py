@@ -57,7 +57,6 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60, colors={})
     stroke_color = "r"
 
     if prediction["prediction_type"] == OBJECT_DETECTION_MODEL:
-
         if prediction["class"] in colors.keys():
             stroke_color = colors[prediction["class"]]
 
@@ -198,7 +197,6 @@ class Prediction:
             )
 
         elif self["prediction_type"] == CLASSIFICATION_MODEL:
-
             if self["top"] in self.colors.keys():
                 stroke_color = self.colors[self["top"]]
             # Get image dimensions
@@ -502,7 +500,6 @@ class PredictionGroup:
     def create_prediction_group(
         json_response, image_path, prediction_type, image_dims, colors={}
     ):
-
         """
         Method to create a prediction group based on the JSON Response
 
