@@ -3,7 +3,7 @@ from roboflow.models.inference import InferenceModel
 
 
 class InstanceSegmentationModel(InferenceModel):
-    def __init__(self, api_key, version_id, colors={}):
+    def __init__(self, api_key, version_id, colors={}, preprocessing={}):
         """
         :param api_key: Your API key (obtained via your workspace API settings page)
         :param version_id: The ID of the dataset version to use for predicting
@@ -11,6 +11,7 @@ class InstanceSegmentationModel(InferenceModel):
         super(InstanceSegmentationModel, self).__init__(api_key, version_id)
         self.api_url = f"{INSTANCE_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
         self.colors = colors
+        self.preprocessing = preprocessing
 
     def predict(self, image_path, confidence=40):
         """

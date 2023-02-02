@@ -13,7 +13,7 @@ from roboflow.util.prediction import PredictionGroup
 
 
 class ClassificationModel:
-    def __init__(self, api_key, id, name=None, version=None, local=False, colors={}):
+    def __init__(self, api_key, id, name=None, version=None, local=False, colors={}, preprocessing={}):
         """
         :param api_key: private roboflow api key
         :param id: the workspace/project id
@@ -32,6 +32,7 @@ class ClassificationModel:
             self.__generate_url()
 
         self.colors = colors
+        self.preprocessing = preprocessing
 
     def predict(self, image_path, hosted=False):
         """

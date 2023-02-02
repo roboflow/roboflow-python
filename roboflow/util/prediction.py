@@ -121,7 +121,6 @@ class Prediction:
         self.image_path = image_path
         self.json_prediction = json_prediction
 
-        print("PREDICTION INIT COLORS = ", colors)
         self.colors = colors
 
     def json(self):
@@ -504,7 +503,6 @@ class PredictionGroup:
         json_response, image_path, prediction_type, image_dims, colors={}
     ):
 
-        print("CREATE PREDICTION GROUP COLORS = ", colors)
         """
         Method to create a prediction group based on the JSON Response
 

@@ -96,6 +96,7 @@ class Version:
                     version_without_workspace,
                     local=local,
                     colors=self.colors,
+                    preprocessing=self.preprocessing,
                 )
             elif self.type == TYPE_CLASSICATION:
                 self.model = ClassificationModel(
@@ -105,10 +106,11 @@ class Version:
                     version_without_workspace,
                     local=local,
                     colors=self.colors,
+                    preprocessing=self.preprocessing,
                 )
             elif self.type == TYPE_INSTANCE_SEGMENTATION:
                 self.model = InstanceSegmentationModel(
-                    self.__api_key, self.id, colors=self.colors
+                    self.__api_key, self.id, colors=self.colors, preprocessing=self.preprocessing
                 )
             elif self.type == TYPE_SEMANTIC_SEGMENTATION:
                 self.model = SemanticSegmentationModel(self.__api_key, self.id)

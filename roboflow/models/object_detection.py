@@ -4,6 +4,7 @@ import json
 import os
 import urllib
 from pathlib import Path
+import copy
 
 import cv2
 import matplotlib.pyplot as plt
@@ -33,6 +34,7 @@ class ObjectDetectionModel:
         labels=False,
         format="json",
         colors={},
+        preprocessing={},
     ):
         """
         From Roboflow Docs:
@@ -69,6 +71,7 @@ class ObjectDetectionModel:
         self.labels = labels
         self.format = format
         self.colors = colors
+        self.preprocessing = preprocessing
 
         # local needs to be passed from Project
         if local is None:
@@ -147,11 +150,20 @@ class ObjectDetectionModel:
         else:
             self.__exception_check(image_path_check=image_path)
 
+        resize = False
         # If image is local image
         if not hosted:
             if type(image_path) is str:
                 image = Image.open(image_path).convert("RGB")
                 dimensions = image.size
+                original_dimensions = copy.deepcopy(dimensions)
+                
+                if "resize" in self.preprocessing.keys():
+                    if dimensions[0] > int(self.preprocessing["resize"]["width"]) or dimensions[1] > int(self.preprocessing["resize"]["height"]):
+                        image = image.resize((int(self.preprocessing["resize"]["width"]), int(self.preprocessing["resize"]["height"])))
+                        dimensions = image.size
+                        resize = True
+                
                 # Create buffer
                 buffered = io.BytesIO()
                 image.save(buffered, format="PNG")
@@ -164,7 +176,8 @@ class ObjectDetectionModel:
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
-                image_dims = {"width": str(dimensions[0]), "height": str(dimensions[1])}
+                
+                image_dims = {"width": str(original_dimensions[0]), "height": str(original_dimensions[1])}
             elif isinstance(image_path, np.ndarray):
                 # Performing inference on a OpenCV2 frame
                 retval, buffer = cv2.imencode(".jpg", image_path)
@@ -191,8 +204,23 @@ class ObjectDetectionModel:
         resp.raise_for_status()
         # Return a prediction group if JSON data
         if self.format == "json":
+            
+            resp_json = resp.json()
+            
+            if resize:
+                new_preds = []
+                for p in resp_json["predictions"]:
+                    p["x"] = int(p["x"] * (int(original_dimensions[0]) / int(self.preprocessing["resize"]["width"])))
+                    p["y"] = int(p["y"] * (int(original_dimensions[1]) / int(self.preprocessing["resize"]["height"])))
+                    p["width"] = int(p["width"] * (int(original_dimensions[0]) / int(self.preprocessing["resize"]["width"])))
+                    p["height"] = int(p["height"] * (int(original_dimensions[1]) / int(self.preprocessing["resize"]["height"])))
+                    
+                    new_preds.append(p)
+                    
+                resp_json["predictions"] = new_preds
+                
             return PredictionGroup.create_prediction_group(
-                resp.json(),
+                resp_json,
                 image_path=image_path,
                 prediction_type=OBJECT_DETECTION_MODEL,
                 image_dims=image_dims,
