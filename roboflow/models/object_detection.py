@@ -273,10 +273,19 @@ class ObjectDetectionModel:
                 )
 
         cap = cv2.VideoCapture(webcam_id)
+
+        if cap is None or not cap.isOpened():
+            raise (Exception("No webcam available at webcam_id " + str(webcam_id)))
+
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, web_cam_res[0])
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, web_cam_res[1])
 
-        display_handle = display(None, display_id=True)
+        if within_jupyter:
+            display_handle = display(None, display_id=True)
+        else:
+            cv2.namedWindow("Roboflow Webcam Inference", cv2.WINDOW_NORMAL)
+            cv2.startWindowThread()
+
         i = 0
         count_frames = 0
         while count_frames < num_frames:
@@ -334,9 +343,18 @@ class ObjectDetectionModel:
 
             _, frame_display = cv2.imencode(".jpeg", frame)
 
-            display_handle.update(IPythonImage(data=frame_display.tobytes()))
+            if within_jupyter:
+                display_handle.update(IPythonImage(data=frame_display.tobytes()))
+            else:
+                cv2.imshow("Roboflow Webcam Inference", frame)
+                if cv2.waitKey(1) & 0xFF == ord("q"):  # quit when 'q' is pressed
+                    cap.release()
+                    break
 
         cap.release()
+        if not within_jupyter:
+            cv2.destroyWindow("Roboflow Webcam Inference")
+            cv2.destroyAllWindows()
 
     def __exception_check(self, image_path_check=None):
         # Check if Image path exists exception check (for both hosted URL and local image)
