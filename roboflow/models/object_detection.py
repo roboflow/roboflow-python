@@ -237,8 +237,17 @@ class ObjectDetectionModel:
             inference_engine_url=inference_engine_url,
         )
 
-        def plot_one_box(x, img, color=None, label=None, line_thickness=None):
+        def plot_one_box(
+            x, img, color=None, label=None, line_thickness=None, colors={}
+        ):
             # Plots one bounding box on image img
+
+            color = np.random.randint(0, 255, size=(3,))
+
+            if label in colors.keys():
+                color = colors[label]
+                color = color.lstrip("#")
+                color = tuple(int(color[i : i + 2], 16) for i in (0, 2, 4))
 
             tl = (
                 line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1
@@ -314,15 +323,14 @@ class ObjectDetectionModel:
 
                 formatted_predictions.append(formatted_pred)
                 classes.append(pred["class"])
-                color = np.random.randint(0, 255, size=(3,))
 
-                try:
-
-                    plot_one_box(
-                        formatted_pred, frame, label=pred["class"], line_thickness=2
-                    )
-                except:
-                    print("error plot one box")
+                plot_one_box(
+                    formatted_pred,
+                    frame,
+                    label=pred["class"],
+                    line_thickness=2,
+                    colors=self.colors,
+                )
 
             _, frame_display = cv2.imencode(".jpeg", frame)
 
