@@ -13,14 +13,17 @@ if os.path.exists(conf_location):
 else:
     config = {}
 
-
-# read configuration variables conditionally
-
-
-##1. check if variable is in environment
-##2. check if variable is in config file
-##3. return default value
-def get_var_conditional(key, default):
+def get_conditional_configuration_variable(key, default):
+    """Retrieves the configuration variable conditionally.
+        ##1. check if variable is in environment
+        ##2. check if variable is in config file
+        ##3. return default value
+    Args:
+        key (string): The name of the configuration variable.
+        default (string): The default value of the configuration variable.
+    Returns:
+        string: The value of the conditional configuration variable.
+    """
     if os.getenv(key) != None:
         return os.getenv(key)
     elif key in config.keys():
@@ -35,24 +38,24 @@ OBJECT_DETECTION_MODEL = os.getenv("OBJECT_DETECTION_MODEL", "ObjectDetectionMod
 SEMANTIC_SEGMENTATION_MODEL = "SemanticSegmentationModel"
 PREDICTION_OBJECT = os.getenv("PREDICTION_OBJECT", "Prediction")
 
-API_URL = get_var_conditional("API_URL", "https://api.roboflow.com")
-APP_URL = get_var_conditional("APP_URL", "https://app.roboflow.com")
-UNIVERSE_URL = get_var_conditional("UNIVERSE_URL", "https://universe.roboflow.com")
+API_URL = get_conditional_configuration_variable("API_URL", "https://api.roboflow.com")
+APP_URL = get_conditional_configuration_variable("APP_URL", "https://app.roboflow.com")
+UNIVERSE_URL = get_conditional_configuration_variable("UNIVERSE_URL", "https://universe.roboflow.com")
 
-INSTANCE_SEGMENTATION_URL = get_var_conditional(
+INSTANCE_SEGMENTATION_URL = get_conditional_configuration_variable(
     "INSTANCE_SEGMENTATION_URL", "https://outline.roboflow.com"
 )
-SEMANTIC_SEGMENTATION_URL = get_var_conditional(
+SEMANTIC_SEGMENTATION_URL = get_conditional_configuration_variable(
     "SEMANTIC_SEGMENTATION_URL", "https://segment.roboflow.com"
 )
-OBJECT_DETECTION_URL = get_var_conditional(
+OBJECT_DETECTION_URL = get_conditional_configuration_variable(
     "SEMANTIC_SEGMENTATION_URL", "https://detect.roboflow.com"
 )
 
-CLIP_FEATURIZE_URL = get_var_conditional(
+CLIP_FEATURIZE_URL = get_conditional_configuration_variable(
     "CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV"
 )
-OCR_URL = get_var_conditional("OCR_URL", "OCR URL NOT IN ENV")
+OCR_URL = get_conditional_configuration_variable("OCR_URL", "OCR URL NOT IN ENV")
 
 DEMO_KEYS = ["coco-128-sample", "chess-sample-only-api-key"]
 
@@ -63,12 +66,12 @@ TYPE_SEMANTIC_SEGMENTATION = "semantic-segmentation"
 
 DEFAULT_BATCH_NAME = "Pip Package Upload"
 
-RF_WORKSPACES = get_var_conditional("workspaces", default={})
+RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
 
 
 def GET_RF_API_KEY():
-    RF_WORKSPACE = get_var_conditional("RF_WORKSPACE", default=None)
-    # DEFAULT_WORKSPACE = get_var_conditional("default_workspace", default=None)
+    RF_WORKSPACE = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+    # DEFAULT_WORKSPACE = get_conditional_configuration_variable("default_workspace", default=None)
     if RF_WORKSPACE == None:
         RF_API_KEY = None
     else:
