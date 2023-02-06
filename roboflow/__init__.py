@@ -69,7 +69,7 @@ def auth(api_key):
     return Roboflow(api_key, w)
 
 
-def login(force=False):
+def login(workspace=None, force=False):
     conf_location = os.getenv(
         "ROBOFLOW_CONFIG_DIR",
         default=os.getenv("HOME") + "/.config/roboflow/config.json",
@@ -81,7 +81,10 @@ def login(force=False):
         )
         return
 
-    write_line("visit " + APP_URL + "/auth-cli" " to get your authentication token.")
+    if workspace is None:
+        write_line("visit " + APP_URL + "/auth-cli" " to get your authentication token.")
+    else:
+        write_line("visit " + APP_URL + "/auth-cli/?workspace=" + workspace + " to get your authentication token.")
 
     token = input("Paste the authentication here token here: ")
 
