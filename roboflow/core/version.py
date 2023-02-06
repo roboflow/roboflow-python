@@ -47,7 +47,7 @@ class Version:
         workspace,
         project,
         public,
-        colors,
+        colors=None,
     ):
         if api_key in DEMO_KEYS:
             if api_key == "coco-128-sample":
@@ -80,6 +80,8 @@ class Version:
             self.workspace = workspace
             self.project = project
             self.public = public
+            self.colors = {} if colors is None else colors
+
             self.colors = colors
             if "exports" in version_dict.keys():
                 self.exports = version_dict["exports"]
