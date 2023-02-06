@@ -11,6 +11,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import requests
+from PIL import Image
 
 from roboflow.config import OBJECT_DETECTION_MODEL
 from roboflow.util.image_utils import check_image_url
@@ -312,7 +313,6 @@ class ObjectDetectionModel:
                 color = colors[label]
                 color = color.lstrip("#")
                 color = tuple(int(color[i : i + 2], 16) for i in (0, 2, 4))
-                print("label color ", label, color)
             else:
                 color = [random.randint(0, 255) for _ in range(3)]
 
@@ -352,7 +352,6 @@ class ObjectDetectionModel:
 
             from IPython.display import Image as IPythonImage
             from IPython.display import display
-            from PIL import Image
 
             display_handle = display(None, display_id=True)
         else:
