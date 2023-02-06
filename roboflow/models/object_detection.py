@@ -10,13 +10,14 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import requests
-from IPython.display import Image as IPythonImage
-from IPython.display import display
-from PIL import Image
 
 from roboflow.config import OBJECT_DETECTION_MODEL
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
+from roboflow.util.versions import (
+    print_warn_for_wrong_dependencies_versions,
+    warn_for_wrong_dependencies_versions,
+)
 
 
 class ObjectDetectionModel:
@@ -345,6 +346,12 @@ class ObjectDetectionModel:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, web_cam_res[1])
 
         if within_jupyter:
+            print_warn_for_wrong_dependencies_versions([("ipython", "<=", "7.0.0")])
+
+            from IPython.display import Image as IPythonImage
+            from IPython.display import display
+            from PIL import Image
+
             display_handle = display(None, display_id=True)
         else:
             cv2.namedWindow("Roboflow Webcam Inference", cv2.WINDOW_NORMAL)
