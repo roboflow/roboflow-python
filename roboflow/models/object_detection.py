@@ -3,6 +3,7 @@ import copy
 import io
 import json
 import os
+import random
 import urllib
 from pathlib import Path
 
@@ -307,19 +308,20 @@ class ObjectDetectionModel:
 
             self.colors = {} if colors is None else colors
 
-            color = np.random.randint(0, 255, size=(3,))
-
-            if label in colors.keys():
+            if label in colors.keys() and label is not None:
                 color = colors[label]
                 color = color.lstrip("#")
                 color = tuple(int(color[i : i + 2], 16) for i in (0, 2, 4))
+                print("label color ", label, color)
+            else:
+                color = [random.randint(0, 255) for _ in range(3)]
 
             tl = (
                 line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1
             )  # line/font thickness
-            # color = color or [random.randint(0, 255) for _ in range(3)]
 
             c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
+
             cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
             if label:
                 tf = max(tl - 1, 1)  # font thickness
@@ -346,7 +348,7 @@ class ObjectDetectionModel:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, web_cam_res[1])
 
         if within_jupyter:
-            print_warn_for_wrong_dependencies_versions([("ipython", "<=", "7.0.0")])
+            print_warn_for_wrong_dependencies_versions([("IPython", "<=", "7.0.0")])
 
             from IPython.display import Image as IPythonImage
             from IPython.display import display

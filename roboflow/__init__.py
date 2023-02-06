@@ -82,9 +82,17 @@ def login(workspace=None, force=False):
         return
 
     if workspace is None:
-        write_line("visit " + APP_URL + "/auth-cli" " to get your authentication token.")
+        write_line(
+            "visit " + APP_URL + "/auth-cli" " to get your authentication token."
+        )
     else:
-        write_line("visit " + APP_URL + "/auth-cli/?workspace=" + workspace + " to get your authentication token.")
+        write_line(
+            "visit "
+            + APP_URL
+            + "/auth-cli/?workspace="
+            + workspace
+            + " to get your authentication token."
+        )
 
     token = input("Paste the authentication here token here: ")
 
