@@ -18,3 +18,4 @@ tqdm>=4.41.0
 PyYAML>=5.3.1
 wget
 requests_toolbelt
+ipython>=8.9.1
