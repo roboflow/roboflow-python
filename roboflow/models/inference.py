@@ -14,7 +14,7 @@ class InferenceModel:
         self,
         api_key,
         version_id,
-        colors={},
+        colors=None,
         *args,
         **kwargs,
     ):
@@ -28,6 +28,7 @@ class InferenceModel:
         version_info = self.id.rsplit("/")
         self.dataset_id = version_info[1]
         self.version = version_info[2]
+        self.colors = {} if colors is None else colors
 
     def __get_image_params(self, image_path):
         """

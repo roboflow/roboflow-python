@@ -33,8 +33,8 @@ class ObjectDetectionModel:
         stroke=1,
         labels=False,
         format="json",
-        colors={},
-        preprocessing={},
+        colors=None,
+        preprocessing=None,
     ):
         """
         From Roboflow Docs:
@@ -70,8 +70,8 @@ class ObjectDetectionModel:
         self.stroke = stroke
         self.labels = labels
         self.format = format
-        self.colors = colors
-        self.preprocessing = preprocessing
+        self.colors = {} if colors is None else colors
+        self.preprocessing = {} if preprocessing is None else preprocessing
 
         # local needs to be passed from Project
         if local is None:
@@ -158,6 +158,7 @@ class ObjectDetectionModel:
                 dimensions = image.size
                 original_dimensions = copy.deepcopy(dimensions)
 
+                # Here we resize the image to the preprocessing settings before sending it over the wire
                 if "resize" in self.preprocessing.keys():
                     if dimensions[0] > int(
                         self.preprocessing["resize"]["width"]
@@ -299,9 +300,11 @@ class ObjectDetectionModel:
         )
 
         def plot_one_box(
-            x, img, color=None, label=None, line_thickness=None, colors={}
+            x, img, color=None, label=None, line_thickness=None, colors=None
         ):
             # Plots one bounding box on image img
+
+            self.colors = {} if colors is None else colors
 
             color = np.random.randint(0, 255, size=(3,))
 

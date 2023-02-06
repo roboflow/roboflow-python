@@ -42,7 +42,7 @@ def plot_image(image_path):
     return figure, axes
 
 
-def plot_annotation(axes, prediction=None, stroke=1, transparency=60, colors={}):
+def plot_annotation(axes, prediction=None, stroke=1, transparency=60, colors=None):
     """
     Helper method to plot annotations
 
@@ -53,6 +53,8 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60, colors={})
     :return:
     """
     # Object Detection annotation
+
+    colors = {} if colors is None else colors
 
     stroke_color = "r"
 
@@ -106,7 +108,7 @@ class Prediction:
         json_prediction,
         image_path,
         prediction_type=OBJECT_DETECTION_MODEL,
-        colors={},
+        colors=None,
     ):
         """
         Generalized Prediction for both Object Detection and Classification Models
@@ -120,7 +122,7 @@ class Prediction:
         self.image_path = image_path
         self.json_prediction = json_prediction
 
-        self.colors = colors
+        self.colors = {} if colors is None else colors
 
     def json(self):
         return self.json_prediction
@@ -498,7 +500,7 @@ class PredictionGroup:
 
     @staticmethod
     def create_prediction_group(
-        json_response, image_path, prediction_type, image_dims, colors={}
+        json_response, image_path, prediction_type, image_dims, colors=None
     ):
         """
         Method to create a prediction group based on the JSON Response
@@ -510,6 +512,8 @@ class PredictionGroup:
         :param image_dims:
         :return:
         """
+
+        colors = {} if colors is None else colors
         prediction_list = []
 
         if prediction_type in [OBJECT_DETECTION_MODEL, INSTANCE_SEGMENTATION_MODEL]:

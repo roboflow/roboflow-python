@@ -5,12 +5,12 @@ import time
 
 import requests
 
-from roboflow.config import API_URL, APP_URL, DEMO_KEYS, GET_RF_API_KEY
+from roboflow.config import API_URL, APP_URL, DEMO_KEYS, load_roboflow_api_key
 from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
 from roboflow.util.general import write_line
 
-__version__ = "0.2.29"
+__version__ = "0.2.291"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -167,7 +167,7 @@ class Roboflow:
     ):
         self.api_key = api_key
         if self.api_key == None:
-            self.api_key = GET_RF_API_KEY()
+            self.api_key = load_roboflow_api_key()
 
         self.model_format = model_format
         self.notebook = notebook

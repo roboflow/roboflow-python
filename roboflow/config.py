@@ -13,6 +13,7 @@ if os.path.exists(conf_location):
 else:
     config = {}
 
+
 def get_conditional_configuration_variable(key, default):
     """Retrieves the configuration variable conditionally.
         ##1. check if variable is in environment
@@ -40,7 +41,9 @@ PREDICTION_OBJECT = os.getenv("PREDICTION_OBJECT", "Prediction")
 
 API_URL = get_conditional_configuration_variable("API_URL", "https://api.roboflow.com")
 APP_URL = get_conditional_configuration_variable("APP_URL", "https://app.roboflow.com")
-UNIVERSE_URL = get_conditional_configuration_variable("UNIVERSE_URL", "https://universe.roboflow.com")
+UNIVERSE_URL = get_conditional_configuration_variable(
+    "UNIVERSE_URL", "https://universe.roboflow.com"
+)
 
 INSTANCE_SEGMENTATION_URL = get_conditional_configuration_variable(
     "INSTANCE_SEGMENTATION_URL", "https://outline.roboflow.com"
@@ -69,7 +72,7 @@ DEFAULT_BATCH_NAME = "Pip Package Upload"
 RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
 
 
-def GET_RF_API_KEY():
+def load_roboflow_api_key():
     RF_WORKSPACE = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     # DEFAULT_WORKSPACE = get_conditional_configuration_variable("default_workspace", default=None)
     if RF_WORKSPACE == None:

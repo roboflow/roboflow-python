@@ -20,8 +20,8 @@ class ClassificationModel:
         name=None,
         version=None,
         local=False,
-        colors={},
-        preprocessing={},
+        colors=None,
+        preprocessing=None,
     ):
         """
         :param api_key: private roboflow api key
@@ -40,8 +40,8 @@ class ClassificationModel:
         if self.name is not None and version is not None:
             self.__generate_url()
 
-        self.colors = colors
-        self.preprocessing = preprocessing
+        self.colors = {} if colors is None else colors
+        self.preprocessing = {} if preprocessing is None else preprocessing
 
     def predict(self, image_path, hosted=False):
         """
