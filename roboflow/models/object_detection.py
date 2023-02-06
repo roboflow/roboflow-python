@@ -276,7 +276,6 @@ class ObjectDetectionModel:
         overlap=30,
         stroke=1,
         labels=False,
-        num_frames=30,
         web_cam_res=(416, 416),
     ):
         """
@@ -348,84 +347,117 @@ class ObjectDetectionModel:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, web_cam_res[1])
 
         if within_jupyter:
-            print_warn_for_wrong_dependencies_versions([("IPython", "<=", "7.0.0")])
+            print_warn_for_wrong_dependencies_versions([("IPython", ">=", "7.0.0")])
+            print_warn_for_wrong_dependencies_versions([("ipywidgets", ">=", "7.0.0")])
 
+            import threading
+
+            import ipywidgets as widgets
             from IPython.display import Image as IPythonImage
             from IPython.display import display
 
             display_handle = display(None, display_id=True)
+
+            # Stop button
+            # ================
+            stopButton = widgets.ToggleButton(
+                value=False,
+                description="Stop Inference",
+                disabled=False,
+                button_style="danger",  # 'success', 'info', 'warning', 'danger' or ''
+                tooltip="Description",
+                icon="square",  # (FontAwesome names without the `fa-` prefix)
+            )
+
         else:
             cv2.namedWindow("Roboflow Webcam Inference", cv2.WINDOW_NORMAL)
             cv2.startWindowThread()
 
-        i = 0
-        count_frames = 0
-        while count_frames < num_frames:
-            count_frames += 1
+            stopButton = None
 
-            _, frame = cap.read()
-            frame = cv2.resize(frame, web_cam_res)
+        def view(button):
+            while True:
+                if stopButton is not None:
+                    if stopButton.value == True:
+                        display_handle.update("Finished Inference")
+                        break
+                else:
+                    if cv2.waitKey(1) & 0xFF == ord("q"):  # quit when 'q' is pressed
+                        break
 
-            frame = cv2.flip(frame, 1)  # if your camera reverses your image
+                _, frame = cap.read()
+                frame = cv2.resize(frame, web_cam_res)
 
-            _, frame_upload = cv2.imencode(".jpeg", frame)
-            img_str = base64.b64encode(frame_upload)
-            img_str = img_str.decode("ascii")
+                frame = cv2.flip(frame, 1)  # if your camera reverses your image
 
-            # post frame to the Roboflow API
-            r = requests.post(
-                self.api_url,
-                data=img_str,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-            )
+                _, frame_upload = cv2.imencode(".jpeg", frame)
+                img_str = base64.b64encode(frame_upload)
+                img_str = img_str.decode("ascii")
 
-            json = r.json()
-
-            predictions = json["predictions"]
-
-            formatted_predictions = []
-            classes = []
-
-            for pred in predictions:
-                formatted_pred = [
-                    pred["x"],
-                    pred["y"],
-                    pred["x"],
-                    pred["y"],
-                    pred["confidence"],
-                ]
-
-                # convert to top-left x/y from center
-                formatted_pred[0] = int(formatted_pred[0] - pred["width"] / 2)
-                formatted_pred[1] = int(formatted_pred[1] - pred["height"] / 2)
-                formatted_pred[2] = int(formatted_pred[2] + pred["width"] / 2)
-                formatted_pred[3] = int(formatted_pred[3] + pred["height"] / 2)
-
-                formatted_predictions.append(formatted_pred)
-                classes.append(pred["class"])
-
-                plot_one_box(
-                    formatted_pred,
-                    frame,
-                    label=pred["class"],
-                    line_thickness=2,
-                    colors=self.colors,
+                # post frame to the Roboflow API
+                r = requests.post(
+                    self.api_url,
+                    data=img_str,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
 
-            _, frame_display = cv2.imencode(".jpeg", frame)
+                json = r.json()
 
-            if within_jupyter:
-                display_handle.update(IPythonImage(data=frame_display.tobytes()))
-            else:
-                cv2.imshow("Roboflow Webcam Inference", frame)
-                if cv2.waitKey(1) & 0xFF == ord("q"):  # quit when 'q' is pressed
-                    cap.release()
-                    break
+                predictions = json["predictions"]
 
-        cap.release()
-        if not within_jupyter:
-            cv2.destroyWindow("Roboflow Webcam Inference")
-            cv2.destroyAllWindows()
+                formatted_predictions = []
+                classes = []
+
+                for pred in predictions:
+                    formatted_pred = [
+                        pred["x"],
+                        pred["y"],
+                        pred["x"],
+                        pred["y"],
+                        pred["confidence"],
+                    ]
+
+                    # convert to top-left x/y from center
+                    formatted_pred[0] = int(formatted_pred[0] - pred["width"] / 2)
+                    formatted_pred[1] = int(formatted_pred[1] - pred["height"] / 2)
+                    formatted_pred[2] = int(formatted_pred[2] + pred["width"] / 2)
+                    formatted_pred[3] = int(formatted_pred[3] + pred["height"] / 2)
+
+                    formatted_predictions.append(formatted_pred)
+                    classes.append(pred["class"])
+
+                    plot_one_box(
+                        formatted_pred,
+                        frame,
+                        label=pred["class"],
+                        line_thickness=2,
+                        colors=self.colors,
+                    )
+
+                _, frame_display = cv2.imencode(".jpeg", frame)
+
+                if within_jupyter:
+                    display_handle.update(IPythonImage(data=frame_display.tobytes()))
+                else:
+                    cv2.imshow("Roboflow Webcam Inference", frame)
+                    if cv2.waitKey(1) & 0xFF == ord("q"):  # quit when 'q' is pressed
+                        cap.release()
+                        break
+
+            cap.release()
+            if not within_jupyter:
+                cv2.destroyWindow("Roboflow Webcam Inference")
+                cv2.destroyAllWindows()
+                cv2.waitKey(1)
+
+            return
+
+        if within_jupyter:
+            display(stopButton)
+            thread = threading.Thread(target=view, args=(stopButton,))
+            thread.start()
+        else:
+            view(stopButton)
 
     def __exception_check(self, image_path_check=None):
         # Check if Image path exists exception check (for both hosted URL and local image)
