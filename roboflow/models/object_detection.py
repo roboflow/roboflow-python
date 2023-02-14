@@ -347,6 +347,8 @@ class ObjectDetectionModel:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, web_cam_res[1])
 
         if within_jupyter:
+            
+            os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
             print_warn_for_wrong_dependencies_versions([("IPython", ">=", "7.0.0")])
             print_warn_for_wrong_dependencies_versions([("ipywidgets", ">=", "7.0.0")])
 
@@ -379,7 +381,6 @@ class ObjectDetectionModel:
             while True:
                 if stopButton is not None:
                     if stopButton.value == True:
-                        display_handle.update("Finished Inference")
                         break
                 else:
                     if cv2.waitKey(1) & 0xFF == ord("q"):  # quit when 'q' is pressed
