@@ -79,7 +79,9 @@ def login(workspace=None, force=False):
         write_line(
             "You are already logged into Roboflow. To make a different login, run roboflow.login(force=True)."
         )
-        return
+        return Roboflow().workspace()
+    elif os.path.isfile(conf_location) and force:
+        os.remove(conf_location)
 
     if workspace is None:
         write_line(
@@ -118,6 +120,8 @@ def login(workspace=None, force=False):
 
     else:
         raise RuntimeError("Error logging in")
+    
+    #return Roboflow().workspace()
 
 
 # import roboflow
