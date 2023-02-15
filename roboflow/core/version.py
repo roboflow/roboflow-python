@@ -323,7 +323,17 @@ class Version:
 
         sys.stdout.write("\r" + "Training model in progress...")
         sys.stdout.flush()
-
+        
+        status = "training"
+        while status == "training":
+            url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
+            response = requests.get(url, params={"api_key": self.__api_key})
+            response.raise_for_status()
+            print(response.json())
+            
+            time.sleep(5)
+            
+            
         return True
 
     # @warn_for_wrong_dependencies_versions([("ultralytics", "<=", "8.0.20")])
