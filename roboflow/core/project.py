@@ -193,12 +193,14 @@ class Project:
         },
         speed=None,
         checkpoint=None,
+        plot_in_notebook=False,
     ) -> bool:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
         Args:
             speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
             checkpoint: A string representing the checkpoint to use while training
+            plot: Whether to plot the training loss curve. Default is False.
         Returns:
             True
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
@@ -207,7 +209,9 @@ class Project:
 
         new_version = self.generate_version(settings=new_version_settings)
         new_version = self.version(new_version)
-        new_version.train(speed=speed, checkpoint=checkpoint)
+        new_version.train(
+            speed=speed, checkpoint=checkpoint, plot_in_notebook=plot_in_notebook
+        )
 
         return True
 

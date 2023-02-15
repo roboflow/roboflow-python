@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import sys
@@ -5,6 +6,7 @@ import time
 import zipfile
 from importlib import import_module
 
+import numpy as np
 import requests
 import wget
 import yaml
@@ -26,6 +28,7 @@ from roboflow.models.classification import ClassificationModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
+from roboflow.util.general import write_line
 from roboflow.util.versions import (
     print_warn_for_wrong_dependencies_versions,
     warn_for_wrong_dependencies_versions,
@@ -271,14 +274,15 @@ class Version:
             except requests.exceptions.JSONDecodeError:
                 response.raise_for_status()
 
-    def train(self, speed=None, checkpoint=None) -> bool:
+    def train(self, speed=None, checkpoint=None, plot_in_notebook=False) -> bool:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
         Args:
             speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
             checkpoint: A string representing the checkpoint to use while training
+            plot: Whether to plot the training results. Default is `False`.
         Returns:
-            True
+            An instance of the trained model class
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
             HTTPError: If the Network/Roboflow API fails and does not return JSON
         """
@@ -310,9 +314,7 @@ class Version:
         if checkpoint:
             data["checkpoint"] = checkpoint
 
-        sys.stdout.write("\r" + "Reaching out to Roboflow to start training...")
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+        write_line("Reaching out to Roboflow to start training...")
 
         response = requests.post(url, json=data, params={"api_key": self.__api_key})
         if not response.ok:
@@ -321,20 +323,106 @@ class Version:
             except requests.exceptions.JSONDecodeError:
                 response.raise_for_status()
 
-        sys.stdout.write("\r" + "Training model in progress...")
-        sys.stdout.flush()
-        
         status = "training"
+
+        if plot_in_notebook:
+            import collections
+            from IPython.display import clear_output
+            from matplotlib import pyplot as plt
+
+            def live_plot(epochs, mAP, loss, title=""):
+                clear_output(wait=True)
+
+                plt.subplot(2, 1, 1)
+                plt.plot(epochs, mAP, "#00FFCE")
+                plt.title(title)
+                plt.ylabel("mAP")
+
+                plt.subplot(2, 1, 2)
+                plt.plot(epochs, loss, "#A351FB")
+                plt.xlabel("epochs")
+                plt.ylabel("loss")
+                plt.show()
+
+        first_graph_write = False
+        previous_epochs = []
+        num_machine_spin_dots = []
+
         while status == "training":
-            url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
+            url = (
+                f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
+            )
             response = requests.get(url, params={"api_key": self.__api_key})
             response.raise_for_status()
-            print(response.json())
-            
+            version = response.json()["version"]
+            models = version["models"]
+
+            if "train" in version.keys():
+                if "results" in version["train"].keys():
+                    status = "finished"
+                    break
+
+            if "roboflow-train" in models.keys():
+                # training has started
+                epochs = np.array(
+                    [
+                        int(epoch["epoch"])
+                        for epoch in models["roboflow-train"]["epochs"]
+                    ]
+                )
+                mAP = np.array(
+                    [
+                        float(epoch["mAP"])
+                        for epoch in models["roboflow-train"]["epochs"]
+                    ]
+                )
+                loss = np.array(
+                    [
+                        (
+                            float(epoch["box_loss"])
+                            + float(epoch["class_loss"])
+                            + float(epoch["obj_loss"])
+                        )
+                        for epoch in models["roboflow-train"]["epochs"]
+                    ]
+                )
+
+                title = "Training in Progress: "
+                # plottling logic
+            else:
+                num_machine_spin_dots.append(".")
+                if len(num_machine_spin_dots) > 5:
+                    num_machine_spin_dots = ["."]
+                title = "Training Machine Spinning Up" + "".join(num_machine_spin_dots)
+
+                epochs = []
+                mAP = []
+                loss = []
+
+            if (len(epochs) > len(previous_epochs)) or (len(epochs) == 0):
+                if plot_in_notebook:
+                    live_plot(epochs, mAP, loss, title)
+                else:
+                    if len(epochs) > 0:
+                        title = (
+                            title
+                            + " Epoch: "
+                            + str(epochs[-1])
+                            + " mAP: "
+                            + str(mAP[-1])
+                            + " loss: "
+                            + str(loss[-1])
+                        )
+                    if not first_graph_write:
+                        write_line(title)
+                        first_graph_write = True
+
+            previous_epochs = copy.deepcopy(epochs)
+
             time.sleep(5)
-            
-            
-        return True
+
+        # return the model object
+        return self.model
 
     # @warn_for_wrong_dependencies_versions([("ultralytics", "<=", "8.0.20")])
     def deploy(self, model_type: str, model_path: str) -> None:
