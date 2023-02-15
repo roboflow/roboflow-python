@@ -311,7 +311,7 @@ class Version:
             model_path (str): File path to model weights to be uploaded
         """
 
-        supported_models = ["yolov8", "yolov5"]
+        supported_models = ["yolov8", "yolov5", "yolov7-seg"]
 
         if model_type not in supported_models:
             raise (
@@ -334,7 +334,7 @@ class Version:
                 [("ultralytics", "<=", "8.0.20")]
             )
 
-        elif model_type == "yolov5":
+        elif model_type in ["yolov5", "yolov7-seg"]:
             try:
                 import torch
             except ImportError as e:
@@ -378,7 +378,7 @@ class Version:
                     "ultralytics_version": ultralytics.__version__,
                     "model_type": model_type,
                 }
-        elif model_type == "yolov5":
+        elif model_type in ["yolov5", "yolov7-seg"]:
             # parse from yaml for yolov5
 
             with open(os.path.join(model_path, "opt.yaml"), "r") as stream:
