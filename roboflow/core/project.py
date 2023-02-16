@@ -133,7 +133,7 @@ class Project:
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
 
-    def __image_upload(self, image_path, hosted_image=False, split="train"):
+    def __image_upload(self, image_path, hosted_image=False, split="train", **kwargs):
         """function to upload image to the specific project
         :param image_path: path to image you'd like to upload.
         :param hosted_image: if the image is hosted online, then this should be modified
@@ -156,6 +156,8 @@ class Project:
                     self.__api_key,
                 ]
             )
+            for key, value in kwargs.items():
+                self.image_upload_url += "&" + str(key) + "=" + str(value)
 
             # Convert to PIL Image
             img = cv2.imread(image_path)
@@ -168,12 +170,11 @@ class Project:
 
             # Build multipart form and post request
             m = MultipartEncoder(
-                fields={
+                fields = {
                     "name": image_name,
                     "split": split,
                     "file": ("imageToUpload", buffered.getvalue(), "image/jpeg"),
-                }
-            )
+                })
             response = requests.post(
                 self.image_upload_url, data=m, headers={"Content-Type": m.content_type}
             )
@@ -244,6 +245,7 @@ class Project:
         image_id=None,
         split="train",
         num_retry_uploads=0,
+        **kwargs
     ):
 
         """upload function
@@ -285,6 +287,7 @@ class Project:
                 image_id=image_id,
                 split=split,
                 num_retry_uploads=num_retry_uploads,
+                **kwargs
             )
         else:
             images = os.listdir(image_path)
@@ -298,6 +301,7 @@ class Project:
                         image_id=image_id,
                         split=split,
                         num_retry_uploads=num_retry_uploads,
+                        **kwargs
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
@@ -312,6 +316,7 @@ class Project:
         image_id=None,
         split="train",
         num_retry_uploads=0,
+        **kwargs
     ):
 
         success = False
@@ -320,7 +325,7 @@ class Project:
         if image_path is not None:
             # Upload Image Response
             response = self.__image_upload(
-                image_path, hosted_image=hosted_image, split=split
+                image_path, hosted_image=hosted_image, split=split, **kwargs
             )
             # Get JSON response values
             try:
@@ -360,6 +365,7 @@ class Project:
                         image_id=image_id,
                         split=split,
                         num_retry_uploads=num_retry_uploads - 1,
+                        **kwargs
                     )
                     return
                 else:
