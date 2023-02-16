@@ -295,11 +295,9 @@ class Project:
                     batch_name,
                 ]
             )
-            print(tag_names)
+
             for tag in tag_names:
                 self.image_upload_url = self.image_upload_url + f"&tag={tag}"
-
-            print(self.image_upload_url)
 
             # Convert to PIL Image
             img = cv2.imread(image_path)
