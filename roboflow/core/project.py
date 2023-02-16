@@ -264,6 +264,7 @@ class Project:
         hosted_image=False,
         split="train",
         batch_name=DEFAULT_BATCH_NAME,
+        tag_name="",
     ):
         """function to upload image to the specific project
         :param image_path: path to image you'd like to upload.
@@ -292,6 +293,8 @@ class Project:
                     self.__api_key,
                     "&batch=",
                     batch_name,
+                    "&tag=",
+                    tag_name,
                 ]
             )
 
@@ -375,21 +378,29 @@ class Project:
 
     def upload(
         self,
-        image_path=None,
-        annotation_path=None,
-        hosted_image=False,
-        image_id=None,
-        split="train",
-        num_retry_uploads=0,
-        batch_name=DEFAULT_BATCH_NAME,
+        image_path: str = None,
+        annotation_path: str = None,
+        hosted_image: bool = False,
+        image_id: int = None,
+        split: str = "train",
+        num_retry_uploads: int = 0,
+        batch_name: str = DEFAULT_BATCH_NAME,
+        tag_name: str = "",
     ):
+        """Upload image function based on the RESTful API
 
-        """upload function
-        :param image_path: path to image you'd like to upload
-        :param annotation_path: if you're upload annotation, path to it
-        :param hosted_image: whether the image is hosted
-        :param image_id: id of the image
-        :param split: split to upload the image to
+        Args:
+            image_path (str) - path to image you'd like to upload
+            annotation_path (str) - if you're upload annotation, path to it
+            hosted_image (bool) - whether the image is hosted
+            image_id (int) - id of the image
+            split (str) - to upload the image to
+            num_retry_uploads (int) - how many times to retry upload on failure
+            batch_name (str) - name of batch to upload to within project
+            tag_name (str) - tags to be applied to an image
+
+        Returns:
+            None - returns nothing
         """
 
         is_hosted = image_path.startswith("http://") or image_path.startswith(
@@ -424,6 +435,7 @@ class Project:
                 split=split,
                 num_retry_uploads=num_retry_uploads,
                 batch_name=batch_name,
+                tag_name=tag_name,
             )
         else:
             images = os.listdir(image_path)
@@ -438,6 +450,7 @@ class Project:
                         split=split,
                         num_retry_uploads=num_retry_uploads,
                         batch_name=batch_name,
+                        tag_name=tag_name,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
@@ -453,6 +466,7 @@ class Project:
         split="train",
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
+        tag_name="",
     ):
 
         success = False
@@ -465,6 +479,7 @@ class Project:
                 hosted_image=hosted_image,
                 split=split,
                 batch_name=batch_name,
+                tag_name=tag_name,
             )
             # Get JSON response values
             try:
