@@ -1,7 +1,7 @@
 import os
-import yaml
-
 from typing import Callable
+
+import yaml
 
 
 def amend_data_yaml(path: str, callback: Callable[[dict], dict]):
