@@ -264,7 +264,7 @@ class Project:
         hosted_image=False,
         split="train",
         batch_name=DEFAULT_BATCH_NAME,
-        tag_name="",
+        tag_names=[],
     ):
         """function to upload image to the specific project
         :param image_path: path to image you'd like to upload.
@@ -293,10 +293,13 @@ class Project:
                     self.__api_key,
                     "&batch=",
                     batch_name,
-                    "&tag=",
-                    tag_name,
                 ]
             )
+            print(tag_names)
+            for tag in tag_names:
+                self.image_upload_url = self.image_upload_url + f"&tag={tag}"
+
+            print(self.image_upload_url)
 
             # Convert to PIL Image
             img = cv2.imread(image_path)
@@ -385,7 +388,7 @@ class Project:
         split: str = "train",
         num_retry_uploads: int = 0,
         batch_name: str = DEFAULT_BATCH_NAME,
-        tag_name: str = "",
+        tag_names: list = [],
     ):
         """Upload image function based on the RESTful API
 
@@ -397,7 +400,7 @@ class Project:
             split (str) - to upload the image to
             num_retry_uploads (int) - how many times to retry upload on failure
             batch_name (str) - name of batch to upload to within project
-            tag_name (str) - tags to be applied to an image
+            tag_names (list[str]) - tags to be applied to an image
 
         Returns:
             None - returns nothing
@@ -435,7 +438,7 @@ class Project:
                 split=split,
                 num_retry_uploads=num_retry_uploads,
                 batch_name=batch_name,
-                tag_name=tag_name,
+                tag_names=tag_names,
             )
         else:
             images = os.listdir(image_path)
@@ -450,7 +453,7 @@ class Project:
                         split=split,
                         num_retry_uploads=num_retry_uploads,
                         batch_name=batch_name,
-                        tag_name=tag_name,
+                        tag_names=tag_names,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
@@ -466,7 +469,7 @@ class Project:
         split="train",
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
-        tag_name="",
+        tag_names=[],
     ):
 
         success = False
@@ -479,7 +482,7 @@ class Project:
                 hosted_image=hosted_image,
                 split=split,
                 batch_name=batch_name,
-                tag_name=tag_name,
+                tag_names=tag_names,
             )
             # Get JSON response values
             try:
