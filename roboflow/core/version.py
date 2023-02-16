@@ -560,7 +560,7 @@ class Version:
 
         :return None:
         """
-        data_path = os.path.join(location, 'data.yaml')
+        data_path = os.path.join(location, "data.yaml")
 
         def callback(content: dict) -> dict:
             if format == "mt-yolov6":
