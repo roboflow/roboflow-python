@@ -214,7 +214,6 @@ class ObjectDetectionModel:
         labels=None,
         format=None,
     ):
-
         # Reassign parameters if any parameters are changed
         if local is not None:
             if not local:
