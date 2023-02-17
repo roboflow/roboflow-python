@@ -99,7 +99,6 @@ class Project:
         return version_array
 
     def generate_version(self, settings):
-
         """
         Settings, a python dict with augmentation and preprocessing keys and specifications for generation.
         These settings mirror capabilities available via the Roboflow UI.
@@ -239,7 +238,6 @@ class Project:
         version_info = self.get_version_information()
 
         for version_object in version_info:
-
             current_version_num = os.path.basename(version_object["id"])
             if current_version_num == str(version_number):
                 vers = Version(
@@ -258,16 +256,14 @@ class Project:
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
 
-
     def __image_upload(
         self,
         image_path,
         hosted_image=False,
         split="train",
         batch_name=DEFAULT_BATCH_NAME,
-        **kwargs
+        **kwargs,
     ):
-
         """function to upload image to the specific project
         :param image_path: path to image you'd like to upload.
         :param hosted_image: if the image is hosted online, then this should be modified
@@ -311,11 +307,12 @@ class Project:
 
             # Build multipart form and post request
             m = MultipartEncoder(
-                fields = {
+                fields={
                     "name": image_name,
                     "split": split,
                     "file": ("imageToUpload", buffered.getvalue(), "image/jpeg"),
-                })
+                }
+            )
             response = requests.post(
                 self.image_upload_url, data=m, headers={"Content-Type": m.content_type}
             )
@@ -386,9 +383,8 @@ class Project:
         split="train",
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
-        **kwargs
+        **kwargs,
     ):
-
         """upload function
         :param image_path: path to image you'd like to upload
         :param annotation_path: if you're upload annotation, path to it
@@ -429,7 +425,7 @@ class Project:
                 split=split,
                 num_retry_uploads=num_retry_uploads,
                 batch_name=batch_name,
-                **kwargs
+                **kwargs,
             )
         else:
             images = os.listdir(image_path)
@@ -444,7 +440,7 @@ class Project:
                         split=split,
                         num_retry_uploads=num_retry_uploads,
                         batch_name=batch_name,
-                        **kwargs
+                        **kwargs,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
@@ -460,9 +456,8 @@ class Project:
         split="train",
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
-        **kwargs
+        **kwargs,
     ):
-
         success = False
         annotation_success = False
         # User gives image path
@@ -473,7 +468,7 @@ class Project:
                 hosted_image=hosted_image,
                 split=split,
                 batch_name=batch_name,
-                **kwargs
+                **kwargs,
             )
             # Get JSON response values
             try:
@@ -513,7 +508,7 @@ class Project:
                         image_id=image_id,
                         split=split,
                         num_retry_uploads=num_retry_uploads - 1,
-                        **kwargs
+                        **kwargs,
                     )
                     return
                 else:
