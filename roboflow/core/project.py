@@ -345,20 +345,29 @@ class Project:
         :param image_id: image id you'd like to upload that has annotations for it.
         """
 
+        # stop on empty string
+        if len(annotation_path) == 0:
+            print("Please provide a non-empty string for annotation_path.")
+            return {"result": "Please provide a non-empty string for annotation_path."}
+
         # check if annotation file exists
-        if os.path.exists(annotation_path):
+        elif os.path.exists(annotation_path):
             print("-> found given annotation file")
             annotation_string = open(annotation_path, "r").read()
 
         # if not annotation file, check if user wants to upload regular as classification annotation
-        elif self.type == "classification" and type(annotation_path) == str:
+        elif self.type == "classification":
             print(f"-> using {annotation_path} as classname for classification project")
             annotation_string = annotation_path
 
         # don't attempt upload otherwise
         else:
-            print("file not found and project type not classification")
-            return {"result": "file not found and project type not classification"}
+            print(
+                "File not found or uploading to non-classification type project with invalid string"
+            )
+            return {
+                "result": "File not found or uploading to non-classification type project with invalid string"
+            }
 
         # Set annotation upload url
         self.annotation_upload_url = "".join(
@@ -555,7 +564,12 @@ class Project:
                 annotation_success = False
             # Give user warning that annotation failed to upload
             if not annotation_success:
-                warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+                warnings.warn(
+                    "Annotation, "
+                    + annotation_path
+                    + "failed to upload!\n Upload correct annotation file to image_id: "
+                    + image_id
+                )
         else:
             annotation_success = True
 
