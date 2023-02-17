@@ -262,6 +262,7 @@ class Project:
         hosted_image=False,
         split="train",
         batch_name=DEFAULT_BATCH_NAME,
+        tag_names=[],
         **kwargs,
     ):
         """function to upload image to the specific project
@@ -295,6 +296,9 @@ class Project:
             )
             for key, value in kwargs.items():
                 self.image_upload_url += "&" + str(key) + "=" + str(value)
+
+            for tag in tag_names:
+                self.image_upload_url = self.image_upload_url + f"&tag={tag}"
 
             # Convert to PIL Image
             img = cv2.imread(image_path)
@@ -376,21 +380,30 @@ class Project:
 
     def upload(
         self,
-        image_path=None,
-        annotation_path=None,
-        hosted_image=False,
-        image_id=None,
-        split="train",
-        num_retry_uploads=0,
-        batch_name=DEFAULT_BATCH_NAME,
+        image_path: str = None,
+        annotation_path: str = None,
+        hosted_image: bool = False,
+        image_id: int = None,
+        split: str = "train",
+        num_retry_uploads: int = 0,
+        batch_name: str = DEFAULT_BATCH_NAME,
+        tag_names: list = [],
         **kwargs,
     ):
-        """upload function
-        :param image_path: path to image you'd like to upload
-        :param annotation_path: if you're upload annotation, path to it
-        :param hosted_image: whether the image is hosted
-        :param image_id: id of the image
-        :param split: split to upload the image to
+        """Upload image function based on the RESTful API
+
+        Args:
+            image_path (str) - path to image you'd like to upload
+            annotation_path (str) - if you're upload annotation, path to it
+            hosted_image (bool) - whether the image is hosted
+            image_id (int) - id of the image
+            split (str) - to upload the image to
+            num_retry_uploads (int) - how many times to retry upload on failure
+            batch_name (str) - name of batch to upload to within project
+            tag_names (list[str]) - tags to be applied to an image
+
+        Returns:
+            None - returns nothing
         """
 
         is_hosted = image_path.startswith("http://") or image_path.startswith(
@@ -425,6 +438,7 @@ class Project:
                 split=split,
                 num_retry_uploads=num_retry_uploads,
                 batch_name=batch_name,
+                tag_names=tag_names,
                 **kwargs,
             )
         else:
@@ -440,6 +454,7 @@ class Project:
                         split=split,
                         num_retry_uploads=num_retry_uploads,
                         batch_name=batch_name,
+                        tag_names=tag_names,
                         **kwargs,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
@@ -456,6 +471,7 @@ class Project:
         split="train",
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
+        tag_names=[],
         **kwargs,
     ):
         success = False
@@ -468,6 +484,7 @@ class Project:
                 hosted_image=hosted_image,
                 split=split,
                 batch_name=batch_name,
+                tag_names=tag_names,
                 **kwargs,
             )
             # Get JSON response values

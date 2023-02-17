@@ -45,7 +45,7 @@ def print_warn_for_wrong_dependencies_versions(
     dependencies_versions: List[Tuple[str, str, str]]
 ):
     wrong_dependencies_versions = get_wrong_dependencies_versions(dependencies_versions)
-    for (dependency, order, version, module_version) in wrong_dependencies_versions:
+    for dependency, order, version, module_version in wrong_dependencies_versions:
         print(
             f"Dependency {dependency}{order}{version} is required but found version={module_version}, to fix: `pip install {dependency}{order}{version}`"
         )
