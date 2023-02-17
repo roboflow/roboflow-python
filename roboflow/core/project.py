@@ -339,13 +339,27 @@ class Project:
 
         return response
 
-    def __annotation_upload(self, annotation_path, image_id):
+    def __annotation_upload(self, annotation_path: str, image_id: str):
         """function to upload annotation to the specific project
         :param annotation_path: path to annotation you'd like to upload
         :param image_id: image id you'd like to upload that has annotations for it.
         """
-        # Get annotation string
-        annotation_string = open(annotation_path, "r").read()
+
+        # check if annotation file exists
+        if os.path.exists(annotation_path):
+            print("-> found given annotation file")
+            annotation_string = open(annotation_path, "r").read()
+
+        # if not annotation file, check if user wants to upload regular as classification annotation
+        elif self.type == "classification" and type(annotation_path) == str:
+            print(f"-> using {annotation_path} as classname for classification project")
+            annotation_string = annotation_path
+
+        # don't attempt upload otherwise
+        else:
+            print("file not found and project type not classification")
+            return {"result": "file not found and project type not classification"}
+
         # Set annotation upload url
         self.annotation_upload_url = "".join(
             [
