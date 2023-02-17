@@ -3,7 +3,10 @@ import io
 import json
 import os
 import urllib
+from pathlib import Path
 
+import cv2
+import numpy as np
 import requests
 from PIL import Image
 
@@ -118,7 +121,7 @@ class ObjectDetectionModel:
         """
         Infers detections based on image from specified model and image path
 
-        :param image_path: Path to image (can be local or hosted)
+        :param image_path: Path to image or image array (can be local or hosted)
         :param hosted: If image located on a hosted server, hosted should be True
         :param format: output format from this method
         :return: PredictionGroup --> a group of predictions based on Roboflow JSON response
@@ -132,42 +135,62 @@ class ObjectDetectionModel:
             stroke=stroke,
             labels=labels,
         )
-        # Check if image exists at specified path or URL
-        self.__exception_check(image_path_check=image_path)
+
+        # Check if image exists at specified path or URL or is an array
+        if hasattr(image_path, "__len__") == True:
+            pass
+        else:
+            self.__exception_check(image_path_check=image_path)
 
         # If image is local image
         if not hosted:
-            # Open Image in RGB Format
-            image = Image.open(image_path).convert("RGB")
-
-            # Create buffer
-            buffered = io.BytesIO()
-            image.save(buffered, quality=90, format="JPEG")
-            # Base64 encode image
-            img_str = base64.b64encode(buffered.getvalue())
-            img_str = img_str.decode("ascii")
-
-            # Post to API and return response
-            resp = requests.post(
-                self.api_url,
-                data=img_str,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-            )
-
+            if type(image_path) is str:
+                image = Image.open(image_path).convert("RGB")
+                dimensions = image.size
+                # Create buffer
+                buffered = io.BytesIO()
+                image.save(buffered, format="PNG")
+                # Base64 encode image
+                img_str = base64.b64encode(buffered.getvalue())
+                img_str = img_str.decode("ascii")
+                # Post to API and return response
+                resp = requests.post(
+                    self.api_url,
+                    data=img_str,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+                image_dims = {"width": str(dimensions[0]), "height": str(dimensions[1])}
+            elif isinstance(image_path, np.ndarray):
+                # Performing inference on a OpenCV2 frame
+                retval, buffer = cv2.imencode(".jpg", image_path)
+                # Currently cv2.imencode does not properly return shape
+                dimensions = buffer.shape
+                img_str = base64.b64encode(buffer)
+                img_str = img_str.decode("ascii")
+                resp = requests.post(
+                    self.api_url,
+                    data=img_str,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+                # Replace with dimensions variable once cv2.imencode shape solution is found
+                image_dims = {"width": "0", "height": "0"}
+            else:
+                raise ValueError("image_path must be a string or a numpy array.")
         else:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
+            image_dims = {"width": "0", "height": "0"}
             # POST to the API
             resp = requests.get(self.api_url)
 
-        if resp.status_code != 200:
-            raise Exception(resp.text)
+        resp.raise_for_status()
         # Return a prediction group if JSON data
         if self.format == "json":
             return PredictionGroup.create_prediction_group(
                 resp.json(),
                 image_path=image_path,
                 prediction_type=OBJECT_DETECTION_MODEL,
+                image_dims=image_dims,
             )
         # Returns base64 encoded Data
         elif self.format == "image":

@@ -1,8 +1,11 @@
 import glob
 import json
+import os
 import sys
 
 import requests
+from numpy import ndarray
+from PIL import Image
 
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
@@ -11,6 +14,8 @@ from roboflow.util.active_learning_utils import (
     clip_encode,
     count_comparisons,
 )
+from roboflow.util.clip_compare_utils import clip_encode
+from roboflow.util.two_stage_utils import ocr_infer
 
 
 class Workspace:
@@ -74,46 +79,242 @@ class Workspace:
 
         return Project(self.__api_key, dataset_info, self.model_format)
 
-    def active_learning(
-        self,
-        raw_data_location,
-        raw_data_extension,
-        inference_endpoint,
-        upload_destination,
-        conditionals,
-    ):
+    def clip_compare(
+        self, dir: str = "", image_ext: str = ".png", target_image: str = ""
+    ) -> dict:
         """
         @params:
-            raw_data_location: dir = folder of frames to be processed
-            raw_data_extension: extension of frames to be processed
-            inference_endpoint: List[str, int] = name of the project
-            upload_destination: str = name of the upload project
-            conditionals: dict = dictionary of upload conditions
+            dir: (str) = name reference to a directory of images for comparison
+            image_ext: (str) = file format for expected images (don't include the . before the file type name)
+            target_image: (str) = name reference for target image to compare individual images from directory against
+
+            returns: (dict) = a key:value mapping of image_name:comparison_score_to_target
         """
 
+        # list to store comparison results in
+        comparisons = []
+        # grab all images in a given directory with ext type
+        for image in glob.glob(f"./{dir}/*{image_ext}"):
+            # compare image
+            similarity = clip_encode(image, target_image)
+            # map image name to similarity score
+            comparisons.append({image: similarity})
+            comparisons = sorted(comparisons, key=lambda item: -list(item.values())[0])
+        return comparisons
+
+    def two_stage(
+        self,
+        image: str = "",
+        first_stage_model_name: str = "",
+        first_stage_model_version: int = 0,
+        second_stage_model_name: str = "",
+        second_stage_model_version: int = 0,
+    ) -> dict:
+        """for each prediction in the first stage detection, perform detection with the second stage model
+        @params:
+            image: (str) = name of the image to be processed
+            first_stage_model: (str) = URL path to the first stage detection model
+            first_stage_model_version: (int) = version number for the first stage model
+            second_stage_mode: (str) = URL path to the second stage detection model
+            second_stage_model_version: (int) = version number for the second stage model
+            returns: (dict) = a json obj containing
+        """
+        results = []
+
+        # create PIL image for cropping
+        pil_image = Image.open(image).convert("RGB")
+
+        # grab first and second stage model from project
+        stage_one_project = self.project(first_stage_model_name)
+        stage_one_model = stage_one_project.version(first_stage_model_version).model
+        stage_two_project = self.project(second_stage_model_name)
+        stage_two_model = stage_two_project.version(second_stage_model_version).model
+
+        print(self.project(first_stage_model_name))
+
+        # perform first inference
+        predictions = stage_one_model.predict(image)
+
+        if (
+            stage_one_project.type == "object-detection"
+            and stage_two_project == "classification"
+        ):
+            # interact with each detected object from stage one inference results
+            for boundingbox in predictions:
+                # rip bounding box coordinates from json1
+                # note: infer returns center points of box as (x,y) and width, height
+                # ----- but pillow crop requires the top left and bottom right points to crop
+                box = (
+                    boundingbox["x"] - boundingbox["width"] / 2,
+                    boundingbox["y"] - boundingbox["height"] / 2,
+                    boundingbox["x"] + boundingbox["width"] / 2,
+                    boundingbox["y"] + boundingbox["height"] / 2,
+                )
+
+                # create a new cropped image using the first stage prediction coordinates (for each box!)
+                croppedImg = pil_image.crop(box)
+                croppedImg.save("./temp.png")
+
+                # capture results of second stage inference from cropped image
+                results.append(stage_two_model.predict("./temp.png")[0])
+
+            # delete the written image artifact
+            try:
+                os.remove("./temp.png")
+            except FileNotFoundError:
+                print("no detections")
+
+        else:
+            print(
+                "please use an object detection model for the first stage--can only perform two stage with bounding box results",
+                "please use a classification model for the second stage",
+            )
+
+        return results
+
+    def two_stage_ocr(
+        self,
+        image: str = "",
+        first_stage_model_name: str = "",
+        first_stage_model_version: int = 0,
+    ) -> dict:
+        """for each prediction in the first stage object detection, perform OCR as second stage
+        @params:
+            image: (str) = name of the image to be processed
+            first_stage_model: (str) = URL path to the first stage detection model
+            first_stage_model_version: (int) = version number for the first stage model
+
+            returns: (dict) = a json obj containing
+        """
+        results = []
+
+        # create PIL image for cropping
+        pil_image = Image.open(image).convert("RGB")
+
+        # grab first and second stage model from project
+        stage_one_project = self.project(first_stage_model_name)
+        stage_one_model = stage_one_project.version(first_stage_model_version).model
+
+        # perform first inference
+        predictions = stage_one_model.predict(image)
+
+        # interact with each detected object from stage one inference results
+        if stage_one_project.type == "object-detection":
+            for boundingbox in predictions:
+                # rip bounding box coordinates from json1
+                # note: infer returns center points of box as (x,y) and width, height
+                # ----- but pillow crop requires the top left and bottom right points to crop
+                box = (
+                    boundingbox["x"] - boundingbox["width"] / 2,
+                    boundingbox["y"] - boundingbox["height"] / 2,
+                    boundingbox["x"] + boundingbox["width"] / 2,
+                    boundingbox["y"] + boundingbox["height"] / 2,
+                )
+
+                # create a new cropped image using the first stage prediction coordinates (for each box!)
+                croppedImg = pil_image.crop(box)
+
+                # capture OCR results from cropped image
+                results.append(ocr_infer(croppedImg)["results"])
+        else:
+            print(
+                "please use an object detection model--can only perform two stage with bounding box results"
+            )
+
+        return results
+
+    def active_learning(
+        self,
+        raw_data_location: str = "",
+        raw_data_extension: str = "",
+        inference_endpoint: list = [],
+        upload_destination: str = "",
+        conditionals: dict = {},
+        use_localhost: bool = False,
+    ) -> str:
+        """perform inference on each image in directory and upload based on conditions
+        @params:
+            raw_data_location: (str) = folder of frames to be processed
+            raw_data_extension: (str) = extension of frames to be processed
+            inference_endpoint: (List[str, int]) = name of the project
+            upload_destination: (str) = name of the upload project
+            conditionals: (dict) = dictionary of upload conditions
+            use_localhost: (bool) = determines if local http format used or remote endpoint
+        """
+        prediction_results = []
+
+        # ensure that all fields of conditionals have a key:value pair
+        conditionals["target_classes"] = (
+            []
+            if "target_classes" not in conditionals
+            else conditionals["target_classes"]
+        )
+        conditionals["confidence_interval"] = (
+            [30, 99]
+            if "confidence_interval" not in conditionals
+            else conditionals["confidence_interval"]
+        )
+        conditionals["required_class_variance_count"] = (
+            1
+            if "required_class_variance_count" not in conditionals
+            else conditionals["required_class_variance_count"]
+        )
+        conditionals["required_objects_count"] = (
+            1
+            if "required_objects_count" not in conditionals
+            else conditionals["required_objects_count"]
+        )
+        conditionals["required_class_count"] = (
+            0
+            if "required_class_count" not in conditionals
+            else conditionals["required_class_count"]
+        )
+        conditionals["minimum_size_requirement"] = (
+            float("-inf")
+            if "minimum_size_requirement" not in conditionals
+            else conditionals["minimum_size_requirement"]
+        )
+        conditionals["maximum_size_requirement"] = (
+            float("inf")
+            if "maximum_size_requirement" not in conditionals
+            else conditionals["maximum_size_requirement"]
+        )
+
+        # check if inference_model references endpoint or local
+        local = "http://localhost:9001/" if use_localhost else None
+
         inference_model = (
-            self.project(inference_endpoint[0]).version(inference_endpoint[1]).model
+            self.project(inference_endpoint[0])
+            .version(version_number=inference_endpoint[1], local=local)
+            .model
         )
         upload_project = self.project(upload_destination)
 
         print("inference reference point: ", inference_model)
         print("upload destination: ", upload_project)
 
-        globbed_files = glob.glob(raw_data_location + "/*" + raw_data_extension)
+        # check if raw data type is cv2 frame
+        if type(raw_data_location is type(ndarray)):
+            globbed_files = [raw_data_location]
+        else:
+            globbed_files = glob.glob(raw_data_location + "/*" + raw_data_extension)
 
         image1 = globbed_files[0]
         similarity_timeout_counter = 0
 
         for index, image in enumerate(globbed_files):
-            print(
-                "*** Processing image ["
-                + str(index + 1)
-                + "/"
-                + str(len(globbed_files))
-                + "] - "
-                + image
-                + " ***"
-            )
+            try:
+                print(
+                    "*** Processing image ["
+                    + str(index + 1)
+                    + "/"
+                    + str(len(globbed_files))
+                    + "] - "
+                    + image
+                    + " ***"
+                )
+            except:
+                pass
 
             if "similarity_confidence_threshold" in conditionals.keys():
                 image2 = image
@@ -133,6 +334,8 @@ class Workspace:
                     continue  # skip this image if too similar or counter hits limit
 
             predictions = inference_model.predict(image).json()["predictions"]
+            # collect all predictions to return to user at end
+            prediction_results.append({"image": image, "predictions": predictions})
 
             # compare object and class count of predictions if enabled, continue if not enough occurances
             if not count_comparisons(
@@ -179,7 +382,12 @@ class Workspace:
                     upload_project.upload(image, num_retry_uploads=3)
                     break
 
-        return
+        # return predictions with filenames if globbed images from dir, otherwise return latest prediction result
+        return (
+            prediction_results
+            if type(raw_data_location) is not ndarray
+            else prediction_results[-1]["predictions"]
+        )
 
     def __str__(self):
         projects = self.projects()
