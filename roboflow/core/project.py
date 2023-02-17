@@ -263,8 +263,7 @@ class Project:
         split="train",
         batch_name=DEFAULT_BATCH_NAME,
         tag_names=[],
-        **kwargs
-
+        **kwargs,
     ):
         """function to upload image to the specific project
         :param image_path: path to image you'd like to upload.
@@ -381,7 +380,6 @@ class Project:
 
     def upload(
         self,
-
         image_path: str = None,
         annotation_path: str = None,
         hosted_image: bool = False,
@@ -390,7 +388,7 @@ class Project:
         num_retry_uploads: int = 0,
         batch_name: str = DEFAULT_BATCH_NAME,
         tag_names: list = [],
-        **kwargs
+        **kwargs,
     ):
         """Upload image function based on the RESTful API
 
@@ -441,8 +439,7 @@ class Project:
                 num_retry_uploads=num_retry_uploads,
                 batch_name=batch_name,
                 tag_names=tag_names,
-                **kwargs
-
+                **kwargs,
             )
         else:
             images = os.listdir(image_path)
@@ -458,8 +455,7 @@ class Project:
                         num_retry_uploads=num_retry_uploads,
                         batch_name=batch_name,
                         tag_names=tag_names,
-                        **kwargs
-
+                        **kwargs,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
@@ -476,7 +472,7 @@ class Project:
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
         tag_names=[],
-        **kwargs
+        **kwargs,
     ):
         success = False
         annotation_success = False
