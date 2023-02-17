@@ -570,7 +570,7 @@ class Version:
             if format in ["yolov5pytorch", "yolov7pytorch", "yolov8"]:
                 content["train"] = location + content["train"].lstrip("..")
                 content["val"] = location + content["val"].lstrip("..")
-            if not get_wrong_dependencies_versions([("ultralytics", ">=", "8.0.30")]):
+            if not get_wrong_dependencies_versions([("ultralytics", ">=", "8.0.30")], pass_uninstalled=True):
                 content["train"] = "train/images"
                 content["val"] = "valid/images"
                 content["test"] = "test/images"
