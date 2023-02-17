@@ -570,12 +570,16 @@ class Version:
             if format in ["yolov5pytorch", "yolov7pytorch", "yolov8"]:
                 content["train"] = location + content["train"].lstrip("..")
                 content["val"] = location + content["val"].lstrip("..")
-            if not get_wrong_dependencies_versions(
-                [("ultralytics", ">=", "8.0.30")], pass_uninstalled=True
-            ):
-                content["train"] = "train/images"
-                content["val"] = "valid/images"
-                content["test"] = "test/images"
+            try:
+                # get_wrong_dependencies_versions raises exception if ultralytics is not installed at all
+                if not get_wrong_dependencies_versions(
+                    dependencies_versions=[("ultralytics", ">=", "8.0.30")]
+                ):
+                    content["train"] = "train/images"
+                    content["val"] = "valid/images"
+                    content["test"] = "test/images"
+            except ModuleNotFoundError:
+                pass
             return content
 
         amend_data_yaml(path=data_path, callback=callback)

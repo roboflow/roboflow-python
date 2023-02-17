@@ -5,7 +5,7 @@ from packaging.version import Version
 
 
 def get_wrong_dependencies_versions(
-    dependencies_versions: List[Tuple[str, str, str]], pass_uninstalled: bool = False
+    dependencies_versions: List[Tuple[str, str, str]]
 ) -> List[Tuple[str, str, str, str]]:
     """
     Get a list of mismatching dependencies with current version installed.
@@ -15,7 +15,6 @@ def get_wrong_dependencies_versions(
 
     Args:
         dependencies_versions (List[Tuple[str, str]]): List of dependencies we want to check, [("<package_name>", "<version_number_to_check")]
-        pass_uninstalled (bool): By default get_wrong_dependencies_versions will throw exception if <package_name> is not installed. You can pass_uninstalled packages by setting this parameter to True.
 
     Returns:
         List[Tuple[str, str, str]]: List of dependencies with wrong version, [("<package_name>", "<version_number_to_check", "<current_version>")]
@@ -27,23 +26,18 @@ def get_wrong_dependencies_versions(
         "<=": lambda x, y: x <= y,
     }
     for dependency, order, version in dependencies_versions:
-        try:
-            module = import_module(dependency)
-            module_version = module.__version__
-            if order not in order_funcs:
-                raise ValueError(
-                    f"order={order} not supported, please use `{', '.join(order_funcs.keys())}`"
-                )
+        module = import_module(dependency)
+        module_version = module.__version__
+        if order not in order_funcs:
+            raise ValueError(
+                f"order={order} not supported, please use `{', '.join(order_funcs.keys())}`"
+            )
 
-            is_okay = order_funcs[order](Version(module_version), Version(version))
-            if not is_okay:
-                wrong_dependencies_versions.append(
-                    (dependency, order, version, module_version)
-                )
-        except Exception as e:
-            if pass_uninstalled:
-                continue
-            raise e
+        is_okay = order_funcs[order](Version(module_version), Version(version))
+        if not is_okay:
+            wrong_dependencies_versions.append(
+                (dependency, order, version, module_version)
+            )
     return wrong_dependencies_versions
 
 
