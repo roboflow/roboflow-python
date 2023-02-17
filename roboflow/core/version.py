@@ -312,7 +312,7 @@ class Version:
             model_path (str): File path to model weights to be uploaded
         """
 
-        supported_models = ["yolov8", "yolov5"]
+        supported_models = ["yolov8", "yolov5", "yolov7-seg"]
 
         if model_type not in supported_models:
             raise (
@@ -335,7 +335,7 @@ class Version:
                 [("ultralytics", "<=", "8.0.20")]
             )
 
-        elif model_type == "yolov5":
+        elif model_type in ["yolov5", "yolov7-seg"]:
             try:
                 import torch
             except ImportError as e:
@@ -379,7 +379,7 @@ class Version:
                     "ultralytics_version": ultralytics.__version__,
                     "model_type": model_type,
                 }
-        elif model_type == "yolov5":
+        elif model_type in ["yolov5", "yolov7-seg"]:
             # parse from yaml for yolov5
 
             with open(os.path.join(model_path, "opt.yaml"), "r") as stream:
@@ -407,11 +407,19 @@ class Version:
 
         with zipfile.ZipFile(model_path + "roboflow_deploy.zip", "w") as zipMe:
             for file in lista_files:
-                zipMe.write(
-                    model_path + file,
-                    arcname=file,
-                    compress_type=zipfile.ZIP_DEFLATED,
-                )
+                if os.path.exists(model_path + file):
+                    zipMe.write(
+                        model_path + file,
+                        arcname=file,
+                        compress_type=zipfile.ZIP_DEFLATED,
+                    )
+                else:
+                    if file in ["model_artifacts.json", "state_dict.pt"]:
+                        raise (
+                            ValueError(
+                                f"File {file} not found. Please make sure to provide a valid model path."
+                            )
+                        )
 
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}"
