@@ -263,6 +263,8 @@ class Project:
         split="train",
         batch_name=DEFAULT_BATCH_NAME,
         tag_names=[],
+        **kwargs
+
     ):
         """function to upload image to the specific project
         :param image_path: path to image you'd like to upload.
@@ -293,6 +295,8 @@ class Project:
                     batch_name,
                 ]
             )
+            for key, value in kwargs.items():
+                self.image_upload_url += "&" + str(key) + "=" + str(value)
 
             for tag in tag_names:
                 self.image_upload_url = self.image_upload_url + f"&tag={tag}"
@@ -377,6 +381,7 @@ class Project:
 
     def upload(
         self,
+
         image_path: str = None,
         annotation_path: str = None,
         hosted_image: bool = False,
@@ -385,6 +390,7 @@ class Project:
         num_retry_uploads: int = 0,
         batch_name: str = DEFAULT_BATCH_NAME,
         tag_names: list = [],
+        **kwargs
     ):
         """Upload image function based on the RESTful API
 
@@ -435,6 +441,8 @@ class Project:
                 num_retry_uploads=num_retry_uploads,
                 batch_name=batch_name,
                 tag_names=tag_names,
+                **kwargs
+
             )
         else:
             images = os.listdir(image_path)
@@ -450,6 +458,8 @@ class Project:
                         num_retry_uploads=num_retry_uploads,
                         batch_name=batch_name,
                         tag_names=tag_names,
+                        **kwargs
+
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
@@ -466,6 +476,7 @@ class Project:
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
         tag_names=[],
+        **kwargs
     ):
         success = False
         annotation_success = False
@@ -478,6 +489,7 @@ class Project:
                 split=split,
                 batch_name=batch_name,
                 tag_names=tag_names,
+                **kwargs,
             )
             # Get JSON response values
             try:
@@ -517,6 +529,7 @@ class Project:
                         image_id=image_id,
                         split=split,
                         num_retry_uploads=num_retry_uploads - 1,
+                        **kwargs,
                     )
                     return
                 else:
