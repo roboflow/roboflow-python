@@ -406,11 +406,19 @@ class Version:
 
         with zipfile.ZipFile(model_path + "roboflow_deploy.zip", "w") as zipMe:
             for file in lista_files:
-                zipMe.write(
-                    model_path + file,
-                    arcname=file,
-                    compress_type=zipfile.ZIP_DEFLATED,
-                )
+                if os.path.exists(model_path + file):
+                    zipMe.write(
+                        model_path + file,
+                        arcname=file,
+                        compress_type=zipfile.ZIP_DEFLATED,
+                    )
+                else:
+                    if file in ["model_artifacts.json", "state_dict.pt"]:
+                        raise (
+                            ValueError(
+                                f"File {file} not found. Please make sure to provide a valid model path."
+                            )
+                        )
 
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}"
