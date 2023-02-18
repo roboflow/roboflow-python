@@ -368,7 +368,6 @@ class Workspace:
                     and prediction["confidence"] * 100
                     <= conditionals["confidence_interval"][1]
                 ):
-
                     # filter out non-target_class uploads if enabled
                     if (
                         len(conditionals["target_classes"]) > 0

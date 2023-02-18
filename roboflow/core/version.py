@@ -26,9 +26,10 @@ from roboflow.models.classification import ClassificationModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
+from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.versions import (
+    get_wrong_dependencies_versions,
     print_warn_for_wrong_dependencies_versions,
-    warn_for_wrong_dependencies_versions,
 )
 
 load_dotenv()
@@ -311,7 +312,7 @@ class Version:
             model_path (str): File path to model weights to be uploaded
         """
 
-        supported_models = ["yolov8", "yolov5"]
+        supported_models = ["yolov8", "yolov5", "yolov7-seg"]
 
         if model_type not in supported_models:
             raise (
@@ -334,7 +335,7 @@ class Version:
                 [("ultralytics", "<=", "8.0.20")]
             )
 
-        elif model_type == "yolov5":
+        elif model_type in ["yolov5", "yolov7-seg"]:
             try:
                 import torch
             except ImportError as e:
@@ -378,7 +379,7 @@ class Version:
                     "ultralytics_version": ultralytics.__version__,
                     "model_type": model_type,
                 }
-        elif model_type == "yolov5":
+        elif model_type in ["yolov5", "yolov7-seg"]:
             # parse from yaml for yolov5
 
             with open(os.path.join(model_path, "opt.yaml"), "r") as stream:
@@ -406,11 +407,19 @@ class Version:
 
         with zipfile.ZipFile(model_path + "roboflow_deploy.zip", "w") as zipMe:
             for file in lista_files:
-                zipMe.write(
-                    model_path + file,
-                    arcname=file,
-                    compress_type=zipfile.ZIP_DEFLATED,
-                )
+                if os.path.exists(model_path + file):
+                    zipMe.write(
+                        model_path + file,
+                        arcname=file,
+                        compress_type=zipfile.ZIP_DEFLATED,
+                    )
+                else:
+                    if file in ["model_artifacts.json", "state_dict.pt"]:
+                        raise (
+                            ValueError(
+                                f"File {file} not found. Please make sure to provide a valid model path."
+                            )
+                        )
 
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}"
@@ -549,7 +558,7 @@ class Version:
         friendly_formats = {"yolov5": "yolov5pytorch", "yolov7": "yolov7pytorch"}
         return friendly_formats.get(format, format)
 
-    def __reformat_yaml(self, location, format):
+    def __reformat_yaml(self, location: str, format: str):
         """
         Certain formats seem to require reformatting the downloaded YAML.
         It'd be nice if the API did this, but we're doing it in python for now.
@@ -559,28 +568,29 @@ class Version:
 
         :return None:
         """
-        if format in ["yolov5pytorch", "yolov7pytorch", "yolov8"]:
-            with open(location + "/data.yaml") as file:
-                new_yaml = yaml.safe_load(file)
-            new_yaml["train"] = location + new_yaml["train"].lstrip("..")
-            new_yaml["val"] = location + new_yaml["val"].lstrip("..")
+        data_path = os.path.join(location, "data.yaml")
 
-            os.remove(location + "/data.yaml")
+        def callback(content: dict) -> dict:
+            if format == "mt-yolov6":
+                content["train"] = location + content["train"].lstrip(".")
+                content["val"] = location + content["val"].lstrip(".")
+                content["test"] = location + content["test"].lstrip(".")
+            if format in ["yolov5pytorch", "yolov7pytorch", "yolov8"]:
+                content["train"] = location + content["train"].lstrip("..")
+                content["val"] = location + content["val"].lstrip("..")
+            try:
+                # get_wrong_dependencies_versions raises exception if ultralytics is not installed at all
+                if not get_wrong_dependencies_versions(
+                    dependencies_versions=[("ultralytics", ">=", "8.0.30")]
+                ):
+                    content["train"] = "train/images"
+                    content["val"] = "valid/images"
+                    content["test"] = "test/images"
+            except ModuleNotFoundError:
+                pass
+            return content
 
-            with open(location + "/data.yaml", "w") as outfile:
-                yaml.dump(new_yaml, outfile)
-
-        if format == "mt-yolov6":
-            with open(location + "/data.yaml") as file:
-                new_yaml = yaml.safe_load(file)
-            new_yaml["train"] = location + new_yaml["train"].lstrip(".")
-            new_yaml["val"] = location + new_yaml["val"].lstrip(".")
-            new_yaml["test"] = location + new_yaml["test"].lstrip(".")
-
-            os.remove(location + "/data.yaml")
-
-            with open(location + "/data.yaml", "w") as outfile:
-                yaml.dump(new_yaml, outfile)
+        amend_data_yaml(path=data_path, callback=callback)
 
     def __str__(self):
         """string representation of version object."""

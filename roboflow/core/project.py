@@ -99,7 +99,6 @@ class Project:
         return version_array
 
     def generate_version(self, settings):
-
         """
         Settings, a python dict with augmentation and preprocessing keys and specifications for generation.
         These settings mirror capabilities available via the Roboflow UI.
@@ -239,7 +238,6 @@ class Project:
         version_info = self.get_version_information()
 
         for version_object in version_info:
-
             current_version_num = os.path.basename(version_object["id"])
             if current_version_num == str(version_number):
                 vers = Version(
@@ -265,6 +263,7 @@ class Project:
         split="train",
         batch_name=DEFAULT_BATCH_NAME,
         tag_names=[],
+        **kwargs,
     ):
         """function to upload image to the specific project
         :param image_path: path to image you'd like to upload.
@@ -295,6 +294,8 @@ class Project:
                     batch_name,
                 ]
             )
+            for key, value in kwargs.items():
+                self.image_upload_url += "&" + str(key) + "=" + str(value)
 
             for tag in tag_names:
                 self.image_upload_url = self.image_upload_url + f"&tag={tag}"
@@ -410,6 +411,7 @@ class Project:
         num_retry_uploads: int = 0,
         batch_name: str = DEFAULT_BATCH_NAME,
         tag_names: list = [],
+        **kwargs,
     ):
         """Upload image function based on the RESTful API
 
@@ -460,6 +462,7 @@ class Project:
                 num_retry_uploads=num_retry_uploads,
                 batch_name=batch_name,
                 tag_names=tag_names,
+                **kwargs,
             )
         else:
             images = os.listdir(image_path)
@@ -475,6 +478,7 @@ class Project:
                         num_retry_uploads=num_retry_uploads,
                         batch_name=batch_name,
                         tag_names=tag_names,
+                        **kwargs,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
@@ -491,8 +495,8 @@ class Project:
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
         tag_names=[],
+        **kwargs,
     ):
-
         success = False
         annotation_success = False
         # User gives image path
@@ -504,6 +508,7 @@ class Project:
                 split=split,
                 batch_name=batch_name,
                 tag_names=tag_names,
+                **kwargs,
             )
             # Get JSON response values
             try:
@@ -543,6 +548,7 @@ class Project:
                         image_id=image_id,
                         split=split,
                         num_retry_uploads=num_retry_uploads - 1,
+                        **kwargs,
                     )
                     return
                 else:
