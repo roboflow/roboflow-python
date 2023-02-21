@@ -314,7 +314,7 @@ class ObjectDetectionModel:
                 color = tuple(int(color[i : i + 2], 16) for i in (0, 2, 4))
             else:
                 color = [random.randint(0, 255) for _ in range(3)]
-
+                
             tl = (
                 line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1
             )  # line/font thickness
@@ -347,7 +347,6 @@ class ObjectDetectionModel:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, web_cam_res[1])
 
         if within_jupyter:
-            
             os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
             print_warn_for_wrong_dependencies_versions([("IPython", ">=", "7.0.0")])
             print_warn_for_wrong_dependencies_versions([("ipywidgets", ">=", "7.0.0")])
@@ -358,7 +357,7 @@ class ObjectDetectionModel:
             from IPython.display import Image as IPythonImage
             from IPython.display import display
 
-            display_handle = display(None, display_id=True)
+            display_handle = display("loading Roboflow model...", display_id=True)
 
             # Stop button
             # ================

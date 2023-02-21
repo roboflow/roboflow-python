@@ -10,7 +10,7 @@ from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
 from roboflow.util.general import write_line
 
-__version__ = "0.2.291"
+__version__ = "0.2.292"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -79,7 +79,9 @@ def login(workspace=None, force=False):
         write_line(
             "You are already logged into Roboflow. To make a different login, run roboflow.login(force=True)."
         )
-        return Roboflow().workspace()
+        return None
+        # we could eventually return the workspace object here
+        # return Roboflow().workspace()
     elif os.path.isfile(conf_location) and force:
         os.remove(conf_location)
 
@@ -120,10 +122,12 @@ def login(workspace=None, force=False):
 
     else:
         raise RuntimeError("Error logging in")
-    
-    #return Roboflow().workspace()
 
+    return None
+    # we could eventually return the workspace object here
+    # return Roboflow().workspace()
 
+ 
 # import roboflow
 # roboflow.#action
 
