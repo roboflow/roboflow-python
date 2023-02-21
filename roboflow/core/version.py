@@ -327,6 +327,7 @@ class Version:
 
         if plot_in_notebook:
             import collections
+
             from IPython.display import clear_output
             from matplotlib import pyplot as plt
 

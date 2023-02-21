@@ -314,7 +314,7 @@ class ObjectDetectionModel:
                 color = tuple(int(color[i : i + 2], 16) for i in (0, 2, 4))
             else:
                 color = [random.randint(0, 255) for _ in range(3)]
-                
+
             tl = (
                 line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1
             )  # line/font thickness
