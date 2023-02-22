@@ -289,7 +289,7 @@ class Project:
             # Construct URL for local image upload
             self.image_upload_url = "".join(
                 [
-                    "https://api.roboflow.com/dataset/",
+                    API_URL + "/dataset/",
                     project_name,
                     "/upload",
                     "?api_key=",
@@ -347,10 +347,13 @@ class Project:
         # Get annotation string
         annotation_string = open(annotation_path, "r").read()
         # Set annotation upload url
+
+        project_name = self.id.rsplit("/")[1]   
+
         self.annotation_upload_url = "".join(
             [
                 API_URL + "/dataset/",
-                self.name,
+                project_name,
                 "/annotate/",
                 image_id,
                 "?api_key=",
@@ -521,10 +524,19 @@ class Project:
             annotation_response = self.__annotation_upload(annotation_path, image_id)
             # Check if upload was a success
             try:
-                annotation_success = annotation_response.json()["success"]
-            except Exception:
-                warnings.warn(f"Bad response: {response}")
-                annotation_success = False
+                response_data = annotation_response.json()
+                if "success" in response_data.keys():
+                    annotation_success = True
+                elif "error" in response_data.keys():
+                    warnings.warn(f"Uploading annotation data for image failed: {str(response_data['error'])}")
+                    annotation_success = False
+                else:
+                    warnings.warn(f"Uploading annotation data for image failed: {str(response_data)}")
+                    annotation_success = False  
+            except:
+                warnings.warn(f"Bad response: {response.status_code}")
+                annotation_success = False  
+
             # Give user warning that annotation failed to upload
             if not annotation_success:
                 warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
