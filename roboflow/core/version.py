@@ -580,7 +580,7 @@ class Version:
                 content["val"] = location + content["val"].lstrip("..")
             try:
                 # get_wrong_dependencies_versions raises exception if ultralytics is not installed at all
-                if not get_wrong_dependencies_versions(
+                if format == "yolov8" and not get_wrong_dependencies_versions(
                     dependencies_versions=[("ultralytics", ">=", "8.0.30")]
                 ):
                     content["train"] = "train/images"
