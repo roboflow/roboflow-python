@@ -570,7 +570,7 @@ class Version:
         """
         data_path = os.path.join(location, "data.yaml")
 
-        def callback(content: dict) -> dict:
+        def data_yaml_callback(content: dict) -> dict:
             if format == "mt-yolov6":
                 content["train"] = location + content["train"].lstrip(".")
                 content["val"] = location + content["val"].lstrip(".")
@@ -590,7 +590,8 @@ class Version:
                 pass
             return content
 
-        amend_data_yaml(path=data_path, callback=callback)
+        if format in ["yolov5pytorch", "mt-yolov6", "yolov7pytorch", "yolov8"]:
+            amend_data_yaml(path=data_path, callback=data_yaml_callback)
 
     def __str__(self):
         """string representation of version object."""
