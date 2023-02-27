@@ -374,7 +374,7 @@ class Project:
         self.annotation_upload_url = "".join(
             [
                 API_URL + "/dataset/",
-                self.name,
+                self.__project_name,
                 "/annotate/",
                 image_id,
                 "?api_key=",
@@ -382,12 +382,14 @@ class Project:
                 "&name=" + os.path.basename(annotation_path),
             ]
         )
+
         # Get annotation response
         annotation_response = requests.post(
             self.annotation_upload_url,
             data=annotation_string,
             headers={"Content-Type": "text/plain"},
         )
+
         # Return annotation response
         return annotation_response
 
