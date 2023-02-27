@@ -356,12 +356,20 @@ class Version:
             response = requests.get(url, params={"api_key": self.__api_key})
             response.raise_for_status()
             version = response.json()["version"]
-            models = version["models"]
+            if "models" in version.keys():
+                models = version["models"]
+            else:
+                models = {}
 
             if "train" in version.keys():
                 if "results" in version["train"].keys():
                     status = "finished"
                     break
+                if "status" in version["train"].keys():
+                    status = version["train"]["status"]
+                    if status == "failed":
+                        write_line(line="Training failed")
+                        break
 
             if "roboflow-train" in models.keys():
                 # training has started
