@@ -349,7 +349,7 @@ class Version:
         previous_epochs = []
         num_machine_spin_dots = []
 
-        while status == "training":
+        while status == "training" or status == "running":
             url = (
                 f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
             )
@@ -366,8 +366,7 @@ class Version:
                     status = "finished"
                     break
                 if "status" in version["train"].keys():
-                    status = version["train"]["status"]
-                    if status == "failed":
+                    if version["train"]["status"] == "failed":
                         write_line(line="Training failed")
                         break
 
@@ -396,7 +395,7 @@ class Version:
                     ]
                 )
 
-                title = "Training in Progress: "
+                title = "Training in Progress"
                 # plottling logic
             else:
                 num_machine_spin_dots.append(".")
@@ -415,7 +414,7 @@ class Version:
                     if len(epochs) > 0:
                         title = (
                             title
-                            + " Epoch: "
+                            + ": Epoch: "
                             + str(epochs[-1])
                             + " mAP: "
                             + str(mAP[-1])

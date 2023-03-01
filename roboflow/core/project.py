@@ -209,11 +209,11 @@ class Project:
 
         new_version = self.generate_version(settings=new_version_settings)
         new_version = self.version(new_version)
-        new_version.train(
+        new_model = new_version.train(
             speed=speed, checkpoint=checkpoint, plot_in_notebook=plot_in_notebook
         )
 
-        return True
+        return new_model
 
     def version(self, version_number, local=None):
         """Retrieves information about a specific version, and throws it into an object.
@@ -348,7 +348,7 @@ class Project:
         annotation_string = open(annotation_path, "r").read()
         # Set annotation upload url
 
-        project_name = self.id.rsplit("/")[1]   
+        project_name = self.id.rsplit("/")[1]
 
         self.annotation_upload_url = "".join(
             [
@@ -528,14 +528,18 @@ class Project:
                 if "success" in response_data.keys():
                     annotation_success = True
                 elif "error" in response_data.keys():
-                    warnings.warn(f"Uploading annotation data for image failed: {str(response_data['error'])}")
+                    warnings.warn(
+                        f"Uploading annotation data for image failed: {str(response_data['error'])}"
+                    )
                     annotation_success = False
                 else:
-                    warnings.warn(f"Uploading annotation data for image failed: {str(response_data)}")
-                    annotation_success = False  
+                    warnings.warn(
+                        f"Uploading annotation data for image failed: {str(response_data)}"
+                    )
+                    annotation_success = False
             except:
                 warnings.warn(f"Bad response: {response.status_code}")
-                annotation_success = False  
+                annotation_success = False
 
             # Give user warning that annotation failed to upload
             if not annotation_success:
