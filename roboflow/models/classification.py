@@ -67,7 +67,10 @@ class ClassificationModel:
             raise Exception(resp.text)
 
         return PredictionGroup.create_prediction_group(
-            resp.json(), image_dims=img_dims, image_path=image_path, prediction_type=CLASSIFICATION_MODEL
+            resp.json(),
+            image_dims=img_dims,
+            image_path=image_path,
+            prediction_type=CLASSIFICATION_MODEL,
         )
 
     def load_model(self, name, version):
