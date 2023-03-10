@@ -431,7 +431,7 @@ class Version:
 
         # return the model object
         return self.model
-
+        
     # @warn_for_wrong_dependencies_versions([("ultralytics", "<=", "8.0.20")])
     def deploy(self, model_type: str, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
