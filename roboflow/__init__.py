@@ -138,7 +138,7 @@ def initialize_roboflow():
     )
 
     if not os.path.isfile(conf_location):
-        raise ("To use this method, you must first login - run roboflow.login()")
+        raise RuntimeError("To use this method, you must first login - run roboflow.login()")
     else:
         if active_workspace == None:
             active_workspace = Roboflow().workspace()

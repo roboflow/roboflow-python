@@ -75,6 +75,8 @@ RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
 
 def load_roboflow_api_key():
     RF_WORKSPACE = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+    RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
+
     # DEFAULT_WORKSPACE = get_conditional_configuration_variable("default_workspace", default=None)
     if RF_WORKSPACE == None:
         RF_API_KEY = None
