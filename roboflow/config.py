@@ -13,10 +13,11 @@ def get_conditional_configuration_variable(key, default):
     Returns:
         string: The value of the conditional configuration variable.
     """
-    
+
     # default configuration location
     conf_location = os.getenv(
-        "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
+        "ROBOFLOW_CONFIG_DIR",
+        default=os.getenv("HOME") + "/.config/roboflow/config.json",
     )
 
     # read config file for roboflow if logged in from python or CLI

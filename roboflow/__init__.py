@@ -2,9 +2,9 @@ import json
 import os
 import sys
 import time
+from urllib.parse import urlparse
 
 import requests
-from urllib.parse import urlparse
 
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS, load_roboflow_api_key
 from roboflow.core.project import Project
@@ -12,6 +12,7 @@ from roboflow.core.workspace import Workspace
 from roboflow.util.general import write_line
 
 __version__ = "1.0.0"
+
 
 def check_key(api_key, model, notebook, num_retries=0):
     if type(api_key) is not str:
@@ -127,7 +128,9 @@ def login(workspace=None, force=False):
     # we could eventually return the workspace object here
     # return Roboflow().workspace()
 
+
 active_workspace = None
+
 
 def initialize_roboflow():
     global active_workspace
@@ -138,28 +141,34 @@ def initialize_roboflow():
     )
 
     if not os.path.isfile(conf_location):
-        raise RuntimeError("To use this method, you must first login - run roboflow.login()")
+        raise RuntimeError(
+            "To use this method, you must first login - run roboflow.login()"
+        )
     else:
         if active_workspace == None:
             active_workspace = Roboflow().workspace()
 
         return active_workspace
 
+
 def load_model(model_url):
     operate_workspace = initialize_roboflow()
-    
+
     if "universe.roboflow.com" in model_url or "app.roboflow.com" in model_url:
         parsed_url = urlparse(model_url)
         path_parts = parsed_url.path.split("/")
         project = path_parts[2]
-        version = int(path_parts[-1])        
+        version = int(path_parts[-1])
     else:
-        raise("Model URL must be from either app.roboflow.com or universe.roboflow.com")
-            
+        raise (
+            "Model URL must be from either app.roboflow.com or universe.roboflow.com"
+        )
+
     project = operate_workspace.project(project)
     version = project.version(version)
     model = version.model
     return model
+
 
 # continue distributing this object for back compatibility
 class Roboflow:

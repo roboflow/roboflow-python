@@ -28,8 +28,8 @@ from roboflow.models.classification import ClassificationModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
-from roboflow.util.general import write_line
 from roboflow.util.annotations import amend_data_yaml
+from roboflow.util.general import write_line
 from roboflow.util.versions import (
     get_wrong_dependencies_versions,
     print_warn_for_wrong_dependencies_versions,
@@ -432,7 +432,7 @@ class Version:
 
         # return the model object
         return self.model
-        
+
     # @warn_for_wrong_dependencies_versions([("ultralytics", "<=", "8.0.20")])
     def deploy(self, model_type: str, model_path: str) -> None:
         """Uploads provided weights file to Roboflow

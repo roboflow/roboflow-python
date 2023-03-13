@@ -424,7 +424,6 @@ class Project:
         tag_names: list = [],
         **kwargs,
     ):
-
         """Upload image function based on the RESTful API
 
         Args:
