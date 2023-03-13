@@ -268,6 +268,8 @@ class Project:
         hosted_image=False,
         split="train",
         batch_name=DEFAULT_BATCH_NAME,
+        tag_names=[],
+        **kwargs,
     ):
         """function to upload image to the specific project
         :param image_path: path to image you'd like to upload.
@@ -298,6 +300,11 @@ class Project:
                     batch_name,
                 ]
             )
+            for key, value in kwargs.items():
+                self.image_upload_url += "&" + str(key) + "=" + str(value)
+
+            for tag in tag_names:
+                self.image_upload_url = self.image_upload_url + f"&tag={tag}"
 
             # Convert to PIL Image
             img = cv2.imread(image_path)
@@ -339,13 +346,36 @@ class Project:
 
         return response
 
-    def __annotation_upload(self, annotation_path, image_id):
+    def __annotation_upload(self, annotation_path: str, image_id: str):
         """function to upload annotation to the specific project
         :param annotation_path: path to annotation you'd like to upload
         :param image_id: image id you'd like to upload that has annotations for it.
         """
-        # Get annotation string
-        annotation_string = open(annotation_path, "r").read()
+
+        # stop on empty string
+        if len(annotation_path) == 0:
+            print("Please provide a non-empty string for annotation_path.")
+            return {"result": "Please provide a non-empty string for annotation_path."}
+
+        # check if annotation file exists
+        elif os.path.exists(annotation_path):
+            print("-> found given annotation file")
+            annotation_string = open(annotation_path, "r").read()
+
+        # if not annotation file, check if user wants to upload regular as classification annotation
+        elif self.type == "classification":
+            print(f"-> using {annotation_path} as classname for classification project")
+            annotation_string = annotation_path
+
+        # don't attempt upload otherwise
+        else:
+            print(
+                "File not found or uploading to non-classification type project with invalid string"
+            )
+            return {
+                "result": "File not found or uploading to non-classification type project with invalid string"
+            }
+
         # Set annotation upload url
 
         project_name = self.id.rsplit("/")[1]
@@ -353,7 +383,7 @@ class Project:
         self.annotation_upload_url = "".join(
             [
                 API_URL + "/dataset/",
-                project_name,
+                self.__project_name,
                 "/annotate/",
                 image_id,
                 "?api_key=",
@@ -361,12 +391,14 @@ class Project:
                 "&name=" + os.path.basename(annotation_path),
             ]
         )
+
         # Get annotation response
         annotation_response = requests.post(
             self.annotation_upload_url,
             data=annotation_string,
             headers={"Content-Type": "text/plain"},
         )
+
         # Return annotation response
         return annotation_response
 
@@ -382,20 +414,31 @@ class Project:
 
     def upload(
         self,
-        image_path=None,
-        annotation_path=None,
-        hosted_image=False,
-        image_id=None,
-        split="train",
-        num_retry_uploads=0,
-        batch_name=DEFAULT_BATCH_NAME,
+        image_path: str = None,
+        annotation_path: str = None,
+        hosted_image: bool = False,
+        image_id: int = None,
+        split: str = "train",
+        num_retry_uploads: int = 0,
+        batch_name: str = DEFAULT_BATCH_NAME,
+        tag_names: list = [],
+        **kwargs,
     ):
-        """upload function
-        :param image_path: path to image you'd like to upload
-        :param annotation_path: if you're upload annotation, path to it
-        :param hosted_image: whether the image is hosted
-        :param image_id: id of the image
-        :param split: split to upload the image to
+
+        """Upload image function based on the RESTful API
+
+        Args:
+            image_path (str) - path to image you'd like to upload
+            annotation_path (str) - if you're upload annotation, path to it
+            hosted_image (bool) - whether the image is hosted
+            image_id (int) - id of the image
+            split (str) - to upload the image to
+            num_retry_uploads (int) - how many times to retry upload on failure
+            batch_name (str) - name of batch to upload to within project
+            tag_names (list[str]) - tags to be applied to an image
+
+        Returns:
+            None - returns nothing
         """
 
         is_hosted = image_path.startswith("http://") or image_path.startswith(
@@ -430,6 +473,8 @@ class Project:
                 split=split,
                 num_retry_uploads=num_retry_uploads,
                 batch_name=batch_name,
+                tag_names=tag_names,
+                **kwargs,
             )
         else:
             images = os.listdir(image_path)
@@ -444,6 +489,8 @@ class Project:
                         split=split,
                         num_retry_uploads=num_retry_uploads,
                         batch_name=batch_name,
+                        tag_names=tag_names,
+                        **kwargs,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
@@ -459,6 +506,8 @@ class Project:
         split="train",
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
+        tag_names=[],
+        **kwargs,
     ):
         success = False
         annotation_success = False
@@ -470,6 +519,8 @@ class Project:
                 hosted_image=hosted_image,
                 split=split,
                 batch_name=batch_name,
+                tag_names=tag_names,
+                **kwargs,
             )
             # Get JSON response values
             try:
@@ -509,6 +560,7 @@ class Project:
                         image_id=image_id,
                         split=split,
                         num_retry_uploads=num_retry_uploads - 1,
+                        **kwargs,
                     )
                     return
                 else:
@@ -543,7 +595,12 @@ class Project:
 
             # Give user warning that annotation failed to upload
             if not annotation_success:
-                warnings.warn("Annotation, " + annotation_path + ", failed to upload!")
+                warnings.warn(
+                    "Annotation, "
+                    + annotation_path
+                    + "failed to upload!\n Upload correct annotation file to image_id: "
+                    + image_id
+                )
         else:
             annotation_success = True
 

@@ -59,6 +59,7 @@ class ClassificationModel:
             # Create buffer
             buffered = io.BytesIO()
             image.save(buffered, quality=90, format="JPEG")
+            img_dims = image.size
             # Base64 encode image
             img_str = base64.b64encode(buffered.getvalue())
             img_str = img_str.decode("ascii")
@@ -81,9 +82,9 @@ class ClassificationModel:
 
         return PredictionGroup.create_prediction_group(
             resp.json(),
+            image_dims=img_dims,
             image_path=image_path,
             prediction_type=CLASSIFICATION_MODEL,
-            image_dims=image_dims,
             colors=self.colors,
         )
 
