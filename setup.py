@@ -17,7 +17,7 @@ with open("requirements.txt", "r") as fh:
     install_requires = fh.read().split('\n')
 
 setuptools.setup(
-    name="roboflowtestpypi",
+    name="roboflow",
     version=version,
     author="Roboflow",
     author_email="jacob@roboflow.com",

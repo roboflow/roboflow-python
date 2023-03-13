@@ -1,18 +1,6 @@
 import json
 import os
 
-# default configuration location
-conf_location = os.getenv(
-    "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
-)
-
-# read config file for roboflow if logged in from python or CLI
-if os.path.exists(conf_location):
-    with open(conf_location) as f:
-        config = json.load(f)
-else:
-    config = {}
-
 
 def get_conditional_configuration_variable(key, default):
     """Retrieves the configuration variable conditionally.
@@ -25,6 +13,19 @@ def get_conditional_configuration_variable(key, default):
     Returns:
         string: The value of the conditional configuration variable.
     """
+    
+    # default configuration location
+    conf_location = os.getenv(
+        "ROBOFLOW_CONFIG_DIR", default=os.getenv("HOME") + "/.config/roboflow/config.json"
+    )
+
+    # read config file for roboflow if logged in from python or CLI
+    if os.path.exists(conf_location):
+        with open(conf_location) as f:
+            config = json.load(f)
+    else:
+        config = {}
+
     if os.getenv(key) != None:
         return os.getenv(key)
     elif key in config.keys():

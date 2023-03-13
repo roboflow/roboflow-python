@@ -121,18 +121,13 @@ def login(workspace=None, force=False):
             json.dump(r_login, f, indent=2)
 
     else:
-        raise RuntimeError("Error logging in")
+        r_login.raise_for_status()
 
     return None
     # we could eventually return the workspace object here
     # return Roboflow().workspace()
 
-
-# import roboflow
-# roboflow.#action
-
 active_workspace = None
-
 
 def initialize_roboflow():
     global active_workspace
@@ -149,15 +144,6 @@ def initialize_roboflow():
             active_workspace = Roboflow().workspace()
 
         return active_workspace
-
-
-def train():
-    operate_workspace = initialize_roboflow()
-
-    # check if project or version is set
-
-    print("training from " + operate_workspace.name)
-
 
 def load_model(model_url):
     operate_workspace = initialize_roboflow()
