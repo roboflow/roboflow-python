@@ -4,6 +4,7 @@ import sys
 import time
 
 import requests
+from urllib.parse import urlparse
 
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS, load_roboflow_api_key
 from roboflow.core.project import Project
@@ -11,7 +12,6 @@ from roboflow.core.workspace import Workspace
 from roboflow.util.general import write_line
 
 __version__ = "0.2.292"
-
 
 def check_key(api_key, model, notebook, num_retries=0):
     if type(api_key) is not str:
@@ -159,22 +159,21 @@ def train():
     print("training from " + operate_workspace.name)
 
 
-def load_model(project=None, version=None, local=None):
+def load_model(model_url):
     operate_workspace = initialize_roboflow()
+    
+    if "universe.roboflow.com" in model_url or "app.roboflow.com" in model_url:
+        parsed_url = urlparse(model_url)
+        path_parts = parsed_url.path.split("/")
+        project = path_parts[2]
+        version = int(path_parts[-1])        
+    else:
+        raise("Model URL must be from either app.roboflow.com or universe.roboflow.com")
+            
     project = operate_workspace.project(project)
     version = project.version(version)
     model = version.model
     return model
-
-
-# def set_project()
-
-# def set_version()
-
-# download()
-
-# deploy()
-
 
 # continue distributing this object for back compatibility
 class Roboflow:
