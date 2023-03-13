@@ -74,8 +74,7 @@ class ClassificationModel:
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
             # POST to the API
             resp = requests.post(self.api_url)
-
-        image_dims = {"width": "0", "height": "0"}
+            img_dims = {"width": "0", "height": "0"}
 
         if resp.status_code != 200:
             raise Exception(resp.text)
