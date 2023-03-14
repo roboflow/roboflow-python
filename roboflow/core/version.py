@@ -441,16 +441,18 @@ class Version:
             model_path (str): File path to model weights to be uploaded
         """
 
-        supported_models = ["yolov8", "yolov5", "yolov7-seg"]
+        supported_models = ["yolov5", "yolov7-seg", "yolov8"]
 
-        if model_type not in supported_models:
+        if not any(
+            supported_model in model_type for supported_model in supported_models
+        ):
             raise (
                 ValueError(
                     f"Model type {model_type} not supported. Supported models are {supported_models}"
                 )
             )
 
-        if model_type == "yolov8":
+        if "yolov8" in model_type:
             try:
                 import torch
                 import ultralytics
@@ -464,7 +466,7 @@ class Version:
                 [("ultralytics", "<=", "8.0.20")]
             )
 
-        elif model_type in ["yolov5", "yolov7-seg"]:
+        elif "yolov5" in model_type or "yolov7" in model_type:
             try:
                 import torch
             except ImportError as e:
@@ -483,16 +485,22 @@ class Version:
             class_names.sort(key=lambda x: x[0])
             class_names = [x[1] for x in class_names]
 
-        if model_type == "yolov8":
+        if "yolov8" in model_type:
             # try except for backwards compatibility with older versions of ultralytics
+            if "-cls" in model_type:
+                nc = model["model"].yaml["nc"]
+                args = model["train_args"]
+            else:
+                nc = model["model"].nc
+                args = model["model"].args
             try:
                 model_artifacts = {
                     "names": class_names,
                     "yaml": model["model"].yaml,
-                    "nc": model["model"].nc,
+                    "nc": nc,
                     "args": {
                         k: val
-                        for k, val in model["model"].args.items()
+                        for k, val in args.items()
                         if ((k == "model") or (k == "imgsz") or (k == "batch"))
                     },
                     "ultralytics_version": ultralytics.__version__,
@@ -502,16 +510,16 @@ class Version:
                 model_artifacts = {
                     "names": class_names,
                     "yaml": model["model"].yaml,
-                    "nc": model["model"].nc,
+                    "nc": nc,
                     "args": {
                         k: val
-                        for k, val in model["model"].args.__dict__.items()
+                        for k, val in args.__dict__.items()
                         if ((k == "model") or (k == "imgsz") or (k == "batch"))
                     },
                     "ultralytics_version": ultralytics.__version__,
                     "model_type": model_type,
                 }
-        elif model_type in ["yolov5", "yolov7-seg"]:
+        elif "yolov5" in model_type or "yolov7" in model_type:
             # parse from yaml for yolov5
 
             with open(os.path.join(model_path, "opt.yaml"), "r") as stream:
@@ -519,16 +527,22 @@ class Version:
 
             model_artifacts = {
                 "names": class_names,
-                "yaml": model["model"].yaml,
                 "nc": model["model"].nc,
-                "args": {"imgsz": opts["imgsz"], "batch": opts["batch_size"]},
+                "args": {
+                    "imgsz": opts["imgsz"] if "imgsz" in opts else opts["img_size"],
+                    "batch": opts["batch_size"],
+                },
                 "model_type": model_type,
             }
+            if hasattr(model["model"], "yaml"):
+                model_artifacts["yaml"] = model["model"].yaml
 
-        with open(model_path + "model_artifacts.json", "w") as fp:
+        with open(os.path.join(model_path, "model_artifacts.json"), "w") as fp:
             json.dump(model_artifacts, fp)
 
-        torch.save(model["model"].state_dict(), model_path + "state_dict.pt")
+        torch.save(
+            model["model"].state_dict(), os.path.join(model_path, "state_dict.pt")
+        )
 
         lista_files = [
             "results.csv",
@@ -537,11 +551,13 @@ class Version:
             "state_dict.pt",
         ]
 
-        with zipfile.ZipFile(model_path + "roboflow_deploy.zip", "w") as zipMe:
+        with zipfile.ZipFile(
+            os.path.join(model_path, "roboflow_deploy.zip"), "w"
+        ) as zipMe:
             for file in lista_files:
-                if os.path.exists(model_path + file):
+                if os.path.exists(os.path.join(model_path, file)):
                     zipMe.write(
-                        model_path + file,
+                        os.path.join(model_path, file),
                         arcname=file,
                         compress_type=zipfile.ZIP_DEFLATED,
                     )
@@ -554,7 +570,7 @@ class Version:
                         )
 
         res = requests.get(
-            f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}"
+            f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}&modelType={model_type}"
         )
         try:
             if res.status_code == 429:
@@ -569,7 +585,7 @@ class Version:
 
         res = requests.put(
             res.json()["url"],
-            data=open(os.path.join(model_path + "roboflow_deploy.zip"), "rb"),
+            data=open(os.path.join(model_path, "roboflow_deploy.zip"), "rb"),
         )
         try:
             res.raise_for_status()
