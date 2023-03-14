@@ -1,11 +1,14 @@
 import base64
+import copy
 import io
 import json
 import os
+import random
 import urllib
 from pathlib import Path
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import requests
 from PIL import Image
@@ -13,6 +16,10 @@ from PIL import Image
 from roboflow.config import OBJECT_DETECTION_MODEL
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
+from roboflow.util.versions import (
+    print_warn_for_wrong_dependencies_versions,
+    warn_for_wrong_dependencies_versions,
+)
 
 
 class ObjectDetectionModel:
@@ -29,6 +36,8 @@ class ObjectDetectionModel:
         stroke=1,
         labels=False,
         format="json",
+        colors=None,
+        preprocessing=None,
     ):
         """
         From Roboflow Docs:
@@ -64,6 +73,8 @@ class ObjectDetectionModel:
         self.stroke = stroke
         self.labels = labels
         self.format = format
+        self.colors = {} if colors is None else colors
+        self.preprocessing = {} if preprocessing is None else preprocessing
 
         # local needs to be passed from Project
         if local is None:
@@ -142,11 +153,28 @@ class ObjectDetectionModel:
         else:
             self.__exception_check(image_path_check=image_path)
 
+        resize = False
         # If image is local image
         if not hosted:
             if type(image_path) is str:
                 image = Image.open(image_path).convert("RGB")
                 dimensions = image.size
+                original_dimensions = copy.deepcopy(dimensions)
+
+                # Here we resize the image to the preprocessing settings before sending it over the wire
+                if "resize" in self.preprocessing.keys():
+                    if dimensions[0] > int(
+                        self.preprocessing["resize"]["width"]
+                    ) or dimensions[1] > int(self.preprocessing["resize"]["height"]):
+                        image = image.resize(
+                            (
+                                int(self.preprocessing["resize"]["width"]),
+                                int(self.preprocessing["resize"]["height"]),
+                            )
+                        )
+                        dimensions = image.size
+                        resize = True
+
                 # Create buffer
                 buffered = io.BytesIO()
                 image.save(buffered, format="PNG")
@@ -159,7 +187,11 @@ class ObjectDetectionModel:
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
-                image_dims = {"width": str(dimensions[0]), "height": str(dimensions[1])}
+
+                image_dims = {
+                    "width": str(original_dimensions[0]),
+                    "height": str(original_dimensions[1]),
+                }
             elif isinstance(image_path, np.ndarray):
                 # Performing inference on a OpenCV2 frame
                 retval, buffer = cv2.imencode(".jpg", image_path)
@@ -181,20 +213,251 @@ class ObjectDetectionModel:
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
             image_dims = {"width": "0", "height": "0"}
             # POST to the API
-            resp = requests.get(self.api_url)
+            resp = requests.post(self.api_url)
 
         resp.raise_for_status()
         # Return a prediction group if JSON data
         if self.format == "json":
+            resp_json = resp.json()
+
+            if resize:
+                new_preds = []
+                for p in resp_json["predictions"]:
+                    p["x"] = int(
+                        p["x"]
+                        * (
+                            int(original_dimensions[0])
+                            / int(self.preprocessing["resize"]["width"])
+                        )
+                    )
+                    p["y"] = int(
+                        p["y"]
+                        * (
+                            int(original_dimensions[1])
+                            / int(self.preprocessing["resize"]["height"])
+                        )
+                    )
+                    p["width"] = int(
+                        p["width"]
+                        * (
+                            int(original_dimensions[0])
+                            / int(self.preprocessing["resize"]["width"])
+                        )
+                    )
+                    p["height"] = int(
+                        p["height"]
+                        * (
+                            int(original_dimensions[1])
+                            / int(self.preprocessing["resize"]["height"])
+                        )
+                    )
+
+                    new_preds.append(p)
+
+                resp_json["predictions"] = new_preds
+
             return PredictionGroup.create_prediction_group(
-                resp.json(),
+                resp_json,
                 image_path=image_path,
                 prediction_type=OBJECT_DETECTION_MODEL,
                 image_dims=image_dims,
+                colors=self.colors,
             )
         # Returns base64 encoded Data
         elif self.format == "image":
             return resp.content
+
+    def webcam(
+        self,
+        webcam_id=0,
+        inference_engine_url="https://detect.roboflow.com/",
+        within_jupyter=False,
+        confidence=40,
+        overlap=30,
+        stroke=1,
+        labels=False,
+        web_cam_res=(416, 416),
+    ):
+        """
+        Infers detections based on webcam feed from specified model
+
+        :param webcam_id: Webcam ID (default 0)
+        :param inference_engine_url: Inference engine address to use (default https://detect.roboflow.com)
+        :param in_jupyter: Whether or not to display the webcam within Jupyter notebook (default True)
+        :param confidence: Confidence threshold for detections
+        :param overlap: Overlap threshold for detections
+        :param stroke: Stroke width for bounding box
+        :param labels: Whether to show labels on bounding box
+        """
+
+        os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
+
+        # Generate url before predicting
+        self.__generate_url(
+            confidence=confidence,
+            overlap=overlap,
+            stroke=stroke,
+            labels=labels,
+            inference_engine_url=inference_engine_url,
+        )
+
+        def plot_one_box(
+            x, img, color=None, label=None, line_thickness=None, colors=None
+        ):
+            # Plots one bounding box on image img
+
+            self.colors = {} if colors is None else colors
+
+            if label in colors.keys() and label is not None:
+                color = colors[label]
+                color = color.lstrip("#")
+                color = tuple(int(color[i : i + 2], 16) for i in (0, 2, 4))
+            else:
+                color = [random.randint(0, 255) for _ in range(3)]
+
+            tl = (
+                line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1
+            )  # line/font thickness
+
+            c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
+
+            cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
+            if label:
+                tf = max(tl - 1, 1)  # font thickness
+                t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
+                c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
+                cv2.rectangle(img, c1, c2, color, -1, cv2.LINE_AA)  # filled
+                cv2.putText(
+                    img,
+                    label,
+                    (c1[0], c1[1] - 2),
+                    0,
+                    tl / 3,
+                    [225, 255, 255],
+                    thickness=tf,
+                    lineType=cv2.LINE_AA,
+                )
+
+        cap = cv2.VideoCapture(webcam_id)
+
+        if cap is None or not cap.isOpened():
+            raise (Exception("No webcam available at webcam_id " + str(webcam_id)))
+
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, web_cam_res[0])
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, web_cam_res[1])
+
+        if within_jupyter:
+            os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
+            print_warn_for_wrong_dependencies_versions([("IPython", ">=", "7.0.0")])
+            print_warn_for_wrong_dependencies_versions([("ipywidgets", ">=", "7.0.0")])
+
+            import threading
+
+            import ipywidgets as widgets
+            from IPython.display import Image as IPythonImage
+            from IPython.display import display
+
+            display_handle = display("loading Roboflow model...", display_id=True)
+
+            # Stop button
+            # ================
+            stopButton = widgets.ToggleButton(
+                value=False,
+                description="Stop Inference",
+                disabled=False,
+                button_style="danger",  # 'success', 'info', 'warning', 'danger' or ''
+                tooltip="Description",
+                icon="square",  # (FontAwesome names without the `fa-` prefix)
+            )
+
+        else:
+            cv2.namedWindow("Roboflow Webcam Inference", cv2.WINDOW_NORMAL)
+            cv2.startWindowThread()
+
+            stopButton = None
+
+        def view(button):
+            while True:
+                if stopButton is not None:
+                    if stopButton.value == True:
+                        break
+                else:
+                    if cv2.waitKey(1) & 0xFF == ord("q"):  # quit when 'q' is pressed
+                        break
+
+                _, frame = cap.read()
+                frame = cv2.resize(frame, web_cam_res)
+
+                frame = cv2.flip(frame, 1)  # if your camera reverses your image
+
+                _, frame_upload = cv2.imencode(".jpeg", frame)
+                img_str = base64.b64encode(frame_upload)
+                img_str = img_str.decode("ascii")
+
+                # post frame to the Roboflow API
+                r = requests.post(
+                    self.api_url,
+                    data=img_str,
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+
+                json = r.json()
+
+                predictions = json["predictions"]
+
+                formatted_predictions = []
+                classes = []
+
+                for pred in predictions:
+                    formatted_pred = [
+                        pred["x"],
+                        pred["y"],
+                        pred["x"],
+                        pred["y"],
+                        pred["confidence"],
+                    ]
+
+                    # convert to top-left x/y from center
+                    formatted_pred[0] = int(formatted_pred[0] - pred["width"] / 2)
+                    formatted_pred[1] = int(formatted_pred[1] - pred["height"] / 2)
+                    formatted_pred[2] = int(formatted_pred[2] + pred["width"] / 2)
+                    formatted_pred[3] = int(formatted_pred[3] + pred["height"] / 2)
+
+                    formatted_predictions.append(formatted_pred)
+                    classes.append(pred["class"])
+
+                    plot_one_box(
+                        formatted_pred,
+                        frame,
+                        label=pred["class"],
+                        line_thickness=2,
+                        colors=self.colors,
+                    )
+
+                _, frame_display = cv2.imencode(".jpeg", frame)
+
+                if within_jupyter:
+                    display_handle.update(IPythonImage(data=frame_display.tobytes()))
+                else:
+                    cv2.imshow("Roboflow Webcam Inference", frame)
+                    if cv2.waitKey(1) & 0xFF == ord("q"):  # quit when 'q' is pressed
+                        cap.release()
+                        break
+
+            cap.release()
+            if not within_jupyter:
+                cv2.destroyWindow("Roboflow Webcam Inference")
+                cv2.destroyAllWindows()
+                cv2.waitKey(1)
+
+            return
+
+        if within_jupyter:
+            display(stopButton)
+            thread = threading.Thread(target=view, args=(stopButton,))
+            thread.start()
+        else:
+            view(stopButton)
 
     def __exception_check(self, image_path_check=None):
         # Check if Image path exists exception check (for both hosted URL and local image)
@@ -213,6 +476,7 @@ class ObjectDetectionModel:
         stroke=None,
         labels=None,
         format=None,
+        inference_engine_url=None,
     ):
         # Reassign parameters if any parameters are changed
         if local is not None:
@@ -220,6 +484,9 @@ class ObjectDetectionModel:
                 self.base_url = "https://detect.roboflow.com/"
             else:
                 self.base_url = "http://localhost:9001/"
+
+        if inference_engine_url is not None:
+            self.base_url = inference_engine_url
 
         # Change any variables that the user wants to change
         if classes is not None:

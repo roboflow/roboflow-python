@@ -1,14 +1,17 @@
 import json
+import os
 import sys
 import time
+from urllib.parse import urlparse
 
 import requests
 
-from roboflow.config import API_URL, APP_URL, DEMO_KEYS
+from roboflow.config import API_URL, APP_URL, DEMO_KEYS, load_roboflow_api_key
 from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
+from roboflow.util.general import write_line
 
-__version__ = "0.2.34"
+__version__ = "1.0.0"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -67,14 +70,118 @@ def auth(api_key):
     return Roboflow(api_key, w)
 
 
+def login(workspace=None, force=False):
+    conf_location = os.getenv(
+        "ROBOFLOW_CONFIG_DIR",
+        default=os.getenv("HOME") + "/.config/roboflow/config.json",
+    )
+
+    if os.path.isfile(conf_location) and not force:
+        write_line(
+            "You are already logged into Roboflow. To make a different login, run roboflow.login(force=True)."
+        )
+        return None
+        # we could eventually return the workspace object here
+        # return Roboflow().workspace()
+    elif os.path.isfile(conf_location) and force:
+        os.remove(conf_location)
+
+    if workspace is None:
+        write_line(
+            "visit " + APP_URL + "/auth-cli" " to get your authentication token."
+        )
+    else:
+        write_line(
+            "visit "
+            + APP_URL
+            + "/auth-cli/?workspace="
+            + workspace
+            + " to get your authentication token."
+        )
+
+    token = input("Paste the authentication here token here: ")
+
+    r_login = requests.get(APP_URL + "/query/cliAuthToken/" + token)
+
+    if r_login.status_code == 200:
+        r_login = r_login.json()
+
+        # make config directory if it doesn't exist
+        if not os.path.exists(os.path.dirname(conf_location)):
+            os.mkdir(os.path.dirname(conf_location))
+
+        r_login = {"workspaces": r_login}
+        # set first workspace as default workspace
+
+        default_workspace_id = list(r_login["workspaces"].keys())[0]
+        workspace = r_login["workspaces"][default_workspace_id]
+        r_login["RF_WORKSPACE"] = workspace["url"]
+
+        # write config file
+        with open(conf_location, "w") as f:
+            json.dump(r_login, f, indent=2)
+
+    else:
+        r_login.raise_for_status()
+
+    return None
+    # we could eventually return the workspace object here
+    # return Roboflow().workspace()
+
+
+active_workspace = None
+
+
+def initialize_roboflow():
+    global active_workspace
+
+    conf_location = os.getenv(
+        "ROBOFLOW_CONFIG_DIR",
+        default=os.getenv("HOME") + "/.config/roboflow/config.json",
+    )
+
+    if not os.path.isfile(conf_location):
+        raise RuntimeError(
+            "To use this method, you must first login - run roboflow.login()"
+        )
+    else:
+        if active_workspace == None:
+            active_workspace = Roboflow().workspace()
+
+        return active_workspace
+
+
+def load_model(model_url):
+    operate_workspace = initialize_roboflow()
+
+    if "universe.roboflow.com" in model_url or "app.roboflow.com" in model_url:
+        parsed_url = urlparse(model_url)
+        path_parts = parsed_url.path.split("/")
+        project = path_parts[2]
+        version = int(path_parts[-1])
+    else:
+        raise (
+            "Model URL must be from either app.roboflow.com or universe.roboflow.com"
+        )
+
+    project = operate_workspace.project(project)
+    version = project.version(version)
+    model = version.model
+    return model
+
+
+# continue distributing this object for back compatibility
 class Roboflow:
     def __init__(
         self,
-        api_key="YOUR ROBOFLOW API KEY HERE",
+        api_key=None,
         model_format="undefined",
         notebook="undefined",
     ):
         self.api_key = api_key
+        if self.api_key == None:
+            self.api_key = load_roboflow_api_key()
+
         self.model_format = model_format
         self.notebook = notebook
         self.onboarding = False

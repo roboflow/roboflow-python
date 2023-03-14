@@ -13,7 +13,16 @@ from roboflow.util.prediction import PredictionGroup
 
 
 class ClassificationModel:
-    def __init__(self, api_key, id, name=None, version=None, local=False):
+    def __init__(
+        self,
+        api_key,
+        id,
+        name=None,
+        version=None,
+        local=False,
+        colors=None,
+        preprocessing=None,
+    ):
         """
         :param api_key: private roboflow api key
         :param id: the workspace/project id
@@ -30,6 +39,9 @@ class ClassificationModel:
 
         if self.name is not None and version is not None:
             self.__generate_url()
+
+        self.colors = {} if colors is None else colors
+        self.preprocessing = {} if preprocessing is None else preprocessing
 
     def predict(self, image_path, hosted=False):
         """
@@ -61,7 +73,8 @@ class ClassificationModel:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
             # POST to the API
-            resp = requests.get(self.api_url)
+            resp = requests.post(self.api_url)
+            img_dims = {"width": "0", "height": "0"}
 
         if resp.status_code != 200:
             raise Exception(resp.text)
@@ -71,6 +84,7 @@ class ClassificationModel:
             image_dims=img_dims,
             image_path=image_path,
             prediction_type=CLASSIFICATION_MODEL,
+            colors=self.colors,
         )
 
     def load_model(self, name, version):

@@ -42,7 +42,7 @@ def plot_image(image_path):
     return figure, axes
 
 
-def plot_annotation(axes, prediction=None, stroke=1, transparency=60):
+def plot_annotation(axes, prediction=None, stroke=1, transparency=60, colors=None):
     """
     Helper method to plot annotations
 
@@ -53,7 +53,15 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60):
     :return:
     """
     # Object Detection annotation
+
+    colors = {} if colors is None else colors
+
+    stroke_color = "r"
+
     if prediction["prediction_type"] == OBJECT_DETECTION_MODEL:
+        if prediction["class"] in colors.keys():
+            stroke_color = colors[prediction["class"]]
+
         # Get height, width, and center coordinates of prediction
         if prediction is not None:
             height = prediction["height"]
@@ -65,7 +73,7 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60):
                 width,
                 height,
                 linewidth=stroke,
-                edgecolor="r",
+                edgecolor=stroke_color,
                 facecolor="none",
             )
             # Plot Rectangle
@@ -78,9 +86,12 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60):
             + str(prediction["confidence"])
         )
     elif prediction["prediction_type"] == INSTANCE_SEGMENTATION_MODEL:
+        if prediction["class"] in colors.keys():
+            stroke_color = colors[prediction["class"]]
+
         points = [[p["x"], p["y"]] for p in prediction["points"]]
         polygon = patches.Polygon(
-            points, linewidth=stroke, edgecolor="r", facecolor="none"
+            points, linewidth=stroke, edgecolor=stroke_color, facecolor="none"
         )
         axes.add_patch(polygon)
     elif prediction["prediction_type"] == SEMANTIC_SEGMENTATION_MODEL:
@@ -93,7 +104,11 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60):
 
 class Prediction:
     def __init__(
-        self, json_prediction, image_path, prediction_type=OBJECT_DETECTION_MODEL
+        self,
+        json_prediction,
+        image_path,
+        prediction_type=OBJECT_DETECTION_MODEL,
+        colors=None,
     ):
         """
         Generalized Prediction for both Object Detection and Classification Models
@@ -106,6 +121,8 @@ class Prediction:
         json_prediction["prediction_type"] = prediction_type
         self.image_path = image_path
         self.json_prediction = json_prediction
+
+        self.colors = {} if colors is None else colors
 
     def json(self):
         return self.json_prediction
@@ -125,7 +142,7 @@ class Prediction:
         validate_image_path(self["image_path"])
         _, axes = plot_image(self["image_path"])
 
-        plot_annotation(axes, self, stroke)
+        plot_annotation(axes, self, stroke, colors=self.colors)
         plt.show()
 
     def save(self, output_path="predictions.jpg", stroke=2, transparency=60):
@@ -146,6 +163,9 @@ class Prediction:
             width = self["width"]
             height = self["height"]
             class_name = self["class"]
+
+            if class_name in self.colors.keys():
+                stroke_color = self.colors[class_name]
             # Draw bounding boxes for object detection prediction
             cv2.rectangle(
                 image,
@@ -179,6 +199,8 @@ class Prediction:
             )
 
         elif self["prediction_type"] == CLASSIFICATION_MODEL:
+            if self["top"] in self.colors.keys():
+                stroke_color = self.colors[self["top"]]
             # Get image dimensions
             height, width = image.shape[:2]
             # Get bottom amount for image
@@ -203,12 +225,14 @@ class Prediction:
                 (int(width / 2), 5),
                 cv2.FONT_HERSHEY_DUPLEX,
                 0.5,
-                (255, 255, 255),
+                stroke_color,
                 1,
             )
         elif self["prediction_type"] == INSTANCE_SEGMENTATION_MODEL:
             points = [[int(p["x"]), int(p["y"])] for p in self["points"]]
             np_points = np.array(points, dtype=np.int32)
+            if self["class"] in self.colors.keys():
+                stroke_color = self.colors[self["class"]]
             cv2.polylines(
                 image, [np_points], isClosed=True, color=stroke_color, thickness=stroke
             )
@@ -288,7 +312,9 @@ class PredictionGroup:
             validate_image_path(self.base_image_path)
             _, axes = plot_image(self.base_image_path)
             for single_prediction in self:
-                plot_annotation(axes, single_prediction, stroke)
+                plot_annotation(
+                    axes, single_prediction, stroke, colors=single_prediction.colors
+                )
         # Show the plot to the user
         plt.show()
 
@@ -473,7 +499,9 @@ class PredictionGroup:
         return prediction_group_json
 
     @staticmethod
-    def create_prediction_group(json_response, image_path, prediction_type, image_dims):
+    def create_prediction_group(
+        json_response, image_path, prediction_type, image_dims, colors=None
+    ):
         """
         Method to create a prediction group based on the JSON Response
 
@@ -484,21 +512,30 @@ class PredictionGroup:
         :param image_dims:
         :return:
         """
+
+        colors = {} if colors is None else colors
         prediction_list = []
 
         if prediction_type in [OBJECT_DETECTION_MODEL, INSTANCE_SEGMENTATION_MODEL]:
             for prediction in json_response["predictions"]:
                 prediction = Prediction(
-                    prediction, image_path, prediction_type=prediction_type
+                    prediction,
+                    image_path,
+                    prediction_type=prediction_type,
+                    colors=colors,
                 )
                 prediction_list.append(prediction)
             img_dims = image_dims
         elif prediction_type == CLASSIFICATION_MODEL:
-            prediction = Prediction(json_response, image_path, prediction_type)
+            prediction = Prediction(
+                json_response, image_path, prediction_type, colors=colors
+            )
             prediction_list.append(prediction)
             img_dims = image_dims
         elif prediction_type == SEMANTIC_SEGMENTATION_MODEL:
-            prediction = Prediction(json_response, image_path, prediction_type)
+            prediction = Prediction(
+                json_response, image_path, prediction_type, colors=colors
+            )
             prediction_list.append(prediction)
             img_dims = image_dims
 
