@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import sys
@@ -5,6 +6,7 @@ import time
 import zipfile
 from importlib import import_module
 
+import numpy as np
 import requests
 import wget
 import yaml
@@ -27,6 +29,7 @@ from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
+from roboflow.util.general import write_line
 from roboflow.util.versions import (
     get_wrong_dependencies_versions,
     print_warn_for_wrong_dependencies_versions,
@@ -48,6 +51,7 @@ class Version:
         workspace,
         project,
         public,
+        colors=None,
     ):
         if api_key in DEMO_KEYS:
             if api_key == "coco-128-sample":
@@ -80,6 +84,9 @@ class Version:
             self.workspace = workspace
             self.project = project
             self.public = public
+            self.colors = {} if colors is None else colors
+
+            self.colors = colors
             if "exports" in version_dict.keys():
                 self.exports = version_dict["exports"]
             else:
@@ -94,6 +101,8 @@ class Version:
                     self.name,
                     version_without_workspace,
                     local=local,
+                    colors=self.colors,
+                    preprocessing=self.preprocessing,
                 )
             elif self.type == TYPE_CLASSICATION:
                 self.model = ClassificationModel(
@@ -102,9 +111,16 @@ class Version:
                     self.name,
                     version_without_workspace,
                     local=local,
+                    colors=self.colors,
+                    preprocessing=self.preprocessing,
                 )
             elif self.type == TYPE_INSTANCE_SEGMENTATION:
-                self.model = InstanceSegmentationModel(self.__api_key, self.id)
+                self.model = InstanceSegmentationModel(
+                    self.__api_key,
+                    self.id,
+                    colors=self.colors,
+                    preprocessing=self.preprocessing,
+                )
             elif self.type == TYPE_SEMANTIC_SEGMENTATION:
                 self.model = SemanticSegmentationModel(self.__api_key, self.id)
             else:
@@ -259,14 +275,15 @@ class Version:
             except requests.exceptions.JSONDecodeError:
                 response.raise_for_status()
 
-    def train(self, speed=None, checkpoint=None) -> bool:
+    def train(self, speed=None, checkpoint=None, plot_in_notebook=False) -> bool:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
         Args:
             speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
             checkpoint: A string representing the checkpoint to use while training
+            plot: Whether to plot the training results. Default is `False`.
         Returns:
-            True
+            An instance of the trained model class
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
             HTTPError: If the Network/Roboflow API fails and does not return JSON
         """
@@ -275,6 +292,16 @@ class Version:
 
         train_model_format = "yolov5pytorch"
 
+        if self.type == TYPE_CLASSICATION:
+            train_model_format = "folder"
+
+        if self.type == TYPE_INSTANCE_SEGMENTATION:
+            train_model_format = "yolov5pytorch"
+
+        if self.type == TYPE_SEMANTIC_SEGMENTATION:
+            train_model_format = "png-mask-semantic"
+
+        # if classification
         if train_model_format not in self.exports:
             self.export(train_model_format)
 
@@ -288,9 +315,7 @@ class Version:
         if checkpoint:
             data["checkpoint"] = checkpoint
 
-        sys.stdout.write("\r" + "Reaching out to Roboflow to start training...")
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+        write_line("Reaching out to Roboflow to start training...")
 
         response = requests.post(url, json=data, params={"api_key": self.__api_key})
         if not response.ok:
@@ -299,10 +324,114 @@ class Version:
             except requests.exceptions.JSONDecodeError:
                 response.raise_for_status()
 
-        sys.stdout.write("\r" + "Training model in progress...")
-        sys.stdout.flush()
+        status = "training"
 
-        return True
+        if plot_in_notebook:
+            import collections
+
+            from IPython.display import clear_output
+            from matplotlib import pyplot as plt
+
+            def live_plot(epochs, mAP, loss, title=""):
+                clear_output(wait=True)
+
+                plt.subplot(2, 1, 1)
+                plt.plot(epochs, mAP, "#00FFCE")
+                plt.title(title)
+                plt.ylabel("mAP")
+
+                plt.subplot(2, 1, 2)
+                plt.plot(epochs, loss, "#A351FB")
+                plt.xlabel("epochs")
+                plt.ylabel("loss")
+                plt.show()
+
+        first_graph_write = False
+        previous_epochs = []
+        num_machine_spin_dots = []
+
+        while status == "training" or status == "running":
+            url = (
+                f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
+            )
+            response = requests.get(url, params={"api_key": self.__api_key})
+            response.raise_for_status()
+            version = response.json()["version"]
+            if "models" in version.keys():
+                models = version["models"]
+            else:
+                models = {}
+
+            if "train" in version.keys():
+                if "results" in version["train"].keys():
+                    status = "finished"
+                    break
+                if "status" in version["train"].keys():
+                    if version["train"]["status"] == "failed":
+                        write_line(line="Training failed")
+                        break
+
+            if "roboflow-train" in models.keys():
+                # training has started
+                epochs = np.array(
+                    [
+                        int(epoch["epoch"])
+                        for epoch in models["roboflow-train"]["epochs"]
+                    ]
+                )
+                mAP = np.array(
+                    [
+                        float(epoch["mAP"])
+                        for epoch in models["roboflow-train"]["epochs"]
+                    ]
+                )
+                loss = np.array(
+                    [
+                        (
+                            float(epoch["box_loss"])
+                            + float(epoch["class_loss"])
+                            + float(epoch["obj_loss"])
+                        )
+                        for epoch in models["roboflow-train"]["epochs"]
+                    ]
+                )
+
+                title = "Training in Progress"
+                # plottling logic
+            else:
+                num_machine_spin_dots.append(".")
+                if len(num_machine_spin_dots) > 5:
+                    num_machine_spin_dots = ["."]
+                title = "Training Machine Spinning Up" + "".join(num_machine_spin_dots)
+
+                epochs = []
+                mAP = []
+                loss = []
+
+            if (len(epochs) > len(previous_epochs)) or (len(epochs) == 0):
+                if plot_in_notebook:
+                    live_plot(epochs, mAP, loss, title)
+                else:
+                    if len(epochs) > 0:
+                        title = (
+                            title
+                            + ": Epoch: "
+                            + str(epochs[-1])
+                            + " mAP: "
+                            + str(mAP[-1])
+                            + " loss: "
+                            + str(loss[-1])
+                        )
+                    if not first_graph_write:
+                        write_line(title)
+                        first_graph_write = True
+
+            previous_epochs = copy.deepcopy(epochs)
+
+            time.sleep(5)
+
+        # return the model object
+        return self.model
 
     # @warn_for_wrong_dependencies_versions([("ultralytics", "<=", "8.0.20")])
     def deploy(self, model_type: str, model_path: str) -> None:
@@ -353,8 +482,8 @@ class Version:
             class_names = []
             for i, val in enumerate(model["model"].names):
                 class_names.append((val, model["model"].names[val]))
-        class_names.sort(key=lambda x: x[0])
-        class_names = [x[1] for x in class_names]
+            class_names.sort(key=lambda x: x[0])
+            class_names = [x[1] for x in class_names]
 
         if "yolov8" in model_type:
             # try except for backwards compatibility with older versions of ultralytics
@@ -589,7 +718,7 @@ class Version:
         """
         data_path = os.path.join(location, "data.yaml")
 
-        def callback(content: dict) -> dict:
+        def data_yaml_callback(content: dict) -> dict:
             if format == "mt-yolov6":
                 content["train"] = location + content["train"].lstrip(".")
                 content["val"] = location + content["val"].lstrip(".")
@@ -599,7 +728,7 @@ class Version:
                 content["val"] = location + content["val"].lstrip("..")
             try:
                 # get_wrong_dependencies_versions raises exception if ultralytics is not installed at all
-                if not get_wrong_dependencies_versions(
+                if format == "yolov8" and not get_wrong_dependencies_versions(
                     dependencies_versions=[("ultralytics", ">=", "8.0.30")]
                 ):
                     content["train"] = "train/images"
@@ -609,8 +738,8 @@ class Version:
                 pass
             return content
 
-        if os.path.exists(data_path):
-            amend_data_yaml(path=data_path, callback=callback)
+        if format in ["yolov5pytorch", "mt-yolov6", "yolov7pytorch", "yolov8"]:
+            amend_data_yaml(path=data_path, callback=data_yaml_callback)
 
     def __str__(self):
         """string representation of version object."""

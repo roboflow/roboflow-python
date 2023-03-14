@@ -94,6 +94,7 @@ class Project:
                 workspace=self.__workspace,
                 project=self.__project_name,
                 public=self.public,
+                colors=self.colors,
             )
             version_array.append(version_object)
         return version_array
@@ -192,12 +193,14 @@ class Project:
         },
         speed=None,
         checkpoint=None,
+        plot_in_notebook=False,
     ) -> bool:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
         Args:
             speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
             checkpoint: A string representing the checkpoint to use while training
+            plot: Whether to plot the training loss curve. Default is False.
         Returns:
             True
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
@@ -206,9 +209,11 @@ class Project:
 
         new_version = self.generate_version(settings=new_version_settings)
         new_version = self.version(new_version)
-        new_version.train(speed=speed, checkpoint=checkpoint)
+        new_model = new_version.train(
+            speed=speed, checkpoint=checkpoint, plot_in_notebook=plot_in_notebook
+        )
 
-        return True
+        return new_model
 
     def version(self, version_number, local=None):
         """Retrieves information about a specific version, and throws it into an object.
@@ -251,6 +256,7 @@ class Project:
                     workspace=self.__workspace,
                     project=self.__project_name,
                     public=self.public,
+                    colors=self.colors,
                 )
                 return vers
 
@@ -285,7 +291,7 @@ class Project:
             # Construct URL for local image upload
             self.image_upload_url = "".join(
                 [
-                    "https://api.roboflow.com/dataset/",
+                    API_URL + "/dataset/",
                     project_name,
                     "/upload",
                     "?api_key=",
@@ -371,10 +377,13 @@ class Project:
             }
 
         # Set annotation upload url
+
+        project_name = self.id.rsplit("/")[1]
+
         self.annotation_upload_url = "".join(
             [
                 API_URL + "/dataset/",
-                self.name,
+                self.__project_name,
                 "/annotate/",
                 image_id,
                 "?api_key=",
@@ -382,12 +391,14 @@ class Project:
                 "&name=" + os.path.basename(annotation_path),
             ]
         )
+
         # Get annotation response
         annotation_response = requests.post(
             self.annotation_upload_url,
             data=annotation_string,
             headers={"Content-Type": "text/plain"},
         )
+
         # Return annotation response
         return annotation_response
 
@@ -564,10 +575,23 @@ class Project:
             annotation_response = self.__annotation_upload(annotation_path, image_id)
             # Check if upload was a success
             try:
-                annotation_success = annotation_response.json()["success"]
-            except Exception:
-                warnings.warn(f"Bad response: {response}")
+                response_data = annotation_response.json()
+                if "success" in response_data.keys():
+                    annotation_success = True
+                elif "error" in response_data.keys():
+                    warnings.warn(
+                        f"Uploading annotation data for image failed: {str(response_data['error'])}"
+                    )
+                    annotation_success = False
+                else:
+                    warnings.warn(
+                        f"Uploading annotation data for image failed: {str(response_data)}"
+                    )
+                    annotation_success = False
+            except:
+                warnings.warn(f"Bad response: {response.status_code}")
                 annotation_success = False
+
             # Give user warning that annotation failed to upload
             if not annotation_success:
                 warnings.warn(

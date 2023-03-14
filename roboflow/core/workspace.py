@@ -79,6 +79,25 @@ class Workspace:
 
         return Project(self.__api_key, dataset_info, self.model_format)
 
+    def create_project(self, project_name, project_type, project_license, annotation):
+        data = {
+            "name": project_name,
+            "type": project_type,
+            "license": project_license,
+            "annotation": annotation,
+        }
+
+        r = requests.post(
+            API_URL + "/" + self.url + "/projects?api_key=" + self.__api_key, json=data
+        )
+
+        r.raise_for_status()
+
+        if "error" in r.json().keys():
+            raise RuntimeError(r.json()["error"])
+
+        return self.project(r.json()["id"].split("/")[-1])
+
     def clip_compare(
         self, dir: str = "", image_ext: str = ".png", target_image: str = ""
     ) -> dict:

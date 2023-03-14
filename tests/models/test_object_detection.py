@@ -124,13 +124,13 @@ class TestObjectDetection(unittest.TestCase):
         instance = ObjectDetectionModel(self.api_key, self.version_id,  version=self.version)
 
         # Mock the library validating that the URL is valid before sending to the API
-        responses.add(responses.GET, self.api_url, json=MOCK_RESPONSE)
+        responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
 
         instance.predict(image_path, hosted=True)
 
         request = responses.calls[0].request
 
-        self.assertEqual(request.method, "GET")
+        self.assertEqual(request.method, "POST")
         self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, expected_params)
         self.assertIsNone(request.body)
