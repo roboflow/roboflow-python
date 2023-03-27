@@ -133,6 +133,15 @@ active_workspace = None
 
 
 def initialize_roboflow(the_workspace=None):
+    """High level function to initialize Roboflow.
+
+    Args:
+        the_workspace: the workspace url to initialize. If None, the default workspace will be used.
+
+    Returns:
+        None
+    """
+    
     global active_workspace
 
     conf_location = os.getenv(
@@ -154,6 +163,16 @@ def initialize_roboflow(the_workspace=None):
 
 
 def load_model(model_url):
+    """High level function to load Roboflow models.
+
+    Args:
+        model_url: the model url to load. Must be from either app.roboflow.com or universe.roboflow.com
+
+    Returns:
+        the model object to use for inference
+    """
+    
+    
     operate_workspace = initialize_roboflow()
     
     if "universe.roboflow.com" in model_url or "app.roboflow.com" in model_url:
@@ -172,6 +191,16 @@ def load_model(model_url):
     return model
 
 def download_dataset(dataset_url, model_format, location=None):
+    """High level function to download data from Roboflow.
+
+    Args:
+        dataset_url: the dataset url to download. Must be from either app.roboflow.com or universe.roboflow.com
+        model_format: the format the dataset will be downloaded in
+        location: the location the dataset will be downloaded to
+
+    Returns:
+        The dataset object with location available as dataset.location
+    """
 
     if "universe.roboflow.com" in dataset_url or "app.roboflow.com" in dataset_url:
         parsed_url = urlparse(dataset_url)
