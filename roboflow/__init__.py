@@ -132,7 +132,7 @@ def login(workspace=None, force=False):
 active_workspace = None
 
 
-def initialize_roboflow():
+def initialize_roboflow(the_workspace=None):
     global active_workspace
 
     conf_location = os.getenv(
@@ -145,15 +145,17 @@ def initialize_roboflow():
             "To use this method, you must first login - run roboflow.login()"
         )
     else:
-        if active_workspace == None:
+        if the_workspace == None:
             active_workspace = Roboflow().workspace()
+        else:
+            active_workspace = Roboflow().workspace(the_workspace)
 
         return active_workspace
 
 
 def load_model(model_url):
     operate_workspace = initialize_roboflow()
-
+    
     if "universe.roboflow.com" in model_url or "app.roboflow.com" in model_url:
         parsed_url = urlparse(model_url)
         path_parts = parsed_url.path.split("/")
@@ -163,12 +165,29 @@ def load_model(model_url):
         raise (
             "Model URL must be from either app.roboflow.com or universe.roboflow.com"
         )
-
+        
     project = operate_workspace.project(project)
     version = project.version(version)
     model = version.model
     return model
 
+def download_dataset(dataset_url, model_format, location=None):
+
+    if "universe.roboflow.com" in dataset_url or "app.roboflow.com" in dataset_url:
+        parsed_url = urlparse(dataset_url)
+        path_parts = parsed_url.path.split("/")
+        project = path_parts[2]
+        version = int(path_parts[-1])
+        the_workspace = path_parts[1]
+    else:
+        raise (
+            "Model URL must be from either app.roboflow.com or universe.roboflow.com"
+        )
+    operate_workspace = initialize_roboflow(the_workspace=the_workspace)
+
+    project = operate_workspace.project(project)
+    version = project.version(version)
+    return version.download(model_format, location)
 
 # continue distributing this object for back compatibility
 class Roboflow:
