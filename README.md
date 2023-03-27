@@ -1,7 +1,7 @@
 # Roboflow Python Library
 
 ---
-![roboflow logo](https://i.imgur.com/lXCoVt5.png)
+![roboflow logo](https://media.roboflow.com/homepage/cv_pipeline_compact.png?updatedAt=1679939317160)
 
 [Website](https://docs.roboflow.com/python) • [Docs](https://docs.roboflow.com/python) • [Blog](https://blog.roboflow.com)
 • [Twitter](https://twitter.com/roboflow) • [Linkedin](https://www.linkedin.com/company/roboflow-ai)
