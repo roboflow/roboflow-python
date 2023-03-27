@@ -141,7 +141,7 @@ def initialize_roboflow(the_workspace=None):
     Returns:
         None
     """
-    
+
     global active_workspace
 
     conf_location = os.getenv(
@@ -171,10 +171,9 @@ def load_model(model_url):
     Returns:
         the model object to use for inference
     """
-    
-    
+
     operate_workspace = initialize_roboflow()
-    
+
     if "universe.roboflow.com" in model_url or "app.roboflow.com" in model_url:
         parsed_url = urlparse(model_url)
         path_parts = parsed_url.path.split("/")
@@ -184,11 +183,12 @@ def load_model(model_url):
         raise (
             "Model URL must be from either app.roboflow.com or universe.roboflow.com"
         )
-        
+
     project = operate_workspace.project(project)
     version = project.version(version)
     model = version.model
     return model
+
 
 def download_dataset(dataset_url, model_format, location=None):
     """High level function to download data from Roboflow.
@@ -217,6 +217,7 @@ def download_dataset(dataset_url, model_format, location=None):
     project = operate_workspace.project(project)
     version = project.version(version)
     return version.download(model_format, location)
+
 
 # continue distributing this object for back compatibility
 class Roboflow:
