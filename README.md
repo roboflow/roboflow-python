@@ -101,7 +101,7 @@ print(dataset.location)
 
 ### Models
 
-Predict with any of over 50,000 public computer vision models. Train your own computer vision models on app.roboflow.com or train upload them from our - see https://github.com/roboflow/notebooks
+Predict with any of over 50,000 public computer vision models. Train your own computer vision models on app.roboflow.com or train upload your model from open source models - see https://github.com/roboflow/notebooks
 
 ```python
 img_url = "https://media.roboflow.com/quickstart/aerial_drone.jpeg?updatedAt=1678743716455"
