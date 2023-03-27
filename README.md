@@ -1,28 +1,67 @@
-# Roboflow Python Library
+# Roboflow Python
 
 ---
 ![roboflow logo](https://media.roboflow.com/homepage/cv_pipeline_compact.png?updatedAt=1679939317160)
 
-[Website](https://docs.roboflow.com/python) • [Docs](https://docs.roboflow.com/python) • [Blog](https://blog.roboflow.com)
-• [Twitter](https://twitter.com/roboflow) • [Linkedin](https://www.linkedin.com/company/roboflow-ai)
-• [Universe](https://universe.roboflow.com)
 
-**Roboflow** makes managing, preprocessing, augmenting, and versioning datasets for computer vision seamless. This is
-the official Roboflow python package that interfaces with the [Roboflow API](https://docs.roboflow.com). Key features of
-Roboflow:
+  <div align="center">
+      <a href="https://youtube.com/roboflow">
+          <img
+            src="https://media.roboflow.com/notebooks/template/icons/purple/youtube.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634652"
+            width="3%"
+          />
+      </a>
+      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+      <a href="https://roboflow.com">
+          <img
+            src="https://media.roboflow.com/notebooks/template/icons/purple/roboflow-app.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949746649"
+            width="3%"
+          />
+      </a>
+      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+      <a href="https://www.linkedin.com/company/roboflow-ai/">
+          <img
+            src="https://media.roboflow.com/notebooks/template/icons/purple/linkedin.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633691"
+            width="3%"
+          />
+      </a>
+      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+      <a href="https://docs.roboflow.com">
+          <img
+            src="https://media.roboflow.com/notebooks/template/icons/purple/knowledge.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634511"
+            width="3%"
+          />
+      </a>
+      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+      <a href="https://disuss.roboflow.com">
+          <img
+            src="https://media.roboflow.com/notebooks/template/icons/purple/forum.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633584"
+            width="3%"
+          />
+      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+      <a href="https://blog.roboflow.com">
+          <img
+            src="https://media.roboflow.com/notebooks/template/icons/purple/blog.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633605"
+            width="3%"
+          />
+      </a>
+      </a>
+  </div>
 
-- Import and Export image datasets into any supported [format](https://roboflow.com/formats)
-- [Preprocess](https://docs.roboflow.com/image-transformations/image-preprocessing)
-  and [augment](https://docs.roboflow.com/image-transformations/image-augmentation) data using Roboflow's dataset
-  management tools
-- Train computer vision models using [Roboflow Train](https://docs.roboflow.com/train) and deploy
-  to [production](https://docs.roboflow.com/inference)
-- Use [community curated projects](https://universe.roboflow.com/) to start building your own vision-powered products
+  <br>
+
+**Roboflow** streamlines your computer vision pipeline - upload data, label it, download datasets, train models, deploy models, and repeat.
+
+The **Roboflow Python Package** is a python wrapper around the core Roboflow web application and REST API.
+
+We also maintain an open source set of CV utililities and notebook tutorials in Python:
+
+* :fire: https://github.com/roboflow/supervision :fire:
+* :fire: https://github.com/roboflow/notebooks :fire:
 
 ## Installation
 
-To install this package, please use `Python 3.6` or higher. We provide three different ways to install the Roboflow
-package to use within your own projects.
+To install this package, please use `Python 3.6` or higher.
 
 Install from PyPi (Recommended):
 
@@ -40,123 +79,72 @@ source env/bin/activate
 pip3 install -r requirements.txt
 ```
 
-## Quickstart
+## Authentication
 
 ```python
 import roboflow
-
-# Instantiate Roboflow object with your API key
-rf = roboflow.Roboflow(api_key=YOUR_API_KEY_HERE)
-
-# List all projects for your workspace
-workspace = rf.workspace()
-
-# Load a certain project (workspace url is optional)
-project = rf.project("PROJECT_ID")
-
-# List all versions of a specific project
-project.versions()
-
-# Upload image to dataset
-project.upload("UPLOAD_IMAGE.jpg")
-
-# Retrieve the model of a specific project
-model = project.version("1").model
-
-# predict on a local image
-prediction = model.predict("YOUR_IMAGE.jpg")
-
-# Predict on a hosted image
-prediction = model.predict("YOUR_IMAGE.jpg", hosted=True)
-
-# Plot the prediction
-prediction.plot()
-
-# Convert predictions to JSON
-prediction.json()
-
-# Save the prediction as an image
-prediction.save(output_path='predictions.jpg')
+roboflow.login()
 ```
 
-## Using this package for a specific project
+## Quickstart
 
-If you have a specific project from your workspace you'd like to run in a notebook, follow along with this tutorial: [Downloading Datasets from Roboflow for Training (Python)](https://www.youtube.com/watch?v=76E6esnez8E).
+### Datasets
 
-Selecting the format you'd like your project to be exported as while choosing the `show download code` option will display code snippets you can use in either Jupyter or your terminal. These code snippets will include your `api_key`, project, and workspace names.
+Download any of over 200,000 public computer vision datasets from [Roboflow Universe](universe.roboflow.com). Label and download your own datasets on app.roboflow.com.
 
-![Alt Text](https://media.giphy.com/media/I5g06mUnVzdX7iT2Gf/giphy.gif)
-
-## Developing locally
-
-### Using Docker
-
-To set the Docker container up for the first time:
-
-```bash
-# Clone this repo
-git clone git@github.com:roboflow-ai/roboflow-python.git && cd roboflow-python
-
-# Copy the environment variables template
-# Be sure to update the values with your account's information
-
-# Build our development image
-docker build -t roboflow-python -f Dockerfile.dev .
-
-# Run container and map current folder in it
-docker run --rm -it \
-  -v $(pwd)/:/workspace/ \
-  --env-file .env \
-  roboflow-python
-
-# Run tests
-python -m unittest
+```python
+import roboflow
+dataset = roboflow.download_dataset(dataset_url="universe.roboflow.com/...", model_format="yolov8")
+#ex. dataset = roboflow.download_dataset(dataset_url="https://universe.roboflow.com/joseph-nelson/bccd/dataset/1", model_format="yolov8")
+print(dataset.location)
 ```
 
-#### Change Python version
+### Models
 
-You can pass the build arg `PYTHON_VERSION` to dynamically change python version at build time
+Predict with any of over 50,000 public computer vision models. Train your own computer vision models on app.roboflow.com or train upload them from our - see https://github.com/roboflow/notebooks
 
-```bash
-docker build  -t roboflow-python --build-arg PYTHON_VERSION=3.9 -f Dockerfile.dev .
+```python
+img_url = "https://media.roboflow.com/quickstart/aerial_drone.jpeg?updatedAt=1678743716455"
+universe_model_url = "https://universe.roboflow.com/brad-dwyer/aerial-solar-panels/model/6"
+
+model = roboflow.load_model(model_url=universe_model_url)
+pred = model.predict(img_url, hosted=True)
+pred.plot()
 ```
 
-Will use `python:3.9-slim`
+## Library Structure
 
-**Note** If you are using [VSCode](https://code.visualstudio.com/) we recommend you read the ["Developing inside a Container"](https://code.visualstudio.com/docs/remote/containers) tutorial.
+The Roboflow python library is structured by the core Roboflow application objects.
 
-### Using Virtualenv
+Workspace (workspace.py) --> Project (project.py) --> Version (version.py)
 
-```bash
-# Clone this repo
-git clone git@github.com:roboflow-ai/roboflow-python.git && cd roboflow-python
-
-# create virtual env
-virtualenv local_dev
-
-# activate virtual env
-source local_dev/bin/activate
-
-# install dependencies
-pip3 install -e ".[dev]"
+```python
+from roboflow import Roboflow
+rf = Roboflow()
+workspace = rf.workspace("WORKSPACE_URL")
+project = workspace.project("PROJECT_URL")
+version = project.version("VERSION_NUMBER")
 ```
 
-### Testing
+The workspace, project, and version parameters are the same that you will find in the URL addresses at app.roboflow.com and universe.roboflow.com.
 
-Make sure you have your `virtualenv` spun up before running tests. Execute the `unittest` command at the `/root` level directory.
+Within the workspace object you can perform actions like making a new project, listing your projects, or performing active learning where you are using predictions from one project's model to upload images to a new project.
+
+Within the project object, you can retrieve metadata about the project, list versions, generate a new dataset version with preprocessing and augmentation settings, train a model in your project, and upload images and annotations to your project.
+
+Within the version object, you can download the dataset version in any model format, train the version on Roboflow, and deploy your own external model to Roboflow.
+
+## Contributing
+
+If you want to extend our Python library or if you find a bug, please open a PR!
+
+Also be sure to test your code the `unittest` command at the `/root` level directory.
 
 Run tests:
 
 ```bash
 python -m unittest
 ```
-
-### Contributing
-
-1. Increment the pip package minor version number in `setup.py`
-1. Manually add any new dependencies to `requirements.txt` with a version such as `chardet==4.0.0` and list of dependencies in `setup.py` (Be careful not to overwrite any packages that might screw up backwards dependencies for object detection, etc.)
-
-### Code Quality
 
 When creating new functions, please follow the [Google style Python docstrings](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html). See example below:
 
