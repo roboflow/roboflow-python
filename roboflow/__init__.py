@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import time
+from getpass import getpass
 from urllib.parse import urlparse
 
 import requests
@@ -99,7 +100,7 @@ def login(workspace=None, force=False):
             + " to get your authentication token."
         )
 
-    token = input("Paste the authentication here token here: ")
+    token = getpass("Paste the authentication token here: ")
 
     r_login = requests.get(APP_URL + "/query/cliAuthToken/" + token)
 
