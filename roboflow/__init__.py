@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import time
+from getpass import getpass
 from urllib.parse import urlparse
 
 import requests
@@ -11,7 +12,7 @@ from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
 from roboflow.util.general import write_line
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -99,7 +100,7 @@ def login(workspace=None, force=False):
             + " to get your authentication token."
         )
 
-    token = input("Paste the authentication here token here: ")
+    token = getpass("Paste the authentication token here: ")
 
     r_login = requests.get(APP_URL + "/query/cliAuthToken/" + token)
 
@@ -132,7 +133,16 @@ def login(workspace=None, force=False):
 active_workspace = None
 
 
-def initialize_roboflow():
+def initialize_roboflow(the_workspace=None):
+    """High level function to initialize Roboflow.
+
+    Args:
+        the_workspace: the workspace url to initialize. If None, the default workspace will be used.
+
+    Returns:
+        None
+    """
+
     global active_workspace
 
     conf_location = os.getenv(
@@ -145,13 +155,24 @@ def initialize_roboflow():
             "To use this method, you must first login - run roboflow.login()"
         )
     else:
-        if active_workspace == None:
+        if the_workspace == None:
             active_workspace = Roboflow().workspace()
+        else:
+            active_workspace = Roboflow().workspace(the_workspace)
 
         return active_workspace
 
 
 def load_model(model_url):
+    """High level function to load Roboflow models.
+
+    Args:
+        model_url: the model url to load. Must be from either app.roboflow.com or universe.roboflow.com
+
+    Returns:
+        the model object to use for inference
+    """
+
     operate_workspace = initialize_roboflow()
 
     if "universe.roboflow.com" in model_url or "app.roboflow.com" in model_url:
@@ -168,6 +189,35 @@ def load_model(model_url):
     version = project.version(version)
     model = version.model
     return model
+
+
+def download_dataset(dataset_url, model_format, location=None):
+    """High level function to download data from Roboflow.
+
+    Args:
+        dataset_url: the dataset url to download. Must be from either app.roboflow.com or universe.roboflow.com
+        model_format: the format the dataset will be downloaded in
+        location: the location the dataset will be downloaded to
+
+    Returns:
+        The dataset object with location available as dataset.location
+    """
+
+    if "universe.roboflow.com" in dataset_url or "app.roboflow.com" in dataset_url:
+        parsed_url = urlparse(dataset_url)
+        path_parts = parsed_url.path.split("/")
+        project = path_parts[2]
+        version = int(path_parts[-1])
+        the_workspace = path_parts[1]
+    else:
+        raise (
+            "Model URL must be from either app.roboflow.com or universe.roboflow.com"
+        )
+    operate_workspace = initialize_roboflow(the_workspace=the_workspace)
+
+    project = operate_workspace.project(project)
+    version = project.version(version)
+    return version.download(model_format, location)
 
 
 # continue distributing this object for back compatibility
