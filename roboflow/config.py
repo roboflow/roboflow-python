@@ -18,7 +18,7 @@ def get_conditional_configuration_variable(key, default):
     # add support for windows
     conf_location = os.getenv(
         "ROBOFLOW_CONFIG_DIR",
-        default=os.getenv("HOME") + "/.config/roboflow/config.json",
+        default=f"os.getenv('HOME')/.config/roboflow/config.json",
     )
 
     # read config file for roboflow if logged in from python or CLI
