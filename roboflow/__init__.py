@@ -72,8 +72,10 @@ def auth(api_key):
 
 
 def login(workspace=None, force=False):
+    home_dir = os.getenv("HOME") or os.getenv("USERPROFILE")
+
     conf_location = os.getenv(
-        "ROBOFLOW_CONFIG_DIR",
+        home_dir,
         default=os.getenv("HOME") + "/.config/roboflow/config.json",
     )
 
