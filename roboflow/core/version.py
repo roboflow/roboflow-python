@@ -570,7 +570,7 @@ class Version:
                         )
 
         res = requests.get(
-            f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}&modelType={model_type}"
+            f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}&modelType={model_type}&nocache=true"
         )
         try:
             if res.status_code == 429:
