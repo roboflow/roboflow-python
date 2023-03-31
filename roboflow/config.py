@@ -17,7 +17,7 @@ def get_conditional_configuration_variable(key, default):
     # default configuration location
     conf_location = os.getenv(
         "ROBOFLOW_CONFIG_DIR",
-        default=os.getenv("HOME") + "/.config/roboflow/config.json",
+        default=os.path.expanduser('~') + "/.config/roboflow/config.json",
     )
 
     # read config file for roboflow if logged in from python or CLI
