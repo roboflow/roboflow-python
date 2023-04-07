@@ -12,7 +12,7 @@ from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
 from roboflow.util.general import write_line
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -72,9 +72,17 @@ def auth(api_key):
 
 
 def login(workspace=None, force=False):
+    os_name = os.name
+
+    if os_name == "nt":
+        default_path = os.getenv("USERPROFILE") + "\\roboflow\\config.json"
+    else:
+        default_path = os.getenv("HOME") + "/.config/roboflow/config.json"
+
+    # default configuration location
     conf_location = os.getenv(
         "ROBOFLOW_CONFIG_DIR",
-        default=os.getenv("HOME") + "/.config/roboflow/config.json",
+        default=default_path,
     )
 
     if os.path.isfile(conf_location) and not force:

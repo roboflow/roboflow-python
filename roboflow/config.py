@@ -14,10 +14,17 @@ def get_conditional_configuration_variable(key, default):
         string: The value of the conditional configuration variable.
     """
 
+    os_name = os.name
+
+    if os_name == "nt":
+        default_path = os.getenv("USERPROFILE") + "\\roboflow\\config.json"
+    else:
+        default_path = os.getenv("HOME") + "/.config/roboflow/config.json"
+
     # default configuration location
     conf_location = os.getenv(
         "ROBOFLOW_CONFIG_DIR",
-        default=os.path.expanduser("~") + "/.config/roboflow/config.json",
+        default=default_path,
     )
 
     # read config file for roboflow if logged in from python or CLI
