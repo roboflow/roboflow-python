@@ -72,11 +72,17 @@ def auth(api_key):
 
 
 def login(workspace=None, force=False):
-    home_dir = os.getenv("HOME") or os.getenv("USERPROFILE")
+    os_name = os.name
 
+    if os_name == "nt":
+        default_path = os.getenv("USERPROFILE") + "\\roboflow\\config.json"
+    else:
+        default_path = os.getenv("HOME") + "/.config/roboflow/config.json"
+
+    # default configuration location
     conf_location = os.getenv(
-        home_dir,
-        default=os.getenv("HOME") + "/.config/roboflow/config.json",
+        "ROBOFLOW_CONFIG_DIR",
+        default=default_path,
     )
 
     if os.path.isfile(conf_location) and not force:
