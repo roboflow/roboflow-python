@@ -25,6 +25,7 @@ def get_conditional_configuration_variable(key, default):
     conf_location = os.getenv(
         "ROBOFLOW_CONFIG_DIR",
         default=default_path,
+
     )
 
     # read config file for roboflow if logged in from python or CLI
