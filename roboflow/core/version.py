@@ -432,22 +432,20 @@ class Version:
 
         # return the model object
         return self.model
-    
-    def get_pt_weights(self, location="."):
-        
-        workspace, project, *_ = self.id.rsplit("/")
-        
-        #get pt url 
-        pt_api_url = f"{API_URL}/{workspace}/{project}/{self.version}/ptFile"
-        
-        r = requests.get(pt_api_url, params={"api_key": self.__api_key})
-        
-        r.raise_for_status()
-        
-        pt_weights_url = r.json()["weightsUrl"]
-        
-        def bar_progress(current, total, width=80):
 
+    def get_pt_weights(self, location="."):
+        workspace, project, *_ = self.id.rsplit("/")
+
+        # get pt url
+        pt_api_url = f"{API_URL}/{workspace}/{project}/{self.version}/ptFile"
+
+        r = requests.get(pt_api_url, params={"api_key": self.__api_key})
+
+        r.raise_for_status()
+
+        pt_weights_url = r.json()["weightsUrl"]
+
+        def bar_progress(current, total, width=80):
             progress_message = (
                 "Downloading weights to "
                 + location
@@ -456,9 +454,9 @@ class Version:
             )
             sys.stdout.write("\r" + progress_message)
             sys.stdout.flush()
-        
+
         wget.download(pt_weights_url, out=location + "/weights.pt", bar=bar_progress)
-                
+
         return
 
     # @warn_for_wrong_dependencies_versions([("ultralytics", "<=", "8.0.20")])
