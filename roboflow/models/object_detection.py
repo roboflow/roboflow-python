@@ -3,8 +3,8 @@ import copy
 import io
 import json
 import os
-import sys
 import random
+import sys
 import urllib
 from pathlib import Path
 
@@ -15,10 +15,7 @@ import requests
 import wget
 from PIL import Image
 
-from roboflow.config import (
-    OBJECT_DETECTION_MODEL,
-    API_URL,
-)
+from roboflow.config import API_URL, OBJECT_DETECTION_MODEL
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 from roboflow.util.versions import (
