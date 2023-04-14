@@ -3,6 +3,7 @@ import copy
 import io
 import json
 import os
+import sys
 import random
 import urllib
 from pathlib import Path
@@ -11,16 +12,19 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import requests
+import wget
 from PIL import Image
 
-from roboflow.config import OBJECT_DETECTION_MODEL
+from roboflow.config import (
+    OBJECT_DETECTION_MODEL,
+    API_URL,
+)
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 from roboflow.util.versions import (
     print_warn_for_wrong_dependencies_versions,
     warn_for_wrong_dependencies_versions,
 )
-
 
 class ObjectDetectionModel:
     def __init__(
@@ -458,6 +462,36 @@ class ObjectDetectionModel:
             thread.start()
         else:
             view(stopButton)
+
+    def download(self, location=".", format="pt"):
+        supported_formats = ["pt"]
+        if format not in supported_formats:
+            raise Exception(f"Unsupported format {format}. Must be one of {supported_formats}")
+
+        workspace, project, version = self.id.rsplit("/")
+
+        # get pt url
+        pt_api_url = f"{API_URL}/{workspace}/{project}/{self.version}/ptFile"
+
+        r = requests.get(pt_api_url, params={"api_key": self.__api_key})
+
+        r.raise_for_status()
+
+        pt_weights_url = r.json()["weightsUrl"]
+
+        def bar_progress(current, total, width=80):
+            progress_message = (
+                "Downloading weights to "
+                + location
+                + "/weights.pt"
+                + ": %d%% [%d / %d] bytes" % (current / total * 100, current, total)
+            )
+            sys.stdout.write("\r" + progress_message)
+            sys.stdout.flush()
+
+        wget.download(pt_weights_url, out=location + "/weights.pt", bar=bar_progress)
+
+        return
 
     def __exception_check(self, image_path_check=None):
         # Check if Image path exists exception check (for both hosted URL and local image)
