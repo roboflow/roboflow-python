@@ -461,7 +461,7 @@ class ObjectDetectionModel:
         else:
             view(stopButton)
 
-    def download(self, location=".", format="pt"):
+    def download(self, format="pt", location="."):
         supported_formats = ["pt"]
         if format not in supported_formats:
             raise Exception(
