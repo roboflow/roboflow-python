@@ -26,6 +26,7 @@ from roboflow.util.versions import (
     warn_for_wrong_dependencies_versions,
 )
 
+
 class ObjectDetectionModel:
     def __init__(
         self,
@@ -466,7 +467,9 @@ class ObjectDetectionModel:
     def download(self, location=".", format="pt"):
         supported_formats = ["pt"]
         if format not in supported_formats:
-            raise Exception(f"Unsupported format {format}. Must be one of {supported_formats}")
+            raise Exception(
+                f"Unsupported format {format}. Must be one of {supported_formats}"
+            )
 
         workspace, project, version = self.id.rsplit("/")
 
