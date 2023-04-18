@@ -346,7 +346,9 @@ class Project:
 
         return response
 
-    def __annotation_upload(self, annotation_path: str, image_id: str, is_prediction: bool = False):
+    def __annotation_upload(
+        self, annotation_path: str, image_id: str, is_prediction: bool = False
+    ):
         """function to upload annotation to the specific project
         :param annotation_path: path to annotation you'd like to upload
         :param image_id: image id you'd like to upload that has annotations for it.
@@ -389,7 +391,7 @@ class Project:
                 "?api_key=",
                 self.__api_key,
                 "&name=" + os.path.basename(annotation_path),
-                "&is_prediction=true" if is_prediction else ""
+                "&is_prediction=true" if is_prediction else "",
             ]
         )
 
@@ -479,6 +481,7 @@ class Project:
                 is_prediction=is_prediction,
                 **kwargs,
             )
+
         else:
             images = os.listdir(image_path)
             for image in images:
@@ -578,7 +581,9 @@ class Project:
         # Upload only annotations to image based on image Id (no image)
         if annotation_path is not None and image_id is not None and success:
             # Get annotation upload response
-            annotation_response = self.__annotation_upload(annotation_path, image_id, is_prediction=is_prediction)
+            annotation_response = self.__annotation_upload(
+                annotation_path, image_id, is_prediction=is_prediction
+            )
             # Check if upload was a success
             try:
                 response_data = annotation_response.json()
