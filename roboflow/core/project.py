@@ -346,7 +346,7 @@ class Project:
 
         return response
 
-    def __annotation_upload(self, annotation_path: str, image_id: str):
+    def __annotation_upload(self, annotation_path: str, image_id: str, is_prediction: bool = False):
         """function to upload annotation to the specific project
         :param annotation_path: path to annotation you'd like to upload
         :param image_id: image id you'd like to upload that has annotations for it.
@@ -389,6 +389,7 @@ class Project:
                 "?api_key=",
                 self.__api_key,
                 "&name=" + os.path.basename(annotation_path),
+                "&is_prediction=true" if is_prediction else ""
             ]
         )
 
@@ -422,6 +423,7 @@ class Project:
         num_retry_uploads: int = 0,
         batch_name: str = DEFAULT_BATCH_NAME,
         tag_names: list = [],
+        is_prediction: bool = False,
         **kwargs,
     ):
         """Upload image function based on the RESTful API
@@ -435,6 +437,7 @@ class Project:
             num_retry_uploads (int) - how many times to retry upload on failure
             batch_name (str) - name of batch to upload to within project
             tag_names (list[str]) - tags to be applied to an image
+            is_prediction (bool) - whether the annotation data is a prediction rather than ground truth
 
         Returns:
             None - returns nothing
@@ -473,6 +476,7 @@ class Project:
                 num_retry_uploads=num_retry_uploads,
                 batch_name=batch_name,
                 tag_names=tag_names,
+                is_prediction=is_prediction,
                 **kwargs,
             )
         else:
@@ -489,6 +493,7 @@ class Project:
                         num_retry_uploads=num_retry_uploads,
                         batch_name=batch_name,
                         tag_names=tag_names,
+                        is_prediction=is_prediction
                         **kwargs,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
@@ -506,6 +511,7 @@ class Project:
         num_retry_uploads=0,
         batch_name=DEFAULT_BATCH_NAME,
         tag_names=[],
+        is_prediction: bool = False,
         **kwargs,
     ):
         success = False
@@ -572,7 +578,7 @@ class Project:
         # Upload only annotations to image based on image Id (no image)
         if annotation_path is not None and image_id is not None and success:
             # Get annotation upload response
-            annotation_response = self.__annotation_upload(annotation_path, image_id)
+            annotation_response = self.__annotation_upload(annotation_path, image_id, is_prediction=is_prediction)
             # Check if upload was a success
             try:
                 response_data = annotation_response.json()
