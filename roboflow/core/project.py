@@ -493,7 +493,7 @@ class Project:
                         num_retry_uploads=num_retry_uploads,
                         batch_name=batch_name,
                         tag_names=tag_names,
-                        is_prediction=is_prediction
+                        is_prediction=is_prediction,
                         **kwargs,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
