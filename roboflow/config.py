@@ -61,7 +61,7 @@ SEMANTIC_SEGMENTATION_URL = get_conditional_configuration_variable(
     "SEMANTIC_SEGMENTATION_URL", "https://segment.roboflow.com"
 )
 OBJECT_DETECTION_URL = get_conditional_configuration_variable(
-    "SEMANTIC_SEGMENTATION_URL", "https://detect.roboflow.com"
+    "OBJECT_DETECTION_URL", "https://detect.roboflow.com"
 )
 
 CLIP_FEATURIZE_URL = get_conditional_configuration_variable(
