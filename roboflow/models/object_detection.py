@@ -80,7 +80,7 @@ class ObjectDetectionModel:
 
         # local needs to be passed from Project
         if local is None:
-            self.base_url = OBJECT_DETECTION_URL + '/'
+            self.base_url = OBJECT_DETECTION_URL + "/"
         else:
             print("initalizing local object detection model hosted at :" + local)
             self.base_url = local
@@ -515,7 +515,7 @@ class ObjectDetectionModel:
         # Reassign parameters if any parameters are changed
         if local is not None:
             if not local:
-                self.base_url = OBJECT_DETECTION_URL +'/'
+                self.base_url = OBJECT_DETECTION_URL + "/"
             else:
                 self.base_url = "http://localhost:9001/"
 
