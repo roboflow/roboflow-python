@@ -15,7 +15,7 @@ import requests
 import wget
 from PIL import Image
 
-from roboflow.config import API_URL, OBJECT_DETECTION_MODEL
+from roboflow.config import API_URL, OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 from roboflow.util.versions import (
@@ -80,7 +80,7 @@ class ObjectDetectionModel:
 
         # local needs to be passed from Project
         if local is None:
-            self.base_url = "https://detect.roboflow.com/"
+            self.base_url = OBJECT_DETECTION_URL + "/"
         else:
             print("initalizing local object detection model hosted at :" + local)
             self.base_url = local
@@ -515,7 +515,7 @@ class ObjectDetectionModel:
         # Reassign parameters if any parameters are changed
         if local is not None:
             if not local:
-                self.base_url = "https://detect.roboflow.com/"
+                self.base_url = OBJECT_DETECTION_URL + "/"
             else:
                 self.base_url = "http://localhost:9001/"
 
