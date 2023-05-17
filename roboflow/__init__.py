@@ -12,7 +12,7 @@ from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
 from roboflow.util.general import write_line
 
-__version__ = "1.0.8"
+__version__ = "1.0.9"
 
 
 def check_key(api_key, model, notebook, num_retries=0):

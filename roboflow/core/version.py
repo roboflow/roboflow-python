@@ -120,6 +120,7 @@ class Version:
                     self.id,
                     colors=self.colors,
                     preprocessing=self.preprocessing,
+                    local=local,
                 )
             elif self.type == TYPE_SEMANTIC_SEGMENTATION:
                 self.model = SemanticSegmentationModel(self.__api_key, self.id)
