@@ -486,7 +486,7 @@ class Project:
             images = os.listdir(image_path)
             for image in images:
                 path = image_path + "/" + image
-                if self.check_valid_image(image):
+                if self.check_valid_image(path):
                     self.single_upload(
                         image_path=path,
                         annotation_path=annotation_path,
