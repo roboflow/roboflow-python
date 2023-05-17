@@ -43,11 +43,11 @@ class TestDownload(unittest.TestCase):
     def test_download_returns_dataset(self, *_):
         responses.add(responses.GET, self.api_url, json={"export": { "link": None }})
         responses.add(responses.GET, self.generating_url, json={"version": {"generating": False, "progress": 1.0}})
-        dataset = self.version.download("coco", location="/my-spot")
+        dataset = self.version.download("coco", location=os.path.abspath(os.sep + "my-spot"))
         self.assertEqual(dataset.name, self.version.name)
         self.assertEqual(dataset.version, self.version.version)
         self.assertEqual(dataset.model_format, "coco")
-        self.assertEqual(dataset.location, "/my-spot")
+        self.assertEqual(dataset.location, os.path.abspath(os.sep + "my-spot"))
 
 
 class TestExport(unittest.TestCase):
