@@ -616,7 +616,7 @@ class Project:
 
         overall_success = success and annotation_success
         return overall_success
-    
+
     def search(
         self,
         like_image: str = None,
@@ -673,7 +673,7 @@ class Project:
         )
 
         return data.json()["results"]
-    
+
     def search_all(
         self,
         like_image: str = None,
