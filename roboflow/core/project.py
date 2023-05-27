@@ -616,6 +616,97 @@ class Project:
 
         overall_success = success and annotation_success
         return overall_success
+    
+    def search(
+        self,
+        like_image: str = None,
+        prompt: str = None,
+        offset: int = 0,
+        limit: int = 100,
+        tag: str = None,
+        class_name: str = None,
+        in_dataset: str = None,
+        batch: bool = False,
+        batch_id: str = None,
+        fields: list = ["id", "created", "name", "labels"],
+    ):
+        payload = {}
+
+        if like_image is not None:
+            payload["like_image"] = like_image
+
+        if prompt is not None:
+            payload["prompt"] = prompt
+
+        if offset is not None:
+            payload["offset"] = offset
+
+        if limit is not None:
+            payload["limit"] = limit
+
+        if tag is not None:
+            payload["tag"] = tag
+
+        if class_name is not None:
+            payload["class_name"] = class_name
+
+        if in_dataset is not None:
+            payload["in_dataset"] = in_dataset
+
+        if batch is not None:
+            payload["batch"] = batch
+
+        if batch_id is not None:
+            payload["batch_id"] = batch_id
+
+        payload["fields"] = fields
+
+        data = requests.post(
+            API_URL
+            + "/"
+            + self.__workspace
+            + "/"
+            + self.__project_name
+            + "/search?api_key="
+            + self.__api_key,
+            json=payload,
+        )
+
+        return data.json()["results"]
+    
+    def search_all(
+        self,
+        like_image: str = None,
+        prompt: str = None,
+        offset: int = 0,
+        limit: int = 100,
+        tag: str = None,
+        class_name: str = None,
+        in_dataset: str = None,
+        batch: bool = False,
+        batch_id: str = None,
+        fields: list = ["id", "created"],
+    ):
+        while True:
+            data = self.search(
+                like_image=like_image,
+                prompt=prompt,
+                offset=offset,
+                limit=limit,
+                tag=tag,
+                class_name=class_name,
+                in_dataset=in_dataset,
+                batch=batch,
+                batch_id=batch_id,
+                fields=fields,
+            )
+
+            yield data
+
+            if len(data) < limit:
+                break
+
+            offset += limit
 
     def __str__(self):
         # String representation of project
