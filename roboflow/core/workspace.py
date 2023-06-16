@@ -1,21 +1,16 @@
+import concurrent.futures
 import glob
 import json
 import os
-import sys
+import random
 import re
+import sys
 
 import requests
+import supervision as sv
 from numpy import ndarray
 from PIL import Image
-import glob
-import random
 from tqdm import tqdm
-import concurrent.futures
-import supervision as sv
-import os
-# import xml.dom.minidom
-# import xml.etree.ElementTree as ET
-
 
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
@@ -25,8 +20,14 @@ from roboflow.util.active_learning_utils import (
     count_comparisons,
 )
 from roboflow.util.clip_compare_utils import clip_encode
-from roboflow.util.two_stage_utils import ocr_infer
 from roboflow.util.general import write_line
+from roboflow.util.two_stage_utils import ocr_infer
+
+# import xml.dom.minidom
+# import xml.etree.ElementTree as ET
+
+
+
 # from lxml import etree
 
 # def reorder_bndbox_elements(xml_path):
@@ -73,23 +74,24 @@ from roboflow.util.general import write_line
 #     for filename in os.listdir(directory):
 #         if filename.endswith('.xml'):  # Check if the file is an XML file
 #             file_path = os.path.join(directory, filename)
-            
+
 #             # Parse XML file
 #             dom = xml.dom.minidom.parse(file_path)
 
 #             # Create pretty xml
 #             pretty_xml = prettify(dom)
-            
+
 #             # Write the prettified XML back to the file
 #             with open(file_path, 'w') as f:
 #                 f.write(pretty_xml)
-            
+
 #             # Remove extra newlines
 #             remove_extra_newlines(file_path)
-            
+
 #             reorder_bndbox_elements(file_path)
-            
+
 #             remove_extra_newlines(file_path)
+
 
 class Workspace:
     def __init__(self, info, api_key, default_workspace, model_format):
@@ -314,43 +316,67 @@ class Workspace:
             )
 
         return results
-    
-    def upload_dataset(self, dataset_path, project_name, num_workers=10, dataset_format="yolov8", project_license="MIT", project_type="object-detection"):
-        
+
+    def upload_dataset(
+        self,
+        dataset_path,
+        project_name,
+        num_workers=10,
+        dataset_format="yolov8",
+        project_license="MIT",
+        project_type="object-detection",
+    ):
         if project_type != "object-detection":
-            raise("upload_dataset only supported for object-detection projects")
-        
+            raise ("upload_dataset only supported for object-detection projects")
+
         if dataset_format not in ["voc", "yolov8", "yolov5"]:
-            raise("dataset_format not supported - please use voc, yolov8, yolov5. PS, you can always convert your dataset in the Roboflow UI")
-        
-        #check type stuff and convert
+            raise (
+                "dataset_format not supported - please use voc, yolov8, yolov5. PS, you can always convert your dataset in the Roboflow UI"
+            )
+
+        # check type stuff and convert
         if dataset_format == "yolov8" or dataset_format == "yolov5":
-            
-            #convert to voc
+            # convert to voc
             for split in ["train", "valid", "test"]:
-                
                 dataset = sv.DetectionDataset.from_yolo(
                     images_directory_path=dataset_path + "/" + split + "/images",
                     annotations_directory_path=dataset_path + "/" + split + "/labels",
-                    data_yaml_path=dataset_path + "/data.yaml"
+                    data_yaml_path=dataset_path + "/data.yaml",
                 )
-                
-                dataset.as_pascal_voc(images_directory_path=dataset_path + "_voc" + "/" + split, annotations_directory_path=dataset_path + "_voc" + "/" + split)
-                        
+
+                dataset.as_pascal_voc(
+                    images_directory_path=dataset_path + "_voc" + "/" + split,
+                    annotations_directory_path=dataset_path + "_voc" + "/" + split,
+                )
+
             dataset_path = dataset_path + "_voc"
-        
+
         if project_name in self.project_list:
             dataset_upload_project = self.project(project_name)
         else:
-            dataset_upload_project = self.create_project(project_name, project_license=project_license, annotation=project_name, project_type=project_type)
+            dataset_upload_project = self.create_project(
+                project_name,
+                project_license=project_license,
+                annotation=project_name,
+                project_type=project_type,
+            )
 
         def upload_file(img_file, split):
             label_file = img_file.replace(".jpg", ".xml")
-            dataset_upload_project.upload(image_path=img_file, annotation_path=label_file, split=split)
+            dataset_upload_project.upload(
+                image_path=img_file, annotation_path=label_file, split=split
+            )
 
         def parallel_upload(file_list, split):
-            with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-                list(tqdm(executor.map(upload_file, file_list, [split]*len(file_list)), total=len(file_list)))
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=num_workers
+            ) as executor:
+                list(
+                    tqdm(
+                        executor.map(upload_file, file_list, [split] * len(file_list)),
+                        total=len(file_list),
+                    )
+                )
 
         write_line("uploading training set...")
         file_list = glob.glob(dataset_path + "/train/*.jpg")
