@@ -361,7 +361,7 @@ class Project:
 
         # check if annotation file exists
         elif os.path.exists(annotation_path):
-            print("-> found given annotation file")
+            #print("-> found given annotation file")
             annotation_string = open(annotation_path, "r").read()
 
         # if not annotation file, check if user wants to upload regular as classification annotation
