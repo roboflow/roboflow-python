@@ -27,7 +27,6 @@ from roboflow.util.two_stage_utils import ocr_infer
 # import xml.etree.ElementTree as ET
 
 
-
 # from lxml import etree
 
 # def reorder_bndbox_elements(xml_path):
