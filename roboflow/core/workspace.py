@@ -1,11 +1,16 @@
+import concurrent.futures
 import glob
 import json
 import os
+import random
+import re
 import sys
 
 import requests
+import supervision as sv
 from numpy import ndarray
 from PIL import Image
+from tqdm import tqdm
 
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
@@ -15,6 +20,7 @@ from roboflow.util.active_learning_utils import (
     count_comparisons,
 )
 from roboflow.util.clip_compare_utils import clip_encode
+from roboflow.util.general import write_line
 from roboflow.util.two_stage_utils import ocr_infer
 
 
@@ -241,6 +247,79 @@ class Workspace:
             )
 
         return results
+
+    def upload_dataset(
+        self,
+        dataset_path,
+        project_name,
+        num_workers=10,
+        dataset_format="yolov8",
+        project_license="MIT",
+        project_type="object-detection",
+    ):
+        if project_type != "object-detection":
+            raise ("upload_dataset only supported for object-detection projects")
+
+        if dataset_format not in ["voc", "yolov8", "yolov5"]:
+            raise (
+                "dataset_format not supported - please use voc, yolov8, yolov5. PS, you can always convert your dataset in the Roboflow UI"
+            )
+
+        # check type stuff and convert
+        if dataset_format == "yolov8" or dataset_format == "yolov5":
+            # convert to voc
+            for split in ["train", "valid", "test"]:
+                dataset = sv.DetectionDataset.from_yolo(
+                    images_directory_path=dataset_path + "/" + split + "/images",
+                    annotations_directory_path=dataset_path + "/" + split + "/labels",
+                    data_yaml_path=dataset_path + "/data.yaml",
+                )
+
+                dataset.as_pascal_voc(
+                    images_directory_path=dataset_path + "_voc" + "/" + split,
+                    annotations_directory_path=dataset_path + "_voc" + "/" + split,
+                )
+
+            dataset_path = dataset_path + "_voc"
+
+        if project_name in self.project_list:
+            dataset_upload_project = self.project(project_name)
+        else:
+            dataset_upload_project = self.create_project(
+                project_name,
+                project_license=project_license,
+                annotation=project_name,
+                project_type=project_type,
+            )
+
+        def upload_file(img_file, split):
+            label_file = img_file.replace(".jpg", ".xml")
+            dataset_upload_project.upload(
+                image_path=img_file, annotation_path=label_file, split=split
+            )
+
+        def parallel_upload(file_list, split):
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=num_workers
+            ) as executor:
+                list(
+                    tqdm(
+                        executor.map(upload_file, file_list, [split] * len(file_list)),
+                        total=len(file_list),
+                    )
+                )
+
+        write_line("uploading training set...")
+        file_list = glob.glob(dataset_path + "/train/*.jpg")
+        parallel_upload(file_list, "train")
+
+        write_line("uploading validation set...")
+        file_list = glob.glob(dataset_path + "/valid/*.jpg")
+        parallel_upload(file_list, "valid")
+
+        write_line("uploading test set...")
+        file_list = glob.glob(dataset_path + "/test/*.jpg")
+        parallel_upload(file_list, "test")
 
     def active_learning(
         self,
