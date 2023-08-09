@@ -545,7 +545,9 @@ class Project:
                     )
 
                 if not success:
-                    warnings.warn(f"Server rejected image: {upload_response_data or response}")
+                    warnings.warn(
+                        f"Server rejected image: {upload_response_data or response}"
+                    )
 
             except Exception:
                 # Image fails to upload
@@ -554,7 +556,8 @@ class Project:
             # Give user warning that image failed to upload
             if not success:
                 warnings.warn(
-                    "Upload api failed with response: " + str(upload_response_data or response)
+                    "Upload api failed with response: "
+                    + str(upload_response_data or response)
                 )
                 if num_retry_uploads > 0:
                     warnings.warn(
