@@ -282,7 +282,7 @@ class Workspace:
 
             dataset_path = dataset_path + "_voc"
 
-        if project_name in self.project_list:
+        if project_name in [p['name'] for p in self.project_list]:
             dataset_upload_project = self.project(project_name)
         else:
             dataset_upload_project = self.create_project(
