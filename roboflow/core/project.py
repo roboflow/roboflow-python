@@ -530,20 +530,22 @@ class Project:
                 tag_names=tag_names,
                 **kwargs,
             )
+            upload_response_data = None
             # Get JSON response values
             try:
+                upload_response_data = response.json()
                 if "duplicate" in response.json().keys():
-                    if response.json()["duplicate"]:
+                    if upload_response_data["duplicate"]:
                         success = True
                         warnings.warn("Duplicate image not uploaded:  " + image_path)
                 else:
                     success, image_id = (
-                        response.json()["success"],
-                        response.json()["id"],
+                        upload_response_data["success"],
+                        upload_response_data["id"],
                     )
 
                 if not success:
-                    warnings.warn(f"Server rejected image: {response.json()}")
+                    warnings.warn(f"Server rejected image: {upload_response_data or response}")
 
             except Exception:
                 # Image fails to upload
@@ -552,7 +554,7 @@ class Project:
             # Give user warning that image failed to upload
             if not success:
                 warnings.warn(
-                    "Upload api failed with response: " + str(response.json())
+                    "Upload api failed with response: " + str(upload_response_data or response)
                 )
                 if num_retry_uploads > 0:
                     warnings.warn(
