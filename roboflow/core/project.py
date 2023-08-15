@@ -25,8 +25,11 @@ def custom_formatwarning(msg, *args, **kwargs):
 
 warnings.formatwarning = custom_formatwarning
 
+
 class UploadError(Exception):
     pass
+
+
 class Project:
     def __init__(self, api_key, a_project, model_format=None):
         if api_key in DEMO_KEYS:
@@ -357,11 +360,15 @@ class Project:
                     raise UploadError(f"Server rejected image: {responsejson}")
                 return responsejson.get("id")
             else:
-                warnings.warn(f"upload image {image_path} 200 OK, weird response: {response}")
+                warnings.warn(
+                    f"upload image {image_path} 200 OK, weird response: {response}"
+                )
                 return None
         else:
             if responsejson:
-                raise UploadError(f"Bad response: {response.status_code} - {responsejson}")
+                raise UploadError(
+                    f"Bad response: {response.status_code} - {responsejson}"
+                )
             else:
                 raise UploadError(f"Bad response: {response}")
 
@@ -423,21 +430,35 @@ class Project:
         if response.status_code == 200:
             if responsejson:
                 if responsejson.get("error"):
-                    raise UploadError(f"Failed to save annotation for {image_id}: {responsejson['error']}")
+                    raise UploadError(
+                        f"Failed to save annotation for {image_id}: {responsejson['error']}"
+                    )
                 elif not responsejson.get("success"):
-                    raise UploadError(f"Failed to save annotation for {image_id}: {responsejson}")
+                    raise UploadError(
+                        f"Failed to save annotation for {image_id}: {responsejson}"
+                    )
             else:
-                warnings.warn(f"save annotation {annotation_path} 200 OK, weird response: {response}")
-        elif response.status_code == 409 and "already annotated" in (responsejson or {}).get("error", {}).get("message"):
+                warnings.warn(
+                    f"save annotation {annotation_path} 200 OK, weird response: {response}"
+                )
+        elif response.status_code == 409 and "already annotated" in (
+            responsejson or {}
+        ).get("error", {}).get("message"):
             print(f"image already annotated: {annotation_path}")
         else:
             if responsejson:
-                if responsejson.get('error'):
-                    raise UploadError(f"save annotation for {image_id} / bad response: {response.status_code} - {responsejson['error']}")
+                if responsejson.get("error"):
+                    raise UploadError(
+                        f"save annotation for {image_id} / bad response: {response.status_code} - {responsejson['error']}"
+                    )
                 else:
-                    raise UploadError(f"save annotation for {image_id} / bad response: {response.status_code} - {responsejson}")
+                    raise UploadError(
+                        f"save annotation for {image_id} / bad response: {response.status_code} - {responsejson}"
+                    )
             else:
-                raise UploadError(f"save annotation for {image_id} bad response: {response}")
+                raise UploadError(
+                    f"save annotation for {image_id} bad response: {response}"
+                )
 
     def check_valid_image(self, image_path):
         try:
@@ -555,7 +576,10 @@ class Project:
         annotation_success = False
         if image_path is not None:
             try:
-                image_id = retry(num_retry_uploads, Exception, self.__image_upload,
+                image_id = retry(
+                    num_retry_uploads,
+                    Exception,
+                    self.__image_upload,
                     image_path,
                     hosted_image=hosted_image,
                     split=split,
@@ -565,17 +589,24 @@ class Project:
                 )
                 success = True
             except BaseException as e:
-                print(f'{image_path} ERROR uploading image after {num_retry_uploads} retries: {e}', file=sys.stderr)
+                print(
+                    f"{image_path} ERROR uploading image after {num_retry_uploads} retries: {e}",
+                    file=sys.stderr,
+                )
                 return
 
         # Upload only annotations to image based on image Id (no image)
         if annotation_path is not None and image_id is not None and success:
             # Get annotation upload response
             try:
-                self.__annotation_upload(annotation_path, image_id, is_prediction=is_prediction)
+                self.__annotation_upload(
+                    annotation_path, image_id, is_prediction=is_prediction
+                )
                 annotation_success = True
             except BaseException as e:
-                print(f'{annotation_path} ERROR saving annotation: {e}', file=sys.stderr)
+                print(
+                    f"{annotation_path} ERROR saving annotation: {e}", file=sys.stderr
+                )
                 return False
             # Give user warning that annotation failed to upload
             if not annotation_success:

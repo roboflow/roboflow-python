@@ -308,7 +308,7 @@ class Workspace:
                     tqdm(
                         executor.map(upload_file, file_list, [split] * len(file_list)),
                         total=len(file_list),
-                        file=sys.stdout
+                        file=sys.stdout,
                     )
                 )
 
