@@ -428,6 +428,8 @@ class Project:
                     raise UploadError(f"Failed to save annotation for {image_id}: {responsejson}")
             else:
                 warnings.warn(f"save annotation {annotation_path} 200 OK, weird response: {response}")
+        elif response.status_code == 409 and "already annotated" in (responsejson or {}).get("error", {}).get("message"):
+            print(f"image already annotated: {annotation_path}")
         else:
             if responsejson:
                 if responsejson.get('error'):
