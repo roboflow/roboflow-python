@@ -6,9 +6,10 @@ def write_line(line):
     sys.stdout.write("\n")
     sys.stdout.flush()
 
+
 def retry(max_retries, retry_on, func, *args, **kwargs):
     if not retry_on:
-        retry_on = (Exception, )
+        retry_on = (Exception,)
     retries = 0
     while retries <= max_retries:
         try:
