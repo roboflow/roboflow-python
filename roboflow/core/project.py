@@ -5,7 +5,6 @@ import os
 import sys
 import urllib
 import warnings
-from roboflow.util.general import retry
 
 import cv2
 import requests
@@ -14,6 +13,7 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEMO_KEYS
 from roboflow.core.version import Version
+from roboflow.util.general import retry
 
 ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
 
