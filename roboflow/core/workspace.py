@@ -282,8 +282,9 @@ class Workspace:
 
             dataset_path = dataset_path + "_voc"
 
-        if project_name in self.project_list:
+        if project_name in [p["name"] for p in self.project_list]:
             dataset_upload_project = self.project(project_name)
+            print(f"Uploading to existing project {dataset_upload_project.id}")
         else:
             dataset_upload_project = self.create_project(
                 project_name,
@@ -291,6 +292,7 @@ class Workspace:
                 annotation=project_name,
                 project_type=project_type,
             )
+            print(f"Created project {dataset_upload_project.id}")
 
         def upload_file(img_file, split):
             label_file = img_file.replace(".jpg", ".xml")
@@ -306,6 +308,7 @@ class Workspace:
                     tqdm(
                         executor.map(upload_file, file_list, [split] * len(file_list)),
                         total=len(file_list),
+                        file=sys.stdout,
                     )
                 )
 

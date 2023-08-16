@@ -13,6 +13,7 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEMO_KEYS
 from roboflow.core.version import Version
+from roboflow.util.general import retry
 
 ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
 
@@ -23,6 +24,10 @@ def custom_formatwarning(msg, *args, **kwargs):
 
 
 warnings.formatwarning = custom_formatwarning
+
+
+class UploadError(Exception):
+    pass
 
 
 class Project:
@@ -342,9 +347,30 @@ class Project:
             )
             # Get response
             response = requests.post(upload_url)
-        # Return response
-
-        return response
+        responsejson = None
+        try:
+            responsejson = response.json()
+        except:
+            pass
+        if response.status_code == 200:
+            if responsejson:
+                if "duplicate" in responsejson.keys():
+                    print(f"Duplicate image not uploaded: {image_path}")
+                elif not responsejson.get("success"):
+                    raise UploadError(f"Server rejected image: {responsejson}")
+                return responsejson.get("id")
+            else:
+                warnings.warn(
+                    f"upload image {image_path} 200 OK, weird response: {response}"
+                )
+                return None
+        else:
+            if responsejson:
+                raise UploadError(
+                    f"Bad response: {response.status_code} - {responsejson}"
+                )
+            else:
+                raise UploadError(f"Bad response: {response}")
 
     def __annotation_upload(
         self, annotation_path: str, image_id: str, is_prediction: bool = False
@@ -378,10 +404,6 @@ class Project:
                 "result": "File not found or uploading to non-classification type project with invalid string"
             }
 
-        # Set annotation upload url
-
-        project_name = self.id.rsplit("/")[1]
-
         self.annotation_upload_url = "".join(
             [
                 API_URL + "/dataset/",
@@ -395,15 +417,48 @@ class Project:
             ]
         )
 
-        # Get annotation response
-        annotation_response = requests.post(
+        response = requests.post(
             self.annotation_upload_url,
             data=annotation_string,
             headers={"Content-Type": "text/plain"},
         )
-
-        # Return annotation response
-        return annotation_response
+        responsejson = None
+        try:
+            responsejson = response.json()
+        except:
+            pass
+        if response.status_code == 200:
+            if responsejson:
+                if responsejson.get("error"):
+                    raise UploadError(
+                        f"Failed to save annotation for {image_id}: {responsejson['error']}"
+                    )
+                elif not responsejson.get("success"):
+                    raise UploadError(
+                        f"Failed to save annotation for {image_id}: {responsejson}"
+                    )
+            else:
+                warnings.warn(
+                    f"save annotation {annotation_path} 200 OK, weird response: {response}"
+                )
+        elif response.status_code == 409 and "already annotated" in (
+            responsejson or {}
+        ).get("error", {}).get("message"):
+            print(f"image already annotated: {annotation_path}")
+        else:
+            if responsejson:
+                if responsejson.get("error"):
+                    raise UploadError(
+                        f"save annotation for {image_id} / bad response: {response.status_code} - {responsejson['error']}"
+                    )
+                else:
+                    raise UploadError(
+                        f"save annotation for {image_id} / bad response: {response.status_code} - {responsejson}"
+                    )
+            else:
+                raise UploadError(
+                    f"save annotation for {image_id} bad response: {response}"
+                )
 
     def check_valid_image(self, image_path):
         try:
@@ -420,7 +475,7 @@ class Project:
         image_path: str = None,
         annotation_path: str = None,
         hosted_image: bool = False,
-        image_id: int = None,
+        image_id: str = None,
         split: str = "train",
         num_retry_uploads: int = 0,
         batch_name: str = DEFAULT_BATCH_NAME,
@@ -434,7 +489,7 @@ class Project:
             image_path (str) - path to image you'd like to upload
             annotation_path (str) - if you're upload annotation, path to it
             hosted_image (bool) - whether the image is hosted
-            image_id (int) - id of the image
+            image_id (str) - id of the image
             split (str) - to upload the image to
             num_retry_uploads (int) - how many times to retry upload on failure
             batch_name (str) - name of batch to upload to within project
@@ -519,90 +574,40 @@ class Project:
     ):
         success = False
         annotation_success = False
-        # User gives image path
         if image_path is not None:
-            # Upload Image Response
-            response = self.__image_upload(
-                image_path,
-                hosted_image=hosted_image,
-                split=split,
-                batch_name=batch_name,
-                tag_names=tag_names,
-                **kwargs,
-            )
-            # Get JSON response values
             try:
-                if "duplicate" in response.json().keys():
-                    if response.json()["duplicate"]:
-                        success = True
-                        warnings.warn("Duplicate image not uploaded:  " + image_path)
-                else:
-                    success, image_id = (
-                        response.json()["success"],
-                        response.json()["id"],
-                    )
-
-                if not success:
-                    warnings.warn(f"Server rejected image: {response.json()}")
-
-            except Exception:
-                # Image fails to upload
-                warnings.warn(f"Bad response: {response}")
-                success = False
-            # Give user warning that image failed to upload
-            if not success:
-                warnings.warn(
-                    "Upload api failed with response: " + str(response.json())
+                image_id = retry(
+                    num_retry_uploads,
+                    Exception,
+                    self.__image_upload,
+                    image_path,
+                    hosted_image=hosted_image,
+                    split=split,
+                    batch_name=batch_name,
+                    tag_names=tag_names,
+                    **kwargs,
                 )
-                if num_retry_uploads > 0:
-                    warnings.warn(
-                        "Image, "
-                        + image_path
-                        + ", failed to upload! Retrying for this many times: "
-                        + str(num_retry_uploads)
-                    )
-                    self.single_upload(
-                        image_path=image_path,
-                        annotation_path=annotation_path,
-                        hosted_image=hosted_image,
-                        image_id=image_id,
-                        split=split,
-                        num_retry_uploads=num_retry_uploads - 1,
-                        **kwargs,
-                    )
-                    return
-                else:
-                    warnings.warn(
-                        "Image, "
-                        + image_path
-                        + ", failed to upload! You can specify num_retry_uploads to retry a number of times."
-                    )
+                success = True
+            except BaseException as e:
+                print(
+                    f"{image_path} ERROR uploading image after {num_retry_uploads} retries: {e}",
+                    file=sys.stderr,
+                )
+                return
 
         # Upload only annotations to image based on image Id (no image)
         if annotation_path is not None and image_id is not None and success:
             # Get annotation upload response
-            annotation_response = self.__annotation_upload(
-                annotation_path, image_id, is_prediction=is_prediction
-            )
-            # Check if upload was a success
             try:
-                response_data = annotation_response.json()
-                if "success" in response_data.keys():
-                    annotation_success = True
-                elif "error" in response_data.keys():
-                    warnings.warn(
-                        f"Uploading annotation data for image failed: {str(response_data['error'])}"
-                    )
-                    annotation_success = False
-                else:
-                    warnings.warn(
-                        f"Uploading annotation data for image failed: {str(response_data)}"
-                    )
-                    annotation_success = False
-            except:
-                warnings.warn(f"Bad response: {response.status_code}")
-                annotation_success = False
-
+                self.__annotation_upload(
+                    annotation_path, image_id, is_prediction=is_prediction
+                )
+                annotation_success = True
+            except BaseException as e:
+                print(
+                    f"{annotation_path} ERROR saving annotation: {e}", file=sys.stderr
+                )
+                return False
             # Give user warning that annotation failed to upload
             if not annotation_success:
                 warnings.warn(
