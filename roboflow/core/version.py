@@ -163,7 +163,7 @@ class Version:
                 sys.stdout.flush()
             return
 
-    def download(self, model_format=None, location=None, overwrite: bool = True):
+    def download(self, model_format=None, location=None, overwrite: bool = True, verbose: bool = True):
         """
         Download and extract a ZIP of a version's dataset in a given format
 
@@ -217,8 +217,8 @@ class Version:
                 except requests.exceptions.JSONDecodeError:
                     response.raise_for_status()
 
-        self.__download_zip(link, location, model_format)
-        self.__extract_zip(location, model_format)
+        self.__download_zip(link, location, model_format, verbose)
+        self.__extract_zip(location, model_format, verbose)
         self.__reformat_yaml(location, model_format)
 
         return Dataset(self.name, self.version, model_format, os.path.abspath(location))
@@ -606,7 +606,7 @@ class Version:
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
 
-    def __download_zip(self, link, location, format):
+    def __download_zip(self, link, location, format, verbose):
         """
         Download a dataset's zip file from the given URL and save it in the desired location
 
@@ -631,14 +631,17 @@ class Version:
             sys.stdout.flush()
 
         try:
-            wget.download(link, out=location + "/roboflow.zip", bar=bar_progress)
+            if verbose:
+                wget.download(link, out=location + "/roboflow.zip", bar=bar_progress)
+            else:
+                wget.download(link, out=location + "/roboflow.zip", bar=None)
         except Exception as e:
             print(f"Error when trying to download dataset @ {link}")
             raise e
         sys.stdout.write("\n")
         sys.stdout.flush()
 
-    def __extract_zip(self, location, format):
+    def __extract_zip(self, location, format, verbose):
         """
         This simply extracts the contents of a downloaded zip file and then deletes the zip
 
@@ -649,10 +652,15 @@ class Version:
         :raises RuntimeError:
         """
         with zipfile.ZipFile(location + "/roboflow.zip", "r") as zip_ref:
-            for member in tqdm(
-                zip_ref.infolist(),
-                desc=f"Extracting Dataset Version Zip to {location} in {format}:",
-            ):
+            if verbose:
+                zip_progress = tqdm(
+                    zip_ref.infolist(),
+                    desc=f"Extracting Dataset Version Zip to {location} in {format}:",
+                )
+            else:
+                zip_progress = zip_ref.infolist()
+            
+            for member in zip_progress:
                 try:
                     zip_ref.extract(member, location)
                 except zipfile.error:
