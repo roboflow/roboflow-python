@@ -170,6 +170,7 @@ class Version:
         :param model_format: A format to use for downloading
         :param location: An optional path for saving the file
         :param overwrite: An optional flag to prevent dataset overwrite when dataset is already downloaded
+        :param verbose: An optional flag to enable or disable verbose output
 
         :return: Dataset
         """
@@ -613,6 +614,7 @@ class Version:
         :param location: link the URL of the remote zip file
         :param location: filepath of the data directory to save the zip file to
         :param format: the format identifier string
+        :param verbose: enable or disable verbose output
 
         :return None:
         """
@@ -647,6 +649,7 @@ class Version:
 
         :param location: filepath of the data directory that contains the zip file
         :param format: the format identifier string
+        :param verbose: enable or disable verbose output
 
         :return None:
         :raises RuntimeError:
