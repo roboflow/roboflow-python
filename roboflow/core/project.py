@@ -413,7 +413,7 @@ class Project:
                 "?api_key=",
                 self.__api_key,
                 "&name=" + os.path.basename(annotation_path),
-                "&is_prediction=true" if is_prediction else "",
+                "&prediction=true" if is_prediction else "",
             ]
         )
 
