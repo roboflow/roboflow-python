@@ -135,6 +135,8 @@ class ObjectDetectionModel:
         confidence=40,
         stroke=1,
         labels=False,
+        timeout=-1,
+        max_retries=1,
     ):
         """
         Infers detections based on image from specified model and image path.
@@ -143,6 +145,8 @@ class ObjectDetectionModel:
             image_path (str): path to the image you'd like to perform prediction on
             hosted (bool): whether the image you're providing is hosted on Roboflow
             format (str): The format of the output.
+            timeout (int): Timeout in seconds when sending POST request. -1 to block function until response is received
+            max_retries (int): maximum number of times to retry after a timeout
 
         Returns:
             PredictionGroup Object
@@ -203,10 +207,12 @@ class ObjectDetectionModel:
                 img_str = base64.b64encode(buffered.getvalue())
                 img_str = img_str.decode("ascii")
                 # Post to API and return response
-                resp = requests.post(
+                resp = self.__failsafe_post(
                     self.api_url,
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    timeout=timeout,
+                    max_retries=max_retries
                 )
 
                 image_dims = {
@@ -220,10 +226,12 @@ class ObjectDetectionModel:
                 dimensions = buffer.shape
                 img_str = base64.b64encode(buffer)
                 img_str = img_str.decode("ascii")
-                resp = requests.post(
+                resp = self.__failsafe_post(
                     self.api_url,
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    timeout=timeout,
+                    max_retries=max_retries
                 )
                 # Replace with dimensions variable once cv2.imencode shape solution is found
                 image_dims = {"width": "0", "height": "0"}
@@ -234,7 +242,7 @@ class ObjectDetectionModel:
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
             image_dims = {"width": "0", "height": "0"}
             # POST to the API
-            resp = requests.post(self.api_url)
+            resp = self.__failsafe_post(self.api_url)
 
         resp.raise_for_status()
         # Return a prediction group if JSON data
@@ -417,7 +425,7 @@ class ObjectDetectionModel:
                 img_str = img_str.decode("ascii")
 
                 # post frame to the Roboflow API
-                r = requests.post(
+                r = self.__failsafe_post(
                     self.api_url,
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -598,6 +606,33 @@ class ObjectDetectionModel:
         # add classes parameter to api
         if self.classes is not None:
             self.api_url += "&classes=" + self.classes
+
+    def __failsafe_post(
+        self, 
+        url, 
+        data=None, 
+        headers=None, 
+        timeout=-1, 
+        max_retries=1
+    ):
+        if timeout == -1:
+            resp = requests.post(url=url, 
+                                 data=data, 
+                                 headers=headers)
+        else:
+            while max_retries > 0:
+                try:
+                    resp = requests.post(
+                        url=url, 
+                        data=data, 
+                        headers=headers, 
+                        timeout=timeout
+                    )
+                    break
+                except:
+                    max_retries -= 1
+
+        return resp
 
     def __str__(self):
         # Create the new API URL
