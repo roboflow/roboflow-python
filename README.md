@@ -3,100 +3,69 @@
 ---
 ![roboflow logo](https://media.roboflow.com/homepage/cv_pipeline_compact.png?updatedAt=1679939317160)
 
+[Roboflow](https://roboflow.com) provides everything you need to build and deploy computer vision models. `roboflow-python` is the official Roboflow Python package. `roboflow-python` enables you to interact with models, datasets, and projects hosted on Roboflow.
 
-  <div align="center">
-      <a href="https://youtube.com/roboflow">
-          <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/youtube.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634652"
-            width="3%"
-          />
-      </a>
-      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
-      <a href="https://roboflow.com">
-          <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/roboflow-app.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949746649"
-            width="3%"
-          />
-      </a>
-      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
-      <a href="https://www.linkedin.com/company/roboflow-ai/">
-          <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/linkedin.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633691"
-            width="3%"
-          />
-      </a>
-      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
-      <a href="https://docs.roboflow.com">
-          <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/knowledge.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634511"
-            width="3%"
-          />
-      </a>
-      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
-      <a href="https://disuss.roboflow.com">
-          <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/forum.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633584"
-            width="3%"
-          />
-      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
-      <a href="https://blog.roboflow.com">
-          <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/blog.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633605"
-            width="3%"
-          />
-      </a>
-      </a>
-  </div>
+With this Python package, you can:
 
-  <br>
+1. Create and manage projects;
+2. Upload images, annotations, and datasets to manage in Roboflow;
+3. Start training vision models on Robfolow;
+4. Run inference on models hosted on Roboflow, or Roboflow models self-hosted via [Roboflow Inference](https://github.com/roboflow/inference), and more.
 
-**Roboflow** streamlines your computer vision pipeline - upload data, label it, download datasets, train models, deploy models, and repeat.
+## 💻 Installation
 
-The **Roboflow Python Package** is a python wrapper around the core Roboflow web application and REST API.
+You will need to have `Python 3.6` or higher set up to use the Roboflow Python package.
 
-We also maintain an open source set of CV utililities and notebook tutorials in Python:
-
-* :fire: https://github.com/roboflow/supervision :fire:
-* :fire: https://github.com/roboflow/notebooks :fire:
-
-## Installation
-
-To install this package, please use `Python 3.6` or higher.
-
-Install from PyPi (Recommended):
+Run the following command to install the Roboflow Python package:
 
 ```bash
 pip install roboflow
 ```
 
-Install from Source:
+<details>
+  <summary>Install from source</summary>
 
-```bash
-git clone https://github.com/roboflow-ai/roboflow-python.git
-cd roboflow-python
-python3 -m venv env
-source env/bin/activate
-pip3 install -r requirements.txt
-```
+  You can also install the Roboflow Python package from source using the following commands:
 
-## Authentication
+  ```bash
+  git clone https://github.com/roboflow-ai/roboflow-python.git
+  cd roboflow-python
+  python3 -m venv env
+  source env/bin/activate
+  pip3 install -r requirements.txt
+  ```
+</details>
+
+## 🚀 Getting Started
+
+To use the Roboflow Python package, you first need to authenticate with your Roboflow account. You can do this by running the following command:
 
 ```python
 import roboflow
 roboflow.login()
 ```
 
-## Quickstart
+<details>
+<summary>Authenticate with an API key</summary>
+
+You can also authenticate with an API key by using the following code:
+
+```python
+import roboflow
+
+rf = roboflow.Roboflow(api_key="")
+```
+
+[Learn how to retrieve your Roboflow API key](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
+
+</details>
 
 ### Datasets
 
 Download any of over 200,000 public computer vision datasets from [Roboflow Universe](universe.roboflow.com). Label and download your own datasets on app.roboflow.com.
 
 ```python
-import roboflow
 dataset = roboflow.download_dataset(dataset_url="universe.roboflow.com/...", model_format="yolov8")
-#ex. dataset = roboflow.download_dataset(dataset_url="https://universe.roboflow.com/joseph-nelson/bccd/dataset/1", model_format="yolov8")
-print(dataset.location)
 ```
 
 ### Models
@@ -114,13 +83,17 @@ pred.plot()
 
 ## Library Structure
 
-The Roboflow python library is structured by the core Roboflow application objects.
+The Roboflow Python library is structured by the core Roboflow application objects.
 
 Workspace (workspace.py) --> Project (project.py) --> Version (version.py)
 
 ```python
-from roboflow import Roboflow
-rf = Roboflow()
+import roboflow
+
+roboflow.login()
+
+rf = roboflow.Roboflow()
+
 workspace = rf.workspace("WORKSPACE_URL")
 project = workspace.project("PROJECT_URL")
 version = project.version("VERSION_NUMBER")
@@ -134,42 +107,52 @@ Within the project object, you can retrieve metadata about the project, list ver
 
 Within the version object, you can download the dataset version in any model format, train the version on Roboflow, and deploy your own external model to Roboflow.
 
-## Contributing
+## 🏆 Contributing
 
-If you want to extend our Python library or if you find a bug, please open a PR!
+We would love your input on how we can improve the Roboflow Python package! Please see our [contributing guide](https://github.com/roboflow/roboflow-python) to get started. Thank you 🙏 to all our contributors!
 
-Also be sure to test your code the `unittest` command at the `/root` level directory.
+<br>
 
-Run tests:
-
-```bash
-python -m unittest
-```
-
-When creating new functions, please follow the [Google style Python docstrings](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html). See example below:
-
-```python
-def example_function(param1: int, param2: str) -> bool:
-    """Example function that does something.
-
-    Args:
-        param1: The first parameter.
-        param2: The second parameter.
-
-    Returns:
-        The return value. True for success, False otherwise.
-
-    """
-```
-
-We provide a `Makefile` to format and ensure code quality. **Be sure to run them before creating a PR**.
-
-```bash
-# format code with `black` and `isort`
-make style
-
-# check code with flake8
-make check_code_quality
-```
-
-**Note** These tests will be run automatically when you commit thanks to git hooks.
+<div align="center">
+    <a href="https://youtube.com/roboflow">
+        <img
+          src="https://media.roboflow.com/notebooks/template/icons/purple/youtube.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634652"
+          width="3%"
+        />
+    </a>
+    <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+    <a href="https://roboflow.com">
+        <img
+          src="https://media.roboflow.com/notebooks/template/icons/purple/roboflow-app.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949746649"
+          width="3%"
+        />
+    </a>
+    <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+    <a href="https://www.linkedin.com/company/roboflow-ai/">
+        <img
+          src="https://media.roboflow.com/notebooks/template/icons/purple/linkedin.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633691"
+          width="3%"
+        />
+    </a>
+    <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+    <a href="https://docs.roboflow.com">
+        <img
+          src="https://media.roboflow.com/notebooks/template/icons/purple/knowledge.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634511"
+          width="3%"
+        />
+    </a>
+    <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+    <a href="https://disuss.roboflow.com">
+        <img
+          src="https://media.roboflow.com/notebooks/template/icons/purple/forum.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633584"
+          width="3%"
+        />
+    <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+    <a href="https://blog.roboflow.com">
+        <img
+          src="https://media.roboflow.com/notebooks/template/icons/purple/blog.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633605"
+          width="3%"
+        />
+    </a>
+    </a>
+</div>
