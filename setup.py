@@ -4,15 +4,12 @@ import re
 
 with open("./roboflow/__init__.py", "r") as f:
     content = f.read()
-    # from https://www.py4u.net/discuss/139845
     version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content).group(1)
 
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-# we are using the packages in `requirements.txt` for now, 
-# not 100% ideal but will do
 with open("requirements.txt", "r") as fh:
     install_requires = fh.read().split('\n')
 
@@ -20,8 +17,8 @@ setuptools.setup(
     name="roboflow",
     version=version,
     author="Roboflow",
-    author_email="jacob@roboflow.com",
-    description="python client for the Roboflow application",
+    author_email="support@roboflow.com",
+    description="Official Python package for working with the Roboflow API",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/roboflow-ai/roboflow-python",
