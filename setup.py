@@ -11,8 +11,6 @@ with open("./roboflow/__init__.py", "r") as f:
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-# we are using the packages in `requirements.txt` for now, 
-# not 100% ideal but will do
 with open("requirements.txt", "r") as fh:
     install_requires = fh.read().split('\n')
 
@@ -27,7 +25,9 @@ setuptools.setup(
     url="https://github.com/roboflow-ai/roboflow-python",
     install_requires=install_requires,
     packages=find_packages(exclude=("tests",)),
+    # create optional [desktop]
     extras_require={
+        "desktop": ["opencv-python"],
         "dev": ["flake8", "black==22.3.0", "isort", "responses", "twine", "wheel"],
     },
     classifiers=[
