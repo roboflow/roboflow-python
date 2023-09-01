@@ -43,6 +43,13 @@ class Project:
             api_key (str): private roboflow api key
             a_project (str): the project id
             model_format (str): the model format of the project
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
         """
         if api_key in DEMO_KEYS:
             self.__api_key = api_key
@@ -73,6 +80,15 @@ class Project:
 
         Returns:
             A list of all versions of the project.
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> version_info = project.get_version_information()
         """
         dataset_info = requests.get(
             API_URL
@@ -93,7 +109,16 @@ class Project:
 
     def list_versions(self):
         """
-        Print out versions for that specific project
+        Print out versions for that specific project.
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> project.list_versions()
         """
         version_info = self.get_version_information()
         print(version_info)
@@ -104,6 +129,15 @@ class Project:
 
         Returns:
             A list of Version objects.
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> versions = project.versions()
         """
         version_info = self.get_version_information()
         version_array = []
@@ -126,7 +160,7 @@ class Project:
 
     def generate_version(self, settings):
         """
-        Generate a version of a dataset.
+        Generate a version of a dataset hosted on Roboflow.
 
         Args:
             settings: A Python dict with augmentation and preprocessing keys and specifications for generation. These settings mirror capabilities available via the Roboflow UI.
@@ -173,6 +207,15 @@ class Project:
 
         Returns:
             int: The version number that is being generated.
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> versions = project.generate_version(settings={...})
         """
 
         if not {"augmentation", "preprocessing"} <= settings.keys():
@@ -225,14 +268,29 @@ class Project:
     ) -> bool:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
+
         Args:
             speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
             checkpoint: A string representing the checkpoint to use while training
             plot: Whether to plot the training loss curve. Default is False.
+
         Returns:
             True
+
+        Raises:
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
             HTTPError: If the Network/Roboflow API fails and does not return JSON
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> version = project.version(1)
+
+            >>> version.train()
         """
 
         new_version = self.generate_version(settings=new_version_settings)
@@ -539,6 +597,15 @@ class Project:
             batch_name (str): name of batch to upload to within project
             tag_names (list[str]): tags to be applied to an image
             is_prediction (bool): whether the annotation data is a prediction rather than ground truth
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> project.upload(image_path="YOUR_IMAGE.jpg")
         """
 
         is_hosted = image_path.startswith("http://") or image_path.startswith(
@@ -693,6 +760,15 @@ class Project:
 
         Returns:
             A list of images that match the search criteria.
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> results = project.search(query="cat", limit=10)
         """
         payload = {}
 
@@ -768,6 +844,19 @@ class Project:
 
         Returns:
             A list of images that match the search criteria.
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> results = project.search_all(query="cat", limit=10)
+
+            >>> for result in results:
+
+            >>>     print(result)
         """
         while True:
             data = self.search(

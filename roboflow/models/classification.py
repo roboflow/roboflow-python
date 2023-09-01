@@ -65,6 +65,17 @@ class ClassificationModel:
 
         Returns:
             PredictionGroup Object
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> model = project.version("1").model
+
+            >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
         self.__generate_url()
         self.__exception_check(image_path_check=image_path)

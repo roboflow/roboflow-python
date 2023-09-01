@@ -38,12 +38,24 @@ class InstanceSegmentationModel(InferenceModel):
     def predict(self, image_path, confidence=40):
         """
         Infers detections based on image from a specified model and image path.
+        
         Args:
             image_path (str): path to the image you'd like to perform prediction on
             confidence (int): confidence threshold for predictions, on a scale from 0-100
 
         Returns:
             PredictionGroup Object
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> model = project.version("1").model
+
+            >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
         return super(InstanceSegmentationModel, self).predict(
             image_path,

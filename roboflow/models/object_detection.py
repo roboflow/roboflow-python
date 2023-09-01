@@ -148,6 +148,17 @@ class ObjectDetectionModel:
 
         Returns:
             PredictionGroup Object
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> model = project.version("1").model
+
+            >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
         # Generate url before predicting
         self.__generate_url(

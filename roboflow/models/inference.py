@@ -82,6 +82,17 @@ class InferenceModel:
 
         Raises:
             Exception: Image path is not valid
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> model = project.version("1").model
+
+            >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
         params, request_kwargs, image_dims = self.__get_image_params(image_path)
 

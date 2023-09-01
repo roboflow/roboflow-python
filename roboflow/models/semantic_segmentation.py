@@ -28,6 +28,17 @@ class SemanticSegmentationModel(InferenceModel):
 
         Returns:
             PredictionGroup Object
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> model = project.version("1").model
+
+            >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
         return super(SemanticSegmentationModel, self).predict(
             image_path,
