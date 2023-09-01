@@ -1,6 +1,6 @@
-# Roboflow Python
-
 ![roboflow-python-banner](https://github.com/roboflow/roboflow-python/assets/37276661/528ed065-d5ac-4f9a-942e-0d211b8d97de)
+
+# Roboflow Python Package
 
 [Roboflow](https://roboflow.com) provides everything you need to build and deploy computer vision models. `roboflow-python` is the official Roboflow Python package. `roboflow-python` enables you to interact with models, datasets, and projects hosted on Roboflow.
 
