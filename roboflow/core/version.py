@@ -213,7 +213,7 @@ class Version:
             else:
                 try:
                     raise RuntimeError(response.json())
-                except requests.exceptions.JSONDecodeError:
+                except json.JSONDecodeError:
                     response.raise_for_status()
 
         self.__download_zip(link, location, model_format)
@@ -242,7 +242,7 @@ class Version:
         if not response.ok:
             try:
                 raise RuntimeError(response.json())
-            except requests.exceptions.JSONDecodeError:
+            except json.JSONDecodeError:
                 response.raise_for_status()
 
         # the rest api returns 202 if the export is still in progress
@@ -272,7 +272,7 @@ class Version:
         else:
             try:
                 raise RuntimeError(response.json())
-            except requests.exceptions.JSONDecodeError:
+            except json.JSONDecodeError:
                 response.raise_for_status()
 
     def train(self, speed=None, checkpoint=None, plot_in_notebook=False) -> bool:
@@ -321,7 +321,7 @@ class Version:
         if not response.ok:
             try:
                 raise RuntimeError(response.json())
-            except requests.exceptions.JSONDecodeError:
+            except json.JSONDecodeError:
                 response.raise_for_status()
 
         status = "training"
