@@ -1,11 +1,20 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
 cff-version: 1.2.0
-author: Roboflow
-message: If you use this software, please cite using the citation below.
-title: roboflow-python
-version: 1.1.4
-date-released: 2023-08-23
-license: MIT
-repository-code: https://github.com/roboflow/roboflow-python
+title: Roboflow Python Package
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Roboflow
+    email: support@roboflow.com
+repository-code: 'https://github.com/roboflow/roboflow-python'
+url: 'https://docs.roboflow.com'
+abstract: >-
+  The official Roboflow Python package.
 keywords:
   - computer vision
-  - roboflow
+  - image processing
+license: MIT

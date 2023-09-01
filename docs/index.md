@@ -1,25 +1,4 @@
-<div align="center">
-  <p>
-    <a align="center" href="" target="_blank">
-      <img
-        width="100%"
-        src="https://github.com/roboflow/roboflow-python/assets/37276661/528ed065-d5ac-4f9a-942e-0d211b8d97de"
-      >
-    </a>
-  </p>
-
-  <br>
-
-  [notebooks](https://github.com/roboflow/notebooks) | [inference](https://github.com/roboflow/inference) | [autodistill](https://github.com/autodistill/autodistill) | [collect](https://github.com/roboflow/roboflow-collect)
-
-  <br>
-
-  [![version](https://badge.fury.io/py/roboflow.svg)](https://badge.fury.io/py/roboflow)
-  [![downloads](https://img.shields.io/pypi/dm/roboflow)](https://pypistats.org/packages/roboflow)
-  [![license](https://img.shields.io/pypi/l/roboflow)](https://github.com/roboflow/roboflow-python/blob/main/LICENSE.md)
-  [![python-version](https://img.shields.io/pypi/pyversions/roboflow)](https://badge.fury.io/py/roboflow)
-
-</div>
+![roboflow-python-banner](https://github.com/roboflow/roboflow-python/assets/37276661/528ed065-d5ac-4f9a-942e-0d211b8d97de)
 
 # Roboflow Python Package
 

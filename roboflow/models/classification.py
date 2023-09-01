@@ -13,22 +13,34 @@ from roboflow.util.prediction import PredictionGroup
 
 
 class ClassificationModel:
+    """
+    Run inference on a classification model hosted on Roboflow or served through Roboflow Inference.
+    """
+
     def __init__(
         self,
-        api_key,
-        id,
-        name=None,
-        version=None,
-        local=False,
-        colors=None,
-        preprocessing=None,
+        api_key: str,
+        id: str,
+        name: str = None,
+        version: int = None,
+        local: bool = False,
+        colors: dict = None,
+        preprocessing: dict = None,
     ):
         """
-        :param api_key: private roboflow api key
-        :param id: the workspace/project id
-        :param name: is the name of thep project
-        :param version: version number
-        :return ClassificationModel Object
+        Create a ClassificationModel object through which you can run inference.
+
+        Args:
+            api_key (str): private roboflow api key
+            id (str): the workspace/project id
+            name (str): is the name of the project
+            version (int): version number
+            local (bool): whether the image is local or hosted
+            colors (dict): colors to use for the image
+            preprocessing (dict): preprocessing to use for the image
+
+        Returns:
+            ClassificationModel Object
         """
         # Instantiate different API URL parameters
         self.__api_key = api_key
@@ -45,10 +57,25 @@ class ClassificationModel:
 
     def predict(self, image_path, hosted=False):
         """
+        Run inference on an image.
 
-        :param image_path: path to the image you'd like to perform prediction on
-        :param hosted: whether the image you're providing is hosted online
-        :return: PredictionGroup object
+        Args:
+            image_path (str): path to the image you'd like to perform prediction on
+            hosted (bool): whether the image you're providing is hosted on Roboflow
+
+        Returns:
+            PredictionGroup Object
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> model = project.version("1").model
+
+            >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
         self.__generate_url()
         self.__exception_check(image_path_check=image_path)
@@ -89,8 +116,11 @@ class ClassificationModel:
 
     def load_model(self, name, version):
         """
-        :param name: is the name of the model you'd like to load
-        :param version: version number
+        Load a model.
+
+        Args:
+            name (str): is the name of the model you'd like to load
+            version (int): version number
         """
         # Load model based on user defined characteristics
         self.name = name
@@ -99,7 +129,10 @@ class ClassificationModel:
 
     def __generate_url(self):
         """
-        :return: roboflow API url
+        Generate a Roboflow API URL on which to run inference.
+
+        Returns:
+            url (str): the url on which to run inference
         """
 
         # Generates URL based on all parameters
@@ -116,7 +149,13 @@ class ClassificationModel:
 
     def __exception_check(self, image_path_check=None):
         """
-        :param image_path_check: checks to see if the image exists.
+        Check to see if an image exists.
+
+        Args:
+            image_path_check (str): path to the image to check
+
+        Raises:
+            Exception: if image does not exist
         """
         # Checks if image exists
         if image_path_check is not None:

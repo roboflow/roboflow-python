@@ -19,8 +19,11 @@ class InferenceModel:
         **kwargs,
     ):
         """
-        :param api_key: Your API key (obtained via your workspace API settings page)
-        :param version_id: The ID of the dataset version to use for predicting
+        Create an InferenceModel object through which you can run inference.
+
+        Args:
+            api_key (str): private roboflow api key
+            version_id (str): the ID of the dataset version to use for inference
         """
         self.__api_key = api_key
         self.id = version_id
@@ -32,10 +35,16 @@ class InferenceModel:
 
     def __get_image_params(self, image_path):
         """
-        :param image_path: Path to image (can be local path or hosted URL)
+        Get parameters about an image (i.e. dimensions) for use in an inference request.
 
-        :return: Tuple containing a dict of querystring params and a dict of requests kwargs
-        :raises Exception: Image path is not valid
+        Args:
+            image_path (str): path to the image you'd like to perform prediction on
+
+        Returns:
+            Tuple containing a dict of querystring params and a dict of requests kwargs
+
+        Raises:
+            Exception: Image path is not valid
         """
         validate_image_path(image_path)
 
@@ -61,13 +70,29 @@ class InferenceModel:
 
     def predict(self, image_path, prediction_type=None, **kwargs):
         """
-        Infers detections based on image from a specified model and image path
+        Infers detections based on image from a specified model and image path.
 
-        :param image_path: Path to image (can be local path or hosted URL)
-        :param **kwargs: Any additional kwargs will be turned into querystring params
+        Args:
+            image_path (str): path to the image you'd like to perform prediction on
+            prediction_type (str): type of prediction to perform
+            **kwargs: Any additional kwargs will be turned into querystring params
 
-        :return: PredictionGroup - a group of predictions based on Roboflow JSON response
-        :raises Exception: Image path is not valid
+        Returns:
+            PredictionGroup Object
+
+        Raises:
+            Exception: Image path is not valid
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> model = project.version("1").model
+
+            >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
         params, request_kwargs, image_dims = self.__get_image_params(image_path)
 

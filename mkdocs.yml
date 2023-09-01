@@ -1,0 +1,65 @@
+site_name: Roboflow Python
+site_url: https://roboflow.github.io/roboflow-python
+site_author: Roboflow
+site_description: The official Roboflow Python package.
+repo_name: roboflow/roboflow-python
+repo_url: https://github.com/roboflow/roboflow-python
+edit_uri: https://github.com/roboflow/roboflow-python/tree/main/docs
+copyright: Roboflow 2023. All rights reserved.
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/roboflow
+    - icon: fontawesome/brands/youtube
+      link: https://www.youtube.com/roboflow
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/roboflow-ai/mycompany/
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/roboflow
+  analytics:
+    provider: google
+    property: G-P7ZG0Y19G5
+
+extra_css:
+  - styles.css
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - API reference:
+    - Core:
+      - Datasets: core/dataset.md
+      - Models: core/model.md
+      - Projects: core/project.md
+      - Workspaces: core/workspace.md
+      - Versions: core/version.md
+    - Models:
+      - Object Detection: models/object-detection.md
+      - Classification: models/classification.md
+      - Instance Segmentation: models/instance-segmentation.md
+      - Semantic Segmentation: models/semantic-segmentation.md
+  - Changelog: changelog.md
+
+theme:
+  name: 'material'
+  logo: https://media.roboflow.com/roboflow_logomark_white.png
+  favicon: https://media.roboflow.com/roboflow_logomark_white.png
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+plugins:
+  - mkdocstrings
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true

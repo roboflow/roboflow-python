@@ -39,6 +39,10 @@ load_dotenv()
 
 
 class Version:
+    """
+    Class representing a Roboflow dataset version.
+    """
+
     def __init__(
         self,
         version_dict,
@@ -53,6 +57,9 @@ class Version:
         public,
         colors=None,
     ):
+        """
+        Initialize a Version object.
+        """
         if api_key in DEMO_KEYS:
             if api_key == "coco-128-sample":
                 self.__api_key = api_key
@@ -171,7 +178,17 @@ class Version:
         :param location: An optional path for saving the file
         :param overwrite: An optional flag to prevent dataset overwrite when dataset is already downloaded
 
-        :return: Dataset
+        Args:
+            model_format (str): A format to use for downloading
+            location (str): An optional path for saving the file
+            overwrite (bool): An optional flag to prevent dataset overwrite when dataset is already downloaded
+
+        Returns:
+            Dataset Object
+
+        Raises:
+            RuntimeError: If the Roboflow API returns an error with a helpful JSON body
+            HTTPError: If the Network/Roboflow API fails and does not return JSON
         """
 
         self.__wait_if_generating()
@@ -226,12 +243,18 @@ class Version:
     def export(self, model_format=None):
         """
         Ask the Roboflow API to generate a version's dataset in a given format so that it can be downloaded via the `download()` method.
+
         The export will be asynchronously generated and available for download after some amount of seconds - depending on dataset size.
 
-        :param model_format: A format to use for downloading
+        Args:
+            model_format (str): A format to use for downloading
 
-        :return: True
-        :raises RuntimeError / HTTPError:
+        Returns:
+            True
+
+        Raises:
+            RuntimeError: If the Roboflow API returns an error with a helpful JSON body
+            HTTPError: If the Network/Roboflow API fails and does not return JSON
         """
 
         model_format = self.__get_format_identifier(model_format)
@@ -279,12 +302,16 @@ class Version:
     def train(self, speed=None, checkpoint=None, plot_in_notebook=False) -> bool:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
+
         Args:
             speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
             checkpoint: A string representing the checkpoint to use while training
             plot: Whether to plot the training results. Default is `False`.
+
         Returns:
             An instance of the trained model class
+
+        Raises:
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
             HTTPError: If the Network/Roboflow API fails and does not return JSON
         """
@@ -610,11 +637,10 @@ class Version:
         """
         Download a dataset's zip file from the given URL and save it in the desired location
 
-        :param location: link the URL of the remote zip file
-        :param location: filepath of the data directory to save the zip file to
-        :param format: the format identifier string
-
-        :return None:
+        Args:
+            link (str): link the URL of the remote zip file
+            location (str): filepath of the data directory to save the zip file to
+            format (str): the format identifier string
         """
         if not os.path.exists(location):
             os.makedirs(location)
@@ -640,13 +666,14 @@ class Version:
 
     def __extract_zip(self, location, format):
         """
-        This simply extracts the contents of a downloaded zip file and then deletes the zip
+        Extracts the contents of a downloaded ZIP file and then deletes the zipped file.
 
-        :param location: filepath of the data directory that contains the zip file
-        :param format: the format identifier string
+        Args:
+            location (str): filepath of the data directory that contains the ZIP file
+            format (str): the format identifier string
 
-        :return None:
-        :raises RuntimeError:
+        Raises:
+            RuntimeError: If there is an error unzipping the file
         """
         with zipfile.ZipFile(location + "/roboflow.zip", "r") as zip_ref:
             for member in tqdm(
@@ -664,7 +691,8 @@ class Version:
         """
         Get the local path to save a downloaded dataset to
 
-        :return local path string:
+        Returns:
+            str: the local path
         """
         version_slug = self.name.replace(" ", "-")
         filename = f"{version_slug}-{self.version}"
@@ -679,9 +707,11 @@ class Version:
         """
         Get the Roboflow API URL for downloading (and exporting downloadable zips)
 
-        :param format: the format identifier string
+        Args:
+            format (str): the format identifier string
 
-        :return Roboflow API URL string:
+        Returns:
+            str: the Roboflow API URL
         """
         workspace, project, *_ = self.id.rsplit("/")
         return f"{API_URL}/{workspace}/{project}/{self.version}/{format}"
@@ -689,12 +719,16 @@ class Version:
     def __get_format_identifier(self, format):
         """
         If `format` is none, fall back to the instance's `model_format` value.
+
         If a human readable format name was passed, return the identifier that should be used for Roboflow API calls
+
         Otherwise, assume that the passed in format is also the identifier
 
-        :param format: a human readable format string
+        Args:
+            format (str): a human readable format string
 
-        :return: format identifier string
+        Returns:
+            str: format identifier string
         """
         if not format:
             format = self.model_format
@@ -705,17 +739,16 @@ class Version:
             )
 
         friendly_formats = {"yolov5": "yolov5pytorch", "yolov7": "yolov7pytorch"}
+
         return friendly_formats.get(format, format)
 
     def __reformat_yaml(self, location: str, format: str):
         """
         Certain formats seem to require reformatting the downloaded YAML.
-        It'd be nice if the API did this, but we're doing it in python for now.
 
-        :param location: filepath of the data directory that contains the yaml file
-        :param format: the format identifier string
-
-        :return None:
+        Args:
+            location (str): filepath of the data directory that contains the yaml file
+            format (str): the format identifier string
         """
         data_path = os.path.join(location, "data.yaml")
 
@@ -743,7 +776,9 @@ class Version:
             amend_data_yaml(path=data_path, callback=data_yaml_callback)
 
     def __str__(self):
-        """string representation of version object."""
+        """
+        String representation of version object.
+        """
         json_value = {
             "name": self.name,
             "type": self.type,

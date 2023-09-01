@@ -3,22 +3,42 @@ from roboflow.models.inference import InferenceModel
 
 
 class SemanticSegmentationModel(InferenceModel):
-    def __init__(self, api_key, version_id):
+    """
+    Run inference on a semantic segmentation model hosted on Roboflow or served through Roboflow Inference.
+    """
+
+    def __init__(self, api_key: str, version_id: str):
         """
-        :param api_key: Your API key (obtained via your workspace API settings page)
-        :param version_id: The ID of the dataset version to use for predicting
+        Create a SemanticSegmentationModel object through which you can run inference.
+
+        Args:
+            api_key (str): private roboflow api key
+            version_id (str): the workspace/project id
         """
         super(SemanticSegmentationModel, self).__init__(api_key, version_id)
         self.api_url = f"{SEMANTIC_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
 
-    def predict(self, image_path, confidence=50):
+    def predict(self, image_path: str, confidence: int = 50):
         """
-        Infers detections based on image from a specified model and image path
+        Infers detections based on image from a specified model and image path.
 
-        :param image_path: Path to image (can be local path or hosted URL)
-        :param confidence: A threshold for the returned predictions on a scale of 0-100. A lower number will return more predictions. A higher number will return fewer, high-certainty predictions.
+        Args:
+            image_path (str): path to the image you'd like to perform prediction on
+            confidence (int): confidence threshold for predictions, on a scale from 0-100
 
-        :return: PredictionGroup - a group of predictions based on Roboflow JSON response
+        Returns:
+            PredictionGroup Object
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> model = project.version("1").model
+
+            >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
         return super(SemanticSegmentationModel, self).predict(
             image_path,
