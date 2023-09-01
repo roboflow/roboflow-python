@@ -18,13 +18,14 @@ from PIL import Image
 from roboflow.config import API_URL, OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
-from roboflow.util.versions import (
-    print_warn_for_wrong_dependencies_versions,
-    warn_for_wrong_dependencies_versions,
-)
+from roboflow.util.versions import print_warn_for_wrong_dependencies_versions
 
 
 class ObjectDetectionModel:
+    """
+    Run inference on an object detection model hosted on Roboflow or served through Roboflow Inference.
+    """
+
     def __init__(
         self,
         api_key,
@@ -42,26 +43,29 @@ class ObjectDetectionModel:
         preprocessing=None,
     ):
         """
-        From Roboflow Docs:
+        Create a ObjectDetectionModel object through which you can run inference.
 
-        :param api_key: Your API key (obtained via your workspace API settings page)
-        :param name: The url-safe version of the dataset name.  You can find it in the web UI by looking at
-        the URL on the main project view or by clicking the "Get curl command" button in the train results section of
-        your dataset version after training your model.
-        :param local: Address of the local server address if running a local Roboflow deployment server. ex. http://localhost:9001/
-        :param version: The version number identifying the version of of your dataset
-        :param classes: Restrict the predictions to only those of certain classes. Provide as a comma-separated string.
-        :param overlap: The maximum percentage (on a scale of 0-100) that bounding box predictions of the same class are
-        allowed to overlap before being combined into a single box.
-        :param confidence: A threshold for the returned predictions on a scale of 0-100. A lower number will return
-        more predictions. A higher number will return fewer high-certainty predictions
-        :param stroke: The width (in pixels) of the bounding box displayed around predictions (only has an effect when
-        format is image)
-        :param labels: Whether or not to display text labels on the predictions (only has an effect when format is
-        image).
-        :param format: json - returns an array of JSON predictions. (See response format tab).
-                       image - returns an image with annotated predictions as a binary blob with a Content-Type
-                       of image/jpeg.
+        Args:
+            api_key (str): Your API key (obtained via your workspace API settings page).
+            name (str): The url-safe version of the dataset name. You can find it in the web UI by looking at
+                        the URL on the main project view or by clicking the "Get curl command" button in the train
+                        results section of your dataset version after training your model.
+            local (str): Address of the local server address if running a local Roboflow deployment server.
+                        Ex. http://localhost:9001/
+            version (str): The version number identifying the version of your dataset.
+            classes (str): Restrict the predictions to only those of certain classes. Provide as a comma-separated string.
+            overlap (int): The maximum percentage (on a scale of 0-100) that bounding box predictions of the same class are
+                        allowed to overlap before being combined into a single box.
+            confidence (int): A threshold for the returned predictions on a scale of 0-100. A lower number will return
+                            more predictions. A higher number will return fewer high-certainty predictions.
+            stroke (int): The width (in pixels) of the bounding box displayed around predictions (only has an effect when
+                        format is image).
+            labels (bool): Whether or not to display text labels on the predictions (only has an effect when format is
+                        image).
+            format (str): The format of the output.
+                        - 'json': returns an array of JSON predictions (See response format tab).
+                        - 'image': returns an image with annotated predictions as a binary blob with a Content-Type
+                                    of image/jpeg.
         """
         # Instantiate different API URL parameters
         # To be moved to predict
@@ -102,9 +106,12 @@ class ObjectDetectionModel:
         format=None,
     ):
         """
-        Loads a Model based on a Model Endpoint
+        Loads a Model from on a model endpoint.
 
-        :param model_endpoint: This is the endpoint that is loaded into the api_url
+        Args:
+            name (str): The url-safe version of the dataset name
+            version (str): The version number identifying the version of your dataset.
+            local (bool): Whether the model is hosted locally or on Roboflow
         """
         # To load a model manually, they must specify a dataset slug
         self.name = name
@@ -132,12 +139,15 @@ class ObjectDetectionModel:
         labels=False,
     ):
         """
-        Infers detections based on image from specified model and image path
+        Infers detections based on image from specified model and image path.
 
-        :param image_path: Path to image or image array (can be local or hosted)
-        :param hosted: If image located on a hosted server, hosted should be True
-        :param format: output format from this method
-        :return: PredictionGroup --> a group of predictions based on Roboflow JSON response
+        Args:
+            image_path (str): path to the image you'd like to perform prediction on
+            hosted (bool): whether the image you're providing is hosted on Roboflow
+            format (str): The format of the output.
+
+        Returns:
+            PredictionGroup Object
         """
         # Generate url before predicting
         self.__generate_url(
@@ -281,15 +291,16 @@ class ObjectDetectionModel:
         web_cam_res=(416, 416),
     ):
         """
-        Infers detections based on webcam feed from specified model
+        Infers detections based on webcam feed from specified model.
 
-        :param webcam_id: Webcam ID (default 0)
-        :param inference_engine_url: Inference engine address to use (default https://detect.roboflow.com)
-        :param in_jupyter: Whether or not to display the webcam within Jupyter notebook (default True)
-        :param confidence: Confidence threshold for detections
-        :param overlap: Overlap threshold for detections
-        :param stroke: Stroke width for bounding box
-        :param labels: Whether to show labels on bounding box
+        Args:
+            webcam_id (int): Webcam ID (default 0)
+            inference_engine_url (str): Inference engine address to use (default https://detect.roboflow.com)
+            within_jupyter (bool): Whether or not to display the webcam within Jupyter notebook (default True)
+            confidence (int): Confidence threshold for detections
+            overlap (int): Overlap threshold for detections
+            stroke (int): Stroke width for bounding box
+            labels (bool): Whether to show labels on bounding box
         """
 
         os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
@@ -462,6 +473,14 @@ class ObjectDetectionModel:
             view(stopButton)
 
     def download(self, format="pt", location="."):
+        """
+        Download the weights associated with a model.
+
+        Args:
+            format (str): The format of the output.
+                        - 'pt': returns a PyTorch weights file
+            location (str): The location to save the weights file to
+        """
         supported_formats = ["pt"]
         if format not in supported_formats:
             raise Exception(
@@ -512,6 +531,9 @@ class ObjectDetectionModel:
         format=None,
         inference_engine_url=None,
     ):
+        """
+        Generate the URL to run inference on.
+        """
         # Reassign parameters if any parameters are changed
         if local is not None:
             if not local:

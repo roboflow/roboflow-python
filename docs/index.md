@@ -1,5 +1,3 @@
-# Roboflow Python
-
 ![roboflow-python-banner](https://github.com/roboflow/roboflow-python/assets/37276661/528ed065-d5ac-4f9a-942e-0d211b8d97de)
 
 [Roboflow](https://roboflow.com) provides everything you need to build and deploy computer vision models. `roboflow-python` is the official Roboflow Python package. `roboflow-python` enables you to interact with models, datasets, and projects hosted on Roboflow.
@@ -8,10 +6,8 @@ With this Python package, you can:
 
 1. Create and manage projects;
 2. Upload images, annotations, and datasets to manage in Roboflow;
-3. Start training vision models on Roboflow;
+3. Start training vision models on Robfolow;
 4. Run inference on models hosted on Roboflow, or Roboflow models self-hosted via [Roboflow Inference](https://github.com/roboflow/inference), and more.
-
-The Python package is documented on the [official Roboflow documentation site](https://docs.roboflow.com/api-reference/introduction). If you are developing a feature for this Python package, or need a full Python library reference, refer to the [package developer documentation](https://roboflow.github.io/roboflow-python/).
 
 ## 💻 Installation
 
@@ -61,53 +57,32 @@ rf = roboflow.Roboflow(api_key="")
 
 </details>
 
-## Quickstart
+### Datasets
 
-Below are some common methods used with the Roboflow Python package, presented concisely for reference. For a full library reference, refer to the [Roboflow API reference documentation](https://docs.roboflow.com/api-reference).
+Download any of over 200,000 public computer vision datasets from [Roboflow Universe](universe.roboflow.com). Label and download your own datasets on app.roboflow.com.
 
 ```python
-import roboflow
+dataset = roboflow.download_dataset(dataset_url="universe.roboflow.com/...", model_format="yolov8")
+```
 
-roboflow.login()
+### Models
 
-rf = roboflow.Roboflow()
+Predict with any of over 50,000 public computer vision models. Train your own computer vision models on app.roboflow.com or train upload your model from open source models - see https://github.com/roboflow/notebooks
 
-# create a project
-rf.create_project(
-    project_name="project name",
-    project_type="project-type",
-    license="project-license" # "private" for private projects
-)
+```python
+img_url = "https://media.roboflow.com/quickstart/aerial_drone.jpeg?updatedAt=1678743716455"
+universe_model_url = "https://universe.roboflow.com/brad-dwyer/aerial-solar-panels/model/6"
 
-workspace = rf.workspace("WORKSPACE_URL")
-project = workspace.project("PROJECT_URL")
-version = project.version("VERSION_NUMBER")
-
-# upload a dataset
-project.upload_dataset(
-    dataset_path="./dataset/",
-    num_workers=10,
-    dataset_format="yolov8", # supports yolov8, yolov5, and Pascal VOC
-    project_license="MIT",
-    project_type="object-detection"
-)
-
-# upload model weights
-version.deploy(model_type="yolov8", model_path=f”{HOME}/runs/detect/train/”)
-
-# run inference
-model = version.model
-
-img_url = "https://media.roboflow.com/quickstart/aerial_drone.jpeg"
-
-predictions = model.predict(img_url, hosted=True).json()
-
-print(predictions)
+model = roboflow.load_model(model_url=universe_model_url)
+pred = model.predict(img_url, hosted=True)
+pred.plot()
 ```
 
 ## Library Structure
 
-The Roboflow Python library is structured using the same Workspace, Project, and Version ontology that you will see in the Roboflow application.
+The Roboflow Python library is structured by the core Roboflow application objects.
+
+Workspace (workspace.py) --> Project (project.py) --> Version (version.py)
 
 ```python
 import roboflow

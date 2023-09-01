@@ -31,7 +31,19 @@ class UploadError(Exception):
 
 
 class Project:
-    def __init__(self, api_key, a_project, model_format=None):
+    """
+    A Roboflow Project.
+    """
+
+    def __init__(self, api_key: str, a_project: str, model_format: str = None):
+        """
+        Create a Project object that represents a Project associated with a Workspace.
+
+        Args:
+            api_key (str): private roboflow api key
+            a_project (str): the project id
+            model_format (str): the model format of the project
+        """
         if api_key in DEMO_KEYS:
             self.__api_key = api_key
             self.model_format = model_format
@@ -56,8 +68,11 @@ class Project:
             self.__project_name = temp[1]
 
     def get_version_information(self):
-        """Helper function to get version information from the REST API.
-        :returns dictionary with information about all of the versions directly from the API.
+        """
+        Retrieve all versions of a project.
+
+        Returns:
+            A list of all versions of the project.
         """
         dataset_info = requests.get(
             API_URL
@@ -77,13 +92,18 @@ class Project:
         return dataset_info["versions"]
 
     def list_versions(self):
-        """Prints out versions for that specific project"""
+        """
+        Print out versions for that specific project
+        """
         version_info = self.get_version_information()
         print(version_info)
 
     def versions(self):
-        """function to return all versions in the project as Version objects.
-        :returns an array of Version() objects.
+        """
+        Return all versions in the project as Version objects.
+
+        Returns:
+            A list of Version objects.
         """
         version_info = self.get_version_information()
         version_array = []
@@ -106,50 +126,53 @@ class Project:
 
     def generate_version(self, settings):
         """
-        Settings, a python dict with augmentation and preprocessing keys and specifications for generation.
-        These settings mirror capabilities available via the Roboflow UI.
-        For example:
-             {
-                "augmentation": {
-                    "bbblur": { "pixels": 1.5 },
-                    "bbbrightness": { "brighten": true, "darken": false, "percent": 91 },
-                    "bbcrop": { "min": 12, "max": 71 },
-                    "bbexposure": { "percent": 30 },
-                    "bbflip": { "horizontal": true, "vertical": false },
-                    "bbnoise": { "percent": 50 },
-                    "bbninety": { "clockwise": true, "counter-clockwise": false, "upside-down": false },
-                    "bbrotate": { "degrees": 45 },
-                    "bbshear": { "horizontal": 45, "vertical": 45 },
-                    "blur": { "pixels": 1.5 },
-                    "brightness": { "brighten": true, "darken": false, "percent": 91 },
-                    "crop": { "min": 12, "max": 71 },
-                    "cutout": { "count": 26, "percent": 71 },
-                    "exposure": { "percent": 30 },
-                    "flip": { "horizontal": true, "vertical": false },
-                    "hue": { "degrees": 180 },
-                    "image": { "versions": 32 },
-                    "mosaic": true,
-                    "ninety": { "clockwise": true, "counter-clockwise": false, "upside-down": false },
-                    "noise": { "percent": 50 },
-                    "rgrayscale": { "percent": 50 },
-                    "rotate": { "degrees": 45 },
-                    "saturation": { "percent": 50 },
-                    "shear": { "horizontal": 45, "vertical": 45 }
-                },
-                "preprocessing": {
-                    "auto-orient": true,
-                    "contrast": { "type": "Contrast Stretching" },
-                    "filter-null": { "percent": 50 },
-                    "grayscale": true,
-                    "isolate": true,
-                    "remap": { "original_class_name": "new_class_name" },
-                    "resize": { "width": 200, "height": 200, "format": "Stretch to" },
-                    "static-crop": { "x_min": 10, "x_max": 90, "y_min": 10, "y_max": 90 },
-                    "tile": { "rows": 2, "columns": 2 }
-                }
-            }
+        Generate a version of a dataset.
 
-        Returns: The version number that is being generated
+        Args:
+            settings: A Python dict with augmentation and preprocessing keys and specifications for generation. These settings mirror capabilities available via the Roboflow UI.
+                    For example:
+                        {
+                            "augmentation": {
+                                "bbblur": { "pixels": 1.5 },
+                                "bbbrightness": { "brighten": true, "darken": false, "percent": 91 },
+                                "bbcrop": { "min": 12, "max": 71 },
+                                "bbexposure": { "percent": 30 },
+                                "bbflip": { "horizontal": true, "vertical": false },
+                                "bbnoise": { "percent": 50 },
+                                "bbninety": { "clockwise": true, "counter-clockwise": false, "upside-down": false },
+                                "bbrotate": { "degrees": 45 },
+                                "bbshear": { "horizontal": 45, "vertical": 45 },
+                                "blur": { "pixels": 1.5 },
+                                "brightness": { "brighten": true, "darken": false, "percent": 91 },
+                                "crop": { "min": 12, "max": 71 },
+                                "cutout": { "count": 26, "percent": 71 },
+                                "exposure": { "percent": 30 },
+                                "flip": { "horizontal": true, "vertical": false },
+                                "hue": { "degrees": 180 },
+                                "image": { "versions": 32 },
+                                "mosaic": true,
+                                "ninety": { "clockwise": true, "counter-clockwise": false, "upside-down": false },
+                                "noise": { "percent": 50 },
+                                "rgrayscale": { "percent": 50 },
+                                "rotate": { "degrees": 45 },
+                                "saturation": { "percent": 50 },
+                                "shear": { "horizontal": 45, "vertical": 45 }
+                            },
+                            "preprocessing": {
+                                "auto-orient": true,
+                                "contrast": { "type": "Contrast Stretching" },
+                                "filter-null": { "percent": 50 },
+                                "grayscale": true,
+                                "isolate": true,
+                                "remap": { "original_class_name": "new_class_name" },
+                                "resize": { "width": 200, "height": 200, "format": "Stretch to" },
+                                "static-crop": { "x_min": 10, "x_max": 90, "y_min": 10, "y_max": 90 },
+                                "tile": { "rows": 2, "columns": 2 }
+                            }
+                        }
+
+        Returns:
+            int: The version number that is being generated.
         """
 
         if not {"augmentation", "preprocessing"} <= settings.keys():
@@ -220,11 +243,16 @@ class Project:
 
         return new_model
 
-    def version(self, version_number, local=None):
-        """Retrieves information about a specific version, and throws it into an object.
-        :param version_number: the version number that you want to retrieve
-        :local: specifies the localhost address and port if pointing towards local inference engine
-        :return Version() object
+    def version(self, version_number: int, local: str = None):
+        """
+        Retrieves information about a specific version and returns a Version() object.
+
+        Args:
+            version_number (int): the version number that you want to retrieve
+            local (str): specifies the localhost address and port if pointing towards local inference engine
+
+        Returns:
+            Version() object
         """
 
         if self.__api_key in DEMO_KEYS:
@@ -269,17 +297,20 @@ class Project:
 
     def __image_upload(
         self,
-        image_path,
-        hosted_image=False,
-        split="train",
-        batch_name=DEFAULT_BATCH_NAME,
-        tag_names=[],
+        image_path: str,
+        hosted_image: bool = False,
+        split: str = "train",
+        batch_name: str = DEFAULT_BATCH_NAME,
+        tag_names: list = [],
         **kwargs,
     ):
-        """function to upload image to the specific project
-        :param image_path: path to image you'd like to upload.
-        :param hosted_image: if the image is hosted online, then this should be modified
-        :param split: the dataset split to upload the project to.
+        """
+        Upload an image to a specific project.
+
+        Args:
+            image_path (str): path to image you'd like to upload
+            hosted_image (bool): whether the image is hosted on Roboflow
+            split (str): the dataset split the image to
         """
 
         # If image is not a hosted image
@@ -367,7 +398,7 @@ class Project:
         else:
             if responsejson:
                 raise UploadError(
-                    f"Bad response: {response.status_code} - {responsejson}"
+                    f"Bad response: {response.status_code}: {responsejson}"
                 )
             else:
                 raise UploadError(f"Bad response: {response}")
@@ -375,9 +406,12 @@ class Project:
     def __annotation_upload(
         self, annotation_path: str, image_id: str, is_prediction: bool = False
     ):
-        """function to upload annotation to the specific project
-        :param annotation_path: path to annotation you'd like to upload
-        :param image_id: image id you'd like to upload that has annotations for it.
+        """
+        Upload an annotation to a specific project.
+
+        Args:
+            annotation_path (str): path to annotation you'd like to upload
+            image_id (str): image id you'd like to upload that has annotations for it.
         """
 
         # stop on empty string
@@ -449,18 +483,27 @@ class Project:
             if responsejson:
                 if responsejson.get("error"):
                     raise UploadError(
-                        f"save annotation for {image_id} / bad response: {response.status_code} - {responsejson['error']}"
+                        f"save annotation for {image_id} / bad response: {response.status_code}: {responsejson['error']}"
                     )
                 else:
                     raise UploadError(
-                        f"save annotation for {image_id} / bad response: {response.status_code} - {responsejson}"
+                        f"save annotation for {image_id} / bad response: {response.status_code}: {responsejson}"
                     )
             else:
                 raise UploadError(
                     f"save annotation for {image_id} bad response: {response}"
                 )
 
-    def check_valid_image(self, image_path):
+    def check_valid_image(self, image_path: str):
+        """
+        Check if an image is valid. Useful before attempting to upload an image to Roboflow.
+
+        Args:
+            image_path (str): path to image you'd like to check
+
+        Returns:
+            bool: whether the image is valid or not
+        """
         try:
             img = Image.open(image_path)
             valid = img.format in ACCEPTED_IMAGE_FORMATS
@@ -483,21 +526,19 @@ class Project:
         is_prediction: bool = False,
         **kwargs,
     ):
-        """Upload image function based on the RESTful API
+        """
+        Upload an image or annotation to the Roboflow API.
 
         Args:
-            image_path (str) - path to image you'd like to upload
-            annotation_path (str) - if you're upload annotation, path to it
-            hosted_image (bool) - whether the image is hosted
-            image_id (str) - id of the image
-            split (str) - to upload the image to
-            num_retry_uploads (int) - how many times to retry upload on failure
-            batch_name (str) - name of batch to upload to within project
-            tag_names (list[str]) - tags to be applied to an image
-            is_prediction (bool) - whether the annotation data is a prediction rather than ground truth
-
-        Returns:
-            None - returns nothing
+            image_path (str): path to image you'd like to upload
+            annotation_path (str): if you're upload annotation, path to it
+            hosted_image (bool): whether the image is hosted
+            image_id (str): id of the image
+            split (str): to upload the image to
+            num_retry_uploads (int): how many times to retry upload on failure
+            batch_name (str): name of batch to upload to within project
+            tag_names (list[str]): tags to be applied to an image
+            is_prediction (bool): whether the annotation data is a prediction rather than ground truth
         """
 
         is_hosted = image_path.startswith("http://") or image_path.startswith(
@@ -635,6 +676,24 @@ class Project:
         batch_id: str = None,
         fields: list = ["id", "created", "name", "labels"],
     ):
+        """
+        Search for images in a project.
+
+        Args:
+            like_image (str): name of an image in your dataset to use if you want to find images similar to that one
+            prompt (str): search prompt
+            offset (int): offset of results
+            limit (int): limit of results
+            tag (str): tag that an image must have
+            class_name (str): class name that an image must have
+            in_dataset (str): dataset that an image must be in
+            batch (bool): whether the image must be in a batch
+            batch_id (str): batch id that an image must be in
+            fields (list): fields to return in results (default: ["id", "created", "name", "labels"])
+
+        Returns:
+            A list of images that match the search criteria.
+        """
         payload = {}
 
         if like_image is not None:
@@ -692,6 +751,24 @@ class Project:
         batch_id: str = None,
         fields: list = ["id", "created"],
     ):
+        """
+        Create a paginated list of search results for use in searching the images in a project.
+
+        Args:
+            like_image (str): name of an image in your dataset to use if you want to find images similar to that one
+            prompt (str): search prompt
+            offset (int): offset of results
+            limit (int): limit of results
+            tag (str): tag that an image must have
+            class_name (str): class name that an image must have
+            in_dataset (str): dataset that an image must be in
+            batch (bool): whether the image must be in a batch
+            batch_id (str): batch id that an image must be in
+            fields (list): fields to return in results (default: ["id", "created", "name", "labels"])
+
+        Returns:
+            A list of images that match the search criteria.
+        """
         while True:
             data = self.search(
                 like_image=like_image,
@@ -714,6 +791,9 @@ class Project:
             offset += limit
 
     def __str__(self):
+        """
+        Show a string representation of a Project object.
+        """
         # String representation of project
         json_str = {"name": self.name, "type": self.type, "workspace": self.__workspace}
 

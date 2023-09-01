@@ -1,4 +1,8 @@
 class Model:
+    """
+    A Roboflow model.
+    """
+
     def __init__(self, model):
         self.id = model["id"]
         self.endpoint = model["endpoint"]

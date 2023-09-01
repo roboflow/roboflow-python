@@ -25,6 +25,10 @@ from roboflow.util.two_stage_utils import ocr_infer
 
 
 class Workspace:
+    """
+    Manage a Roboflow workspace.
+    """
+
     def __init__(self, info, api_key, default_workspace, model_format):
         if api_key in DEMO_KEYS:
             self.__api_key = api_key
@@ -42,12 +46,17 @@ class Workspace:
             self.__api_key = api_key
 
     def list_projects(self):
-        """Lists projects out in the workspace"""
+        """
+        Print all projects in the workspace to the console.
+        """
         print(self.project_list)
 
     def projects(self):
-        """Returns all projects as Project() objects in the workspace
-        :return an array of project objects
+        """
+        Retrieve all projects in the workspace.
+
+        Returns:
+            List of Project objects.
         """
         projects_array = []
         for a_project in self.project_list:
@@ -57,6 +66,17 @@ class Workspace:
         return projects_array
 
     def project(self, project_name):
+        """
+        Retrieve a Project() object that represents a project in the workspace.
+
+        This object can be used to retrieve the model through which to run inference.
+
+        Args:
+            project_name (str): name of the project
+
+        Returns:
+            Project Object
+        """
         sys.stdout.write("\r" + "loading Roboflow project...")
         sys.stdout.write("\n")
         sys.stdout.flush()
@@ -86,6 +106,18 @@ class Workspace:
         return Project(self.__api_key, dataset_info, self.model_format)
 
     def create_project(self, project_name, project_type, project_license, annotation):
+        """
+        Create a project in a Roboflow workspace.
+
+        Args:
+            project_name (str): name of the project
+            project_type (str): type of the project
+            project_license (str): license of the project (set to `private` for private projects, only available for paid customers)
+            annotation (str): annotation of the project
+
+        Returns:
+            Project Object
+        """
         data = {
             "name": project_name,
             "type": project_type,
@@ -108,12 +140,15 @@ class Workspace:
         self, dir: str = "", image_ext: str = ".png", target_image: str = ""
     ) -> dict:
         """
-        @params:
-            dir: (str) = name reference to a directory of images for comparison
-            image_ext: (str) = file format for expected images (don't include the . before the file type name)
-            target_image: (str) = name reference for target image to compare individual images from directory against
+        Compare all images in a directory to a target image using CLIP
 
-            returns: (dict) = a key:value mapping of image_name:comparison_score_to_target
+        Args:
+            dir (str): name reference to a directory of images for comparison
+            image_ext (str): file format for expected images (don't include the . before the file type name)
+            target_image (str): name reference for target image to compare individual images from directory against
+
+        Returns:
+            dict: a key:value mapping of image_name:comparison_score_to_target
         """
 
         # list to store comparison results in
@@ -135,14 +170,18 @@ class Workspace:
         second_stage_model_name: str = "",
         second_stage_model_version: int = 0,
     ) -> dict:
-        """for each prediction in the first stage detection, perform detection with the second stage model
-        @params:
-            image: (str) = name of the image to be processed
-            first_stage_model: (str) = URL path to the first stage detection model
-            first_stage_model_version: (int) = version number for the first stage model
-            second_stage_mode: (str) = URL path to the second stage detection model
-            second_stage_model_version: (int) = version number for the second stage model
-            returns: (dict) = a json obj containing
+        """
+        For each prediction in a first stage detection, perform detection with the second stage model
+
+        Args:
+            image (str): name of the image to be processed
+            first_stage_model_name (str): name of the first stage detection model
+            first_stage_model_version (int): version number for the first stage model
+            second_stage_mode (str): name of the second stage detection model
+            second_stage_model_version (int): version number for the second stage model
+
+        Returns:
+            dict: a json obj containing the results of the second stage detection
         """
         results = []
 
@@ -203,13 +242,16 @@ class Workspace:
         first_stage_model_name: str = "",
         first_stage_model_version: int = 0,
     ) -> dict:
-        """for each prediction in the first stage object detection, perform OCR as second stage
-        @params:
-            image: (str) = name of the image to be processed
-            first_stage_model: (str) = URL path to the first stage detection model
-            first_stage_model_version: (int) = version number for the first stage model
+        """
+        For each prediction in the first stage object detection, perform OCR as second stage.
 
-            returns: (dict) = a json obj containing
+        Args:
+            image (str): name of the image to be processed
+            first_stage_model_name (str): name of the first stage detection model
+            first_stage_model_version (int): version number for the first stage model
+
+        Returns:
+            dict: a json obj containing the results of the second stage detection
         """
         results = []
 
@@ -250,13 +292,24 @@ class Workspace:
 
     def upload_dataset(
         self,
-        dataset_path,
-        project_name,
-        num_workers=10,
-        dataset_format="yolov8",
-        project_license="MIT",
-        project_type="object-detection",
+        dataset_path: str,
+        project_name: str,
+        num_workers: int = 10,
+        dataset_format: str = "yolov8",
+        project_license: str = "MIT",
+        project_type: str = "object-detection",
     ):
+        """
+        Upload a dataset to Roboflow.
+
+        Args:
+            dataset_path (str): path to the dataset
+            project_name (str): name of the project
+            num_workers (int): number of workers to use for parallel uploads
+            dataset_format (str): format of the dataset (`voc`, `yolov8`, `yolov5`)
+            project_license (str): license of the project (set to `private` for private projects, only available for paid customers)
+            project_type (str): type of the project (only `object-detection` is supported)
+        """
         if project_type != "object-detection":
             raise ("upload_dataset only supported for object-detection projects")
 
@@ -294,7 +347,14 @@ class Workspace:
             )
             print(f"Created project {dataset_upload_project.id}")
 
-        def upload_file(img_file, split):
+        def upload_file(img_file: str, split: str):
+            """
+            Upload an image or annotation to a project.
+
+            Args:
+                img_file (str): path to the image
+                split (str): split to which the the image should be added (train, valid, test)
+            """
             label_file = img_file.replace(".jpg", ".xml")
             dataset_upload_project.upload(
                 image_path=img_file, annotation_path=label_file, split=split
