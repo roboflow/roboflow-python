@@ -6,13 +6,11 @@ import os
 import random
 import sys
 import urllib
-from pathlib import Path
 
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import requests
-import wget
+import tqdm
 from PIL import Image
 
 from roboflow.config import API_URL, OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
@@ -519,7 +517,19 @@ class ObjectDetectionModel:
             sys.stdout.write("\r" + progress_message)
             sys.stdout.flush()
 
-        wget.download(pt_weights_url, out=location + "/weights.pt", bar=bar_progress)
+        response = requests.get(pt_weights_url, stream=True)
+
+        # write the zip file to the desired location
+        with open(location + "/weights.pt", "wb") as f:
+            total_length = int(response.headers.get("content-length"))
+            for chunk in tqdm(
+                response.iter_content(chunk_size=1024),
+                desc=f"Downloading weights to {location}/weights.pt",
+                total=int(total_length / 1024) + 1,
+            ):
+                if chunk:
+                    f.write(chunk)
+                    f.flush()
 
         return
 

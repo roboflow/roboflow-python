@@ -8,7 +8,6 @@ from importlib import import_module
 
 import numpy as np
 import requests
-import wget
 import yaml
 from dotenv import load_dotenv
 from tqdm import tqdm
@@ -231,7 +230,7 @@ class Version:
             else:
                 try:
                     raise RuntimeError(response.json())
-                except requests.exceptions.JSONDecodeError:
+                except json.JSONDecodeError:
                     response.raise_for_status()
 
         self.__download_zip(link, location, model_format)
@@ -266,7 +265,7 @@ class Version:
         if not response.ok:
             try:
                 raise RuntimeError(response.json())
-            except requests.exceptions.JSONDecodeError:
+            except json.JSONDecodeError:
                 response.raise_for_status()
 
         # the rest api returns 202 if the export is still in progress
@@ -296,7 +295,7 @@ class Version:
         else:
             try:
                 raise RuntimeError(response.json())
-            except requests.exceptions.JSONDecodeError:
+            except json.JSONDecodeError:
                 response.raise_for_status()
 
     def train(self, speed=None, checkpoint=None, plot_in_notebook=False) -> bool:
@@ -349,7 +348,7 @@ class Version:
         if not response.ok:
             try:
                 raise RuntimeError(response.json())
-            except requests.exceptions.JSONDecodeError:
+            except json.JSONDecodeError:
                 response.raise_for_status()
 
         status = "training"
@@ -657,7 +656,20 @@ class Version:
             sys.stdout.flush()
 
         try:
-            wget.download(link, out=location + "/roboflow.zip", bar=bar_progress)
+            response = requests.get(link, stream=True)
+
+            # write the zip file to the desired location
+            with open(location + "/roboflow.zip", "wb") as f:
+                total_length = int(response.headers.get("content-length"))
+                for chunk in tqdm(
+                    response.iter_content(chunk_size=1024),
+                    desc=f"Downloading Dataset Version Zip in {location} to {format}:",
+                    total=int(total_length / 1024) + 1,
+                ):
+                    if chunk:
+                        f.write(chunk)
+                        f.flush()
+
         except Exception as e:
             print(f"Error when trying to download dataset @ {link}")
             raise e
