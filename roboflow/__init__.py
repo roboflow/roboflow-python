@@ -75,9 +75,9 @@ def login(workspace=None, force=False):
     os_name = os.name
 
     if os_name == "nt":
-        default_path = os.getenv("USERPROFILE") + "\\roboflow\\config.json"
+        default_path = os.path.join(os.getenv("USERPROFILE"), "roboflow/config.json")
     else:
-        default_path = os.getenv("HOME") + "/.config/roboflow/config.json"
+        default_path = os.path.join(os.getenv("HOME"), ".config/roboflow/config.json")
 
     # default configuration location
     conf_location = os.getenv(
