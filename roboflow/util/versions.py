@@ -1,6 +1,6 @@
+import sys
 from importlib import import_module
 from typing import List, Tuple
-import sys
 
 from packaging.version import Version
 
