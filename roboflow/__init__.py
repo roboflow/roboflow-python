@@ -114,6 +114,9 @@ def login(workspace=None, force=False):
 
     if r_login.status_code == 200:
         r_login = r_login.json()
+        if r_login is None:
+            raise ValueError("Invalid API key. "
+                             "Please check your API key and try again.")
 
         # make config directory if it doesn't exist
         if not os.path.exists(os.path.dirname(conf_location)):
