@@ -490,7 +490,7 @@ class Version:
                 )
 
             print_warn_for_wrong_dependencies_versions(
-                [("ultralytics", "==", "8.0.134")]
+                [("ultralytics", "==", "8.0.134")], ask_to_continue=True
             )
 
         elif "yolov5" in model_type or "yolov7" in model_type:

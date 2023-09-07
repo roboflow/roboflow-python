@@ -1,5 +1,6 @@
 from importlib import import_module
 from typing import List, Tuple
+import sys
 
 from packaging.version import Version
 
@@ -42,13 +43,19 @@ def get_wrong_dependencies_versions(
 
 
 def print_warn_for_wrong_dependencies_versions(
-    dependencies_versions: List[Tuple[str, str, str]]
+    dependencies_versions: List[Tuple[str, str, str]], ask_to_continue: bool = False
 ):
     wrong_dependencies_versions = get_wrong_dependencies_versions(dependencies_versions)
     for dependency, order, version, module_version in wrong_dependencies_versions:
         print(
             f"Dependency {dependency}{order}{version} is required but found version={module_version}, to fix: `pip install {dependency}{order}{version}`"
         )
+        if ask_to_continue:
+            answer = input(
+                f"Would you like to continue with the wrong version of {dependency}? y/n: "
+            )
+            if answer.lower() != "y":
+                sys.exit(1)
 
 
 def warn_for_wrong_dependencies_versions(
