@@ -25,7 +25,7 @@ def check_key(api_key, model, notebook, num_retries=0):
         )
 
     if any(
-        c for c in api_key if c.islower()
+            c for c in api_key if c.islower()
     ):  # check if any of the api key characters are lowercase
         if api_key in DEMO_KEYS:
             # passthrough for public download of COCO-128 for the time being
@@ -46,7 +46,8 @@ def check_key(api_key, model, notebook, num_retries=0):
                     return check_key(api_key, model, notebook, num_retries)
                 else:
                     raise RuntimeError(
-                        "There was an error validating the api key with Roboflow server."
+                        "There was an error validating the api key with Roboflow "
+                        "server."
                     )
             else:
                 r = response.json()
@@ -87,7 +88,8 @@ def login(workspace=None, force=False):
 
     if os.path.isfile(conf_location) and not force:
         write_line(
-            "You are already logged into Roboflow. To make a different login, run roboflow.login(force=True)."
+            "You are already logged into Roboflow. "
+            "To make a different login, run roboflow.login(force=True)."
         )
         return None
         # we could eventually return the workspace object here
@@ -163,7 +165,7 @@ def initialize_roboflow(the_workspace=None):
             "To use this method, you must first login - run roboflow.login()"
         )
     else:
-        if the_workspace == None:
+        if the_workspace is None:
             active_workspace = Roboflow().workspace()
         else:
             active_workspace = Roboflow().workspace(the_workspace)
@@ -231,10 +233,10 @@ def download_dataset(dataset_url, model_format, location=None):
 # continue distributing this object for back compatibility
 class Roboflow:
     def __init__(
-        self,
-        api_key=None,
-        model_format="undefined",
-        notebook="undefined",
+            self,
+            api_key=None,
+            model_format="undefined",
+            notebook="undefined",
     ):
         self.api_key = api_key
         if self.api_key == None:
@@ -278,7 +280,7 @@ class Roboflow:
 
     def project(self, project_name, the_workspace=None):
         """Function that takes in the name of the project and returns the project object
-        :param project_name api_key: project name
+        :param project_name: project name
         :param the_workspace workspace name
         :return project object
         """
@@ -300,7 +302,8 @@ class Roboflow:
             + self.api_key
         )
 
-        # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
+        # Throw error if dataset isn't valid/user doesn't have permissions
+        # to access the dataset
         if dataset_info.status_code != 200:
             raise RuntimeError(dataset_info.text)
 
