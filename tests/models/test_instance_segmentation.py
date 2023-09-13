@@ -1,12 +1,11 @@
 import unittest
 
-from requests.exceptions import HTTPError
 import responses
+from requests.exceptions import HTTPError
 
 from roboflow.config import INSTANCE_SEGMENTATION_URL
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.util.prediction import PredictionGroup
-
 
 MOCK_RESPONSE = {
     "predictions": [
@@ -42,7 +41,6 @@ MOCK_RESPONSE = {
 
 
 class TestInstanceSegmentation(unittest.TestCase):
-
     api_key = "my-api-key"
     workspace = "roboflow"
     dataset_id = "test-123"

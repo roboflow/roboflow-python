@@ -31,7 +31,7 @@ jobs:
         run: |
           make check_code_quality
       - name: 🧪 Test
-        env: 
+        env:
           ROBOFLOW_API_KEY: ${{ secrets.ROBOFLOW_API_KEY }}
           PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
           PROJECT_VERSION: ${{ secrets.PROJECT_VERSION }}

@@ -1,6 +1,7 @@
+import re
+
 import setuptools
 from setuptools import find_packages
-import re
 
 with open("./roboflow/__init__.py", "r") as f:
     content = f.read()
@@ -11,7 +12,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 with open("requirements.txt", "r") as fh:
-    install_requires = fh.read().split('\n')
+    install_requires = fh.read().split("\n")
 
 setuptools.setup(
     name="roboflow",

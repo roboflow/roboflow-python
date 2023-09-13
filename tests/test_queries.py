@@ -1,5 +1,3 @@
-import os
-import unittest
 
 from _datetime import datetime
 
@@ -8,7 +6,7 @@ from roboflow.core.version import Version
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 
-from . import RoboflowTest, ordered, PROJECT_NAME
+from . import PROJECT_NAME, RoboflowTest, ordered
 
 
 class TestQueries(RoboflowTest):

@@ -12,7 +12,7 @@ def get_version(
     **kwargs,
 ):
     version_data = {
-        "id": f"test-workspace/test-project/2",
+        "id": "test-workspace/test-project/2",
         "name": "augmented-416x416",
         "created": 1663104679.539,
         "images": 240,
@@ -47,5 +47,5 @@ def get_version(
         local=None,
         workspace=workspace_name,
         project=project_name,
-        public=public
+        public=public,
     )

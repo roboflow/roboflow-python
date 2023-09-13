@@ -169,7 +169,7 @@ class ObjectDetectionModel:
         )
 
         # Check if image exists at specified path or URL or is an array
-        if hasattr(image_path, "__len__") == True:
+        if hasattr(image_path, "__len__") is True:
             pass
         else:
             self.__exception_check(image_path_check=image_path)
@@ -401,7 +401,7 @@ class ObjectDetectionModel:
         def view(button):
             while True:
                 if stopButton is not None:
-                    if stopButton.value == True:
+                    if stopButton.value is True:
                         break
                 else:
                     if cv2.waitKey(1) & 0xFF == ord("q"):  # quit when 'q' is pressed

@@ -140,7 +140,7 @@ class Version:
         response = requests.get(url, params={"api_key": self.__api_key})
         response.raise_for_status()
 
-        if response.json()["version"]["progress"] == None:
+        if response.json()["version"]["progress"] is None:
             progress = 0.0
         else:
             progress = float(response.json()["version"]["progress"])
@@ -199,7 +199,7 @@ class Version:
                 print_warn_for_wrong_dependencies_versions(
                     [("ultralytics", "==", "8.0.134")]
                 )
-            except ImportError as e:
+            except ImportError:
                 print(
                     "[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. Roboflow `.deploy` supports only models trained with `ultralytics==8.0.134`, to intall it `pip install ultralytics==8.0.134`."
                 )
@@ -354,7 +354,6 @@ class Version:
         status = "training"
 
         if plot_in_notebook:
-            import collections
 
             from IPython.display import clear_output
             from matplotlib import pyplot as plt
@@ -484,7 +483,7 @@ class Version:
                 import torch
                 import ultralytics
 
-            except ImportError as e:
+            except ImportError:
                 raise (
                     "The ultralytics python package is required to deploy yolov8 models. Please install it with `pip install ultralytics`"
                 )
@@ -496,7 +495,7 @@ class Version:
         elif "yolov5" in model_type or "yolov7" in model_type:
             try:
                 import torch
-            except ImportError as e:
+            except ImportError:
                 raise (
                     "The torch python package is required to deploy yolov5 models. Please install it with `pip install torch`"
                 )
@@ -602,7 +601,7 @@ class Version:
         try:
             if res.status_code == 429:
                 raise RuntimeError(
-                    f"This version already has a trained model. Please generate and train a new version in order to upload model to Roboflow."
+                    "This version already has a trained model. Please generate and train a new version in order to upload model to Roboflow."
                 )
             else:
                 res.raise_for_status()

@@ -34,7 +34,7 @@ def get_conditional_configuration_variable(key, default):
     else:
         config = {}
 
-    if os.getenv(key) != None:
+    if os.getenv(key) is not None:
         return os.getenv(key)
     elif key in config.keys():
         return config[key]
@@ -86,7 +86,7 @@ def load_roboflow_api_key():
     RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
 
     # DEFAULT_WORKSPACE = get_conditional_configuration_variable("default_workspace", default=None)
-    if RF_WORKSPACE == None:
+    if RF_WORKSPACE is None:
         RF_API_KEY = None
     else:
         RF_API_KEY = None
@@ -95,7 +95,7 @@ def load_roboflow_api_key():
             if workspace["url"] == RF_WORKSPACE:
                 RF_API_KEY = workspace["apiKey"]
     # ENV API_KEY OVERRIDE
-    if os.getenv("RF_API_KEY") != None:
+    if os.getenv("RF_API_KEY") is not None:
         RF_API_KEY = os.getenv("RF_API_KEY")
 
     return RF_API_KEY

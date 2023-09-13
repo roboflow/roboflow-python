@@ -168,7 +168,7 @@ def initialize_roboflow(the_workspace=None):
             "To use this method, you must first login - run roboflow.login()"
         )
     else:
-        if the_workspace == None:
+        if the_workspace is None:
             active_workspace = Roboflow().workspace()
         else:
             active_workspace = Roboflow().workspace(the_workspace)
@@ -242,7 +242,7 @@ class Roboflow:
         notebook="undefined",
     ):
         self.api_key = api_key
-        if self.api_key == None:
+        if self.api_key is None:
             self.api_key = load_roboflow_api_key()
 
         self.model_format = model_format

@@ -24,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[dev]"
       - name: 🚀 Publish to PyPi
-        env: 
+        env:
           PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
           PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
           PYPI_TEST_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
