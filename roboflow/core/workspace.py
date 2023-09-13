@@ -228,7 +228,8 @@ class Workspace:
 
         else:
             print(
-                "please use an object detection model for the first stage--can only perform two stage with bounding box results",
+                "please use an object detection model for the first stage--can only"
+                " perform two stage with bounding box results",
                 "please use a classification model for the second stage",
             )
 
@@ -283,7 +284,8 @@ class Workspace:
                 results.append(ocr_infer(croppedImg)["results"])
         else:
             print(
-                "please use an object detection model--can only perform two stage with bounding box results"
+                "please use an object detection model--can only perform two stage with"
+                " bounding box results"
             )
 
         return results
@@ -313,7 +315,8 @@ class Workspace:
 
         if dataset_format not in ["voc", "yolov8", "yolov5"]:
             raise (
-                "dataset_format not supported - please use voc, yolov8, yolov5. PS, you can always convert your dataset in the Roboflow UI"
+                "dataset_format not supported - please use voc, yolov8, yolov5. PS, you"
+                " can always convert your dataset in the Roboflow UI"
             )
 
         # check type stuff and convert

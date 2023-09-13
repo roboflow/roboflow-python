@@ -201,7 +201,10 @@ class Version:
                 )
             except ImportError:
                 print(
-                    "[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. Roboflow `.deploy` supports only models trained with `ultralytics==8.0.134`, to intall it `pip install ultralytics==8.0.134`."
+                    "[WARNING] we noticed you are downloading a `yolov8` datasets but"
+                    " you don't have `ultralytics` installed. Roboflow `.deploy`"
+                    " supports only models trained with `ultralytics==8.0.134`, to"
+                    " intall it `pip install ultralytics==8.0.134`."
                 )
                 # silently fail
                 pass
@@ -354,7 +357,6 @@ class Version:
         status = "training"
 
         if plot_in_notebook:
-
             from IPython.display import clear_output
             from matplotlib import pyplot as plt
 
@@ -474,7 +476,8 @@ class Version:
         ):
             raise (
                 ValueError(
-                    f"Model type {model_type} not supported. Supported models are {supported_models}"
+                    f"Model type {model_type} not supported. Supported models are"
+                    f" {supported_models}"
                 )
             )
 
@@ -485,7 +488,8 @@ class Version:
 
             except ImportError:
                 raise (
-                    "The ultralytics python package is required to deploy yolov8 models. Please install it with `pip install ultralytics`"
+                    "The ultralytics python package is required to deploy yolov8"
+                    " models. Please install it with `pip install ultralytics`"
                 )
 
             print_warn_for_wrong_dependencies_versions(
@@ -497,7 +501,8 @@ class Version:
                 import torch
             except ImportError:
                 raise (
-                    "The torch python package is required to deploy yolov5 models. Please install it with `pip install torch`"
+                    "The torch python package is required to deploy yolov5 models."
+                    " Please install it with `pip install torch`"
                 )
 
         model = torch.load(os.path.join(model_path, "weights/best.pt"))
@@ -591,7 +596,8 @@ class Version:
                     if file in ["model_artifacts.json", "state_dict.pt"]:
                         raise (
                             ValueError(
-                                f"File {file} not found. Please make sure to provide a valid model path."
+                                f"File {file} not found. Please make sure to provide a"
+                                " valid model path."
                             )
                         )
 
@@ -601,7 +607,8 @@ class Version:
         try:
             if res.status_code == 429:
                 raise RuntimeError(
-                    "This version already has a trained model. Please generate and train a new version in order to upload model to Roboflow."
+                    "This version already has a trained model. Please generate and"
+                    " train a new version in order to upload model to Roboflow."
                 )
             else:
                 res.raise_for_status()
@@ -618,14 +625,17 @@ class Version:
 
             if self.public:
                 print(
-                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
+                    "View the status of your deployment at:"
+                    f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
                 print(
-                    f"Share your model with the world at: {UNIVERSE_URL}/{self.workspace}/{self.project}/model/{self.version}"
+                    "Share your model with the world at:"
+                    f" {UNIVERSE_URL}/{self.workspace}/{self.project}/model/{self.version}"
                 )
             else:
                 print(
-                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
+                    "View the status of your deployment at:"
+                    f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
 
         except Exception as e:
@@ -746,7 +756,8 @@ class Version:
 
         if not format:
             raise RuntimeError(
-                "You must pass a format argument to version.download() or define a model in your Roboflow object"
+                "You must pass a format argument to version.download() or define a"
+                " model in your Roboflow object"
             )
 
         friendly_formats = {"yolov5": "yolov5pytorch", "yolov7": "yolov7pytorch"}

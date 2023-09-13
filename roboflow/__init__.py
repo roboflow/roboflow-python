@@ -46,7 +46,8 @@ def check_key(api_key, model, notebook, num_retries=0):
                     return check_key(api_key, model, notebook, num_retries)
                 else:
                     raise RuntimeError(
-                        "There was an error validating the api key with Roboflow server."
+                        "There was an error validating the api key with Roboflow"
+                        " server."
                     )
             else:
                 r = response.json()
@@ -97,9 +98,7 @@ def login(workspace=None, force=False):
         os.remove(conf_location)
 
     if workspace is None:
-        write_line(
-            "visit " + APP_URL + "/auth-cli" " to get your authentication token."
-        )
+        write_line("visit " + APP_URL + "/auth-cli to get your authentication token.")
     else:
         write_line(
             "visit "
@@ -117,7 +116,7 @@ def login(workspace=None, force=False):
         r_login = r_login.json()
         if r_login is None:
             raise ValueError(
-                "Invalid API key. " "Please check your API key and try again."
+                "Invalid API key. Please check your API key and try again."
             )
 
         # make config directory if it doesn't exist

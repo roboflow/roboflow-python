@@ -58,7 +58,10 @@ def clip_encode(image1, image2, CLIP_FEATURIZE_URL):
 
     if CLIP_FEATURIZE_URL == "CLIP FEATURIZE URL NOT IN ENV":
         raise Exception(
-            "You need to ad CLIP_FEATURE_URL to your env vars. To learn more about this active learning feature, contact Roboflow sales https://roboflow.com/sales. You can remove the similarity keys from your conditionals to use other active learning functionality."
+            "You need to ad CLIP_FEATURE_URL to your env vars. To learn more about this"
+            " active learning feature, contact Roboflow sales"
+            " https://roboflow.com/sales. You can remove the similarity keys from your"
+            " conditionals to use other active learning functionality."
         )
 
     url = CLIP_FEATURIZE_URL

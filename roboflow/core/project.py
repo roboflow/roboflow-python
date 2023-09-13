@@ -221,7 +221,8 @@ class Project:
         if not {"augmentation", "preprocessing"} <= settings.keys():
             raise (
                 RuntimeError(
-                    "augmentation and preprocessing keys are required to generate. If none are desired specify empty dict associated with that key."
+                    "augmentation and preprocessing keys are required to generate. If"
+                    " none are desired specify empty dict associated with that key."
                 )
             )
 
@@ -490,10 +491,14 @@ class Project:
         # don't attempt upload otherwise
         else:
             print(
-                "File not found or uploading to non-classification type project with invalid string"
+                "File not found or uploading to non-classification type project with"
+                " invalid string"
             )
             return {
-                "result": "File not found or uploading to non-classification type project with invalid string"
+                "result": (
+                    "File not found or uploading to non-classification type project"
+                    " with invalid string"
+                )
             }
 
         self.annotation_upload_url = "".join(
@@ -523,7 +528,8 @@ class Project:
             if responsejson:
                 if responsejson.get("error"):
                     raise UploadError(
-                        f"Failed to save annotation for {image_id}: {responsejson['error']}"
+                        f"Failed to save annotation for {image_id}:"
+                        f" {responsejson['error']}"
                     )
                 elif not responsejson.get("success"):
                     raise UploadError(
@@ -531,7 +537,8 @@ class Project:
                     )
             else:
                 warnings.warn(
-                    f"save annotation {annotation_path} 200 OK, weird response: {response}"
+                    f"save annotation {annotation_path} 200 OK, weird response:"
+                    f" {response}"
                 )
         elif response.status_code == 409 and "already annotated" in (
             responsejson or {}
@@ -541,11 +548,13 @@ class Project:
             if responsejson:
                 if responsejson.get("error"):
                     raise UploadError(
-                        f"save annotation for {image_id} / bad response: {response.status_code}: {responsejson['error']}"
+                        f"save annotation for {image_id} / bad response:"
+                        f" {response.status_code}: {responsejson['error']}"
                     )
                 else:
                     raise UploadError(
-                        f"save annotation for {image_id} / bad response: {response.status_code}: {responsejson}"
+                        f"save annotation for {image_id} / bad response:"
+                        f" {response.status_code}: {responsejson}"
                     )
             else:
                 raise UploadError(
@@ -617,9 +626,8 @@ class Project:
 
         if not is_file and not is_dir:
             raise RuntimeError(
-                "The provided image path [ {} ] is not a valid path. Please provide a path to an image or a directory.".format(
-                    image_path
-                )
+                "The provided image path [ {} ] is not a valid path. Please provide a"
+                " path to an image or a directory.".format(image_path)
             )
 
         if is_file:
@@ -627,7 +635,8 @@ class Project:
 
             if not is_image:
                 raise RuntimeError(
-                    "The image you provided {} is not a supported file format. We currently support: {}.".format(
+                    "The image you provided {} is not a supported file format. We"
+                    " currently support: {}.".format(
                         image_path, ", ".join(ACCEPTED_IMAGE_FORMATS)
                     )
                 )
@@ -698,7 +707,8 @@ class Project:
                 success = True
             except BaseException as e:
                 print(
-                    f"{image_path} ERROR uploading image after {num_retry_uploads} retries: {e}",
+                    f"{image_path} ERROR uploading image after"
+                    f" {num_retry_uploads} retries: {e}",
                     file=sys.stderr,
                 )
                 return
