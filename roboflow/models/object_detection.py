@@ -177,7 +177,7 @@ class ObjectDetectionModel:
         resize = False
         # If image is local image
         if not hosted:
-            if type(image_path) is str:
+            if isinstance(image_path, str):
                 image = Image.open(image_path).convert("RGB")
                 dimensions = image.size
                 original_dimensions = copy.deepcopy(dimensions)

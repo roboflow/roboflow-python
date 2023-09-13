@@ -16,7 +16,7 @@ __version__ = "1.1.6"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
-    if type(api_key) is not str:
+    if not isinstance(api_key, str):
         raise RuntimeError(
             "API Key is of Incorrect Type \n Expected Type: "
             + str(type(""))
