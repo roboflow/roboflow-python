@@ -1,0 +1,19 @@
+parse_git_branch() {
+     git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
+}
+export PS1="\[\033[32m\]\w\[\033[33m\]\$(parse_git_branch)\[\033[00m\] $ "
+alias ll='ls -lah'
+source /usr/share/bash-completion/completions/git
+
+#!/bin/bash
+RESTORE='\033[0m'
+RED='\033[00;31m'
+GREEN='\033[00;32m'
+YELLOW='\e[0;33m'
+
+function quickstart {
+    echo -e ""
+    echo -e "${RED}run tests${RESTORE}"
+    echo -e "${YELLOW}python -m unittest${RESTORE}"
+    echo -e ""
+}
