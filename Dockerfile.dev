@@ -3,5 +3,7 @@ RUN apt-get update && apt-get install -y make libgl1-mesa-glx && rm -rf /var/lib
 WORKDIR /roboflow-python
 COPY .devcontainer/bashrc_ext /root/bashrc_ext
 RUN echo "source /root/bashrc_ext" >> ~/.bashrc
-COPY . .
+COPY ./setup.py ./pyproject.toml ./README.md ./requirements.txt ./
+COPY roboflow/__init__.py ./roboflow/__init__.py
 RUN pip install -e ".[dev]"
+COPY . .

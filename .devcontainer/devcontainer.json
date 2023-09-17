@@ -7,7 +7,8 @@
     "customizations": {
         "vscode": {
             "extensions": [
-                "ms-python.python"
+                "ms-python.python",
+                "ms-python.black-formatter"
             ],
             "settings": {
                 "extensions.verifySignature": false
