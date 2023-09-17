@@ -38,3 +38,5 @@ make check_code_quality
 ```
 
 **Note** These tests will be run automatically when you commit thanks to git hooks.
+
+**Note** This project also comes with a convenient devcontainer that makes it easier to run tests and has black configured to run on save.
