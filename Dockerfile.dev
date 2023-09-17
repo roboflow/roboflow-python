@@ -1,7 +1,5 @@
-ARG PYTHON_VERSION=3.8
-FROM python:$PYTHON_VERSION-slim
-RUN apt-get update && apt-get install make && rm -rf /var/lib/apt/lists/*
-WORKDIR /workspace
+FROM python:3.8
+RUN apt-get update && apt-get install -y make libgl1-mesa-glx && rm -rf /var/lib/apt/lists/*
+WORKDIR /roboflow-python
 COPY . .
 RUN pip install -e ".[dev]"
-ENTRYPOINT [ "/bin/bash" ]

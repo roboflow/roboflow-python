@@ -108,7 +108,7 @@ Within the version object, you can download the dataset version in any model for
 
 ## 🏆 Contributing
 
-We would love your input on how we can improve the Roboflow Python package! Please see our [contributing guide](https://github.com/roboflow/roboflow-python) to get started. Thank you 🙏 to all our contributors!
+We would love your input on how we can improve the Roboflow Python package! Please see our [contributing guide](./CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
 
 <br>
 

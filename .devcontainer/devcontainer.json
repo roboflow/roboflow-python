@@ -1,0 +1,17 @@
+{
+    "name": "roboflow-python devcontainer",
+    "dockerComposeFile": "./docker-compose.yaml",
+    "service": "devcontainer-roboflow-python",
+    "workspaceFolder": "/roboflow-python",
+    "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python"
+            ],
+            "settings": {
+                "extensions.verifySignature": false
+            }
+        }
+    }
+}
