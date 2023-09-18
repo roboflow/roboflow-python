@@ -1,0 +1,10 @@
+version: '3'
+services:
+  devcontainer-roboflow-python:
+    build:
+      context: ..
+      dockerfile: Dockerfile.dev
+    image: devcontainer-roboflow-python
+    volumes:
+      - ..:/roboflow-python
+    command: sleep infinity
