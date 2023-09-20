@@ -212,7 +212,7 @@ class ObjectDetectionModel:
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                     timeout=timeout,
-                    max_retries=max_retries
+                    max_retries=max_retries,
                 )
 
                 image_dims = {
@@ -231,7 +231,7 @@ class ObjectDetectionModel:
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                     timeout=timeout,
-                    max_retries=max_retries
+                    max_retries=max_retries,
                 )
                 # Replace with dimensions variable once cv2.imencode shape solution is found
                 image_dims = {"width": "0", "height": "0"}
@@ -424,7 +424,7 @@ class ObjectDetectionModel:
                 img_str = base64.b64encode(frame_upload)
                 img_str = img_str.decode("ascii")
 
-                # post frame to the Roboflow API
+                # POST frame to the Roboflow API
                 r = self.__failsafe_post(
                     self.api_url,
                     data=img_str,
@@ -607,26 +607,27 @@ class ObjectDetectionModel:
         if self.classes is not None:
             self.api_url += "&classes=" + self.classes
 
-    def __failsafe_post(
-        self, 
-        url, 
-        data=None, 
-        headers=None, 
-        timeout=-1, 
-        max_retries=1
-    ):
+    def __failsafe_post(self, url, data=None, headers=None, timeout=-1, max_retries=1):
+        """
+        Send a POST request with defined timeout and maximum number of retries
+
+        Args:
+            url (str): URL to POST to
+            data (dict): payload to send in request
+            headers (dict): headers to send in request
+            timeout (int): maximum time to wait for a response
+            max_retries (int): maximum number of times to retry any failed requests
+
+        Returns:
+            resp (dict): response from request
+        """
         if timeout == -1:
-            resp = requests.post(url=url, 
-                                 data=data, 
-                                 headers=headers)
+            resp = requests.post(url=url, data=data, headers=headers)
         else:
             while max_retries > 0:
                 try:
                     resp = requests.post(
-                        url=url, 
-                        data=data, 
-                        headers=headers, 
-                        timeout=timeout
+                        url=url, data=data, headers=headers, timeout=timeout
                     )
                     break
                 except:

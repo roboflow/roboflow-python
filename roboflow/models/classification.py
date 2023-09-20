@@ -55,13 +55,15 @@ class ClassificationModel:
         self.colors = {} if colors is None else colors
         self.preprocessing = {} if preprocessing is None else preprocessing
 
-    def predict(self, image_path, hosted=False):
+    def predict(self, image_path, hosted=False, timeout=-1, max_retries=1):
         """
         Run inference on an image.
 
         Args:
             image_path (str): path to the image you'd like to perform prediction on
             hosted (bool): whether the image you're providing is hosted on Roboflow
+            timeout (int): max amount of time to wait in s for a response
+            max_retries (int): max number of times to retry after a failed response
 
         Returns:
             PredictionGroup Object
@@ -91,16 +93,22 @@ class ClassificationModel:
             img_str = base64.b64encode(buffered.getvalue())
             img_str = img_str.decode("ascii")
             # Post to API and return response
-            resp = requests.post(
-                self.api_url,
+            resp = self.__failsafe_post(
+                url=self.api_url,
                 data=img_str,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=timeout,
+                max_retries=max_retries,
             )
         else:
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
             # POST to the API
-            resp = requests.post(self.api_url)
+            resp = self.__failsafe_post(
+                url=self.api_url,
+                timeout=timeout,
+                max_retries=max_retries,
+            )
             img_dims = {"width": "0", "height": "0"}
 
         if resp.status_code != 200:
@@ -146,6 +154,34 @@ class ClassificationModel:
                 "&name=YOUR_IMAGE.jpg",
             ]
         )
+
+    def __failsafe_post(self, url, data=None, headers=None, timeout=-1, max_retries=1):
+        """
+        Send a POST request with defined timeout and maximum number of retries
+
+        Args:
+            url (str): URL to POST to
+            data (dict): payload to send in request
+            headers (dict): headers to send in request
+            timeout (int): maximum time to wait for a response
+            max_retries (int): maximum number of times to retry any failed requests
+
+        Returns:
+            resp (dict): response from request
+        """
+        if timeout == -1:
+            resp = requests.post(url=url, data=data, headers=headers)
+        else:
+            while max_retries > 0:
+                try:
+                    resp = requests.post(
+                        url=url, data=data, headers=headers, timeout=timeout
+                    )
+                    break
+                except:
+                    max_retries -= 1
+
+        return resp
 
     def __exception_check(self, image_path_check=None):
         """

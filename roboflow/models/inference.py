@@ -68,7 +68,39 @@ class InferenceModel:
             image_dims,
         )
 
-    def predict(self, image_path, prediction_type=None, **kwargs):
+    def __failsafe_post(
+        self, url, data=None, headers=None, timeout=-1, max_retries=1, **kwargs
+    ):
+        """
+        Send a POST request with defined timeout and maximum number of retries
+
+        Args:
+            url (str): URL to POST to
+            data (dict): payload to send in request
+            headers (dict): headers to send in request
+            timeout (int): maximum time to wait for a response
+            max_retries (int): maximum number of times to retry any failed requests
+
+        Returns:
+            resp (dict): response from request
+        """
+        if timeout == -1:
+            resp = requests.post(url=url, data=data, headers=headers, **kwargs)
+        else:
+            while max_retries > 0:
+                try:
+                    resp = requests.post(
+                        url=url, data=data, headers=headers, timeout=timeout, **kwargs
+                    )
+                    break
+                except:
+                    max_retries -= 1
+
+        return resp
+
+    def predict(
+        self, image_path, prediction_type=None, timeout=-1, max_retries=1, **kwargs
+    ):
         """
         Infers detections based on image from a specified model and image path.
 
@@ -101,7 +133,9 @@ class InferenceModel:
         params.update(**kwargs)
 
         url = f"{self.api_url}?{urllib.parse.urlencode(params)}"
-        response = requests.post(url, **request_kwargs)
+        response = self.__failsafe_post(
+            url=url, timeout=timeout, max_retries=max_retries, **request_kwargs
+        )
         response.raise_for_status()
 
         return PredictionGroup.create_prediction_group(
