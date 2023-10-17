@@ -142,6 +142,7 @@ cython_debug/
 
 #config stuff
 tests/config.json
+tests/manual/data
 
 #dataset download stuff
 
