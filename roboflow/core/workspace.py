@@ -311,8 +311,8 @@ class Workspace:
         if project_type != "object-detection":
             raise ("upload_dataset only supported for object-detection projects")
 
-        if dataset_format not in ["voc", "yolov8", "yolov5"]:
-            raise (
+        if dataset_format not in ["voc", "yolov8", "yolov5", "darknet"]:
+            raise Exception(
                 "dataset_format not supported - please use voc, yolov8, yolov5. PS, you can always convert your dataset in the Roboflow UI"
             )
 
