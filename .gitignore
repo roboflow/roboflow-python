@@ -146,10 +146,10 @@ tests/manual/data
 
 #dataset download stuff
 
-test/
-train/
-valid/
-data.yaml
+# test/
+# train/
+# valid/
+# data.yaml
 README.roboflow.txt
 *.zip
 .DS_Store
