@@ -197,7 +197,7 @@ class Version:
             try:
                 import_module("ultralytics")
                 print_warn_for_wrong_dependencies_versions(
-                    [("ultralytics", "==", "8.0.134")]
+                    [("ultralytics", "==", "8.0.196")]
                 )
             except ImportError as e:
                 print(
