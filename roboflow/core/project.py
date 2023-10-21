@@ -1,16 +1,14 @@
 import datetime
-import io
 import json
 import os
 import sys
-import urllib
 import warnings
 
-import cv2
 import requests
 from PIL import Image, UnidentifiedImageError
-from requests_toolbelt.multipart.encoder import MultipartEncoder
 
+from roboflow.adapters import rfapi
+from roboflow.adapters.rfapi import UploadError
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEMO_KEYS
 from roboflow.core.version import Version
 from roboflow.util.general import retry
@@ -24,10 +22,6 @@ def custom_formatwarning(msg, *args, **kwargs):
 
 
 warnings.formatwarning = custom_formatwarning
-
-
-class UploadError(Exception):
-    pass
 
 
 class Project:
@@ -353,114 +347,6 @@ class Project:
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
 
-    def __image_upload(
-        self,
-        image_path: str,
-        hosted_image: bool = False,
-        split: str = "train",
-        batch_name: str = DEFAULT_BATCH_NAME,
-        tag_names: list = [],
-        **kwargs,
-    ):
-        """
-        Upload an image to a specific project.
-
-        Args:
-            image_path (str): path to image you'd like to upload
-            hosted_image (bool): whether the image is hosted on Roboflow
-            split (str): the dataset split the image to
-        """
-
-        # If image is not a hosted image
-        if not hosted_image:
-            batch_name = (
-                batch_name
-                if batch_name and isinstance(batch_name, str)
-                else DEFAULT_BATCH_NAME
-            )
-
-            project_name = self.id.rsplit("/")[1]
-            image_name = os.path.basename(image_path)
-
-            # Construct URL for local image upload
-            self.image_upload_url = "".join(
-                [
-                    API_URL + "/dataset/",
-                    project_name,
-                    "/upload",
-                    "?api_key=",
-                    self.__api_key,
-                    "&batch=",
-                    batch_name,
-                ]
-            )
-            for key, value in kwargs.items():
-                self.image_upload_url += "&" + str(key) + "=" + str(value)
-
-            for tag in tag_names:
-                self.image_upload_url = self.image_upload_url + f"&tag={tag}"
-
-            # Convert to PIL Image
-            img = cv2.imread(image_path)
-            image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            pilImage = Image.fromarray(image)
-
-            # Convert to JPEG Buffer
-            buffered = io.BytesIO()
-            pilImage.save(buffered, quality=100, format="JPEG")
-
-            # Build multipart form and post request
-            m = MultipartEncoder(
-                fields={
-                    "name": image_name,
-                    "split": split,
-                    "file": ("imageToUpload", buffered.getvalue(), "image/jpeg"),
-                }
-            )
-            response = requests.post(
-                self.image_upload_url, data=m, headers={"Content-Type": m.content_type}
-            )
-
-        else:
-            # Hosted image upload url
-            project_name = self.id.rsplit("/")[1]
-
-            upload_url = "".join(
-                [
-                    API_URL + "/dataset/" + self.project_name + "/upload",
-                    "?api_key=" + self.__api_key,
-                    "&name=" + os.path.basename(image_path),
-                    "&split=" + split,
-                    "&image=" + urllib.parse.quote_plus(image_path),
-                ]
-            )
-            # Get response
-            response = requests.post(upload_url)
-        responsejson = None
-        try:
-            responsejson = response.json()
-        except:
-            pass
-        if response.status_code == 200:
-            if responsejson:
-                if "duplicate" in responsejson.keys():
-                    print(f"Duplicate image not uploaded: {image_path}")
-                elif not responsejson.get("success"):
-                    raise UploadError(f"Server rejected image: {responsejson}")
-                return responsejson.get("id")
-            else:
-                warnings.warn(
-                    f"upload image {image_path} 200 OK, weird response: {response}"
-                )
-                return None
-        else:
-            if responsejson:
-                raise UploadError(
-                    f"Bad response: {response.status_code}: {responsejson}"
-                )
-            else:
-                raise UploadError(f"Bad response: {response}")
-
     def __annotation_upload(
         self, annotation_path: str, image_id: str, is_prediction: bool = False
     ):
@@ -536,7 +422,7 @@ class Project:
         elif response.status_code == 409 and "already annotated" in (
             responsejson or {}
         ).get("error", {}).get("message"):
-            print(f"image already annotated: {annotation_path}")
+            return {"warn": "already annotated"}
         else:
             if responsejson:
                 if responsejson.get("error"):
@@ -680,31 +566,30 @@ class Project:
         is_prediction: bool = False,
         **kwargs,
     ):
-        success = False
-        annotation_success = False
-        if image_path is not None:
-            try:
-                image_id = retry(
-                    num_retry_uploads,
-                    Exception,
-                    self.__image_upload,
-                    image_path,
-                    hosted_image=hosted_image,
-                    split=split,
-                    batch_name=batch_name,
-                    tag_names=tag_names,
-                    **kwargs,
-                )
-                success = True
-            except BaseException as e:
-                print(
-                    f"{image_path} ERROR uploading image after {num_retry_uploads} retries: {e}",
-                    file=sys.stderr,
-                )
-                return
+        if image_path and image_id:
+            raise Exception("You can't pass both image_id and image_path")
+        if not (image_path or image_id):
+            raise Exception("You need to pass image_path or image_id")
+        uploaded_image, annotation_success = None, False
+        if image_path:
+            project_url = self.id.rsplit("/")[1]
+            uploaded_image = retry(
+                num_retry_uploads,
+                Exception,
+                rfapi.upload_image,
+                self.__api_key,
+                project_url,
+                image_path,
+                hosted_image=hosted_image,
+                split=split,
+                batch_name=batch_name,
+                tag_names=tag_names,
+                **kwargs,
+            )
+            image_id = uploaded_image["id"]
 
-        # Upload only annotations to image based on image Id (no image)
-        if annotation_path is not None and image_id is not None and success:
+        annotation_success = False
+        if annotation_path:
             # Get annotation upload response
             try:
                 self.__annotation_upload(
@@ -726,9 +611,7 @@ class Project:
                 )
         else:
             annotation_success = True
-
-        overall_success = success and annotation_success
-        return overall_success
+        return {"image": uploaded_image, "annotation": annotation_success}
 
     def search(
         self,

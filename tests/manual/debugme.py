@@ -10,17 +10,17 @@ from roboflowpy import _argparser
 
 if __name__ == "__main__":
     parser = _argparser()
-    args = parser.parse_args(["login"])
-    # args = parser.parse_args(
-    #     [
-    #         "upload",
-    #         "./data/cultura-pepino-voc",
-    #         "-w",
-    #         "wolfodorpythontests",
-    #         "-p",
-    #         "cultura-pepino-upload-test-voc",
-    #         "-f",
-    #         "voc",
-    #     ]
-    # )
+    # args = parser.parse_args(["login"])
+    args = parser.parse_args(
+        [
+            "upload",
+            f"{thisdir}/../datasets/chess",
+            "-w",
+            "wolfodorpythontests",
+            "-p",
+            "chess",
+            "-f",
+            "auto",
+        ]
+    )
     args.func(args)

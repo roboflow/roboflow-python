@@ -3,8 +3,10 @@ import os
 import urllib
 
 import cv2
+import io
 import numpy as np
 import requests
+from PIL import Image
 
 
 def check_image_path(image_path):
@@ -64,3 +66,12 @@ def validate_image_path(image_path):
     """
     if not check_image_path(image_path):
         raise Exception(f"Image does not exist at {image_path}!")
+
+
+def file2jpeg(image_path):
+    img = cv2.imread(image_path)
+    image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    pilImage = Image.fromarray(image)
+    buffered = io.BytesIO()
+    pilImage.save(buffered, quality=100, format="JPEG")
+    return buffered.getvalue()
