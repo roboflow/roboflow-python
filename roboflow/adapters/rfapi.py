@@ -74,6 +74,59 @@ def upload_image(
     return responsejson
 
 
+def save_annotation(
+    api_key: str,
+    project_url: str,
+    annotation_name: str,
+    annotation_string: str,
+    image_id: str,
+    is_prediction: bool = False,
+):
+    """
+    Upload an annotation to a specific project.
+
+    Args:
+        annotation_path (str): path to annotation you'd like to upload
+        image_id (str): image id you'd like to upload that has annotations for it.
+    """
+
+    upload_url = _save_annotation_url(
+        api_key, project_url, annotation_name, image_id, is_prediction
+    )
+
+    response = requests.post(
+        upload_url,
+        data=annotation_string,
+        headers={"Content-Type": "text/plain"},
+    )
+    responsejson = None
+    try:
+        responsejson = response.json()
+    except:
+        pass
+    if not responsejson:
+        raise _save_annotation_error(image_id, response)
+    if response.status_code not in (200, 409):
+        raise _save_annotation_error(image_id, response)
+    if response.status_code == 409:
+        if "already annotated" in responsejson.get("error", {}).get("message"):
+            return {"warn": "already annotated"}
+        else:
+            raise _save_annotation_error(image_id, response)
+    if responsejson.get("error"):
+        raise _save_annotation_error(image_id, response)
+    if not responsejson.get("success"):
+        raise _save_annotation_error(image_id, response)
+    return responsejson
+
+
+def _save_annotation_url(api_key, project_url, name, image_id, is_prediction):
+    url = f"{API_URL}/dataset/{project_url}/annotate/{image_id}?api_key={api_key}&name={name}"
+    if is_prediction:
+        url += "&prediction=true"
+    return url
+
+
 def _hosted_upload_url(api_key, project_url, image_path, split):
     url = f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}"
     url += f"&name={os.path.basename(image_path)}&split={split}"
@@ -88,3 +141,19 @@ def _local_upload_url(api_key, project_url, batch_name, tag_names, kwargs):
     for tag in tag_names:
         url += f"&tag={tag}"
     return url
+
+
+def _save_annotation_error(image_id, response):
+    errmsg = f"save annotation for {image_id} / "
+    responsejson = None
+    try:
+        responsejson = response.json()
+    except:
+        pass
+    if not responsejson:
+        errmsg += f"bad response: {response.status_code}: {response}"
+    elif responsejson.get("error"):
+        errmsg += f"bad response: {response.status_code}: {responsejson['error']}"
+    else:
+        errmsg += f"bad response: {response.status_code}: {responsejson}"
+    return UploadError(errmsg)

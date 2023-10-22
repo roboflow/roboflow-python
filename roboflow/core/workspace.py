@@ -348,15 +348,20 @@ class Workspace:
             image_id = uploadres.get("image", {}).get("id")
             img_success = uploadres.get("image", {}).get("success")
             img_duplicate = uploadres.get("image", {}).get("duplicate")
-            annotation_success = uploadres.get("annotation")
+            annotation = uploadres.get("annotation")
             if img_duplicate:
                 msg = f"[DUPLICATE] {image_path} ({image_id})"
             elif img_success:
                 msg = f"[UPLOADED] {image_path} ({image_id})"
             else:
                 msg = f"[ERR] {image_path} ({uploadres})"
-            if annotation_success:
-                msg += " with annotation"
+            if annotation:
+                if annotation.get("success"):
+                    msg += " / annotations = OK"
+                elif annotation.get("warn"):
+                    msg += f" / annotations = WARN: {annotation['warn']}"
+                elif annotation.get("error"):
+                    msg += f" / annotations = ERR: {annotation['error']}"
             print(msg)
 
         def _log_img_upload_err(image_path, e):
