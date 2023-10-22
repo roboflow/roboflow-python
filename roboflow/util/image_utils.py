@@ -1,9 +1,9 @@
 import base64
+import io
 import os
 import urllib
 
 import cv2
-import io
 import numpy as np
 import requests
 from PIL import Image

@@ -3,7 +3,6 @@ import glob
 import json
 import os
 import sys
-import traceback
 
 import requests
 import supervision as sv
@@ -13,12 +12,12 @@ from tqdm import tqdm
 
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
+from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import (
     check_box_size,
     clip_encode,
     count_comparisons,
 )
-from roboflow.util import folderparser
 from roboflow.util.clip_compare_utils import clip_encode
 from roboflow.util.general import write_line
 from roboflow.util.two_stage_utils import ocr_infer

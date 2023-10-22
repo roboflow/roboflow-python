@@ -1,9 +1,11 @@
 import os
 import urllib
+
 import requests
+from requests_toolbelt.multipart.encoder import MultipartEncoder
+
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME
 from roboflow.util import image_utils
-from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 
 class UploadError(Exception):
