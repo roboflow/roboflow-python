@@ -196,7 +196,7 @@ class Version:
                 )
             except ImportError as e:
                 print(
-                    "[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. Roboflow `.deploy` supports only models trained with `ultralytics==8.0.134`, to intall it `pip install ultralytics==8.0.134`."
+                    "[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. Roboflow `.deploy` supports only models trained with `ultralytics==8.0.196`, to intall it `pip install ultralytics==8.0.196`."
                 )
                 # silently fail
                 pass
@@ -455,7 +455,7 @@ class Version:
         # return the model object
         return self.model
 
-    # @warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.134")])
+    # @warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])
     def deploy(self, model_type: str, model_path: str) -> None:
         """Uploads provided weights file to Roboflow
 
