@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from .helpers import get_version
-from roboflow.core.version import Version
+from roboflow.core.version import Version, unwrap_version_id
 
 
 class TestDownload(unittest.TestCase):
@@ -168,3 +168,19 @@ class TestGetFormatIdentifier(unittest.TestCase):
         self.version.model_format = None
         with self.assertRaises(RuntimeError):
             self.get_format_identifier(None)
+
+
+def test_unwrap_version_id_when_full_identifier_is_given() -> None:
+    # when
+    result = unwrap_version_id(version_id="some-workspace/some-project/3")
+
+    # then
+    assert result == "3"
+
+
+def test_unwrap_version_id_when_only_version_id_is_given() -> None:
+    # when
+    result = unwrap_version_id(version_id="3")
+
+    # then
+    assert result == "3"

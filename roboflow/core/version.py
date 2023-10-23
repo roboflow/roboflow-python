@@ -74,11 +74,7 @@ class Version:
         else:
             self.__api_key = api_key
             self.name = name
-
-            # FIXME: the version argument is inconsistently passed into this object.
-            # Sometimes it is passed as: test-workspace/test-project/2
-            # Other times, it is passed as: 2
-            self.version = version
+            self.version = unwrap_version_id(version_id=version)
             self.type = type
             self.augmentation = version_dict["augmentation"]
             self.created = version_dict["created"]
@@ -139,7 +135,6 @@ class Version:
         url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
         response = requests.get(url, params={"api_key": self.__api_key})
         response.raise_for_status()
-
         if response.json()["version"]["progress"] == None:
             progress = 0.0
         else:
@@ -490,7 +485,7 @@ class Version:
                 )
 
             print_warn_for_wrong_dependencies_versions(
-                [("ultralytics", "==", "8.0.134")], ask_to_continue=True
+                [("ultralytics", "==", "8.0.196")], ask_to_continue=True
             )
 
         elif "yolov5" in model_type or "yolov7" in model_type:
@@ -775,7 +770,7 @@ class Version:
             try:
                 # get_wrong_dependencies_versions raises exception if ultralytics is not installed at all
                 if format == "yolov8" and not get_wrong_dependencies_versions(
-                    dependencies_versions=[("ultralytics", "==", "8.0.134")]
+                    dependencies_versions=[("ultralytics", "==", "8.0.196")]
                 ):
                     content["train"] = "train/images"
                     content["val"] = "valid/images"
@@ -802,3 +797,7 @@ class Version:
             "workspace": self.workspace,
         }
         return json.dumps(json_value, indent=2)
+
+
+def unwrap_version_id(version_id: str) -> str:
+    return version_id if "/" not in str(version_id) else version_id.split("/")[-1]
