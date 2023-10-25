@@ -427,7 +427,7 @@ class Project:
 
             upload_url = "".join(
                 [
-                    API_URL + "/dataset/" + self.project_name + "/upload",
+                    API_URL + "/dataset/" + project_name + "/upload",
                     "?api_key=" + self.__api_key,
                     "&name=" + os.path.basename(image_path),
                     "&split=" + split,
@@ -623,7 +623,7 @@ class Project:
             )
 
         if is_file:
-            is_image = self.check_valid_image(image_path) or is_hosted
+            is_image = is_hosted or self.check_valid_image(image_path)
 
             if not is_image:
                 raise RuntimeError(
