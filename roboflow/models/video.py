@@ -1,15 +1,29 @@
 import json
-from urllib.parse import urljoin
-import magic
-
-import requests
 import time
 from typing import List
+from urllib.parse import urljoin
+
+import magic
+import requests
+import os
 
 from roboflow.config import API_URL
 from roboflow.models.inference import InferenceModel
 
-VALID_VIDEO_EXTENSIONS = [".mp4"]
+MAXIMUM_VIDEO_SIZE = 1024 * 1024 * 1024 * 5 # 5GB
+
+SUPPORTED_ADDITIONAL_MODELS = {
+    "clip": {
+        "model_id": "clip",
+        "model_version": "1",
+        "inference_type": "clip-embed-image"
+    },
+    "gaze": {
+        "model_id": "gaze",
+        "model_version": "1",
+        "inference_type": "gaze-detection"
+    }
+}
 
 
 def is_mp4(filename):
@@ -19,8 +33,15 @@ def is_mp4(filename):
 
 
 def is_valid_video(filename):
-    return is_mp4(filename)
-
+    # check file size
+    if os.path.getsize(filename) > MAXIMUM_VIDEO_SIZE:
+        return False
+    
+    # check file type
+    if not is_mp4(filename):
+        return False
+    
+    return True
 
 class VideoInferenceModel(InferenceModel):
     """
@@ -41,18 +62,20 @@ class VideoInferenceModel(InferenceModel):
 
     def predict(
         self,
-        video_path,
+        video_path: str,
+        fps: int = 5,
+        additional_models: list = None,
     ) -> List[str, str]:
         """
         Infers detections based on image from specified model and image path.
 
         Args:
             image_path (str): path to the image you'd like to perform prediction on
-            hosted (bool): whether the image you're providing is hosted on Roboflow
-            format (str): The format of the output.
+            video_path (str): path to the video you'd like to perform prediction on
+            fps (int): frames per second to run inference
 
         Returns:
-            PredictionGroup Object
+            A list of the signed url and job id
 
         Example:
             >>> import roboflow
@@ -63,10 +86,17 @@ class VideoInferenceModel(InferenceModel):
 
             >>> model = project.version("1").model
 
-            >>> prediction = model.predict("video.mp4")
+            >>> prediction = model.predict("video.mp4", fps=5)
         """
 
         url = urljoin(API_URL, "/video_upload_signed_url/?api_key=", self.__api_key)
+
+        if fps > 5:
+            raise Exception("FPS must be less than or equal to 5.")
+        
+        for model in additional_models:
+            if model not in SUPPORTED_ADDITIONAL_MODELS:
+                raise Exception(f"Model {model} is not supported for video inference.")
 
         if not is_valid_video(video_path):
             raise Exception("Video path is not valid")
@@ -87,17 +117,22 @@ class VideoInferenceModel(InferenceModel):
 
         url = urljoin(API_URL, "/videoinfer/?api_key=", self.__api_key)
 
+        models = [
+            {
+                "model_id": self.dataset_id,
+                "model_version": self.version,
+                "inference_type": "object-detection",
+            }
+        ]
+
+        for model in additional_models:
+            models.append(SUPPORTED_ADDITIONAL_MODELS[model])
+
         payload = json.dumps(
             {
                 "input_url": signed_url,
                 "infer_fps": 5,
-                "models": [
-                    {
-                        "model_id": self.dataset_id,
-                        "model_version": self.version,
-                        "inference_type": "object-detection",
-                    }
-                ],
+                "models": models
             }
         )
 
