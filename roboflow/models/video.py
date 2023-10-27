@@ -5,12 +5,9 @@ from urllib.parse import urljoin
 
 import magic
 import requests
-import os
 
 from roboflow.config import API_URL
 from roboflow.models.inference import InferenceModel
-
-MAXIMUM_VIDEO_SIZE = 1024 * 1024 * 1024 * 5 # 5GB
 
 SUPPORTED_ROBOFLOW_MODELS = ["object-detection", "classification", "instance-segmentation"]
 
@@ -35,10 +32,6 @@ def is_valid_mime(filename):
 
 
 def is_valid_video(filename):
-    # check file size
-    if os.path.getsize(filename) > MAXIMUM_VIDEO_SIZE:
-        return False
-    
     # check file type
     if not is_valid_mime(filename):
         return False
