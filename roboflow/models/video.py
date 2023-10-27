@@ -12,6 +12,8 @@ from roboflow.models.inference import InferenceModel
 
 MAXIMUM_VIDEO_SIZE = 1024 * 1024 * 1024 * 5 # 5GB
 
+SUPPORTED_ROBOFLOW_MODELS = ["object-detection", "classification", "instance-segmentation"]
+
 SUPPORTED_ADDITIONAL_MODELS = {
     "clip": {
         "model_id": "clip",
@@ -26,10 +28,10 @@ SUPPORTED_ADDITIONAL_MODELS = {
 }
 
 
-def is_mp4(filename):
+def is_valid_mime(filename):
     mime = magic.Magic(mime=True)
     file_type = mime.from_file(filename)
-    return file_type == "video/mp4"
+    return file_type in ["video/mp4", "video/avi", "video/webm"]
 
 
 def is_valid_video(filename):
@@ -38,7 +40,7 @@ def is_valid_video(filename):
         return False
     
     # check file type
-    if not is_mp4(filename):
+    if not is_valid_mime(filename):
         return False
     
     return True
@@ -63,6 +65,7 @@ class VideoInferenceModel(InferenceModel):
     def predict(
         self,
         video_path: str,
+        inference_type: str,
         fps: int = 5,
         additional_models: list = None,
     ) -> List[str, str]:
@@ -70,8 +73,8 @@ class VideoInferenceModel(InferenceModel):
         Infers detections based on image from specified model and image path.
 
         Args:
-            image_path (str): path to the image you'd like to perform prediction on
             video_path (str): path to the video you'd like to perform prediction on
+            inference_type (str): type of the model to run
             fps (int): frames per second to run inference
 
         Returns:
@@ -97,6 +100,9 @@ class VideoInferenceModel(InferenceModel):
         for model in additional_models:
             if model not in SUPPORTED_ADDITIONAL_MODELS:
                 raise Exception(f"Model {model} is not supported for video inference.")
+            
+        if inference_type not in SUPPORTED_ROBOFLOW_MODELS:
+            raise Exception(f"Model {inference_type} is not supported for video inference.")
 
         if not is_valid_video(video_path):
             raise Exception("Video path is not valid")
@@ -121,7 +127,7 @@ class VideoInferenceModel(InferenceModel):
             {
                 "model_id": self.dataset_id,
                 "model_version": self.version,
-                "inference_type": "object-detection",
+                "inference_type": self.inference_type,
             }
         ]
 
