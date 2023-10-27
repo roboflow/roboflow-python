@@ -4,6 +4,7 @@ import magic
 
 import requests
 import time
+from typing import List
 
 from roboflow.config import API_URL
 from roboflow.models.inference import InferenceModel
@@ -31,7 +32,7 @@ class VideoInferenceModel(InferenceModel):
         api_key,
     ):
         """
-        Create a ObjectDetectionModel object through which you can run inference.
+        Create a VideoDetectionModel object through which you can run inference on videos.
 
         Args:
             api_key (str): Your API key (obtained via your workspace API settings page).
@@ -41,7 +42,7 @@ class VideoInferenceModel(InferenceModel):
     def predict(
         self,
         video_path,
-    ) -> str:
+    ) -> List[str, str]:
         """
         Infers detections based on image from specified model and image path.
 
@@ -106,7 +107,7 @@ class VideoInferenceModel(InferenceModel):
 
         self.job_id = job_id
 
-        return job_id
+        return job_id, signed_url
 
     def poll_for_results(self, job_id: str = None) -> dict:
         """
