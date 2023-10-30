@@ -82,7 +82,7 @@ class VideoInferenceModel(InferenceModel):
 
             >>> model = project.version("1").model
 
-            >>> prediction = model.predict("video.mp4", fps=5, inference_type="object-detection"
+            >>> prediction = model.predict("video.mp4", fps=5, inference_type="object-detection")
         """
 
         url = urljoin(API_URL, "/video_upload_signed_url/?api_key=", self.__api_key)

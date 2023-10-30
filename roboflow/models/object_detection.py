@@ -17,9 +17,9 @@ from roboflow.config import API_URL, OBJECT_DETECTION_MODEL, OBJECT_DETECTION_UR
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 from roboflow.util.versions import print_warn_for_wrong_dependencies_versions
+from roboflow.models.inference import InferenceModel
 
-
-class ObjectDetectionModel:
+class ObjectDetectionModel(InferenceModel):
     """
     Run inference on an object detection model hosted on Roboflow or served through Roboflow Inference.
     """
@@ -67,6 +67,7 @@ class ObjectDetectionModel:
         """
         # Instantiate different API URL parameters
         # To be moved to predict
+        super(ObjectDetectionModel, self).__init__(api_key, id)
         self.__api_key = api_key
         self.id = id
         self.name = name
