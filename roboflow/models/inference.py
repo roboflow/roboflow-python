@@ -239,8 +239,8 @@ class InferenceModel:
             {"input_url": signed_url, "infer_fps": 5, "models": models}
         )
 
-        response = requests.request("POST", url, headers=headers, data=payload)
-
+        response = requests.request("POST", url, headers = {"Content-Type": "application/json"}, data=payload)
+        # check if error happens {'error': 'An unexpected error occurred while queueing the video job at 2023-10-31T17:41:58.076Z'}
         job_id = response.json()["job_id"]
 
         self.job_id = job_id
