@@ -3,6 +3,7 @@ import json
 import time
 import urllib
 from typing import List
+
 # import magic
 from urllib.parse import urljoin
 
