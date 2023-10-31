@@ -6,6 +6,7 @@ from PIL import Image
 import time
 import json
 from typing import List
+
 # import magic
 from urllib.parse import urljoin
 from requests_toolbelt.multipart.encoder import MultipartEncoder
@@ -15,36 +16,21 @@ from roboflow.util.prediction import PredictionGroup
 
 from roboflow.config import API_URL
 
-API_URL = "https://api.roboflow.one"
-
 SUPPORTED_ROBOFLOW_MODELS = ["batch-video"]
 
 SUPPORTED_ADDITIONAL_MODELS = {
     "clip": {
         "model_id": "clip",
         "model_version": "1",
-        "inference_type": "clip-embed-image"
+        "inference_type": "clip-embed-image",
     },
     "gaze": {
         "model_id": "gaze",
         "model_version": "1",
-        "inference_type": "gaze-detection"
-    }
+        "inference_type": "gaze-detection",
+    },
 }
 
-
-def is_valid_mime(filename):
-    mime = magic.Magic(mime=True)
-    file_type = mime.from_file(filename)
-    return file_type in ["video/mp4", "video/avi", "video/webm"]
-
-
-def is_valid_video(filename):
-    # # check file type
-    # if not is_valid_mime(filename):
-    #     return False
-    
-    return True
 
 class InferenceModel:
     def __init__(
@@ -150,7 +136,6 @@ class InferenceModel:
             colors=self.colors,
         )
 
-
     def predict_video(
         self,
         video_path: str,
@@ -185,35 +170,13 @@ class InferenceModel:
 
         if fps > 5:
             raise Exception("FPS must be less than or equal to 5.")
-        
+
         for model in additional_models:
             if model not in SUPPORTED_ADDITIONAL_MODELS:
                 raise Exception(f"Model {model} is not supported for video inference.")
-            
+
         if prediction_type not in SUPPORTED_ROBOFLOW_MODELS:
             raise Exception(f"{prediction_type} is not supported for video inference.")
-
-        if not is_valid_video(video_path):
-            raise Exception("Video path is not valid")
-
-        payload = json.dumps(
-            {
-                "file_name": video_path,
-            }
-        )
-
-        headers = {"Content-Type": "application/json"}
-
-        try:
-            response = requests.request("POST", url, headers=headers, data=payload)
-        except Exception as e:
-            raise Exception(f"Error uploading video: {e}")
-        
-        signed_url = response.json()["signed_url"]
-
-        print("Uploaded video to signed url: " + signed_url)
-
-        url = urljoin(API_URL, "/videoinfer/?api_key=" + self.__api_key)
 
         # check if ObjectDetectionModel, ClassificationModel, or InstanceSegmentationModel
         model_class = self.__class__.__name__
@@ -227,6 +190,40 @@ class InferenceModel:
         else:
             raise Exception("Model type not supported for video inference.")
 
+        payload = json.dumps(
+            {
+                "file_name": video_path,
+            }
+        )
+
+        if not video_path.startswith(("http://", "https://")):
+            headers = {"Content-Type": "application/json"}
+
+            try:
+                response = requests.request("POST", url, headers=headers, data=payload)
+            except Exception as e:
+                raise Exception(f"Error uploading video: {e}")
+
+            signed_url = response.json()["signed_url"]
+
+            # make a POST request to the signed URL
+            headers = {"Content-Type": "application/octet-stream"}
+
+            try:
+                with open(video_path, "rb") as f:
+                    video_data = f.read()
+            except Exception as e:
+                raise Exception(f"Error reading video: {e}")
+
+            try:
+                requests.put(signed_url, data=video_data, headers=headers)
+            except Exception as e:
+                raise Exception(f"There was an error uploading the video: {e}")
+        else:
+            signed_url = video_path
+
+        url = urljoin(API_URL, "/videoinfer/?api_key=" + self.__api_key)
+
         models = [
             {
                 "model_id": self.dataset_id,
@@ -239,11 +236,7 @@ class InferenceModel:
             models.append(SUPPORTED_ADDITIONAL_MODELS[model])
 
         payload = json.dumps(
-            {
-                "input_url": signed_url,
-                "infer_fps": 5,
-                "models": models
-            }
+            {"input_url": signed_url, "infer_fps": 5, "models": models}
         )
 
         response = requests.request("POST", url, headers=headers, data=payload)
@@ -290,7 +283,7 @@ class InferenceModel:
         #     if model["infer_success"] == 1:
         if data.get("output_signed_url") is None:
             return {}
-        
+
         output_signed_url = data["output_signed_url"]
 
         inference_data = requests.get(
