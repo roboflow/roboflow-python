@@ -279,9 +279,7 @@ class InferenceModel:
 
         data = response.json()
 
-        # for model in infer_models:
-        #     if model["infer_success"] == 1:
-        if data.get("output_signed_url") is None:
+        if data.get("status") != 0:
             return {}
 
         output_signed_url = data["output_signed_url"]
