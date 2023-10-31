@@ -203,6 +203,9 @@ class InferenceModel:
                 response = requests.request("POST", url, headers=headers, data=payload)
             except Exception as e:
                 raise Exception(f"Error uploading video: {e}")
+            
+            if not response.ok:
+                raise Exception(f"Error uploading video: {response.text}")
 
             signed_url = response.json()["signed_url"]
 
@@ -216,9 +219,12 @@ class InferenceModel:
                 raise Exception(f"Error reading video: {e}")
 
             try:
-                requests.put(signed_url, data=video_data, headers=headers)
+                result = requests.put(signed_url, data=video_data, headers=headers)
             except Exception as e:
                 raise Exception(f"There was an error uploading the video: {e}")
+            
+            if not result.ok:
+                raise Exception(f"There was an error uploading the video: {result.text}")
         else:
             signed_url = video_path
 
@@ -239,8 +245,16 @@ class InferenceModel:
             {"input_url": signed_url, "infer_fps": 5, "models": models}
         )
 
-        response = requests.request("POST", url, headers = {"Content-Type": "application/json"}, data=payload)
-        # check if error happens {'error': 'An unexpected error occurred while queueing the video job at 2023-10-31T17:41:58.076Z'}
+        headers = {"Content-Type": "application/json"}
+
+        try:
+            response = requests.request("POST", url, headers=headers, data=payload)
+        except Exception as e:
+            raise Exception(f"Error starting video inference: {e}")
+        
+        if not response.ok:
+            raise Exception(f"Error starting video inference: {response.text}")
+
         job_id = response.json()["job_id"]
 
         self.job_id = job_id
@@ -275,7 +289,13 @@ class InferenceModel:
             API_URL, "/videoinfer/?api_key=" + self.__api_key + "&job_id=" + self.job_id
         )
 
-        response = requests.get(url, headers={"Content-Type": "application/json"})
+        try:
+            response = requests.get(url, headers={"Content-Type": "application/json"})
+        except Exception as e:
+            raise Exception(f"Error getting video inference results: {e}")
+        
+        if not response.ok:
+            raise Exception(f"Error getting video inference results: {response.text}")
 
         data = response.json()
 
