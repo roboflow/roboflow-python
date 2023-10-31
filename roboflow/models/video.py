@@ -9,19 +9,23 @@ import requests
 from roboflow.config import API_URL
 from roboflow.models.inference import InferenceModel
 
-SUPPORTED_ROBOFLOW_MODELS = ["object-detection", "classification", "instance-segmentation"]
+SUPPORTED_ROBOFLOW_MODELS = [
+    "object-detection",
+    "classification",
+    "instance-segmentation",
+]
 
 SUPPORTED_ADDITIONAL_MODELS = {
     "clip": {
         "model_id": "clip",
         "model_version": "1",
-        "inference_type": "clip-embed-image"
+        "inference_type": "clip-embed-image",
     },
     "gaze": {
         "model_id": "gaze",
         "model_version": "1",
-        "inference_type": "gaze-detection"
-    }
+        "inference_type": "gaze-detection",
+    },
 }
 
 
@@ -35,8 +39,9 @@ def is_valid_video(filename):
     # check file type
     if not is_valid_mime(filename):
         return False
-    
+
     return True
+
 
 class VideoInferenceModel(InferenceModel):
     """
@@ -89,13 +94,15 @@ class VideoInferenceModel(InferenceModel):
 
         if fps > 5:
             raise Exception("FPS must be less than or equal to 5.")
-        
+
         for model in additional_models:
             if model not in SUPPORTED_ADDITIONAL_MODELS:
                 raise Exception(f"Model {model} is not supported for video inference.")
-            
+
         if inference_type not in SUPPORTED_ROBOFLOW_MODELS:
-            raise Exception(f"Model {inference_type} is not supported for video inference.")
+            raise Exception(
+                f"Model {inference_type} is not supported for video inference."
+            )
 
         if not is_valid_video(video_path):
             raise Exception("Video path is not valid")
@@ -128,11 +135,7 @@ class VideoInferenceModel(InferenceModel):
             models.append(SUPPORTED_ADDITIONAL_MODELS[model])
 
         payload = json.dumps(
-            {
-                "input_url": signed_url,
-                "infer_fps": 5,
-                "models": models
-            }
+            {"input_url": signed_url, "infer_fps": 5, "models": models}
         )
 
         response = requests.request("POST", url, headers=headers, data=payload)

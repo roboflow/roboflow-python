@@ -1,20 +1,18 @@
 import io
+import json
+import time
 import urllib
+from typing import List
+# import magic
+from urllib.parse import urljoin
 
 import requests
 from PIL import Image
-import time
-import json
-from typing import List
-
-# import magic
-from urllib.parse import urljoin
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
+from roboflow.config import API_URL
 from roboflow.util.image_utils import validate_image_path
 from roboflow.util.prediction import PredictionGroup
-
-from roboflow.config import API_URL
 
 SUPPORTED_ROBOFLOW_MODELS = ["batch-video"]
 
@@ -178,7 +176,6 @@ class InferenceModel:
         if prediction_type not in SUPPORTED_ROBOFLOW_MODELS:
             raise Exception(f"{prediction_type} is not supported for video inference.")
 
-        # check if ObjectDetectionModel, ClassificationModel, or InstanceSegmentationModel
         model_class = self.__class__.__name__
 
         if model_class == "ObjectDetectionModel":
@@ -187,6 +184,10 @@ class InferenceModel:
             self.type = "classification"
         elif model_class == "InstanceSegmentationModel":
             self.type = "instance-segmentation"
+        elif model_class == "GazeModel":
+            self.type = "gaze-detection"
+        elif model_class == "CLIP":
+            self.type = "clip-embed-image"
         else:
             raise Exception("Model type not supported for video inference.")
 
@@ -203,7 +204,7 @@ class InferenceModel:
                 response = requests.request("POST", url, headers=headers, data=payload)
             except Exception as e:
                 raise Exception(f"Error uploading video: {e}")
-            
+
             if not response.ok:
                 raise Exception(f"Error uploading video: {response.text}")
 
@@ -222,21 +223,33 @@ class InferenceModel:
                 result = requests.put(signed_url, data=video_data, headers=headers)
             except Exception as e:
                 raise Exception(f"There was an error uploading the video: {e}")
-            
+
             if not result.ok:
-                raise Exception(f"There was an error uploading the video: {result.text}")
+                raise Exception(
+                    f"There was an error uploading the video: {result.text}"
+                )
         else:
             signed_url = video_path
 
         url = urljoin(API_URL, "/videoinfer/?api_key=" + self.__api_key)
 
-        models = [
-            {
-                "model_id": self.dataset_id,
-                "model_version": self.version,
-                "inference_type": self.type,
-            }
-        ]
+        if model_class in ("CLIPModel", "GazeModel"):
+            if model_class == "CLIPModel":
+                model = "clip"
+            else:
+                model = "gaze"
+
+            models = [
+                {
+                    "model_id": SUPPORTED_ADDITIONAL_MODELS[model]["model_id"],
+                    "model_version": SUPPORTED_ADDITIONAL_MODELS[model][
+                        "model_version"
+                    ],
+                    "inference_type": SUPPORTED_ADDITIONAL_MODELS[model][
+                        "inference_type"
+                    ],
+                }
+            ]
 
         for model in additional_models:
             models.append(SUPPORTED_ADDITIONAL_MODELS[model])
@@ -251,7 +264,7 @@ class InferenceModel:
             response = requests.request("POST", url, headers=headers, data=payload)
         except Exception as e:
             raise Exception(f"Error starting video inference: {e}")
-        
+
         if not response.ok:
             raise Exception(f"Error starting video inference: {response.text}")
 
@@ -293,7 +306,7 @@ class InferenceModel:
             response = requests.get(url, headers={"Content-Type": "application/json"})
         except Exception as e:
             raise Exception(f"Error getting video inference results: {e}")
-        
+
         if not response.ok:
             raise Exception(f"Error getting video inference results: {response.text}")
 

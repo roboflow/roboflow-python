@@ -13,11 +13,13 @@ import requests
 import tqdm
 from PIL import Image
 
-from roboflow.config import API_URL, OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
+from roboflow.config import (API_URL, OBJECT_DETECTION_MODEL,
+                             OBJECT_DETECTION_URL)
+from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 from roboflow.util.versions import print_warn_for_wrong_dependencies_versions
-from roboflow.models.inference import InferenceModel
+
 
 class ObjectDetectionModel(InferenceModel):
     """
