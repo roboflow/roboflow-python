@@ -1,10 +1,10 @@
 import io
+import os
 import json
 import time
 import urllib
 from typing import List
 
-# import magic
 from urllib.parse import urljoin
 
 import requests
@@ -194,7 +194,7 @@ class InferenceModel:
 
         payload = json.dumps(
             {
-                "file_name": video_path,
+                "file_name": os.path.basename(video_path),
             }
         )
 
