@@ -51,10 +51,11 @@ class InferenceModel:
         self.__api_key = api_key
         self.id = version_id
 
-        version_info = self.id.rsplit("/")
-        self.dataset_id = version_info[1]
-        self.version = version_info[2]
-        self.colors = {} if colors is None else colors
+        if version_id != "BASE_MODEL":
+            version_info = self.id.rsplit("/")
+            self.dataset_id = version_info[1]
+            self.version = version_info[2]
+            self.colors = {} if colors is None else colors
 
     def __get_image_params(self, image_path):
         """
@@ -162,8 +163,10 @@ class InferenceModel:
 
             >>> model = project.version("1").model
 
-            >>> prediction = model.predict("video.mp4", fps=5, inference_type="object-detection")
+            >>> job_id, signed_url, signed_url_expires = model.predict_video("video.mp4", fps=5, inference_type="object-detection")
         """
+
+        signed_url_expires = None
 
         url = urljoin(API_URL, "/video_upload_signed_url?api_key=" + self.__api_key)
 
@@ -187,7 +190,7 @@ class InferenceModel:
             self.type = "instance-segmentation"
         elif model_class == "GazeModel":
             self.type = "gaze-detection"
-        elif model_class == "CLIP":
+        elif model_class == "CLIPModel":
             self.type = "clip-embed-image"
         else:
             raise Exception("Model type not supported for video inference.")
@@ -210,6 +213,10 @@ class InferenceModel:
                 raise Exception(f"Error uploading video: {response.text}")
 
             signed_url = response.json()["signed_url"]
+
+            signed_url_expires = (
+                signed_url.split("&X-Goog-Expires")[1].split("&")[0].strip("=")
+            )
 
             # make a POST request to the signed URL
             headers = {"Content-Type": "application/octet-stream"}
@@ -273,7 +280,7 @@ class InferenceModel:
 
         self.job_id = job_id
 
-        return job_id, signed_url
+        return job_id, signed_url, signed_url_expires
 
     def poll_for_video_results(self, job_id: str = None) -> dict:
         """

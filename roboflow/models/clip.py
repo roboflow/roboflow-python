@@ -13,4 +13,4 @@ class CLIPModel(InferenceModel):
         Args:
             api_key: Your Roboflow API key.
         """
-        super().__init__(api_key=api_key)
+        super().__init__(api_key=api_key, version_id="BASE_MODEL")
