@@ -239,7 +239,6 @@ class InferenceModel:
             signed_url = video_path
 
         url = urljoin(API_URL, "/videoinfer/?api_key=" + self.__api_key)
-
         if model_class in ("CLIPModel", "GazeModel"):
             if model_class == "CLIPModel":
                 model = "clip"
@@ -255,6 +254,14 @@ class InferenceModel:
                     "inference_type": SUPPORTED_ADDITIONAL_MODELS[model][
                         "inference_type"
                     ],
+                }
+            ]
+        else:
+            models = [
+                {
+                    "model_id": self.dataset_id,
+                    "model_version":self.version,
+                    "inference_type": self.type
                 }
             ]
 
@@ -308,7 +315,6 @@ class InferenceModel:
         url = urljoin(
             API_URL, "/videoinfer/?api_key=" + self.__api_key + "&job_id=" + self.job_id
         )
-
         try:
             response = requests.get(url, headers={"Content-Type": "application/json"})
         except Exception as e:
@@ -316,20 +322,21 @@ class InferenceModel:
 
         if not response.ok:
             raise Exception(f"Error getting video inference results: {response.text}")
-
         data = response.json()
+        if "status" not in data:
+            return {} # No status available
+        if data.get("status") > 1:
+            return(data)  # Error
+        elif data.get("status") == 1:
+            return {}  # Still running
+        else: # done
+            output_signed_url = data["output_signed_url"]
+            inference_data = requests.get(
+                output_signed_url, headers={"Content-Type": "application/json"}
+            )
 
-        if data.get("status") != 0:
-            return {}
-
-        output_signed_url = data["output_signed_url"]
-
-        inference_data = requests.get(
-            output_signed_url, headers={"Content-Type": "application/json"}
-        )
-
-        # frame_offset and model name are top-level keys
-        return inference_data.json()
+            # frame_offset and model name are top-level keys
+            return inference_data.json()
 
     def poll_until_video_results(self, job_id) -> dict:
         """
@@ -357,14 +364,11 @@ class InferenceModel:
             job_id = self.job_id
 
         attempts = 0
-
+        print(f"Checking for video inference results for job {job_id} every 60s")
         while True:
-            print(f"({attempts * 60}s): Checking for inference results")
-
-            response = self.poll_for_video_results()
-
             time.sleep(60)
-
+            print(f"({attempts * 60}s): Checking for inference results")
+            response = self.poll_for_video_results()
             attempts += 1
 
             if response != {}:
