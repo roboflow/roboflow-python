@@ -92,14 +92,12 @@ class VideoInferenceModel(InferenceModel):
 
         url = urljoin(API_URL, "/video_upload_signed_url/?api_key=", self.__api_key)
 
-        # get video frame rate
-
         if fps > 30:
             raise Exception("FPS must be less than or equal to 30.")
 
         for model in additional_models:
             if model not in SUPPORTED_ADDITIONAL_MODELS:
-                raise Exception(f"Model {model} is not supported for video inference.")
+                raise Exception(f"Model {model} is no t supported for video inference.")
 
         if inference_type not in SUPPORTED_ROBOFLOW_MODELS:
             raise Exception(
@@ -181,7 +179,7 @@ class VideoInferenceModel(InferenceModel):
         except Exception as e:
             print(e)
             raise Exception("Error polling for results.")
-
+        
         if not response.ok:
             raise Exception("Error polling for results.")
 
