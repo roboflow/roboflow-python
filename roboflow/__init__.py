@@ -10,8 +10,8 @@ import requests
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS, load_roboflow_api_key
 from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
-from roboflow.util.general import write_line
 from roboflow.models import CLIPModel, GazeModel
+from roboflow.util.general import write_line
 
 __version__ = "1.1.7"
 

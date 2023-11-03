@@ -1,10 +1,9 @@
 import io
-import os
 import json
+import os
 import time
 import urllib
 from typing import List
-
 from urllib.parse import urljoin
 
 import requests

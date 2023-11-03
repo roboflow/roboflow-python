@@ -92,8 +92,10 @@ class VideoInferenceModel(InferenceModel):
 
         url = urljoin(API_URL, "/video_upload_signed_url/?api_key=", self.__api_key)
 
-        if fps > 5:
-            raise Exception("FPS must be less than or equal to 5.")
+        # get video frame rate
+
+        if fps > 30:
+            raise Exception("FPS must be less than or equal to 30.")
 
         for model in additional_models:
             if model not in SUPPORTED_ADDITIONAL_MODELS:
@@ -174,22 +176,31 @@ class VideoInferenceModel(InferenceModel):
             API_URL, "/videoinfer/?api_key=", self.__api_key, "&job_id=", self.job_id
         )
 
-        response = requests.get(url, headers={"Content-Type": "application/json"})
+        try:
+            response = requests.get(url, headers={"Content-Type": "application/json"})
+        except Exception as e:
+            print(e)
+            raise Exception("Error polling for results.")
+
+        if not response.ok:
+            raise Exception("Error polling for results.")
 
         data = response.json()
 
-        if data["success"] != 0 or data["status_info"] != "success":
+        if data["success"] == 0:
+            output_signed_url = data["output_signed_url"]
+
+            inference_data = requests.get(
+                output_signed_url, headers={"Content-Type": "application/json"}
+            )
+
+            # frame_offset and model name are top-level keys
+            return inference_data.json()
+        elif data["success"] == 1:
             print("Job not complete yet. Check back in a minute.")
             return {}
-
-        output_signed_url = data["output_signed_url"]
-
-        inference_data = requests.get(
-            output_signed_url, headers={"Content-Type": "application/json"}
-        )
-
-        # frame_offset and model name are top-level keys
-        return inference_data.json()
+        else:
+            raise Exception("Job failed.")
 
     def poll_until_results(self, job_id) -> dict:
         """
@@ -221,11 +232,11 @@ class VideoInferenceModel(InferenceModel):
         while True:
             response = self.poll_for_response()
 
-            time.sleep(60)
-
-            print(f"({attempts * 60}s): Checking for inference results")
-
             attempts += 1
 
             if response != {}:
                 return response
+
+            print(f"({attempts * 60}s): Checking for inference results")
+
+            time.sleep(60)
