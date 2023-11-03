@@ -260,8 +260,8 @@ class InferenceModel:
             models = [
                 {
                     "model_id": self.dataset_id,
-                    "model_version":self.version,
-                    "inference_type": self.type
+                    "model_version": self.version,
+                    "inference_type": self.type,
                 }
             ]
 
@@ -324,12 +324,12 @@ class InferenceModel:
             raise Exception(f"Error getting video inference results: {response.text}")
         data = response.json()
         if "status" not in data:
-            return {} # No status available
+            return {}  # No status available
         if data.get("status") > 1:
-            return(data)  # Error
+            return data  # Error
         elif data.get("status") == 1:
             return {}  # Still running
-        else: # done
+        else:  # done
             output_signed_url = data["output_signed_url"]
             inference_data = requests.get(
                 output_signed_url, headers={"Content-Type": "application/json"}
