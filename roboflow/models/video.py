@@ -179,7 +179,7 @@ class VideoInferenceModel(InferenceModel):
         except Exception as e:
             print(e)
             raise Exception("Error polling for results.")
-        
+
         if not response.ok:
             raise Exception("Error polling for results.")
 
