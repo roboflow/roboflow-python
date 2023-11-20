@@ -417,7 +417,7 @@ class Project:
             )
 
         if is_file:
-            is_image = self.check_valid_image(image_path) or is_hosted
+            is_image = is_hosted or self.check_valid_image(image_path)
 
             if not is_image:
                 raise RuntimeError(
