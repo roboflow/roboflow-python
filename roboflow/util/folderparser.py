@@ -9,6 +9,7 @@ def parsefolder(folder):
         raise Exception(f"folder does not exist. {folder}")
     files = _list_files(folder)
     images = [f for f in files if f["extension"] in IMAGE_EXTENSIONS]
+    _decide_split(images)
     annotations = [f for f in files if f["extension"] in ANNOTATION_EXTENSIONS]
     _map_annotations_to_images(images, annotations)
     return {
@@ -32,7 +33,6 @@ def _describe_file(f):
     key = os.path.splitext(name)[0]
     return {
         "file": f,
-        "split": "train",  # TODO: decide split
         "name": name,
         "extension": extension.lower(),
         "key": key.lower(),
@@ -46,3 +46,16 @@ def _map_annotations_to_images(images, annotations):
         image = imgmap.get(ann["fullkey"])
         if image:
             image["annotationfile"] = ann
+
+
+def _decide_split(images):
+    for i in images:
+        fullkey = i["fullkey"]
+        if "valid" in fullkey:
+            i["split"] = "valid"
+        elif "train" in fullkey:
+            i["split"] = "train"
+        elif "test" in fullkey:
+            i["split"] = "test"
+        else:
+            i["split"] = "train"

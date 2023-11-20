@@ -16,12 +16,13 @@ def download(args):
 
 def upload(args):
     rf = roboflow.Roboflow()
-    f, w, p, folder = args.f, args.w, args.p, args.folder
+    f, w, p, folder, c = args.f, args.w, args.p, args.folder, int(args.c)
     workspace = rf.workspace(w)
     workspace.upload_dataset(
         dataset_path=folder,
         dataset_format=f,
         project_name=p,
+        num_workers=c,
     )
 
 
@@ -65,6 +66,7 @@ def _argparser():
     )
     upload_parser.add_argument("-w", help="workspace url")
     upload_parser.add_argument("-p", help="Project name")
+    upload_parser.add_argument("-c", help="concurrency", default=10)
     upload_parser.add_argument(
         "-f",
         #    choices=["voc", "yolov8", "yolov5"],
