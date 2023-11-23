@@ -2,6 +2,7 @@ import os
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml"}
+LABELMAPS_EXTENSIONS = {".labels"}
 
 
 def parsefolder(folder):
@@ -11,6 +12,8 @@ def parsefolder(folder):
     images = [f for f in files if f["extension"] in IMAGE_EXTENSIONS]
     _decide_split(images)
     annotations = [f for f in files if f["extension"] in ANNOTATION_EXTENSIONS]
+    labelmaps = [f for f in files if f["extension"] in LABELMAPS_EXTENSIONS]
+    _map_labelmaps_to_annotations(annotations, labelmaps)
     _map_annotations_to_images(images, annotations)
     return {
         "location": folder,
@@ -29,10 +32,12 @@ def _list_files(folder):
 
 def _describe_file(f):
     name = f.split("/")[-1]
+    dirname = os.path.dirname(f)
     fullkey, extension = os.path.splitext(f)
     key = os.path.splitext(name)[0]
     return {
         "file": f,
+        "dirname": dirname,
         "name": name,
         "extension": extension.lower(),
         "key": key.lower(),
@@ -42,10 +47,32 @@ def _describe_file(f):
 
 def _map_annotations_to_images(images, annotations):
     imgmap = {i["fullkey"]: i for i in images}
+    countmapped = 0
     for ann in annotations:
         image = imgmap.get(ann["fullkey"])
         if image:
             image["annotationfile"] = ann
+            countmapped += 1
+    if countmapped >= 0:
+        return
+    imgmap = {i["key"]: i for i in images}
+    for ann in annotations:
+        image = imgmap.get(ann["key"])
+        if image:
+            image["annotationfile"] = ann
+
+
+def _map_labelmaps_to_annotations(annotations, labelmaps):
+    if not labelmaps:
+        return
+    labelmapmap = {lm["dirname"]: lm for lm in labelmaps}
+    if len(labelmapmap) < len(labelmaps):
+        print("warning: unexpectedly found multiple labelmaps per directory")
+        print([lm["file"] for lm in labelmaps])
+    for ann in annotations:
+        labelmap = labelmapmap.get(ann["dirname"])
+        if labelmap:
+            ann["labelmapfile"] = labelmap
 
 
 def _decide_split(images):
