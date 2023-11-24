@@ -465,6 +465,7 @@ class Project:
         self,
         image_path=None,
         annotation_path=None,
+        annotation_labelmap=None,
         hosted_image=False,
         image_id=None,
         split="train",
@@ -506,6 +507,7 @@ class Project:
                     annotation_str,
                     image_id,
                     is_prediction=is_prediction,
+                    annotation_labelmap=annotation_labelmap,
                 )
             except BaseException as e:
                 uploaded_annotation = {"error": e}

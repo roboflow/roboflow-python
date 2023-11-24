@@ -374,9 +374,13 @@ class Workspace:
             annotationdesc = imagedesc.get("annotationfile")
             if annotationdesc:
                 annotation_path = f"{location}{annotationdesc['file']}"
+                labelmap = annotationdesc.get("labelmap")
             try:
                 uploadres = project.single_upload(
-                    image_path=image_path, annotation_path=annotation_path, split=split
+                    image_path=image_path,
+                    annotation_path=annotation_path,
+                    annotation_labelmap=labelmap,
+                    split=split,
                 )
                 _log_img_upload(image_path, uploadres)
             except Exception as e:

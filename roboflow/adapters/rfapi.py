@@ -1,6 +1,6 @@
 import os
 import urllib
-
+import json
 import requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
@@ -83,6 +83,7 @@ def save_annotation(
     annotation_string: str,
     image_id: str,
     is_prediction: bool = False,
+    annotation_labelmap=None,
 ):
     """
     Upload an annotation to a specific project.
@@ -98,8 +99,8 @@ def save_annotation(
 
     response = requests.post(
         upload_url,
-        data=annotation_string,
-        headers={"Content-Type": "text/plain"},
+        data=json.dumps({"data": annotation_string, "labelmap": annotation_labelmap}),
+        headers={"Content-Type": "application/json"},
     )
     responsejson = None
     try:
