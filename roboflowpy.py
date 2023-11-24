@@ -1,5 +1,6 @@
 import argparse
 import roboflow
+from roboflow.config import DEFAULT_BATCH_NAME
 
 
 def login(args):
@@ -26,11 +27,33 @@ def import_dataset(args):
     )
 
 
+def upload_image(args):
+    rf = roboflow.Roboflow()
+    workspace = rf.workspace(args.workspace)
+    project = workspace.project(args.project)
+    project.single_upload(
+        image_path=args.imagefile,
+        annotation_path=args.annotation,
+        annotation_labelmap=args.labelmap,
+        split=args.split,
+        num_retry_uploads=args.num_retries,
+        batch_name=args.batch,
+        tag_names=args.tag_names.split(",") if args.tag_names else [],
+        is_prediction=args.is_prediction,
+    )
+
+
 def _argparser():
     parser = argparse.ArgumentParser(description="main description")
     subparsers = parser.add_subparsers(title="subcommands")
-    login_parser = subparsers.add_parser("login", help="Log in to Roboflow")
-    login_parser.set_defaults(func=login)
+    _add_login_parser(subparsers)
+    _add_download_parser(subparsers)
+    _add_upload_parser(subparsers)
+    _add_import_parser(subparsers)
+    return parser
+
+
+def _add_download_parser(subparsers):
     download_parser = subparsers.add_parser(
         "download",
         help="Download a dataset version from your workspace or Roboflow Universe.",
@@ -47,6 +70,70 @@ def _argparser():
         "-l", dest="location", help="Location to download the dataset"
     )
     download_parser.set_defaults(func=download)
+
+
+def _add_upload_parser(subparsers):
+    upload_parser = subparsers.add_parser(
+        "upload", help="Upload a single image to a dataset"
+    )
+    upload_parser.add_argument(
+        "imagefile",
+        help="path to image file",
+    )
+    upload_parser.add_argument(
+        "-w",
+        dest="workspace",
+        help="specify a workspace url or id (will use default workspace if not specified)",
+    )
+    upload_parser.add_argument(
+        "-p",
+        dest="project",
+        help="project_id to upload the image into",
+    )
+    upload_parser.add_argument(
+        "-a",
+        dest="annotation",
+        help="path to annotation file (optional)",
+    )
+    upload_parser.add_argument(
+        "-m",
+        dest="labelmap",
+        help="path to labelmap file (optional)",
+    )
+    upload_parser.add_argument(
+        "-s",
+        dest="split",
+        help="split set (train, valid, test) - optional",
+        default="train",
+    )
+    upload_parser.add_argument(
+        "-r",
+        dest="num_retries",
+        help="Retry failed uploads this many times (default: 0)",
+        type=int,
+        default=0,
+    )
+    upload_parser.add_argument(
+        "-b",
+        dest="batch",
+        help="Batch name to upload to (optional)",
+        default=DEFAULT_BATCH_NAME,
+    )
+    upload_parser.add_argument(
+        "-t",
+        dest="tag_names",
+        help="Tag names to apply to the image (optional)",
+    )
+    upload_parser.add_argument(
+        "-i",
+        dest="is_prediction",
+        help="Whether this upload is a prediction (optional)",
+        action="store_true",
+    )
+    upload_parser.set_defaults(func=upload_image)
+
+
+def _add_import_parser(subparsers):
     import_parser = subparsers.add_parser(
         "import", help="Import a dataset from a local folder"
     )
@@ -62,7 +149,7 @@ def _argparser():
     import_parser.add_argument(
         "-p",
         dest="project",
-        help="project url or id (or the program will prompt you to select which project in your workspace to upload to)",
+        help="project will be created if it does not exist",
     )
     import_parser.add_argument(
         "-c",
@@ -78,7 +165,11 @@ def _argparser():
         default="auto",
     )
     import_parser.set_defaults(func=import_dataset)
-    return parser
+
+
+def _add_login_parser(subparsers):
+    login_parser = subparsers.add_parser("login", help="Log in to Roboflow")
+    login_parser.set_defaults(func=login)
 
 
 def main():

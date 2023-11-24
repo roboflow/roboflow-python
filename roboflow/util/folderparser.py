@@ -1,4 +1,5 @@
 import os
+from .image_utils import load_labelmap
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml"}
@@ -79,17 +80,11 @@ def _map_labelmaps_to_annotations(annotations, labelmaps):
 def _load_labelmaps(folder, labelmaps):
     for labelmap in labelmaps:
         try:
-            labelmap["labelmap"] = _load_labelmap(f"{folder}/{labelmap['file']}")
+            labelmap["labelmap"] = load_labelmap(f"{folder}/{labelmap['file']}")
         except:
             # raise
             pass
     return [lm for lm in labelmaps if lm.get("labelmap")]
-
-
-def _load_labelmap(f):
-    with open(f, "r") as file:
-        lines = [line for line in file.readlines() if line.strip()]
-        return {i: l.strip() for i, l in enumerate(lines)}
 
 
 def _decide_split(images):

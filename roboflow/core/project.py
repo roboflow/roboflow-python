@@ -11,6 +11,7 @@ from roboflow.adapters import rfapi
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEMO_KEYS
 from roboflow.core.version import Version
 from roboflow.util.general import retry
+from roboflow.util.image_utils import load_labelmap
 
 ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
 
@@ -479,6 +480,8 @@ class Project:
             raise Exception("You can't pass both image_id and image_path")
         if not (image_path or image_id):
             raise Exception("You need to pass image_path or image_id")
+        if isinstance(annotation_labelmap, str):
+            annotation_labelmap = load_labelmap(annotation_labelmap)
         uploaded_image, uploaded_annotation = None, None
         if image_path:
             project_url = self.id.rsplit("/")[1]

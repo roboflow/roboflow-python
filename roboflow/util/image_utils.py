@@ -75,3 +75,9 @@ def file2jpeg(image_path):
     buffered = io.BytesIO()
     pilImage.save(buffered, quality=100, format="JPEG")
     return buffered.getvalue()
+
+
+def load_labelmap(f):
+    with open(f, "r") as file:
+        lines = [line for line in file.readlines() if line.strip()]
+        return {i: l.strip() for i, l in enumerate(lines)}
