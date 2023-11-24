@@ -9,20 +9,20 @@ def login(args):
 def download(args):
     rf = roboflow.Roboflow()
     w, p, v = args.datasetUrl.split("/")
-    format, location = args.f, args.l
     project = rf.workspace(w).project(p)
-    project.version(int(v)).download(format, location=location, overwrite=True)
+    project.version(int(v)).download(
+        args.format, location=args.location, overwrite=True
+    )
 
 
-def upload(args):
+def import_dataset(args):
     rf = roboflow.Roboflow()
-    f, w, p, folder, c = args.f, args.w, args.p, args.folder, int(args.c)
-    workspace = rf.workspace(w)
+    workspace = rf.workspace(args.workspace)
     workspace.upload_dataset(
-        dataset_path=folder,
-        dataset_format=f,
-        project_name=p,
-        num_workers=c,
+        dataset_path=args.folder,
+        dataset_format=args.format,
+        project_name=args.project,
+        num_workers=args.concurrency,
     )
 
 
@@ -40,39 +40,44 @@ def _argparser():
     )
     download_parser.add_argument(
         "-f",
-        choices=[
-            "coco",
-            "yolov5pytorch",
-            "yolov7pytorch",
-            "my-yolov6",
-            "darknet",
-            "voc",
-            "tfrecord",
-            "createml",
-            "clip",
-            "multiclass",
-            "coco-segmentation",
-            "yolo5-obb",
-            "png-mask-semantic",
-            "yolov8",
-        ],
-        help="Specify the format to download the version in (default: interactive prompt)",
+        dest="format",
+        help="Specify the format to download the version. Available options: [coco, yolov5pytorch, yolov7pytorch, my-yolov6, darknet, voc, tfrecord, createml, clip, multiclass, coco-segmentation, yolo5-obb, png-mask-semantic, yolov8]",
     )
-    download_parser.add_argument("-l", help="Location to download the dataset")
+    download_parser.add_argument(
+        "-l", dest="location", help="Location to download the dataset"
+    )
     download_parser.set_defaults(func=download)
-    upload_parser = subparsers.add_parser("upload", help="Upload a dataset")
-    upload_parser.add_argument(
-        "folder", help="filesystem path to a folder that contains your dataset"
+    import_parser = subparsers.add_parser(
+        "import", help="Import a dataset from a local folder"
     )
-    upload_parser.add_argument("-w", help="workspace url")
-    upload_parser.add_argument("-p", help="Project name")
-    upload_parser.add_argument("-c", help="concurrency", default=10)
-    upload_parser.add_argument(
+    import_parser.add_argument(
+        "folder",
+        help="filesystem path to a folder that contains your dataset",
+    )
+    import_parser.add_argument(
+        "-w",
+        dest="workspace",
+        help="specify a workspace url or id (will use default workspace if not specified)",
+    )
+    import_parser.add_argument(
+        "-p",
+        dest="project",
+        help="project url or id (or the program will prompt you to select which project in your workspace to upload to)",
+    )
+    import_parser.add_argument(
+        "-c",
+        dest="concurrency",
+        type=int,
+        help="how many image uploads to perform concurrently (default: 10)",
+        default=10,
+    )
+    import_parser.add_argument(
         "-f",
-        #    choices=["voc", "yolov8", "yolov5"],
-        help="format",
+        dest="format",
+        help="dataset format. Valid options are [voc, yolov8, yolov5, auto] (use auto for autodetect)",
+        default="auto",
     )
-    upload_parser.set_defaults(func=upload)
+    import_parser.set_defaults(func=import_dataset)
     return parser
 
 
