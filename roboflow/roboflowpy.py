@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import roboflow
 from roboflow.config import DEFAULT_BATCH_NAME

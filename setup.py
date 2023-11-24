@@ -11,7 +11,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 with open("requirements.txt", "r") as fh:
-    install_requires = fh.read().split('\n')
+    install_requires = fh.read().split("\n")
 
 setuptools.setup(
     name="roboflow",
@@ -28,6 +28,11 @@ setuptools.setup(
     extras_require={
         "desktop": ["opencv-python==4.8.0.74"],
         "dev": ["flake8", "black==22.3.0", "isort", "responses", "twine", "wheel"],
+    },
+    entry_points={
+        "console_scripts": [
+            "roboflowpy=roboflow.roboflowpy:main",
+        ],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
