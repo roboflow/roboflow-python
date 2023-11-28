@@ -32,7 +32,7 @@ setuptools.setup(
     },
     entry_points={
         "console_scripts": [
-            "roboflowpy=roboflow.roboflowpy:main",
+            "roboflow=roboflow.roboflowpy:main",
         ],
     },
     classifiers=[
