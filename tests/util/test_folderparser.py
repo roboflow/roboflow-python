@@ -1,8 +1,8 @@
-import unittest
 import json
-from os.path import dirname, abspath
-from roboflow.util import folderparser
+import unittest
+from os.path import abspath, dirname
 
+from roboflow.util import folderparser
 
 thisdir = dirname(abspath(__file__))
 

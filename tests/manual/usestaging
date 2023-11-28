@@ -1,2 +1,4 @@
+#!/bin/bash
+cp data/.config-staging data/.config
 export API_URL=https://api.roboflow.one
 export APP_URL=https://app.roboflow.one

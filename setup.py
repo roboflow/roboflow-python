@@ -1,6 +1,7 @@
+import re
+
 import setuptools
 from setuptools import find_packages
-import re
 
 with open("./roboflow/__init__.py", "r") as f:
     content = f.read()

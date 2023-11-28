@@ -1,14 +1,13 @@
 import unittest
 
-from requests.exceptions import HTTPError
+import numpy as np
 import responses
+from PIL import UnidentifiedImageError
+from requests.exceptions import HTTPError
 
 from roboflow.config import OBJECT_DETECTION_URL
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.util.prediction import PredictionGroup
-
-from PIL import UnidentifiedImageError
-import numpy as np
 
 MOCK_RESPONSE = {
     "predictions": [

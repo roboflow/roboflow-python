@@ -15,5 +15,6 @@
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
     "python.formatting.provider": "none",
-    "python.testing.pytestEnabled": false
+    "python.testing.pytestEnabled": false,
+    "editor.inlineSuggest.showToolbar": "onHover"
 }
