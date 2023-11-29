@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-
+import re
 import roboflow
 from roboflow.config import DEFAULT_BATCH_NAME
 
@@ -9,13 +9,33 @@ def login(args):
     roboflow.login()
 
 
+def _parse_url(url):
+    regex = r"(?:https?://)?(?:universe|app)\.roboflow\.(?:com|one)/([^/]+)/([^/]+)(?:/dataset)?(?:/(\d+))?|([^/]+)/([^/]+)(?:/(\d+))?"
+    match = re.match(regex, url)
+    if match:
+        organization = match.group(1) or match.group(4)
+        dataset = match.group(2) or match.group(5)
+        version = match.group(3) or match.group(
+            6
+        )  # This can be None if not present in the URL
+        return organization, dataset, version
+    return None, None, None
+
+
 def download(args):
     rf = roboflow.Roboflow()
-    w, p, v = args.datasetUrl.split("/")
+    w, p, v = _parse_url(args.datasetUrl)
     project = rf.workspace(w).project(p)
-    project.version(int(v)).download(
-        args.format, location=args.location, overwrite=True
-    )
+    if not v:
+        versions = project.versions()
+        if not versions:
+            print(f"project {p} does not have any version. exiting")
+            exit(1)
+        version = versions[-1]
+        print(f"Version not provided. Downloading last one ({version.version})")
+    else:
+        version = project.version(int(v))
+    version.download(args.format, location=args.location, overwrite=True)
 
 
 def import_dataset(args):
@@ -66,6 +86,7 @@ def _add_download_parser(subparsers):
     download_parser.add_argument(
         "-f",
         dest="format",
+        default="voc",
         help="Specify the format to download the version. Available options: [coco, yolov5pytorch, yolov7pytorch, my-yolov6, darknet, voc, tfrecord, createml, clip, multiclass, coco-segmentation, yolo5-obb, png-mask-semantic, yolov8]",
     )
     download_parser.add_argument(

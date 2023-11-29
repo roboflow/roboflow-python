@@ -11,5 +11,6 @@ export ROBOFLOW_CONFIG_DIR=./data/.config
 # python ../../roboflow/roboflowpy.py download motusbots/cultura-pepino/2 -f multiclass -l ./data/cultura-pepino-multiclass
 # python ../../roboflow/roboflowpy.py download motusbots/cultura-pepino/2 -f coco-segmentation -l ./data/cultura-pepino-coco-segmentation
 # python ../../roboflow/roboflowpy.py download motusbots/cultura-pepino/2 -f yolo5-obb -l ./data/cultura-pepino-yolo5-obb
-python ../../roboflow/roboflowpy.py download motusbots/cultura-pepino/2 -f yolov8 -l ./data/cultura-pepino-yolov8
+# python ../../roboflow/roboflowpy.py download motusbots/cultura-pepino/2 -f yolov8 -l ./data/cultura-pepino-yolov8
 # python ../../roboflow/roboflowpy.py download motusbots/cultura-pepino/2 -f png-mask-semantic -l ./data/cultura-pepino-png-mask-semantic
+python ../../roboflow/roboflowpy.py download gdit/aerial-airport/1 -f voc
