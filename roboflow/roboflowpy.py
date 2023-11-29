@@ -66,7 +66,9 @@ def upload_image(args):
 
 
 def _argparser():
-    parser = argparse.ArgumentParser(description="main description")
+    parser = argparse.ArgumentParser(
+        description="Welcome to the roboflow CLI: computer vision at your fingertips 🪄"
+    )
     subparsers = parser.add_subparsers(title="subcommands")
     _add_login_parser(subparsers)
     _add_download_parser(subparsers)
