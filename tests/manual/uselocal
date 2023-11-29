@@ -1,0 +1,5 @@
+#!/bin/bash
+cp data/.config-staging data/.config
+export API_URL=https://localhost.roboflow.one
+export APP_URL=https://localhost.roboflow.one
+# need to set it in /etc/hosts to the IP of host.docker.internal!

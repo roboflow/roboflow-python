@@ -1,12 +1,13 @@
 import os
-
-import requests
-import responses
 import unittest
 from unittest.mock import patch
 
-from .helpers import get_version
+import requests
+import responses
+
 from roboflow.core.version import Version, unwrap_version_id
+
+from .helpers import get_version
 
 
 class TestDownload(unittest.TestCase):

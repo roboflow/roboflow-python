@@ -1,19 +1,17 @@
 import datetime
-import io
 import json
 import os
 import sys
-import urllib
 import warnings
 
-import cv2
 import requests
 from PIL import Image, UnidentifiedImageError
-from requests_toolbelt.multipart.encoder import MultipartEncoder
 
+from roboflow.adapters import rfapi
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEMO_KEYS
 from roboflow.core.version import Version
 from roboflow.util.general import retry
+from roboflow.util.image_utils import load_labelmap
 
 ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
 
@@ -24,10 +22,6 @@ def custom_formatwarning(msg, *args, **kwargs):
 
 
 warnings.formatwarning = custom_formatwarning
-
-
-class UploadError(Exception):
-    pass
 
 
 class Project:
@@ -353,205 +347,6 @@ class Project:
 
         raise RuntimeError("Version number {} is not found.".format(version_number))
 
-    def __image_upload(
-        self,
-        image_path: str,
-        hosted_image: bool = False,
-        split: str = "train",
-        batch_name: str = DEFAULT_BATCH_NAME,
-        tag_names: list = [],
-        **kwargs,
-    ):
-        """
-        Upload an image to a specific project.
-
-        Args:
-            image_path (str): path to image you'd like to upload
-            hosted_image (bool): whether the image is hosted on Roboflow
-            split (str): the dataset split the image to
-        """
-
-        # If image is not a hosted image
-        if not hosted_image:
-            batch_name = (
-                batch_name
-                if batch_name and isinstance(batch_name, str)
-                else DEFAULT_BATCH_NAME
-            )
-
-            project_name = self.id.rsplit("/")[1]
-            image_name = os.path.basename(image_path)
-
-            # Construct URL for local image upload
-            self.image_upload_url = "".join(
-                [
-                    API_URL + "/dataset/",
-                    project_name,
-                    "/upload",
-                    "?api_key=",
-                    self.__api_key,
-                    "&batch=",
-                    batch_name,
-                ]
-            )
-            for key, value in kwargs.items():
-                self.image_upload_url += "&" + str(key) + "=" + str(value)
-
-            for tag in tag_names:
-                self.image_upload_url = self.image_upload_url + f"&tag={tag}"
-
-            # Convert to PIL Image
-            img = cv2.imread(image_path)
-            image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            pilImage = Image.fromarray(image)
-
-            # Convert to JPEG Buffer
-            buffered = io.BytesIO()
-            pilImage.save(buffered, quality=100, format="JPEG")
-
-            # Build multipart form and post request
-            m = MultipartEncoder(
-                fields={
-                    "name": image_name,
-                    "split": split,
-                    "file": ("imageToUpload", buffered.getvalue(), "image/jpeg"),
-                }
-            )
-            response = requests.post(
-                self.image_upload_url, data=m, headers={"Content-Type": m.content_type}
-            )
-
-        else:
-            # Hosted image upload url
-            project_name = self.id.rsplit("/")[1]
-
-            upload_url = "".join(
-                [
-                    API_URL + "/dataset/" + project_name + "/upload",
-                    "?api_key=" + self.__api_key,
-                    "&name=" + os.path.basename(image_path),
-                    "&split=" + split,
-                    "&image=" + urllib.parse.quote_plus(image_path),
-                ]
-            )
-            # Get response
-            response = requests.post(upload_url)
-        responsejson = None
-        try:
-            responsejson = response.json()
-        except:
-            pass
-        if response.status_code == 200:
-            if responsejson:
-                if "duplicate" in responsejson.keys():
-                    print(f"Duplicate image not uploaded: {image_path}")
-                elif not responsejson.get("success"):
-                    raise UploadError(f"Server rejected image: {responsejson}")
-                return responsejson.get("id")
-            else:
-                warnings.warn(
-                    f"upload image {image_path} 200 OK, weird response: {response}"
-                )
-                return None
-        else:
-            if responsejson:
-                raise UploadError(
-                    f"Bad response: {response.status_code}: {responsejson}"
-                )
-            else:
-                raise UploadError(f"Bad response: {response}")
-
-    def __annotation_upload(
-        self, annotation_path: str, image_id: str, is_prediction: bool = False
-    ):
-        """
-        Upload an annotation to a specific project.
-
-        Args:
-            annotation_path (str): path to annotation you'd like to upload
-            image_id (str): image id you'd like to upload that has annotations for it.
-        """
-
-        # stop on empty string
-        if len(annotation_path) == 0:
-            print("Please provide a non-empty string for annotation_path.")
-            return {"result": "Please provide a non-empty string for annotation_path."}
-
-        # check if annotation file exists
-        elif os.path.exists(annotation_path):
-            # print("-> found given annotation file")
-            annotation_string = open(annotation_path, "r").read()
-
-        # if not annotation file, check if user wants to upload regular as classification annotation
-        elif self.type == "classification":
-            print(f"-> using {annotation_path} as classname for classification project")
-            annotation_string = annotation_path
-
-        # don't attempt upload otherwise
-        else:
-            print(
-                "File not found or uploading to non-classification type project with invalid string"
-            )
-            return {
-                "result": "File not found or uploading to non-classification type project with invalid string"
-            }
-
-        self.annotation_upload_url = "".join(
-            [
-                API_URL + "/dataset/",
-                self.__project_name,
-                "/annotate/",
-                image_id,
-                "?api_key=",
-                self.__api_key,
-                "&name=" + os.path.basename(annotation_path),
-                "&prediction=true" if is_prediction else "",
-            ]
-        )
-
-        response = requests.post(
-            self.annotation_upload_url,
-            data=annotation_string,
-            headers={"Content-Type": "text/plain"},
-        )
-        responsejson = None
-        try:
-            responsejson = response.json()
-        except:
-            pass
-        if response.status_code == 200:
-            if responsejson:
-                if responsejson.get("error"):
-                    raise UploadError(
-                        f"Failed to save annotation for {image_id}: {responsejson['error']}"
-                    )
-                elif not responsejson.get("success"):
-                    raise UploadError(
-                        f"Failed to save annotation for {image_id}: {responsejson}"
-                    )
-            else:
-                warnings.warn(
-                    f"save annotation {annotation_path} 200 OK, weird response: {response}"
-                )
-        elif response.status_code == 409 and "already annotated" in (
-            responsejson or {}
-        ).get("error", {}).get("message"):
-            print(f"image already annotated: {annotation_path}")
-        else:
-            if responsejson:
-                if responsejson.get("error"):
-                    raise UploadError(
-                        f"save annotation for {image_id} / bad response: {response.status_code}: {responsejson['error']}"
-                    )
-                else:
-                    raise UploadError(
-                        f"save annotation for {image_id} / bad response: {response.status_code}: {responsejson}"
-                    )
-            else:
-                raise UploadError(
-                    f"save annotation for {image_id} bad response: {response}"
-                )
-
     def check_valid_image(self, image_path: str):
         """
         Check if an image is valid. Useful before attempting to upload an image to Roboflow.
@@ -671,6 +466,7 @@ class Project:
         self,
         image_path=None,
         annotation_path=None,
+        annotation_labelmap=None,
         hosted_image=False,
         image_id=None,
         split="train",
@@ -680,55 +476,61 @@ class Project:
         is_prediction: bool = False,
         **kwargs,
     ):
-        success = False
-        annotation_success = False
-        if image_path is not None:
-            try:
-                image_id = retry(
-                    num_retry_uploads,
-                    Exception,
-                    self.__image_upload,
-                    image_path,
-                    hosted_image=hosted_image,
-                    split=split,
-                    batch_name=batch_name,
-                    tag_names=tag_names,
-                    **kwargs,
-                )
-                success = True
-            except BaseException as e:
-                print(
-                    f"{image_path} ERROR uploading image after {num_retry_uploads} retries: {e}",
-                    file=sys.stderr,
-                )
-                return
+        if image_path and image_id:
+            raise Exception("You can't pass both image_id and image_path")
+        if not (image_path or image_id):
+            raise Exception("You need to pass image_path or image_id")
+        if isinstance(annotation_labelmap, str):
+            annotation_labelmap = load_labelmap(annotation_labelmap)
+        uploaded_image, uploaded_annotation = None, None
+        if image_path:
+            project_url = self.id.rsplit("/")[1]
+            uploaded_image = retry(
+                num_retry_uploads,
+                Exception,
+                rfapi.upload_image,
+                self.__api_key,
+                project_url,
+                image_path,
+                hosted_image=hosted_image,
+                split=split,
+                batch_name=batch_name,
+                tag_names=tag_names,
+                **kwargs,
+            )
+            image_id = uploaded_image["id"]
 
-        # Upload only annotations to image based on image Id (no image)
-        if annotation_path is not None and image_id is not None and success:
-            # Get annotation upload response
+        if annotation_path:
+            annotation_name, annotation_str = self._annotation_params(annotation_path)
             try:
-                self.__annotation_upload(
-                    annotation_path, image_id, is_prediction=is_prediction
+                uploaded_annotation = rfapi.save_annotation(
+                    self.__api_key,
+                    project_url,
+                    annotation_name,
+                    annotation_str,
+                    image_id,
+                    is_prediction=is_prediction,
+                    annotation_labelmap=annotation_labelmap,
                 )
-                annotation_success = True
             except BaseException as e:
-                print(
-                    f"{annotation_path} ERROR saving annotation: {e}", file=sys.stderr
-                )
-                return False
-            # Give user warning that annotation failed to upload
-            if not annotation_success:
-                warnings.warn(
-                    "Annotation, "
-                    + annotation_path
-                    + "failed to upload!\n Upload correct annotation file to image_id: "
-                    + image_id
-                )
+                uploaded_annotation = {"error": e}
+        return {"image": uploaded_image, "annotation": uploaded_annotation}
+
+    def _annotation_params(self, annotation_path):
+        annotation_name, annotation_string = None, None
+        if os.path.exists(annotation_path):
+            with open(annotation_path, "r") as f:
+                annotation_string = open(annotation_path, "r").read()
+            annotation_name = os.path.basename(annotation_path)
+        elif self.type == "classification":
+            print(f"-> using {annotation_path} as classname for classification project")
+            annotation_string = annotation_path
+            annotation_name = annotation_path
         else:
-            annotation_success = True
-
-        overall_success = success and annotation_success
-        return overall_success
+            raise Exception(
+                f"File not found or uploading to non-classification type project with invalid string. - {annotation_path}"
+            )
+        return annotation_name, annotation_string
 
     def search(
         self,
