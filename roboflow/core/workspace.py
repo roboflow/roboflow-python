@@ -406,7 +406,7 @@ class Workspace:
                 ),
                 True,
             )
-        
+
     ## DEPRECATED. Will die.
     def _upload_dataset_legacy(
         self,
