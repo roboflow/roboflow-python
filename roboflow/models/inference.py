@@ -269,7 +269,7 @@ class InferenceModel:
             models.append(SUPPORTED_ADDITIONAL_MODELS[model])
 
         payload = json.dumps(
-            {"input_url": signed_url, "infer_fps": 5, "models": models}
+            {"input_url": signed_url, "infer_fps": fps, "models": models}
         )
 
         headers = {"Content-Type": "application/json"}
