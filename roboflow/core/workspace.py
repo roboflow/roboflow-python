@@ -399,7 +399,7 @@ class Workspace:
         except RuntimeError:
             return (
                 self.create_project(
-                    project_id,
+                    project_name=project_id,
                     project_license=license,
                     annotation=project_id,
                     project_type=type,
