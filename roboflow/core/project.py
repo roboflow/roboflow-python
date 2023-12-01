@@ -477,7 +477,6 @@ class Project:
         **kwargs,
     ):
         project_url = self.id.rsplit("/")[1]
-        print("project url", project_url)
         if image_path and image_id:
             raise Exception("You can't pass both image_id and image_path")
         if not (image_path or image_id):
