@@ -64,14 +64,14 @@ class Workspace:
 
         return projects_array
 
-    def project(self, project_name):
+    def project(self, project_id):
         """
         Retrieve a Project() object that represents a project in the workspace.
 
         This object can be used to retrieve the model through which to run inference.
 
         Args:
-            project_name (str): name of the project
+            project_id (str): id of the project
 
         Returns:
             Project Object
@@ -83,17 +83,17 @@ class Workspace:
         if self.__api_key in DEMO_KEYS:
             return Project(self.__api_key, {}, self.model_format)
 
-        project_name = project_name.replace(self.url + "/", "")
+        # project_id = project_id.replace(self.url + "/", "")
 
-        if "/" in project_name:
+        if "/" in project_id:
             raise RuntimeError(
                 "The {} project is not available in this ({}) workspace".format(
-                    project_name, self.url
+                    project_id, self.url
                 )
             )
 
         dataset_info = requests.get(
-            API_URL + "/" + self.url + "/" + project_name + "?api_key=" + self.__api_key
+            API_URL + "/" + self.url + "/" + project_id + "?api_key=" + self.__api_key
         )
 
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
@@ -333,7 +333,7 @@ class Workspace:
     ):
         parsed_dataset = folderparser.parsefolder(dataset_path)
         project, created = self._get_or_create_project(
-            project_name, license=project_license, type=project_type
+            project_id=project_name, license=project_license, type=project_type
         )
         if created:
             print(f"Created project {project.id}")
@@ -371,6 +371,7 @@ class Workspace:
             image_path = f"{location}{imagedesc['file']}"
             split = imagedesc["split"]
             annotation_path = None
+            labelmap = None
             annotationdesc = imagedesc.get("annotationfile")
             if annotationdesc:
                 annotation_path = f"{location}{annotationdesc['file']}"
@@ -390,20 +391,17 @@ class Workspace:
             list(executor.map(_upload_image, images))
 
     def _get_or_create_project(
-        self, project_name, license: str = "MIT", type: str = "object-detection"
+        self, project_id, license: str = "MIT", type: str = "object-detection"
     ):
-        found_project = next(
-            (p for p in self.project_list if p["name"] == project_name), None
-        )
-        if found_project:
-            project_url = found_project["id"].split("/")[1]
-            return self.project(project_url), False
-        else:
+        try:
+            existing_project = self.project(project_id)
+            return existing_project, False
+        except RuntimeError:
             return (
                 self.create_project(
-                    project_name,
+                    project_name=project_id,
                     project_license=license,
-                    annotation=project_name,
+                    annotation=project_id,
                     project_type=type,
                 ),
                 True,
@@ -426,7 +424,6 @@ class Workspace:
             raise Exception(
                 "dataset_format not supported - please use voc, yolov8, yolov5. PS, you can always convert your dataset in the Roboflow UI"
             )
-
         # check type stuff and convert
         if dataset_format == "yolov8" or dataset_format == "yolov5":
             # convert to voc
