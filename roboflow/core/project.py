@@ -476,6 +476,8 @@ class Project:
         is_prediction: bool = False,
         **kwargs,
     ):
+        project_url = self.id.rsplit("/")[1]
+        print("project url", project_url)
         if image_path and image_id:
             raise Exception("You can't pass both image_id and image_path")
         if not (image_path or image_id):
@@ -484,7 +486,6 @@ class Project:
             annotation_labelmap = load_labelmap(annotation_labelmap)
         uploaded_image, uploaded_annotation = None, None
         if image_path:
-            project_url = self.id.rsplit("/")[1]
             uploaded_image = retry(
                 num_retry_uploads,
                 Exception,
