@@ -1,0 +1,1593 @@
+[
+    {
+        "file": "cli/tests/datasets/chess/0AF.jpg",
+        "name": "0AF.jpg",
+        "split": "test",
+        "annotation": {
+            "key": [
+                "0af.jpg",
+                "0af.jpg",
+                "0af.jpeg",
+                "0af.png",
+                "0af.bmp"
+            ],
+            "converted": {
+                "key": "0af.jpg",
+                "width": "765",
+                "height": "512",
+                "boxes": [
+                    {
+                        "label": "black-king",
+                        "x": 588,
+                        "y": 154.5,
+                        "width": 68,
+                        "height": 109
+                    },
+                    {
+                        "label": "black-rook",
+                        "x": 503.5,
+                        "y": 85.5,
+                        "width": 53,
+                        "height": 73
+                    },
+                    {
+                        "label": "black-knight",
+                        "x": 494,
+                        "y": 391,
+                        "width": 64,
+                        "height": 82
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 535.5,
+                        "y": 279,
+                        "width": 45,
+                        "height": 56
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 397.5,
+                        "y": 180,
+                        "width": 41,
+                        "height": 60
+                    },
+                    {
+                        "label": "black-bishop",
+                        "x": 409.5,
+                        "y": 278.5,
+                        "width": 49,
+                        "height": 79
+                    },
+                    {
+                        "label": "black-bishop",
+                        "x": 268,
+                        "y": 76,
+                        "width": 48,
+                        "height": 80
+                    },
+                    {
+                        "label": "white-king",
+                        "x": 134.5,
+                        "y": 202.5,
+                        "width": 69,
+                        "height": 115
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 259.5,
+                        "y": 279,
+                        "width": 47,
+                        "height": 60
+                    },
+                    {
+                        "label": "white-queen",
+                        "x": 339.5,
+                        "y": 76.5,
+                        "width": 55,
+                        "height": 93
+                    },
+                    {
+                        "label": "white-knight",
+                        "x": 150.5,
+                        "y": 74.5,
+                        "width": 61,
+                        "height": 81
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 386.5,
+                        "y": 37,
+                        "width": 43,
+                        "height": 72
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 115.5,
+                        "y": 327.5,
+                        "width": 63,
+                        "height": 81
+                    }
+                ]
+            },
+            "original": {
+                "source": "RectLabel",
+                "format": "xml",
+                "annotation": "<annotation>\n\t<folder></folder>\n\t<filename>0af.jpg</filename>\n\t<path>0af.jpg</path>\n\t<source>\n\t\t<database>roboflow.ai</database>\n\t</source>\n\t<size>\n\t\t<width>765</width>\n\t\t<height>512</height>\n\t\t<depth>3</depth>\n\t</size>\n\t<segmented>0</segmented>\n\t<object>\n\t\t<name>black-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>555</xmin>\n\t\t\t<xmax>623</xmax>\n\t\t\t<ymin>101</ymin>\n\t\t\t<ymax>210</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>478</xmin>\n\t\t\t<xmax>531</xmax>\n\t\t\t<ymin>50</ymin>\n\t\t\t<ymax>123</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>463</xmin>\n\t\t\t<xmax>527</xmax>\n\t\t\t<ymin>351</ymin>\n\t\t\t<ymax>433</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>514</xmin>\n\t\t\t<xmax>559</xmax>\n\t\t\t<ymin>252</ymin>\n\t\t\t<ymax>308</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>378</xmin>\n\t\t\t<xmax>419</xmax>\n\t\t\t<ymin>151</ymin>\n\t\t\t<ymax>211</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>386</xmin>\n\t\t\t<xmax>435</xmax>\n\t\t\t<ymin>240</ymin>\n\t\t\t<ymax>319</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>245</xmin>\n\t\t\t<xmax>293</xmax>\n\t\t\t<ymin>37</ymin>\n\t\t\t<ymax>117</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>101</xmin>\n\t\t\t<xmax>170</xmax>\n\t\t\t<ymin>146</ymin>\n\t\t\t<ymax>261</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>237</xmin>\n\t\t\t<xmax>284</xmax>\n\t\t\t<ymin>250</ymin>\n\t\t\t<ymax>310</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>313</xmin>\n\t\t\t<xmax>368</xmax>\n\t\t\t<ymin>31</ymin>\n\t\t\t<ymax>124</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>121</xmin>\n\t\t\t<xmax>182</xmax>\n\t\t\t<ymin>35</ymin>\n\t\t\t<ymax>116</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>366</xmin>\n\t\t\t<xmax>409</xmax>\n\t\t\t<ymin>2</ymin>\n\t\t\t<ymax>74</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>85</xmin>\n\t\t\t<xmax>148</xmax>\n\t\t\t<ymin>288</ymin>\n\t\t\t<ymax>369</ymax>\n\t\t</bndbox>\n\t</object>\n</annotation>\n"
+            }
+        }
+    },
+    {
+        "file": "cli/tests/datasets/chess/1be.jpg",
+        "name": "1be.jpg",
+        "split": "test",
+        "annotation": {
+            "key": [
+                "1be",
+                "1be.jpg",
+                "1be.jpeg",
+                "1be.png",
+                "1be.bmp",
+                "1be.jpg",
+                "1be.jpeg",
+                "1be.png",
+                "1be.bmp"
+            ],
+            "converted": {
+                "key": "1be",
+                "width": "765",
+                "height": "512",
+                "boxes": [
+                    {
+                        "label": "black-king",
+                        "x": 588.5,
+                        "y": 156,
+                        "width": 71,
+                        "height": 112
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 535,
+                        "y": 280,
+                        "width": 44,
+                        "height": 64
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 405,
+                        "y": 336.5,
+                        "width": 48,
+                        "height": 61
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 386,
+                        "y": 37,
+                        "width": 52,
+                        "height": 74
+                    },
+                    {
+                        "label": "white-king",
+                        "x": 134,
+                        "y": 203.5,
+                        "width": 70,
+                        "height": 107
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 260.5,
+                        "y": 280,
+                        "width": 45,
+                        "height": 64
+                    },
+                    {
+                        "label": "black-bishop",
+                        "x": 343,
+                        "y": 333.5,
+                        "width": 48,
+                        "height": 85
+                    },
+                    {
+                        "label": "black-bishop",
+                        "x": 269.5,
+                        "y": 78.5,
+                        "width": 43,
+                        "height": 75
+                    }
+                ]
+            },
+            "original": {
+                "source": "RectLabel",
+                "format": "xml",
+                "annotation": "<annotation>\n\t<folder></folder>\n\t<filename>1be</filename>\n\t<path>1be</path>\n\t<source>\n\t\t<database>roboflow.ai</database>\n\t</source>\n\t<size>\n\t\t<width>765</width>\n\t\t<height>512</height>\n\t\t<depth>3</depth>\n\t</size>\n\t<segmented>0</segmented>\n\t<object>\n\t\t<name>black-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>554</xmin>\n\t\t\t<xmax>625</xmax>\n\t\t\t<ymin>101</ymin>\n\t\t\t<ymax>213</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>514</xmin>\n\t\t\t<xmax>558</xmax>\n\t\t\t<ymin>249</ymin>\n\t\t\t<ymax>313</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>382</xmin>\n\t\t\t<xmax>430</xmax>\n\t\t\t<ymin>307</ymin>\n\t\t\t<ymax>368</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>361</xmin>\n\t\t\t<xmax>413</xmax>\n\t\t\t<ymin>1</ymin>\n\t\t\t<ymax>75</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>100</xmin>\n\t\t\t<xmax>170</xmax>\n\t\t\t<ymin>151</ymin>\n\t\t\t<ymax>258</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>239</xmin>\n\t\t\t<xmax>284</xmax>\n\t\t\t<ymin>249</ymin>\n\t\t\t<ymax>313</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>320</xmin>\n\t\t\t<xmax>368</xmax>\n\t\t\t<ymin>292</ymin>\n\t\t\t<ymax>377</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>249</xmin>\n\t\t\t<xmax>292</xmax>\n\t\t\t<ymin>42</ymin>\n\t\t\t<ymax>117</ymax>\n\t\t</bndbox>\n\t</object>\n</annotation>\n"
+            }
+        }
+    },
+    {
+        "file": "cli/tests/datasets/chess/55b.jpg",
+        "name": "55b.jpg",
+        "split": "test",
+        "annotation": {
+            "key": [
+                "55b",
+                "55b.jpg",
+                "55b.jpeg",
+                "55b.png",
+                "55b.bmp",
+                "55b.jpg",
+                "55b.jpeg",
+                "55b.png",
+                "55b.bmp"
+            ],
+            "converted": {
+                "key": "55b",
+                "width": "765",
+                "height": "512",
+                "boxes": [
+                    {
+                        "label": "white-queen",
+                        "x": 565.5,
+                        "y": 68,
+                        "width": 55,
+                        "height": 86
+                    },
+                    {
+                        "label": "black-king",
+                        "x": 589.5,
+                        "y": 154,
+                        "width": 63,
+                        "height": 106
+                    },
+                    {
+                        "label": "black-rook",
+                        "x": 208,
+                        "y": 36,
+                        "width": 46,
+                        "height": 62
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 338.5,
+                        "y": 223,
+                        "width": 51,
+                        "height": 78
+                    },
+                    {
+                        "label": "white-rook",
+                        "x": 332.5,
+                        "y": 171.5,
+                        "width": 49,
+                        "height": 71
+                    },
+                    {
+                        "label": "white-king",
+                        "x": 126.5,
+                        "y": 154.5,
+                        "width": 61,
+                        "height": 107
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 210.5,
+                        "y": 86,
+                        "width": 39,
+                        "height": 56
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 199.5,
+                        "y": 173.5,
+                        "width": 49,
+                        "height": 57
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 276,
+                        "y": 289,
+                        "width": 48,
+                        "height": 62
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 265.5,
+                        "y": 227,
+                        "width": 43,
+                        "height": 64
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 415,
+                        "y": 340,
+                        "width": 44,
+                        "height": 64
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 450.5,
+                        "y": 177,
+                        "width": 43,
+                        "height": 60
+                    }
+                ]
+            },
+            "original": {
+                "source": "RectLabel",
+                "format": "xml",
+                "annotation": "<annotation>\n\t<folder></folder>\n\t<filename>55b</filename>\n\t<path>55b</path>\n\t<source>\n\t\t<database>roboflow.ai</database>\n\t</source>\n\t<size>\n\t\t<width>765</width>\n\t\t<height>512</height>\n\t\t<depth>3</depth>\n\t</size>\n\t<segmented>0</segmented>\n\t<object>\n\t\t<name>white-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>539</xmin>\n\t\t\t<xmax>594</xmax>\n\t\t\t<ymin>26</ymin>\n\t\t\t<ymax>112</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>559</xmin>\n\t\t\t<xmax>622</xmax>\n\t\t\t<ymin>102</ymin>\n\t\t\t<ymax>208</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>186</xmin>\n\t\t\t<xmax>232</xmax>\n\t\t\t<ymin>6</ymin>\n\t\t\t<ymax>68</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>314</xmin>\n\t\t\t<xmax>365</xmax>\n\t\t\t<ymin>185</ymin>\n\t\t\t<ymax>263</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>309</xmin>\n\t\t\t<xmax>358</xmax>\n\t\t\t<ymin>137</ymin>\n\t\t\t<ymax>208</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>97</xmin>\n\t\t\t<xmax>158</xmax>\n\t\t\t<ymin>102</ymin>\n\t\t\t<ymax>209</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>192</xmin>\n\t\t\t<xmax>231</xmax>\n\t\t\t<ymin>59</ymin>\n\t\t\t<ymax>115</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>176</xmin>\n\t\t\t<xmax>225</xmax>\n\t\t\t<ymin>146</ymin>\n\t\t\t<ymax>203</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>253</xmin>\n\t\t\t<xmax>301</xmax>\n\t\t\t<ymin>259</ymin>\n\t\t\t<ymax>321</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>245</xmin>\n\t\t\t<xmax>288</xmax>\n\t\t\t<ymin>196</ymin>\n\t\t\t<ymax>260</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>394</xmin>\n\t\t\t<xmax>438</xmax>\n\t\t\t<ymin>309</ymin>\n\t\t\t<ymax>373</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>430</xmin>\n\t\t\t<xmax>473</xmax>\n\t\t\t<ymin>148</ymin>\n\t\t\t<ymax>208</ymax>\n\t\t</bndbox>\n\t</object>\n</annotation>\n"
+            }
+        }
+    },
+    {
+        "file": "cli/tests/datasets/chess/5c1.jpg",
+        "name": "5c1.jpg",
+        "split": "test"
+    },
+    {
+        "file": "cli/tests/datasets/chess/a97.jpg",
+        "name": "a97.jpg",
+        "split": "test",
+        "annotation": {
+            "key": [
+                "a97",
+                "a97.jpg",
+                "a97.jpeg",
+                "a97.png",
+                "a97.bmp",
+                "a97.jpg",
+                "a97.jpeg",
+                "a97.png",
+                "a97.bmp"
+            ],
+            "converted": {
+                "key": "a97",
+                "width": "765",
+                "height": "512",
+                "boxes": [
+                    {
+                        "label": "black-queen",
+                        "x": 606.5,
+                        "y": 207.5,
+                        "width": 57,
+                        "height": 89
+                    },
+                    {
+                        "label": "black-king",
+                        "x": 589.5,
+                        "y": 156,
+                        "width": 57,
+                        "height": 92
+                    },
+                    {
+                        "label": "black-knight",
+                        "x": 586.5,
+                        "y": 126,
+                        "width": 51,
+                        "height": 62
+                    },
+                    {
+                        "label": "black-knight",
+                        "x": 624,
+                        "y": 277.5,
+                        "width": 58,
+                        "height": 61
+                    },
+                    {
+                        "label": "black-bishop",
+                        "x": 569.5,
+                        "y": 79.5,
+                        "width": 39,
+                        "height": 69
+                    },
+                    {
+                        "label": "black-bishop",
+                        "x": 630,
+                        "y": 335.5,
+                        "width": 50,
+                        "height": 67
+                    },
+                    {
+                        "label": "black-rook",
+                        "x": 554.5,
+                        "y": 41.5,
+                        "width": 41,
+                        "height": 63
+                    },
+                    {
+                        "label": "black-rook",
+                        "x": 650,
+                        "y": 403,
+                        "width": 58,
+                        "height": 66
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 569.5,
+                        "y": 403.5,
+                        "width": 45,
+                        "height": 57
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 553,
+                        "y": 330.5,
+                        "width": 48,
+                        "height": 57
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 534,
+                        "y": 278,
+                        "width": 42,
+                        "height": 52
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 532,
+                        "y": 220.5,
+                        "width": 40,
+                        "height": 51
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 524.5,
+                        "y": 177,
+                        "width": 37,
+                        "height": 50
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 519,
+                        "y": 136.5,
+                        "width": 36,
+                        "height": 51
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 505,
+                        "y": 90.5,
+                        "width": 32,
+                        "height": 49
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 501,
+                        "y": 47.5,
+                        "width": 32,
+                        "height": 51
+                    },
+                    {
+                        "label": "white-queen",
+                        "x": 135.5,
+                        "y": 166,
+                        "width": 49,
+                        "height": 88
+                    },
+                    {
+                        "label": "white-king",
+                        "x": 123.5,
+                        "y": 208,
+                        "width": 55,
+                        "height": 100
+                    },
+                    {
+                        "label": "white-knight",
+                        "x": 131.5,
+                        "y": 124.5,
+                        "width": 49,
+                        "height": 59
+                    },
+                    {
+                        "label": "white-knight",
+                        "x": 122.5,
+                        "y": 279,
+                        "width": 51,
+                        "height": 68
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 142,
+                        "y": 76.5,
+                        "width": 42,
+                        "height": 69
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 109.5,
+                        "y": 339.5,
+                        "width": 51,
+                        "height": 71
+                    },
+                    {
+                        "label": "white-rook",
+                        "x": 150.5,
+                        "y": 44.5,
+                        "width": 41,
+                        "height": 61
+                    },
+                    {
+                        "label": "white-rook",
+                        "x": 101,
+                        "y": 413,
+                        "width": 54,
+                        "height": 70
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 204,
+                        "y": 46,
+                        "width": 34,
+                        "height": 50
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 207.5,
+                        "y": 87,
+                        "width": 35,
+                        "height": 52
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 198.5,
+                        "y": 131,
+                        "width": 35,
+                        "height": 52
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 200,
+                        "y": 172.5,
+                        "width": 38,
+                        "height": 49
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 199,
+                        "y": 224,
+                        "width": 40,
+                        "height": 54
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 193,
+                        "y": 281,
+                        "width": 40,
+                        "height": 54
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 187,
+                        "y": 342.5,
+                        "width": 42,
+                        "height": 57
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 182.5,
+                        "y": 412,
+                        "width": 49,
+                        "height": 56
+                    }
+                ]
+            },
+            "original": {
+                "source": "RectLabel",
+                "format": "xml",
+                "annotation": "<annotation>\n\t<folder></folder>\n\t<filename>a97</filename>\n\t<path>a97</path>\n\t<source>\n\t\t<database>roboflow.ai</database>\n\t</source>\n\t<size>\n\t\t<width>765</width>\n\t\t<height>512</height>\n\t\t<depth>3</depth>\n\t</size>\n\t<segmented>0</segmented>\n\t<object>\n\t\t<name>black-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>579</xmin>\n\t\t\t<xmax>636</xmax>\n\t\t\t<ymin>164</ymin>\n\t\t\t<ymax>253</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>562</xmin>\n\t\t\t<xmax>619</xmax>\n\t\t\t<ymin>111</ymin>\n\t\t\t<ymax>203</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>562</xmin>\n\t\t\t<xmax>613</xmax>\n\t\t\t<ymin>96</ymin>\n\t\t\t<ymax>158</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>596</xmin>\n\t\t\t<xmax>654</xmax>\n\t\t\t<ymin>248</ymin>\n\t\t\t<ymax>309</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>551</xmin>\n\t\t\t<xmax>590</xmax>\n\t\t\t<ymin>46</ymin>\n\t\t\t<ymax>115</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>606</xmin>\n\t\t\t<xmax>656</xmax>\n\t\t\t<ymin>303</ymin>\n\t\t\t<ymax>370</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>535</xmin>\n\t\t\t<xmax>576</xmax>\n\t\t\t<ymin>11</ymin>\n\t\t\t<ymax>74</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>622</xmin>\n\t\t\t<xmax>680</xmax>\n\t\t\t<ymin>371</ymin>\n\t\t\t<ymax>437</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>548</xmin>\n\t\t\t<xmax>593</xmax>\n\t\t\t<ymin>376</ymin>\n\t\t\t<ymax>433</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>530</xmin>\n\t\t\t<xmax>578</xmax>\n\t\t\t<ymin>303</ymin>\n\t\t\t<ymax>360</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>514</xmin>\n\t\t\t<xmax>556</xmax>\n\t\t\t<ymin>253</ymin>\n\t\t\t<ymax>305</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>513</xmin>\n\t\t\t<xmax>553</xmax>\n\t\t\t<ymin>196</ymin>\n\t\t\t<ymax>247</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>507</xmin>\n\t\t\t<xmax>544</xmax>\n\t\t\t<ymin>153</ymin>\n\t\t\t<ymax>203</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>502</xmin>\n\t\t\t<xmax>538</xmax>\n\t\t\t<ymin>112</ymin>\n\t\t\t<ymax>163</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>490</xmin>\n\t\t\t<xmax>522</xmax>\n\t\t\t<ymin>67</ymin>\n\t\t\t<ymax>116</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>486</xmin>\n\t\t\t<xmax>518</xmax>\n\t\t\t<ymin>23</ymin>\n\t\t\t<ymax>74</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>112</xmin>\n\t\t\t<xmax>161</xmax>\n\t\t\t<ymin>123</ymin>\n\t\t\t<ymax>211</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>97</xmin>\n\t\t\t<xmax>152</xmax>\n\t\t\t<ymin>159</ymin>\n\t\t\t<ymax>259</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>108</xmin>\n\t\t\t<xmax>157</xmax>\n\t\t\t<ymin>96</ymin>\n\t\t\t<ymax>155</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>98</xmin>\n\t\t\t<xmax>149</xmax>\n\t\t\t<ymin>246</ymin>\n\t\t\t<ymax>314</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>122</xmin>\n\t\t\t<xmax>164</xmax>\n\t\t\t<ymin>43</ymin>\n\t\t\t<ymax>112</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>85</xmin>\n\t\t\t<xmax>136</xmax>\n\t\t\t<ymin>305</ymin>\n\t\t\t<ymax>376</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>131</xmin>\n\t\t\t<xmax>172</xmax>\n\t\t\t<ymin>15</ymin>\n\t\t\t<ymax>76</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>75</xmin>\n\t\t\t<xmax>129</xmax>\n\t\t\t<ymin>379</ymin>\n\t\t\t<ymax>449</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>188</xmin>\n\t\t\t<xmax>222</xmax>\n\t\t\t<ymin>22</ymin>\n\t\t\t<ymax>72</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>191</xmin>\n\t\t\t<xmax>226</xmax>\n\t\t\t<ymin>62</ymin>\n\t\t\t<ymax>114</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>182</xmin>\n\t\t\t<xmax>217</xmax>\n\t\t\t<ymin>106</ymin>\n\t\t\t<ymax>158</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>182</xmin>\n\t\t\t<xmax>220</xmax>\n\t\t\t<ymin>149</ymin>\n\t\t\t<ymax>198</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>180</xmin>\n\t\t\t<xmax>220</xmax>\n\t\t\t<ymin>198</ymin>\n\t\t\t<ymax>252</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>174</xmin>\n\t\t\t<xmax>214</xmax>\n\t\t\t<ymin>255</ymin>\n\t\t\t<ymax>309</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>167</xmin>\n\t\t\t<xmax>209</xmax>\n\t\t\t<ymin>315</ymin>\n\t\t\t<ymax>372</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>159</xmin>\n\t\t\t<xmax>208</xmax>\n\t\t\t<ymin>385</ymin>\n\t\t\t<ymax>441</ymax>\n\t\t</bndbox>\n\t</object>\n</annotation>\n"
+            }
+        }
+    },
+    {
+        "file": "cli/tests/datasets/chess/bc5.jpg",
+        "name": "bc5.jpg",
+        "split": "test",
+        "annotation": {
+            "key": [
+                "bc5",
+                "bc5.jpg",
+                "bc5.jpeg",
+                "bc5.png",
+                "bc5.bmp",
+                "bc5.jpg",
+                "bc5.jpeg",
+                "bc5.png",
+                "bc5.bmp"
+            ],
+            "converted": {
+                "key": "bc5",
+                "width": "765",
+                "height": "512",
+                "boxes": [
+                    {
+                        "label": "black-rook",
+                        "x": 452,
+                        "y": 35,
+                        "width": 38,
+                        "height": 58
+                    },
+                    {
+                        "label": "black-rook",
+                        "x": 642.5,
+                        "y": 375,
+                        "width": 57,
+                        "height": 74
+                    },
+                    {
+                        "label": "black-king",
+                        "x": 605.5,
+                        "y": 188,
+                        "width": 57,
+                        "height": 102
+                    },
+                    {
+                        "label": "black-queen",
+                        "x": 459,
+                        "y": 151.5,
+                        "width": 50,
+                        "height": 93
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 535,
+                        "y": 206.5,
+                        "width": 40,
+                        "height": 57
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 518,
+                        "y": 116.5,
+                        "width": 36,
+                        "height": 53
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 508,
+                        "y": 73.5,
+                        "width": 34,
+                        "height": 49
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 398,
+                        "y": 34,
+                        "width": 36,
+                        "height": 54
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 478.5,
+                        "y": 259,
+                        "width": 35,
+                        "height": 56
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 396.5,
+                        "y": 155.5,
+                        "width": 37,
+                        "height": 53
+                    },
+                    {
+                        "label": "black-knight",
+                        "x": 450.5,
+                        "y": 68,
+                        "width": 33,
+                        "height": 66
+                    },
+                    {
+                        "label": "black-knight",
+                        "x": 340,
+                        "y": 202,
+                        "width": 52,
+                        "height": 72
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 338.5,
+                        "y": 308.5,
+                        "width": 51,
+                        "height": 73
+                    },
+                    {
+                        "label": "white-king",
+                        "x": 133,
+                        "y": 186.5,
+                        "width": 60,
+                        "height": 103
+                    },
+                    {
+                        "label": "white-queen",
+                        "x": 280.5,
+                        "y": 151.5,
+                        "width": 49,
+                        "height": 87
+                    },
+                    {
+                        "label": "white-knight",
+                        "x": 281,
+                        "y": 100.5,
+                        "width": 42,
+                        "height": 69
+                    },
+                    {
+                        "label": "white-knight",
+                        "x": 126.5,
+                        "y": 308,
+                        "width": 63,
+                        "height": 78
+                    },
+                    {
+                        "label": "white-rook",
+                        "x": 194.5,
+                        "y": 380,
+                        "width": 55,
+                        "height": 70
+                    },
+                    {
+                        "label": "white-rook",
+                        "x": 159,
+                        "y": 28.5,
+                        "width": 44,
+                        "height": 57
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 202.5,
+                        "y": 314.5,
+                        "width": 39,
+                        "height": 57
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 218.5,
+                        "y": 31.5,
+                        "width": 39,
+                        "height": 51
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 221.5,
+                        "y": 112,
+                        "width": 45,
+                        "height": 54
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 335,
+                        "y": 153,
+                        "width": 38,
+                        "height": 56
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 342,
+                        "y": 378.5,
+                        "width": 48,
+                        "height": 63
+                    }
+                ]
+            },
+            "original": {
+                "source": "RectLabel",
+                "format": "xml",
+                "annotation": "<annotation>\n\t<folder></folder>\n\t<filename>bc5</filename>\n\t<path>bc5</path>\n\t<source>\n\t\t<database>roboflow.ai</database>\n\t</source>\n\t<size>\n\t\t<width>765</width>\n\t\t<height>512</height>\n\t\t<depth>3</depth>\n\t</size>\n\t<segmented>0</segmented>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>434</xmin>\n\t\t\t<xmax>472</xmax>\n\t\t\t<ymin>7</ymin>\n\t\t\t<ymax>65</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>615</xmin>\n\t\t\t<xmax>672</xmax>\n\t\t\t<ymin>339</ymin>\n\t\t\t<ymax>413</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>578</xmin>\n\t\t\t<xmax>635</xmax>\n\t\t\t<ymin>138</ymin>\n\t\t\t<ymax>240</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>435</xmin>\n\t\t\t<xmax>485</xmax>\n\t\t\t<ymin>106</ymin>\n\t\t\t<ymax>199</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>516</xmin>\n\t\t\t<xmax>556</xmax>\n\t\t\t<ymin>179</ymin>\n\t\t\t<ymax>236</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>501</xmin>\n\t\t\t<xmax>537</xmax>\n\t\t\t<ymin>91</ymin>\n\t\t\t<ymax>144</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>492</xmin>\n\t\t\t<xmax>526</xmax>\n\t\t\t<ymin>50</ymin>\n\t\t\t<ymax>99</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>381</xmin>\n\t\t\t<xmax>417</xmax>\n\t\t\t<ymin>8</ymin>\n\t\t\t<ymax>62</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>462</xmin>\n\t\t\t<xmax>497</xmax>\n\t\t\t<ymin>232</ymin>\n\t\t\t<ymax>288</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>379</xmin>\n\t\t\t<xmax>416</xmax>\n\t\t\t<ymin>130</ymin>\n\t\t\t<ymax>183</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>435</xmin>\n\t\t\t<xmax>468</xmax>\n\t\t\t<ymin>36</ymin>\n\t\t\t<ymax>102</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>315</xmin>\n\t\t\t<xmax>367</xmax>\n\t\t\t<ymin>167</ymin>\n\t\t\t<ymax>239</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>314</xmin>\n\t\t\t<xmax>365</xmax>\n\t\t\t<ymin>273</ymin>\n\t\t\t<ymax>346</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>104</xmin>\n\t\t\t<xmax>164</xmax>\n\t\t\t<ymin>136</ymin>\n\t\t\t<ymax>239</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>257</xmin>\n\t\t\t<xmax>306</xmax>\n\t\t\t<ymin>109</ymin>\n\t\t\t<ymax>196</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>261</xmin>\n\t\t\t<xmax>303</xmax>\n\t\t\t<ymin>67</ymin>\n\t\t\t<ymax>136</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>96</xmin>\n\t\t\t<xmax>159</xmax>\n\t\t\t<ymin>270</ymin>\n\t\t\t<ymax>348</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>168</xmin>\n\t\t\t<xmax>223</xmax>\n\t\t\t<ymin>346</ymin>\n\t\t\t<ymax>416</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>138</xmin>\n\t\t\t<xmax>182</xmax>\n\t\t\t<ymin>1</ymin>\n\t\t\t<ymax>58</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>184</xmin>\n\t\t\t<xmax>223</xmax>\n\t\t\t<ymin>287</ymin>\n\t\t\t<ymax>344</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>200</xmin>\n\t\t\t<xmax>239</xmax>\n\t\t\t<ymin>7</ymin>\n\t\t\t<ymax>58</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>200</xmin>\n\t\t\t<xmax>245</xmax>\n\t\t\t<ymin>86</ymin>\n\t\t\t<ymax>140</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>317</xmin>\n\t\t\t<xmax>355</xmax>\n\t\t\t<ymin>126</ymin>\n\t\t\t<ymax>182</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>319</xmin>\n\t\t\t<xmax>367</xmax>\n\t\t\t<ymin>348</ymin>\n\t\t\t<ymax>411</ymax>\n\t\t</bndbox>\n\t</object>\n</annotation>\n"
+            }
+        }
+    },
+    {
+        "file": "cli/tests/datasets/chess/c78.jpg",
+        "name": "c78.jpg",
+        "split": "test",
+        "annotation": {
+            "key": [
+                "c78",
+                "c78.jpg",
+                "c78.jpeg",
+                "c78.png",
+                "c78.bmp",
+                "c78.jpg",
+                "c78.jpeg",
+                "c78.png",
+                "c78.bmp"
+            ],
+            "converted": {
+                "key": "c78",
+                "width": "765",
+                "height": "512",
+                "boxes": [
+                    {
+                        "label": "black-knight",
+                        "x": 462,
+                        "y": 125,
+                        "width": 40,
+                        "height": 66
+                    }
+                ]
+            },
+            "original": {
+                "source": "RectLabel",
+                "format": "xml",
+                "annotation": "<annotation>\n\t<folder></folder>\n\t<filename>c78</filename>\n\t<path>c78</path>\n\t<source>\n\t\t<database>roboflow.ai</database>\n\t</source>\n\t<size>\n\t\t<width>765</width>\n\t\t<height>512</height>\n\t\t<depth>3</depth>\n\t</size>\n\t<segmented>0</segmented>\n\t<object>\n\t\t<name>black-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>443</xmin>\n\t\t\t<xmax>483</xmax>\n\t\t\t<ymin>93</ymin>\n\t\t\t<ymax>159</ymax>\n\t\t</bndbox>\n\t</object>\n</annotation>\n"
+            }
+        }
+    },
+    {
+        "file": "cli/tests/datasets/chess/ce5.jpg",
+        "name": "ce5.jpg",
+        "split": "test",
+        "annotation": {
+            "key": [
+                "ce5",
+                "ce5.jpg",
+                "ce5.jpeg",
+                "ce5.png",
+                "ce5.bmp",
+                "ce5.jpg",
+                "ce5.jpeg",
+                "ce5.png",
+                "ce5.bmp"
+            ],
+            "converted": {
+                "key": "ce5",
+                "width": "765",
+                "height": "512",
+                "boxes": [
+                    {
+                        "label": "black-queen",
+                        "x": 460.5,
+                        "y": 149,
+                        "width": 59,
+                        "height": 92
+                    },
+                    {
+                        "label": "black-knight",
+                        "x": 340.5,
+                        "y": 203.5,
+                        "width": 55,
+                        "height": 73
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 337.5,
+                        "y": 307,
+                        "width": 53,
+                        "height": 78
+                    },
+                    {
+                        "label": "white-queen",
+                        "x": 277.5,
+                        "y": 149,
+                        "width": 51,
+                        "height": 90
+                    },
+                    {
+                        "label": "white-knight",
+                        "x": 127.5,
+                        "y": 304.5,
+                        "width": 57,
+                        "height": 83
+                    },
+                    {
+                        "label": "white-king",
+                        "x": 205,
+                        "y": 188.5,
+                        "width": 60,
+                        "height": 101
+                    },
+                    {
+                        "label": "white-rook",
+                        "x": 158,
+                        "y": 29,
+                        "width": 48,
+                        "height": 58
+                    },
+                    {
+                        "label": "white-rook",
+                        "x": 195,
+                        "y": 380,
+                        "width": 64,
+                        "height": 72
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 200,
+                        "y": 313.5,
+                        "width": 48,
+                        "height": 55
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 220,
+                        "y": 111,
+                        "width": 44,
+                        "height": 54
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 218,
+                        "y": 29.5,
+                        "width": 44,
+                        "height": 53
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 336,
+                        "y": 155,
+                        "width": 36,
+                        "height": 52
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 344.5,
+                        "y": 376.5,
+                        "width": 49,
+                        "height": 61
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 397.5,
+                        "y": 33.5,
+                        "width": 41,
+                        "height": 53
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 520,
+                        "y": 119,
+                        "width": 42,
+                        "height": 56
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 507,
+                        "y": 73.5,
+                        "width": 40,
+                        "height": 53
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 396.5,
+                        "y": 154,
+                        "width": 43,
+                        "height": 54
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 476.5,
+                        "y": 258.5,
+                        "width": 45,
+                        "height": 61
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 534.5,
+                        "y": 207.5,
+                        "width": 41,
+                        "height": 59
+                    },
+                    {
+                        "label": "black-king",
+                        "x": 605,
+                        "y": 188,
+                        "width": 62,
+                        "height": 106
+                    },
+                    {
+                        "label": "black-rook",
+                        "x": 642,
+                        "y": 376,
+                        "width": 64,
+                        "height": 74
+                    }
+                ]
+            },
+            "original": {
+                "source": "RectLabel",
+                "format": "xml",
+                "annotation": "<annotation>\n\t<folder></folder>\n\t<filename>ce5</filename>\n\t<path>ce5</path>\n\t<source>\n\t\t<database>roboflow.ai</database>\n\t</source>\n\t<size>\n\t\t<width>765</width>\n\t\t<height>512</height>\n\t\t<depth>3</depth>\n\t</size>\n\t<segmented>0</segmented>\n\t<object>\n\t\t<name>black-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>432</xmin>\n\t\t\t<xmax>491</xmax>\n\t\t\t<ymin>104</ymin>\n\t\t\t<ymax>196</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>314</xmin>\n\t\t\t<xmax>369</xmax>\n\t\t\t<ymin>168</ymin>\n\t\t\t<ymax>241</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>312</xmin>\n\t\t\t<xmax>365</xmax>\n\t\t\t<ymin>269</ymin>\n\t\t\t<ymax>347</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>253</xmin>\n\t\t\t<xmax>304</xmax>\n\t\t\t<ymin>105</ymin>\n\t\t\t<ymax>195</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>100</xmin>\n\t\t\t<xmax>157</xmax>\n\t\t\t<ymin>264</ymin>\n\t\t\t<ymax>347</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>176</xmin>\n\t\t\t<xmax>236</xmax>\n\t\t\t<ymin>139</ymin>\n\t\t\t<ymax>240</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>135</xmin>\n\t\t\t<xmax>183</xmax>\n\t\t\t<ymin>1</ymin>\n\t\t\t<ymax>59</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>164</xmin>\n\t\t\t<xmax>228</xmax>\n\t\t\t<ymin>345</ymin>\n\t\t\t<ymax>417</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>177</xmin>\n\t\t\t<xmax>225</xmax>\n\t\t\t<ymin>287</ymin>\n\t\t\t<ymax>342</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>199</xmin>\n\t\t\t<xmax>243</xmax>\n\t\t\t<ymin>85</ymin>\n\t\t\t<ymax>139</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>197</xmin>\n\t\t\t<xmax>241</xmax>\n\t\t\t<ymin>4</ymin>\n\t\t\t<ymax>57</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>319</xmin>\n\t\t\t<xmax>355</xmax>\n\t\t\t<ymin>130</ymin>\n\t\t\t<ymax>182</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>321</xmin>\n\t\t\t<xmax>370</xmax>\n\t\t\t<ymin>347</ymin>\n\t\t\t<ymax>408</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>378</xmin>\n\t\t\t<xmax>419</xmax>\n\t\t\t<ymin>8</ymin>\n\t\t\t<ymax>61</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>500</xmin>\n\t\t\t<xmax>542</xmax>\n\t\t\t<ymin>92</ymin>\n\t\t\t<ymax>148</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>488</xmin>\n\t\t\t<xmax>528</xmax>\n\t\t\t<ymin>48</ymin>\n\t\t\t<ymax>101</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>376</xmin>\n\t\t\t<xmax>419</xmax>\n\t\t\t<ymin>128</ymin>\n\t\t\t<ymax>182</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>455</xmin>\n\t\t\t<xmax>500</xmax>\n\t\t\t<ymin>229</ymin>\n\t\t\t<ymax>290</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>515</xmin>\n\t\t\t<xmax>556</xmax>\n\t\t\t<ymin>179</ymin>\n\t\t\t<ymax>238</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>575</xmin>\n\t\t\t<xmax>637</xmax>\n\t\t\t<ymin>136</ymin>\n\t\t\t<ymax>242</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>611</xmin>\n\t\t\t<xmax>675</xmax>\n\t\t\t<ymin>340</ymin>\n\t\t\t<ymax>414</ymax>\n\t\t</bndbox>\n\t</object>\n</annotation>\n"
+            }
+        }
+    },
+    {
+        "file": "cli/tests/datasets/chess/d9a.jpg",
+        "name": "d9a.jpg",
+        "split": "test",
+        "annotation": {
+            "key": [
+                "d9a",
+                "d9a.jpg",
+                "d9a.jpeg",
+                "d9a.png",
+                "d9a.bmp",
+                "d9a.jpg",
+                "d9a.jpeg",
+                "d9a.png",
+                "d9a.bmp"
+            ],
+            "converted": {
+                "key": "d9a",
+                "width": "765",
+                "height": "512",
+                "boxes": [
+                    {
+                        "label": "black-king",
+                        "x": 503.5,
+                        "y": 382,
+                        "width": 65,
+                        "height": 108
+                    },
+                    {
+                        "label": "black-rook",
+                        "x": 644.5,
+                        "y": 399,
+                        "width": 65,
+                        "height": 76
+                    },
+                    {
+                        "label": "black-queen",
+                        "x": 451.5,
+                        "y": 168.5,
+                        "width": 55,
+                        "height": 95
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 517,
+                        "y": 130.5,
+                        "width": 44,
+                        "height": 59
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 391,
+                        "y": 174,
+                        "width": 40,
+                        "height": 56
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 474.5,
+                        "y": 280,
+                        "width": 47,
+                        "height": 64
+                    },
+                    {
+                        "label": "white-king",
+                        "x": 269,
+                        "y": 210,
+                        "width": 62,
+                        "height": 102
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 326.5,
+                        "y": 173.5,
+                        "width": 43,
+                        "height": 59
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 206,
+                        "y": 45,
+                        "width": 48,
+                        "height": 56
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 193.5,
+                        "y": 341,
+                        "width": 51,
+                        "height": 60
+                    }
+                ]
+            },
+            "original": {
+                "source": "RectLabel",
+                "format": "xml",
+                "annotation": "<annotation>\n\t<folder></folder>\n\t<filename>d9a</filename>\n\t<path>d9a</path>\n\t<source>\n\t\t<database>roboflow.ai</database>\n\t</source>\n\t<size>\n\t\t<width>765</width>\n\t\t<height>512</height>\n\t\t<depth>3</depth>\n\t</size>\n\t<segmented>0</segmented>\n\t<object>\n\t\t<name>black-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>472</xmin>\n\t\t\t<xmax>537</xmax>\n\t\t\t<ymin>329</ymin>\n\t\t\t<ymax>437</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>613</xmin>\n\t\t\t<xmax>678</xmax>\n\t\t\t<ymin>362</ymin>\n\t\t\t<ymax>438</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>425</xmin>\n\t\t\t<xmax>480</xmax>\n\t\t\t<ymin>122</ymin>\n\t\t\t<ymax>217</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>496</xmin>\n\t\t\t<xmax>540</xmax>\n\t\t\t<ymin>102</ymin>\n\t\t\t<ymax>161</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>372</xmin>\n\t\t\t<xmax>412</xmax>\n\t\t\t<ymin>147</ymin>\n\t\t\t<ymax>203</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>452</xmin>\n\t\t\t<xmax>499</xmax>\n\t\t\t<ymin>249</ymin>\n\t\t\t<ymax>313</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>239</xmin>\n\t\t\t<xmax>301</xmax>\n\t\t\t<ymin>160</ymin>\n\t\t\t<ymax>262</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>306</xmin>\n\t\t\t<xmax>349</xmax>\n\t\t\t<ymin>145</ymin>\n\t\t\t<ymax>204</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>183</xmin>\n\t\t\t<xmax>231</xmax>\n\t\t\t<ymin>18</ymin>\n\t\t\t<ymax>74</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>169</xmin>\n\t\t\t<xmax>220</xmax>\n\t\t\t<ymin>312</ymin>\n\t\t\t<ymax>372</ymax>\n\t\t</bndbox>\n\t</object>\n</annotation>\n"
+            }
+        }
+    },
+    {
+        "file": "cli/tests/datasets/chess/e40.jpg",
+        "name": "e40.jpg",
+        "split": "test",
+        "annotation": {
+            "key": [
+                "e40",
+                "e40.jpg",
+                "e40.jpeg",
+                "e40.png",
+                "e40.bmp",
+                "e40.jpg",
+                "e40.jpeg",
+                "e40.png",
+                "e40.bmp"
+            ],
+            "converted": {
+                "key": "e40",
+                "width": "765",
+                "height": "512",
+                "boxes": [
+                    {
+                        "label": "white-queen",
+                        "x": 264,
+                        "y": 75,
+                        "width": 52,
+                        "height": 92
+                    },
+                    {
+                        "label": "white-king",
+                        "x": 127,
+                        "y": 156.5,
+                        "width": 60,
+                        "height": 105
+                    },
+                    {
+                        "label": "white-knight",
+                        "x": 346,
+                        "y": 332,
+                        "width": 50,
+                        "height": 84
+                    },
+                    {
+                        "label": "black-rook",
+                        "x": 206.5,
+                        "y": 36.5,
+                        "width": 47,
+                        "height": 63
+                    },
+                    {
+                        "label": "white-rook",
+                        "x": 326,
+                        "y": 82,
+                        "width": 44,
+                        "height": 68
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 337.5,
+                        "y": 221.5,
+                        "width": 45,
+                        "height": 79
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 210.5,
+                        "y": 86.5,
+                        "width": 37,
+                        "height": 57
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 199.5,
+                        "y": 174,
+                        "width": 43,
+                        "height": 58
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 268.5,
+                        "y": 169,
+                        "width": 41,
+                        "height": 60
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 273,
+                        "y": 288,
+                        "width": 44,
+                        "height": 62
+                    },
+                    {
+                        "label": "black-knight",
+                        "x": 185.5,
+                        "y": 331.5,
+                        "width": 55,
+                        "height": 83
+                    },
+                    {
+                        "label": "black-bishop",
+                        "x": 389,
+                        "y": 120,
+                        "width": 42,
+                        "height": 76
+                    },
+                    {
+                        "label": "black-king",
+                        "x": 591,
+                        "y": 154.5,
+                        "width": 66,
+                        "height": 107
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 524.5,
+                        "y": 176.5,
+                        "width": 41,
+                        "height": 55
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 466,
+                        "y": 274.5,
+                        "width": 40,
+                        "height": 63
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 414,
+                        "y": 340.5,
+                        "width": 46,
+                        "height": 61
+                    }
+                ]
+            },
+            "original": {
+                "source": "RectLabel",
+                "format": "xml",
+                "annotation": "<annotation>\n\t<folder></folder>\n\t<filename>e40</filename>\n\t<path>e40</path>\n\t<source>\n\t\t<database>roboflow.ai</database>\n\t</source>\n\t<size>\n\t\t<width>765</width>\n\t\t<height>512</height>\n\t\t<depth>3</depth>\n\t</size>\n\t<segmented>0</segmented>\n\t<object>\n\t\t<name>white-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>239</xmin>\n\t\t\t<xmax>291</xmax>\n\t\t\t<ymin>30</ymin>\n\t\t\t<ymax>122</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>98</xmin>\n\t\t\t<xmax>158</xmax>\n\t\t\t<ymin>105</ymin>\n\t\t\t<ymax>210</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>322</xmin>\n\t\t\t<xmax>372</xmax>\n\t\t\t<ymin>291</ymin>\n\t\t\t<ymax>375</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>184</xmin>\n\t\t\t<xmax>231</xmax>\n\t\t\t<ymin>6</ymin>\n\t\t\t<ymax>69</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>305</xmin>\n\t\t\t<xmax>349</xmax>\n\t\t\t<ymin>49</ymin>\n\t\t\t<ymax>117</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>316</xmin>\n\t\t\t<xmax>361</xmax>\n\t\t\t<ymin>183</ymin>\n\t\t\t<ymax>262</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>193</xmin>\n\t\t\t<xmax>230</xmax>\n\t\t\t<ymin>59</ymin>\n\t\t\t<ymax>116</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>179</xmin>\n\t\t\t<xmax>222</xmax>\n\t\t\t<ymin>146</ymin>\n\t\t\t<ymax>204</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>249</xmin>\n\t\t\t<xmax>290</xmax>\n\t\t\t<ymin>140</ymin>\n\t\t\t<ymax>200</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>252</xmin>\n\t\t\t<xmax>296</xmax>\n\t\t\t<ymin>258</ymin>\n\t\t\t<ymax>320</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>159</xmin>\n\t\t\t<xmax>214</xmax>\n\t\t\t<ymin>291</ymin>\n\t\t\t<ymax>374</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>369</xmin>\n\t\t\t<xmax>411</xmax>\n\t\t\t<ymin>83</ymin>\n\t\t\t<ymax>159</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>559</xmin>\n\t\t\t<xmax>625</xmax>\n\t\t\t<ymin>102</ymin>\n\t\t\t<ymax>209</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>505</xmin>\n\t\t\t<xmax>546</xmax>\n\t\t\t<ymin>150</ymin>\n\t\t\t<ymax>205</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>447</xmin>\n\t\t\t<xmax>487</xmax>\n\t\t\t<ymin>244</ymin>\n\t\t\t<ymax>307</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>392</xmin>\n\t\t\t<xmax>438</xmax>\n\t\t\t<ymin>311</ymin>\n\t\t\t<ymax>372</ymax>\n\t\t</bndbox>\n\t</object>\n</annotation>\n"
+            }
+        }
+    },
+    {
+        "file": "cli/tests/datasets/chess/ec5.jpg",
+        "name": "ec5.jpg",
+        "split": "test",
+        "annotation": {
+            "key": [
+                "ec5",
+                "ec5.jpg",
+                "ec5.jpeg",
+                "ec5.png",
+                "ec5.bmp",
+                "ec5.jpg",
+                "ec5.jpeg",
+                "ec5.png",
+                "ec5.bmp"
+            ],
+            "converted": {
+                "key": "ec5",
+                "width": "765",
+                "height": "512",
+                "boxes": [
+                    {
+                        "label": "black-rook",
+                        "x": 640,
+                        "y": 374,
+                        "width": 58,
+                        "height": 70
+                    },
+                    {
+                        "label": "black-king",
+                        "x": 614,
+                        "y": 248.5,
+                        "width": 70,
+                        "height": 105
+                    },
+                    {
+                        "label": "black-queen",
+                        "x": 457,
+                        "y": 149.5,
+                        "width": 48,
+                        "height": 91
+                    },
+                    {
+                        "label": "white-knight",
+                        "x": 386,
+                        "y": 69,
+                        "width": 50,
+                        "height": 68
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 398,
+                        "y": 33.5,
+                        "width": 36,
+                        "height": 51
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 531.5,
+                        "y": 207.5,
+                        "width": 41,
+                        "height": 59
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 515.5,
+                        "y": 116.5,
+                        "width": 43,
+                        "height": 53
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 394.5,
+                        "y": 155,
+                        "width": 37,
+                        "height": 54
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 479,
+                        "y": 257,
+                        "width": 42,
+                        "height": 58
+                    },
+                    {
+                        "label": "black-knight",
+                        "x": 336.5,
+                        "y": 201.5,
+                        "width": 47,
+                        "height": 71
+                    },
+                    {
+                        "label": "white-knight",
+                        "x": 123,
+                        "y": 306.5,
+                        "width": 58,
+                        "height": 75
+                    },
+                    {
+                        "label": "white-queen",
+                        "x": 276,
+                        "y": 149,
+                        "width": 50,
+                        "height": 86
+                    },
+                    {
+                        "label": "white-king",
+                        "x": 205.5,
+                        "y": 188.5,
+                        "width": 59,
+                        "height": 101
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 200.5,
+                        "y": 315.5,
+                        "width": 45,
+                        "height": 57
+                    },
+                    {
+                        "label": "white-rook",
+                        "x": 194,
+                        "y": 381,
+                        "width": 54,
+                        "height": 70
+                    },
+                    {
+                        "label": "white-rook",
+                        "x": 157,
+                        "y": 28,
+                        "width": 48,
+                        "height": 56
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 215.5,
+                        "y": 28.5,
+                        "width": 41,
+                        "height": 57
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 333.5,
+                        "y": 156,
+                        "width": 43,
+                        "height": 54
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 219,
+                        "y": 113,
+                        "width": 36,
+                        "height": 58
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 334.5,
+                        "y": 306.5,
+                        "width": 51,
+                        "height": 75
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 341.5,
+                        "y": 377,
+                        "width": 45,
+                        "height": 60
+                    }
+                ]
+            },
+            "original": {
+                "source": "RectLabel",
+                "format": "xml",
+                "annotation": "<annotation>\n\t<folder></folder>\n\t<filename>ec5</filename>\n\t<path>ec5</path>\n\t<source>\n\t\t<database>roboflow.ai</database>\n\t</source>\n\t<size>\n\t\t<width>765</width>\n\t\t<height>512</height>\n\t\t<depth>3</depth>\n\t</size>\n\t<segmented>0</segmented>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>612</xmin>\n\t\t\t<xmax>670</xmax>\n\t\t\t<ymin>340</ymin>\n\t\t\t<ymax>410</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>580</xmin>\n\t\t\t<xmax>650</xmax>\n\t\t\t<ymin>197</ymin>\n\t\t\t<ymax>302</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>434</xmin>\n\t\t\t<xmax>482</xmax>\n\t\t\t<ymin>105</ymin>\n\t\t\t<ymax>196</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>362</xmin>\n\t\t\t<xmax>412</xmax>\n\t\t\t<ymin>36</ymin>\n\t\t\t<ymax>104</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>381</xmin>\n\t\t\t<xmax>417</xmax>\n\t\t\t<ymin>9</ymin>\n\t\t\t<ymax>60</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>512</xmin>\n\t\t\t<xmax>553</xmax>\n\t\t\t<ymin>179</ymin>\n\t\t\t<ymax>238</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>495</xmin>\n\t\t\t<xmax>538</xmax>\n\t\t\t<ymin>91</ymin>\n\t\t\t<ymax>144</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>377</xmin>\n\t\t\t<xmax>414</xmax>\n\t\t\t<ymin>129</ymin>\n\t\t\t<ymax>183</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>459</xmin>\n\t\t\t<xmax>501</xmax>\n\t\t\t<ymin>229</ymin>\n\t\t\t<ymax>287</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>314</xmin>\n\t\t\t<xmax>361</xmax>\n\t\t\t<ymin>167</ymin>\n\t\t\t<ymax>238</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>95</xmin>\n\t\t\t<xmax>153</xmax>\n\t\t\t<ymin>270</ymin>\n\t\t\t<ymax>345</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>252</xmin>\n\t\t\t<xmax>302</xmax>\n\t\t\t<ymin>107</ymin>\n\t\t\t<ymax>193</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>177</xmin>\n\t\t\t<xmax>236</xmax>\n\t\t\t<ymin>139</ymin>\n\t\t\t<ymax>240</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>179</xmin>\n\t\t\t<xmax>224</xmax>\n\t\t\t<ymin>288</ymin>\n\t\t\t<ymax>345</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>168</xmin>\n\t\t\t<xmax>222</xmax>\n\t\t\t<ymin>347</ymin>\n\t\t\t<ymax>417</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>134</xmin>\n\t\t\t<xmax>182</xmax>\n\t\t\t<ymin>1</ymin>\n\t\t\t<ymax>57</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>196</xmin>\n\t\t\t<xmax>237</xmax>\n\t\t\t<ymin>1</ymin>\n\t\t\t<ymax>58</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>313</xmin>\n\t\t\t<xmax>356</xmax>\n\t\t\t<ymin>130</ymin>\n\t\t\t<ymax>184</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>202</xmin>\n\t\t\t<xmax>238</xmax>\n\t\t\t<ymin>85</ymin>\n\t\t\t<ymax>143</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>310</xmin>\n\t\t\t<xmax>361</xmax>\n\t\t\t<ymin>270</ymin>\n\t\t\t<ymax>345</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>320</xmin>\n\t\t\t<xmax>365</xmax>\n\t\t\t<ymin>348</ymin>\n\t\t\t<ymax>408</ymax>\n\t\t</bndbox>\n\t</object>\n</annotation>\n"
+            }
+        }
+    },
+    {
+        "file": "cli/tests/datasets/chess/f9a.jpg",
+        "name": "f9a.jpg",
+        "split": "test",
+        "annotation": {
+            "key": [
+                "f9a",
+                "f9a.jpg",
+                "f9a.jpeg",
+                "f9a.png",
+                "f9a.bmp",
+                "f9a.jpg",
+                "f9a.jpeg",
+                "f9a.png",
+                "f9a.bmp"
+            ],
+            "converted": {
+                "key": "f9a",
+                "width": "765",
+                "height": "512",
+                "boxes": [
+                    {
+                        "label": "black-king",
+                        "x": 588.5,
+                        "y": 153,
+                        "width": 61,
+                        "height": 104
+                    },
+                    {
+                        "label": "black-bishop",
+                        "x": 455,
+                        "y": 81,
+                        "width": 42,
+                        "height": 74
+                    },
+                    {
+                        "label": "black-rook",
+                        "x": 438.5,
+                        "y": 43.5,
+                        "width": 45,
+                        "height": 61
+                    },
+                    {
+                        "label": "black-rook",
+                        "x": 395.5,
+                        "y": 124.5,
+                        "width": 49,
+                        "height": 63
+                    },
+                    {
+                        "label": "black-knight",
+                        "x": 336,
+                        "y": 127,
+                        "width": 44,
+                        "height": 68
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 322,
+                        "y": 93,
+                        "width": 40,
+                        "height": 54
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 525,
+                        "y": 174.5,
+                        "width": 38,
+                        "height": 55
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 464,
+                        "y": 277,
+                        "width": 40,
+                        "height": 60
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 567,
+                        "y": 401,
+                        "width": 46,
+                        "height": 60
+                    },
+                    {
+                        "label": "black-pawn",
+                        "x": 414,
+                        "y": 341,
+                        "width": 46,
+                        "height": 64
+                    },
+                    {
+                        "label": "black-knight",
+                        "x": 339,
+                        "y": 399.5,
+                        "width": 56,
+                        "height": 85
+                    },
+                    {
+                        "label": "white-king",
+                        "x": 122.5,
+                        "y": 209,
+                        "width": 65,
+                        "height": 106
+                    },
+                    {
+                        "label": "white-rook",
+                        "x": 150.5,
+                        "y": 43,
+                        "width": 49,
+                        "height": 68
+                    },
+                    {
+                        "label": "white-knight",
+                        "x": 181,
+                        "y": 404.5,
+                        "width": 62,
+                        "height": 83
+                    },
+                    {
+                        "label": "white-queen",
+                        "x": 262,
+                        "y": 76.5,
+                        "width": 52,
+                        "height": 93
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 141,
+                        "y": 76.5,
+                        "width": 44,
+                        "height": 73
+                    },
+                    {
+                        "label": "white-bishop",
+                        "x": 272,
+                        "y": 219,
+                        "width": 46,
+                        "height": 74
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 386.5,
+                        "y": 81.5,
+                        "width": 41,
+                        "height": 57
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 209,
+                        "y": 85.5,
+                        "width": 44,
+                        "height": 59
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 197,
+                        "y": 172,
+                        "width": 40,
+                        "height": 56
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 195.5,
+                        "y": 223.5,
+                        "width": 47,
+                        "height": 57
+                    },
+                    {
+                        "label": "white-pawn",
+                        "x": 273.5,
+                        "y": 287,
+                        "width": 47,
+                        "height": 62
+                    }
+                ]
+            },
+            "original": {
+                "source": "RectLabel",
+                "format": "xml",
+                "annotation": "<annotation>\n\t<folder></folder>\n\t<filename>f9a</filename>\n\t<path>f9a</path>\n\t<source>\n\t\t<database>roboflow.ai</database>\n\t</source>\n\t<size>\n\t\t<width>765</width>\n\t\t<height>512</height>\n\t\t<depth>3</depth>\n\t</size>\n\t<segmented>0</segmented>\n\t<object>\n\t\t<name>black-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>559</xmin>\n\t\t\t<xmax>620</xmax>\n\t\t\t<ymin>102</ymin>\n\t\t\t<ymax>206</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>435</xmin>\n\t\t\t<xmax>477</xmax>\n\t\t\t<ymin>45</ymin>\n\t\t\t<ymax>119</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>417</xmin>\n\t\t\t<xmax>462</xmax>\n\t\t\t<ymin>14</ymin>\n\t\t\t<ymax>75</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>372</xmin>\n\t\t\t<xmax>421</xmax>\n\t\t\t<ymin>94</ymin>\n\t\t\t<ymax>157</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>315</xmin>\n\t\t\t<xmax>359</xmax>\n\t\t\t<ymin>94</ymin>\n\t\t\t<ymax>162</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>303</xmin>\n\t\t\t<xmax>343</xmax>\n\t\t\t<ymin>67</ymin>\n\t\t\t<ymax>121</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>507</xmin>\n\t\t\t<xmax>545</xmax>\n\t\t\t<ymin>148</ymin>\n\t\t\t<ymax>203</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>445</xmin>\n\t\t\t<xmax>485</xmax>\n\t\t\t<ymin>248</ymin>\n\t\t\t<ymax>308</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>545</xmin>\n\t\t\t<xmax>591</xmax>\n\t\t\t<ymin>372</ymin>\n\t\t\t<ymax>432</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>392</xmin>\n\t\t\t<xmax>438</xmax>\n\t\t\t<ymin>310</ymin>\n\t\t\t<ymax>374</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>black-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>312</xmin>\n\t\t\t<xmax>368</xmax>\n\t\t\t<ymin>358</ymin>\n\t\t\t<ymax>443</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-king</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>91</xmin>\n\t\t\t<xmax>156</xmax>\n\t\t\t<ymin>157</ymin>\n\t\t\t<ymax>263</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-rook</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>127</xmin>\n\t\t\t<xmax>176</xmax>\n\t\t\t<ymin>10</ymin>\n\t\t\t<ymax>78</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-knight</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>151</xmin>\n\t\t\t<xmax>213</xmax>\n\t\t\t<ymin>364</ymin>\n\t\t\t<ymax>447</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-queen</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>237</xmin>\n\t\t\t<xmax>289</xmax>\n\t\t\t<ymin>31</ymin>\n\t\t\t<ymax>124</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>120</xmin>\n\t\t\t<xmax>164</xmax>\n\t\t\t<ymin>41</ymin>\n\t\t\t<ymax>114</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-bishop</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>250</xmin>\n\t\t\t<xmax>296</xmax>\n\t\t\t<ymin>183</ymin>\n\t\t\t<ymax>257</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>367</xmin>\n\t\t\t<xmax>408</xmax>\n\t\t\t<ymin>54</ymin>\n\t\t\t<ymax>111</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>188</xmin>\n\t\t\t<xmax>232</xmax>\n\t\t\t<ymin>57</ymin>\n\t\t\t<ymax>116</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>178</xmin>\n\t\t\t<xmax>218</xmax>\n\t\t\t<ymin>145</ymin>\n\t\t\t<ymax>201</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>173</xmin>\n\t\t\t<xmax>220</xmax>\n\t\t\t<ymin>196</ymin>\n\t\t\t<ymax>253</ymax>\n\t\t</bndbox>\n\t</object>\n\t<object>\n\t\t<name>white-pawn</name>\n\t\t<pose>Unspecified</pose>\n\t\t<truncated>0</truncated>\n\t\t<difficult>0</difficult>\n\t\t<occluded>0</occluded>\n\t\t<bndbox>\n\t\t\t<xmin>251</xmin>\n\t\t\t<xmax>298</xmax>\n\t\t\t<ymin>257</ymin>\n\t\t\t<ymax>319</ymax>\n\t\t</bndbox>\n\t</object>\n</annotation>\n"
+            }
+        }
+    }
+]

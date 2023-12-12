@@ -30,10 +30,15 @@ setuptools.setup(
         "desktop": ["opencv-python==4.8.0.74"],
         "dev": ["flake8", "black==22.3.0", "isort", "responses", "twine", "wheel"],
     },
+    entry_points={
+        "console_scripts": [
+            "roboflow=roboflow.roboflowpy:main",
+        ],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.8",
 )

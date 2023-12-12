@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
+from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import (
     check_box_size,
     clip_encode,
@@ -63,14 +64,14 @@ class Workspace:
 
         return projects_array
 
-    def project(self, project_name):
+    def project(self, project_id):
         """
         Retrieve a Project() object that represents a project in the workspace.
 
         This object can be used to retrieve the model through which to run inference.
 
         Args:
-            project_name (str): name of the project
+            project_id (str): id of the project
 
         Returns:
             Project Object
@@ -82,17 +83,17 @@ class Workspace:
         if self.__api_key in DEMO_KEYS:
             return Project(self.__api_key, {}, self.model_format)
 
-        project_name = project_name.replace(self.url + "/", "")
+        # project_id = project_id.replace(self.url + "/", "")
 
-        if "/" in project_name:
+        if "/" in project_id:
             raise RuntimeError(
                 "The {} project is not available in this ({}) workspace".format(
-                    project_name, self.url
+                    project_id, self.url
                 )
             )
 
         dataset_info = requests.get(
-            API_URL + "/" + self.url + "/" + project_name + "?api_key=" + self.__api_key
+            API_URL + "/" + self.url + "/" + project_id + "?api_key=" + self.__api_key
         )
 
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
@@ -310,15 +311,121 @@ class Workspace:
             project_license (str): license of the project (set to `private` for private projects, only available for paid customers)
             project_type (str): type of the project (only `object-detection` is supported)
         """
+        if dataset_format == "auto":
+            return self._upload_dataset_auto(
+                dataset_path, project_name, num_workers, project_license, project_type
+            )
+        else:
+            return self._upload_dataset_legacy(
+                dataset_path,
+                project_name,
+                num_workers,
+                dataset_format,
+                project_license,
+                project_type,
+            )
+
+    def _upload_dataset_auto(
+        self,
+        dataset_path: str,
+        project_name: str,
+        num_workers: int = 10,
+        project_license: str = "MIT",
+        project_type: str = "object-detection",
+    ):
+        parsed_dataset = folderparser.parsefolder(dataset_path)
+        project, created = self._get_or_create_project(
+            project_id=project_name, license=project_license, type=project_type
+        )
+        if created:
+            print(f"Created project {project.id}")
+        else:
+            print(f"Uploading to existing project {project.id}")
+        images = parsed_dataset["images"]
+
+        location = parsed_dataset["location"]
+
+        def _log_img_upload(image_path, uploadres):
+            image_id = uploadres.get("image", {}).get("id")
+            img_success = uploadres.get("image", {}).get("success")
+            img_duplicate = uploadres.get("image", {}).get("duplicate")
+            annotation = uploadres.get("annotation")
+            if img_duplicate:
+                msg = f"[DUPLICATE] {image_path} ({image_id})"
+            elif img_success:
+                msg = f"[UPLOADED] {image_path} ({image_id})"
+            else:
+                msg = f"[ERR] {image_path} ({uploadres})"
+            if annotation:
+                if annotation.get("success"):
+                    msg += " / annotations = OK"
+                elif annotation.get("warn"):
+                    msg += f" / annotations = WARN: {annotation['warn']}"
+                elif annotation.get("error"):
+                    msg += f" / annotations = ERR: {annotation['error']}"
+            print(msg)
+
+        def _log_img_upload_err(image_path, e):
+            msg = f"[ERR] {image_path} ({e})"
+            print(msg)
+
+        def _upload_image(imagedesc):
+            image_path = f"{location}{imagedesc['file']}"
+            split = imagedesc["split"]
+            annotation_path = None
+            labelmap = None
+            annotationdesc = imagedesc.get("annotationfile")
+            if annotationdesc:
+                annotation_path = f"{location}{annotationdesc['file']}"
+                labelmap = annotationdesc.get("labelmap")
+            try:
+                uploadres = project.single_upload(
+                    image_path=image_path,
+                    annotation_path=annotation_path,
+                    annotation_labelmap=labelmap,
+                    split=split,
+                )
+                _log_img_upload(image_path, uploadres)
+            except Exception as e:
+                _log_img_upload_err(image_path, e)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+            list(executor.map(_upload_image, images))
+
+    def _get_or_create_project(
+        self, project_id, license: str = "MIT", type: str = "object-detection"
+    ):
+        try:
+            existing_project = self.project(project_id)
+            return existing_project, False
+        except RuntimeError:
+            return (
+                self.create_project(
+                    project_name=project_id,
+                    project_license=license,
+                    annotation=project_id,
+                    project_type=type,
+                ),
+                True,
+            )
+
+    ## DEPRECATED. Will die.
+    def _upload_dataset_legacy(
+        self,
+        dataset_path: str,
+        project_name: str,
+        num_workers: int = 10,
+        dataset_format: str = "yolov8",
+        project_license: str = "MIT",
+        project_type: str = "object-detection",
+    ):
         if project_type != "object-detection":
             raise ("upload_dataset only supported for object-detection projects")
 
-        if dataset_format not in ["voc", "yolov8", "yolov5"]:
-            raise (
-                "dataset_format not supported - please use voc, yolov8, yolov5. PS, you"
-                " can always convert your dataset in the Roboflow UI"
+        if dataset_format not in ["voc", "yolov8", "yolov5", "darknet"]:
+            raise Exception(
+                "dataset_format not supported - please use voc, yolov8, yolov5. PS, you can always convert your dataset in the Roboflow UI"
             )
-
         # check type stuff and convert
         if dataset_format == "yolov8" or dataset_format == "yolov5":
             # convert to voc

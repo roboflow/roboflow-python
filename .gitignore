@@ -28,6 +28,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.gptexecthread
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -142,13 +143,14 @@ cython_debug/
 
 #config stuff
 tests/config.json
+tests/manual/data
 
 #dataset download stuff
 
-test/
-train/
-valid/
-data.yaml
+# test/
+# train/
+# valid/
+# data.yaml
 README.roboflow.txt
 *.zip
 .DS_Store

@@ -1,0 +1,166 @@
+{
+    "location": "/roboflow-python/tests/util/../datasets/chess",
+    "images": [
+        {
+            "file": "/bc5.jpg",
+            "name": "bc5.jpg",
+            "extension": ".jpg",
+            "key": "bc5",
+            "fullkey": "/bc5",
+            "annotationfile": {
+                "file": "/bc5.xml",
+                "name": "bc5.xml",
+                "extension": ".xml",
+                "key": "bc5",
+                "fullkey": "/bc5"
+            }
+        },
+        {
+            "file": "/d9a.jpg",
+            "name": "d9a.jpg",
+            "extension": ".jpg",
+            "key": "d9a",
+            "fullkey": "/d9a",
+            "annotationfile": {
+                "file": "/d9a.xml",
+                "name": "d9a.xml",
+                "extension": ".xml",
+                "key": "d9a",
+                "fullkey": "/d9a"
+            }
+        },
+        {
+            "file": "/ce5.jpg",
+            "name": "ce5.jpg",
+            "extension": ".jpg",
+            "key": "ce5",
+            "fullkey": "/ce5",
+            "annotationfile": {
+                "file": "/ce5.xml",
+                "name": "ce5.xml",
+                "extension": ".xml",
+                "key": "ce5",
+                "fullkey": "/ce5"
+            }
+        },
+        {
+            "file": "/f9a.jpg",
+            "name": "f9a.jpg",
+            "extension": ".jpg",
+            "key": "f9a",
+            "fullkey": "/f9a",
+            "annotationfile": {
+                "file": "/f9a.xml",
+                "name": "f9a.xml",
+                "extension": ".xml",
+                "key": "f9a",
+                "fullkey": "/f9a"
+            }
+        },
+        {
+            "file": "/c78.jpg",
+            "name": "c78.jpg",
+            "extension": ".jpg",
+            "key": "c78",
+            "fullkey": "/c78",
+            "annotationfile": {
+                "file": "/c78.xml",
+                "name": "c78.xml",
+                "extension": ".xml",
+                "key": "c78",
+                "fullkey": "/c78"
+            }
+        },
+        {
+            "file": "/0AF.jpg",
+            "name": "0AF.jpg",
+            "extension": ".jpg",
+            "key": "0af",
+            "fullkey": "/0af",
+            "annotationfile": {
+                "file": "/0af.xml",
+                "name": "0af.xml",
+                "extension": ".xml",
+                "key": "0af",
+                "fullkey": "/0af"
+            }
+        },
+        {
+            "file": "/e40.jpg",
+            "name": "e40.jpg",
+            "extension": ".jpg",
+            "key": "e40",
+            "fullkey": "/e40",
+            "annotationfile": {
+                "file": "/e40.xml",
+                "name": "e40.xml",
+                "extension": ".xml",
+                "key": "e40",
+                "fullkey": "/e40"
+            }
+        },
+        {
+            "file": "/a97.jpg",
+            "name": "a97.jpg",
+            "extension": ".jpg",
+            "key": "a97",
+            "fullkey": "/a97",
+            "annotationfile": {
+                "file": "/a97.xml",
+                "name": "a97.xml",
+                "extension": ".xml",
+                "key": "a97",
+                "fullkey": "/a97"
+            }
+        },
+        {
+            "file": "/ec5.jpg",
+            "name": "ec5.jpg",
+            "extension": ".jpg",
+            "key": "ec5",
+            "fullkey": "/ec5",
+            "annotationfile": {
+                "file": "/ec5.xml",
+                "name": "ec5.xml",
+                "extension": ".xml",
+                "key": "ec5",
+                "fullkey": "/ec5"
+            }
+        },
+        {
+            "file": "/55b.jpg",
+            "name": "55b.jpg",
+            "extension": ".jpg",
+            "key": "55b",
+            "fullkey": "/55b",
+            "annotationfile": {
+                "file": "/55b.xml",
+                "name": "55b.xml",
+                "extension": ".xml",
+                "key": "55b",
+                "fullkey": "/55b"
+            }
+        },
+        {
+            "file": "/1be.jpg",
+            "name": "1be.jpg",
+            "extension": ".jpg",
+            "key": "1be",
+            "fullkey": "/1be",
+            "annotationfile": {
+                "file": "/1be.xml",
+                "name": "1be.xml",
+                "extension": ".xml",
+                "key": "1be",
+                "fullkey": "/1be"
+            }
+        },
+        {
+            "file": "/5c1.jpg",
+            "name": "5c1.jpg",
+            "extension": ".jpg",
+            "key": "5c1",
+            "fullkey": "/5c1"
+        }
+    ]
+}
