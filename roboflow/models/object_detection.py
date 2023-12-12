@@ -23,7 +23,7 @@ from roboflow.util.versions import print_warn_for_wrong_dependencies_versions
 class ObjectDetectionModel(InferenceModel):
     """
     Run inference on an object detection model hosted on Roboflow or served through Roboflow Inference.
-    """
+    """  # noqa: E501 // docs
 
     def __init__(
         self,
@@ -65,7 +65,7 @@ class ObjectDetectionModel(InferenceModel):
                         - 'json': returns an array of JSON predictions (See response format tab).
                         - 'image': returns an image with annotated predictions as a binary blob with a Content-Type
                                     of image/jpeg.
-        """
+        """  # noqa: E501 // docs
         # Instantiate different API URL parameters
         # To be moved to predict
         super(ObjectDetectionModel, self).__init__(api_key, id)
@@ -184,7 +184,8 @@ class ObjectDetectionModel(InferenceModel):
                 dimensions = image.size
                 original_dimensions = copy.deepcopy(dimensions)
 
-                # Here we resize the image to the preprocessing settings before sending it over the wire
+                # Here we resize the image to the preprocessing settings
+                # before sending it over the wire
                 if "resize" in self.preprocessing.keys():
                     if dimensions[0] > int(
                         self.preprocessing["resize"]["width"]
@@ -227,7 +228,8 @@ class ObjectDetectionModel(InferenceModel):
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
-                # Replace with dimensions variable once cv2.imencode shape solution is found
+                # Replace with dimensions variable once
+                # cv2.imencode shape solution is found
                 image_dims = {"width": "0", "height": "0"}
             else:
                 raise ValueError("image_path must be a string or a numpy array.")
@@ -312,7 +314,7 @@ class ObjectDetectionModel(InferenceModel):
             overlap (int): Overlap threshold for detections
             stroke (int): Stroke width for bounding box
             labels (bool): Whether to show labels on bounding box
-        """
+        """  # noqa: E501 // docs
 
         os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
 
@@ -536,7 +538,8 @@ class ObjectDetectionModel(InferenceModel):
         return
 
     def __exception_check(self, image_path_check=None):
-        # Check if Image path exists exception check (for both hosted URL and local image)
+        # Check if Image path exists exception check
+        # (for both hosted URL and local image)
         if image_path_check is not None:
             if not os.path.exists(image_path_check) and not check_image_url(
                 image_path_check

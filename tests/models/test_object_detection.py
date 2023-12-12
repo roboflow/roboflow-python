@@ -52,7 +52,8 @@ class TestObjectDetection(unittest.TestCase):
         )
 
         self.assertEqual(instance.id, self.version_id)
-        # self.assertEqual(instance.api_url, f"{OBJECT_DETECTION_URL}/{self.dataset_id}/{self.version}")
+        # self.assertEqual(instance.api_url,
+        # f"{OBJECT_DETECTION_URL}/{self.dataset_id}/{self.version}")
 
     @responses.activate
     def test_predict_returns_prediction_group(self):

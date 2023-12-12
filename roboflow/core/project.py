@@ -94,7 +94,7 @@ class Project:
             + self.__api_key
         )
 
-        # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
+        # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset # noqa: E501 // docs
         if dataset_info.status_code != 200:
             raise RuntimeError(dataset_info.text)
 
@@ -210,7 +210,7 @@ class Project:
             >>> project = rf.workspace().project("PROJECT_ID")
 
             >>> versions = project.generate_version(settings={...})
-        """
+        """  # noqa: E501 // docs
 
         if not {"augmentation", "preprocessing"} <= settings.keys():
             raise (
@@ -221,14 +221,15 @@ class Project:
             )
 
         r = requests.post(
-            f"{API_URL}/{self.__workspace}/{self.__project_name}/generate?api_key={self.__api_key}",
+            f"{API_URL}/{self.__workspace}/{self.__project_name}/"
+            f"generate?api_key={self.__api_key}",
             json=settings,
         )
 
         try:
             r_json = r.json()
-        except:
-            raise ("Error when requesting to generate a new version for project.")
+        except Exception:
+            raise "Error when requesting to generate a new version for project."
 
         # if the generation succeeds, return the version that is being generated
         if r.status_code == 200:
@@ -286,7 +287,7 @@ class Project:
             >>> version = project.version(1)
 
             >>> version.train()
-        """
+        """  # noqa: E501 // docs
 
         new_version = self.generate_version(settings=new_version_settings)
         new_version = self.version(new_version)
@@ -306,7 +307,7 @@ class Project:
 
         Returns:
             Version() object
-        """
+        """  # noqa: E501 // docs
 
         if self.__api_key in DEMO_KEYS:
             name = ""
@@ -357,7 +358,7 @@ class Project:
 
         Returns:
             bool: whether the image is valid or not
-        """
+        """  # noqa: E501 // docs
         try:
             img = Image.open(image_path)
             valid = img.format in ACCEPTED_IMAGE_FORMATS
@@ -402,7 +403,7 @@ class Project:
             >>> project = rf.workspace().project("PROJECT_ID")
 
             >>> project.upload(image_path="YOUR_IMAGE.jpg")
-        """
+        """  # noqa: E501 // docs
 
         is_hosted = image_path.startswith("http://") or image_path.startswith(
             "https://"
@@ -520,7 +521,7 @@ class Project:
     def _annotation_params(self, annotation_path):
         annotation_name, annotation_string = None, None
         if os.path.exists(annotation_path):
-            with open(annotation_path, "r") as f:
+            with open(annotation_path, "r"):
                 annotation_string = open(annotation_path, "r").read()
             annotation_name = os.path.basename(annotation_path)
         elif self.type == "classification":
@@ -529,7 +530,8 @@ class Project:
             annotation_name = annotation_path
         else:
             raise Exception(
-                f"File not found or uploading to non-classification type project with invalid string. - {annotation_path}"
+                f"File not found or uploading to non-classification "
+                f"type project with invalid string. - {annotation_path}"
             )
         return annotation_name, annotation_string
 
@@ -572,7 +574,7 @@ class Project:
             >>> project = rf.workspace().project("PROJECT_ID")
 
             >>> results = project.search(query="cat", limit=10)
-        """
+        """  # noqa: E501 // docs
         payload = {}
 
         if like_image is not None:
@@ -660,7 +662,7 @@ class Project:
             >>> for result in results:
 
             >>>     print(result)
-        """
+        """  # noqa: E501 // docs
         while True:
             data = self.search(
                 like_image=like_image,

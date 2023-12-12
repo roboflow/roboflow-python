@@ -34,15 +34,17 @@ def count_comparisons(
 # checks box size and returns False if not within requirements
 def check_box_size(prediction, minimum_size_requirement, maximum_size_requirement):
     if (
-        prediction["height"] * prediction["width"] < maximum_size_requirement
-        and prediction["height"] * prediction["width"] > minimum_size_requirement
+        maximum_size_requirement
+        > prediction["height"] * prediction["width"]
+        > minimum_size_requirement
     ):
         return True
     else:
         return False
 
 
-# clip_encode requires images to be in a PIL image format, rf.predict handles this and only requires the file location
+# clip_encode requires images to be in a PIL image format,
+# rf.predict handles this and only requires the file location
 def base64_encode(image_path):
     image = Image.open(image_path)
     buffered = io.BytesIO()

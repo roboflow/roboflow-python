@@ -150,7 +150,8 @@ def initialize_roboflow(the_workspace=None):
     """High level function to initialize Roboflow.
 
     Args:
-        the_workspace: the workspace url to initialize. If None, the default workspace will be used.
+        the_workspace: the workspace url to initialize.
+            If None, the default workspace will be used.
 
     Returns:
         None
@@ -180,7 +181,8 @@ def load_model(model_url):
     """High level function to load Roboflow models.
 
     Args:
-        model_url: the model url to load. Must be from either app.roboflow.com or universe.roboflow.com
+        model_url: the model url to load.
+            Must be from either app.roboflow.com or universe.roboflow.com
 
     Returns:
         the model object to use for inference
@@ -208,7 +210,8 @@ def download_dataset(dataset_url, model_format, location=None):
     """High level function to download data from Roboflow.
 
     Args:
-        dataset_url: the dataset url to download. Must be from either app.roboflow.com or universe.roboflow.com
+        dataset_url: the dataset url to download.
+            Must be from either app.roboflow.com or universe.roboflow.com
         model_format: the format the dataset will be downloaded in
         location: the location the dataset will be downloaded to
 
@@ -305,7 +308,8 @@ class Roboflow:
             + self.api_key
         )
 
-        # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
+        # Throw error if dataset isn't valid/user doesn't have
+        #   permissions to access the dataset
         if dataset_info.status_code != 200:
             raise RuntimeError(dataset_info.text)
 

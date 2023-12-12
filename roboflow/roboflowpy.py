@@ -11,7 +11,7 @@ def login(args):
 
 
 def _parse_url(url):
-    regex = r"(?:https?://)?(?:universe|app)\.roboflow\.(?:com|one)/([^/]+)/([^/]+)(?:/dataset)?(?:/(\d+))?|([^/]+)/([^/]+)(?:/(\d+))?"
+    regex = r"(?:https?://)?(?:universe|app)\.roboflow\.(?:com|one)/([^/]+)/([^/]+)(?:/dataset)?(?:/(\d+))?|([^/]+)/([^/]+)(?:/(\d+))?"  # noqa: E501
     match = re.match(regex, url)
     if match:
         organization = match.group(1) or match.group(4)
@@ -90,7 +90,10 @@ def _add_download_parser(subparsers):
         "-f",
         dest="format",
         default="voc",
-        help="Specify the format to download the version. Available options: [coco, yolov5pytorch, yolov7pytorch, my-yolov6, darknet, voc, tfrecord, createml, clip, multiclass, coco-segmentation, yolo5-obb, png-mask-semantic, yolov8]",
+        help="Specify the format to download the version. Available options: [coco, "
+        "yolov5pytorch, yolov7pytorch, my-yolov6, darknet, voc, tfrecord, "
+        "createml, clip, multiclass, coco-segmentation, yolo5-obb, "
+        "png-mask-semantic, yolov8]",
     )
     download_parser.add_argument(
         "-l", dest="location", help="Location to download the dataset"
@@ -109,7 +112,8 @@ def _add_upload_parser(subparsers):
     upload_parser.add_argument(
         "-w",
         dest="workspace",
-        help="specify a workspace url or id (will use default workspace if not specified)",
+        help="specify a workspace url or id "
+        "(will use default workspace if not specified)",
     )
     upload_parser.add_argument(
         "-p",
@@ -170,7 +174,8 @@ def _add_import_parser(subparsers):
     import_parser.add_argument(
         "-w",
         dest="workspace",
-        help="specify a workspace url or id (will use default workspace if not specified)",
+        help="specify a workspace url or id "
+        "(will use default workspace if not specified)",
     )
     import_parser.add_argument(
         "-p",
@@ -187,7 +192,8 @@ def _add_import_parser(subparsers):
     import_parser.add_argument(
         "-f",
         dest="format",
-        help="dataset format. Valid options are [voc, yolov8, yolov5, auto] (use auto for autodetect)",
+        help="dataset format. Valid options are "
+        "[voc, yolov8, yolov5, auto] (use auto for autodetect)",
         default="auto",
     )
     import_parser.set_defaults(func=import_dataset)

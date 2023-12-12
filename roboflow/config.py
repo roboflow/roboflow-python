@@ -12,7 +12,7 @@ def get_conditional_configuration_variable(key, default):
         default (string): The default value of the configuration variable.
     Returns:
         string: The value of the conditional configuration variable.
-    """
+    """  # noqa: E501 // docs
 
     os_name = os.name
 
@@ -85,7 +85,7 @@ def load_roboflow_api_key():
     RF_WORKSPACE = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
 
-    # DEFAULT_WORKSPACE = get_conditional_configuration_variable("default_workspace", default=None)
+    # DEFAULT_WORKSPACE = get_conditional_configuration_variable("default_workspace", default=None)  # noqa: E501 // docs
     if RF_WORKSPACE is None:
         RF_API_KEY = None
     else:

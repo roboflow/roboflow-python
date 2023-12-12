@@ -9,8 +9,6 @@ from roboflow.core.version import Version, unwrap_version_id
 
 from .helpers import get_version
 
-from .helpers import get_version
-
 
 class TestDownload(unittest.TestCase):
     def setUp(self):
@@ -135,7 +133,7 @@ class TestGetDownloadLocation(unittest.TestCase):
             version_number="3",
         )
 
-        # This is a weird python thing to get access to the private function for testing.
+        # This is a weird python thing to get access to the private function for testing
         self.get_download_location = self.version._Version__get_download_location
         self.generating_url = (
             "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
@@ -170,7 +168,7 @@ class TestGetDownloadURL(unittest.TestCase):
             version_number="3",
         )
 
-        # This is a weird python thing to get access to the private function for testing.
+        # This is a weird python thing to get access to the private function for testing
         self.get_download_url = self.version._Version__get_download_url
         self.generating_url = (
             "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
@@ -198,7 +196,7 @@ class TestGetFormatIdentifier(unittest.TestCase):
             version_number="3",
         )
 
-        # This is a weird python thing to get access to the private function for testing.
+        # This is a weird python thing to get access to the private function for testing
         self.get_format_identifier = self.version._Version__get_format_identifier
 
     def test_returns_simple_format(self):
@@ -215,7 +213,7 @@ class TestGetFormatIdentifier(unittest.TestCase):
         self.version.model_format = "fallback"
         self.assertEqual(self.get_format_identifier(None), "fallback")
 
-    def test_falls_back_to_instance_variable_if_model_format_is_none_and_converts_human_readable_format_to_identifier(
+    def test_falls_back_to_instance_variable_if_model_format_is_none_and_converts_human_readable_format_to_identifier(  # noqa: E501
         self,
     ):
         self.version.model_format = "yolov5"

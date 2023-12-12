@@ -18,7 +18,6 @@ from roboflow.util.active_learning_utils import (
     clip_encode,
     count_comparisons,
 )
-from roboflow.util.clip_compare_utils import clip_encode
 from roboflow.util.general import write_line
 from roboflow.util.two_stage_utils import ocr_infer
 
@@ -96,7 +95,7 @@ class Workspace:
             API_URL + "/" + self.url + "/" + project_id + "?api_key=" + self.__api_key
         )
 
-        # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
+        # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset   # noqa: E501 // docs
         if dataset_info.status_code != 200:
             raise RuntimeError(dataset_info.text)
 
@@ -116,7 +115,7 @@ class Workspace:
 
         Returns:
             Project Object
-        """
+        """  # noqa: E501 // docs
         data = {
             "name": project_name,
             "type": project_type,
@@ -148,7 +147,7 @@ class Workspace:
 
         Returns:
             dict: a key:value mapping of image_name:comparison_score_to_target
-        """
+        """  # noqa: E501 // docs
 
         # list to store comparison results in
         comparisons = []
@@ -181,7 +180,7 @@ class Workspace:
 
         Returns:
             dict: a json obj containing the results of the second stage detection
-        """
+        """  # noqa: E501 // docs
         results = []
 
         # create PIL image for cropping
@@ -206,7 +205,7 @@ class Workspace:
             for boundingbox in predictions:
                 # rip bounding box coordinates from json1
                 # note: infer returns center points of box as (x,y) and width, height
-                # ----- but pillow crop requires the top left and bottom right points to crop
+                # ----- but pillow crop requires the top left and bottom right points to crop  # noqa: E501 // docs
                 box = (
                     boundingbox["x"] - boundingbox["width"] / 2,
                     boundingbox["y"] - boundingbox["height"] / 2,
@@ -214,7 +213,7 @@ class Workspace:
                     boundingbox["y"] + boundingbox["height"] / 2,
                 )
 
-                # create a new cropped image using the first stage prediction coordinates (for each box!)
+                # create a new cropped image using the first stage prediction coordinates (for each box!)  # noqa: E501 // docs
                 croppedImg = pil_image.crop(box)
                 croppedImg.save("./temp.png")
 
@@ -252,7 +251,7 @@ class Workspace:
 
         Returns:
             dict: a json obj containing the results of the second stage detection
-        """
+        """  # noqa: E501 // docs
         results = []
 
         # create PIL image for cropping
@@ -270,7 +269,7 @@ class Workspace:
             for boundingbox in predictions:
                 # rip bounding box coordinates from json1
                 # note: infer returns center points of box as (x,y) and width, height
-                # ----- but pillow crop requires the top left and bottom right points to crop
+                # but pillow crop requires the top left and bottom right points to crop
                 box = (
                     boundingbox["x"] - boundingbox["width"] / 2,
                     boundingbox["y"] - boundingbox["height"] / 2,
@@ -278,7 +277,8 @@ class Workspace:
                     boundingbox["y"] + boundingbox["height"] / 2,
                 )
 
-                # create a new cropped image using the first stage prediction coordinates (for each box!)
+                # create a new cropped image using the first stage
+                # prediction coordinates (for each box!)
                 croppedImg = pil_image.crop(box)
 
                 # capture OCR results from cropped image
@@ -310,7 +310,7 @@ class Workspace:
             dataset_format (str): format of the dataset (`voc`, `yolov8`, `yolov5`)
             project_license (str): license of the project (set to `private` for private projects, only available for paid customers)
             project_type (str): type of the project (only `object-detection` is supported)
-        """
+        """  # noqa: E501 // docs
         if dataset_format == "auto":
             return self._upload_dataset_auto(
                 dataset_path, project_name, num_workers, project_license, project_type
@@ -409,7 +409,7 @@ class Workspace:
                 True,
             )
 
-    ## DEPRECATED. Will die.
+    # DEPRECATED. Will die.
     def _upload_dataset_legacy(
         self,
         dataset_path: str,
@@ -420,11 +420,12 @@ class Workspace:
         project_type: str = "object-detection",
     ):
         if project_type != "object-detection":
-            raise ("upload_dataset only supported for object-detection projects")
+            raise "upload_dataset only supported for object-detection projects"
 
         if dataset_format not in ["voc", "yolov8", "yolov5", "darknet"]:
             raise Exception(
-                "dataset_format not supported - please use voc, yolov8, yolov5. PS, you can always convert your dataset in the Roboflow UI"
+                "dataset_format not supported - please use voc, yolov8, yolov5. PS, "
+                "you can always convert your dataset in the Roboflow UI"
             )
         # check type stuff and convert
         if dataset_format == "yolov8" or dataset_format == "yolov5":
@@ -462,7 +463,7 @@ class Workspace:
             Args:
                 img_file (str): path to the image
                 split (str): split to which the the image should be added (train, valid, test)
-            """
+            """  # noqa: E501 // docs
             label_file = img_file.replace(".jpg", ".xml")
             dataset_upload_project.upload(
                 image_path=img_file, annotation_path=label_file, split=split
@@ -509,7 +510,7 @@ class Workspace:
             upload_destination: (str) = name of the upload project
             conditionals: (dict) = dictionary of upload conditions
             use_localhost: (bool) = determines if local http format used or remote endpoint
-        """
+        """  # noqa: E501 // docs
         prediction_results = []
 
         # ensure that all fields of conditionals have a key:value pair
@@ -582,12 +583,12 @@ class Workspace:
                     + image
                     + " ***"
                 )
-            except:
+            except Exception:
                 pass
 
             if "similarity_confidence_threshold" in conditionals.keys():
                 image2 = image
-                # measure the similarity of two images using CLIP (hits an endpoint hosted by Roboflow)
+                # measure the similarity of two images using CLIP (hits an endpoint hosted by Roboflow)   # noqa: E501 // docs
                 similarity = clip_encode(image1, image2, CLIP_FEATURIZE_URL)
                 similarity_timeout_counter += 1
 
@@ -606,7 +607,8 @@ class Workspace:
             # collect all predictions to return to user at end
             prediction_results.append({"image": image, "predictions": predictions})
 
-            # compare object and class count of predictions if enabled, continue if not enough occurances
+            # compare object and class count of predictions if enabled,
+            # continue if not enough occurrences
             if not count_comparisons(
                 predictions,
                 conditionals["required_objects_count"],
@@ -650,7 +652,8 @@ class Workspace:
                     upload_project.upload(image, num_retry_uploads=3)
                     break
 
-        # return predictions with filenames if globbed images from dir, otherwise return latest prediction result
+        # return predictions with filenames if globbed images from dir,
+        # otherwise return latest prediction result
         return (
             prediction_results
             if type(raw_data_location) is not ndarray

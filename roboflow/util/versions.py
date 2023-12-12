@@ -10,15 +10,19 @@ def get_wrong_dependencies_versions(
 ) -> List[Tuple[str, str, str, str]]:
     """
     Get a list of mismatching dependencies with current version installed.
-    E.g., assuming we pass `get_wrong_dependencies_versions([("torch", "==", "1.2.0")]), we will check if the current version of `torch` is `==1.2.0`. If not, we will return `[("torch", "==", "1.2.0", "<current_installed_version>")]
+    E.g., assuming we pass `get_wrong_dependencies_versions([("torch", "==", "1.2.0")]),
+        we will check if the current version of `torch` is `==1.2.0`. If not,
+        we will return `[("torch", "==", "1.2.0", "<current_installed_version>")]
 
     We support `<=`, `==`, `>=`
 
     Args:
-        dependencies_versions (List[Tuple[str, str]]): List of dependencies we want to check, [("<package_name>", "<version_number_to_check")]
+        dependencies_versions (List[Tuple[str, str]]): List of dependencies
+            we want to check, [("<package_name>", "<version_number_to_check")]
 
     Returns:
-        List[Tuple[str, str, str]]: List of dependencies with wrong version, [("<package_name>", "<version_number_to_check", "<current_version>")]
+        List[Tuple[str, str, str]]: List of dependencies with wrong version,
+            [("<package_name>", "<version_number_to_check", "<current_version>")]
     """
     wrong_dependencies_versions = []
     order_funcs = {
@@ -78,11 +82,13 @@ def warn_for_wrong_dependencies_versions(
     prints:
 
     ```
-    Dependency torch==1.2.0 is required but found version=1.13.1, to fix: `pip install torch==1.2.0`
+    Dependency torch==1.2.0 is required but found version=1.13.1,
+        to fix: `pip install torch==1.2.0`
     ```
 
     Args:
-        dependencies_versions (List[Tuple[str, str]]): List of dependencies we want to check, [("<package_name>", "<version_number_to_check")]
+        dependencies_versions (List[Tuple[str, str]]): List of dependencies
+            we want to check, [("<package_name>", "<version_number_to_check")]
     """
 
     def _inner(func):

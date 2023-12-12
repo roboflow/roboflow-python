@@ -46,7 +46,7 @@ def is_valid_video(filename):
 class VideoInferenceModel(InferenceModel):
     """
     Run inference on an object detection model hosted on Roboflow or served through Roboflow Inference.
-    """
+    """  # noqa: E501 // docs
 
     def __init__(
         self,
@@ -57,7 +57,7 @@ class VideoInferenceModel(InferenceModel):
 
         Args:
             api_key (str): Your API key (obtained via your workspace API settings page).
-        """
+        """  # noqa: E501 // docs
         self.__api_key = api_key
 
     def predict(
@@ -88,7 +88,7 @@ class VideoInferenceModel(InferenceModel):
             >>> model = project.version("1").model
 
             >>> prediction = model.predict("video.mp4", fps=5, inference_type="object-detection")
-        """
+        """  # noqa: E501 // docs
 
         url = urljoin(API_URL, "/video_upload_signed_url/?api_key=", self.__api_key)
 
@@ -165,7 +165,7 @@ class VideoInferenceModel(InferenceModel):
             >>> prediction = model.predict("video.mp4")
 
             >>> results = model.poll_for_results()
-        """
+        """  # noqa: E501 // docs
 
         if job_id is None:
             job_id = self.job_id
@@ -221,7 +221,7 @@ class VideoInferenceModel(InferenceModel):
             >>> prediction = model.predict("video.mp4")
 
             >>> results = model.poll_until_results()
-        """
+        """  # noqa: E501 // docs
         if job_id is None:
             job_id = self.job_id
 

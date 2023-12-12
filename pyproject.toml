@@ -1,10 +1,6 @@
 [build-system]
-requires = [
-    "setuptools>=57",
-    "wheel"
-]
+requires = ["setuptools>=57", "wheel"]
 build-backend = "setuptools.build_meta"
-
 
 
 [tool.flake8]
@@ -26,32 +22,13 @@ line_length = 88
 profile = "black"
 
 [tool.bandit]
-target = ["test", "supervision"]
+target = ["test", "roboflow"]
 tests = ["B201", "B301"]
 
 [tool.autoflake]
 check = true
-imports = ["cv2", "supervision"]
+imports = ["cv2", "roboflow", "supervision"]
 
-
-[tool.black]
-target-version = ["py38"]
-line-length = 88
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | docs
-)/
-'''
 
 [tool.ruff]
 target-version = "py38"
@@ -60,7 +37,52 @@ select = ["E", "F"]
 ignore = []
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
+fixable = [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "I",
+    "N",
+    "Q",
+    "S",
+    "T",
+    "W",
+    "ANN",
+    "ARG",
+    "BLE",
+    "COM",
+    "DJ",
+    "DTZ",
+    "EM",
+    "ERA",
+    "EXE",
+    "FBT",
+    "ICN",
+    "INP",
+    "ISC",
+    "NPY",
+    "PD",
+    "PGH",
+    "PIE",
+    "PL",
+    "PT",
+    "PTH",
+    "PYI",
+    "RET",
+    "RSE",
+    "RUF",
+    "SIM",
+    "SLF",
+    "TCH",
+    "TID",
+    "TRY",
+    "UP",
+    "YTT",
+]
 unfixable = []
 
 # Exclude a variety of commonly ignored directories.
@@ -89,6 +111,7 @@ exclude = [
     "yarn-error.log",
     "yarn.lock",
     "docs",
+    "tests/manual/debugme.py", # file is intentionally broken
 ]
 
 # Same as Black.
@@ -106,7 +129,7 @@ docstring-quotes = "double"
 convention = "google"
 
 [tool.ruff.per-file-ignores]
-"__init__.py" = ["E402","F401"]
+"__init__.py" = ["E402", "F401"]
 
 [tool.ruff.pylint]
 max-args = 20

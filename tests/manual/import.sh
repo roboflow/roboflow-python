@@ -1,3 +1,5 @@
+#!/bin/env bash
+
 export ROBOFLOW_CONFIG_DIR=./data/.config
 # python ../../roboflow/roboflowpy.py import ./data/cultura-pepino-voc -w wolfodorpythontests -p cultura-pepino-upload-test-voc -f voc
 # python ../../roboflow/roboflowpy.py import ./data/cultura-pepino-yolov8 -w wolfodorpythontests -p cultura-pepino-upload-test-yolov8 -f yolov8

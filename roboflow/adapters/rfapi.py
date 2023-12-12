@@ -61,7 +61,7 @@ def upload_image(
     responsejson = None
     try:
         responsejson = response.json()
-    except:
+    except Exception:
         pass
     if response.status_code != 200:
         if responsejson:
@@ -108,7 +108,7 @@ def save_annotation(
     responsejson = None
     try:
         responsejson = response.json()
-    except:
+    except Exception:
         pass
     if not responsejson:
         raise _save_annotation_error(image_id, response)
@@ -127,7 +127,10 @@ def save_annotation(
 
 
 def _save_annotation_url(api_key, project_url, name, image_id, is_prediction):
-    url = f"{API_URL}/dataset/{project_url}/annotate/{image_id}?api_key={api_key}&name={name}"
+    url = (
+        f"{API_URL}/dataset/{project_url}/annotate/{image_id}?api_key={api_key}"
+        f"&name={name}"
+    )
     if is_prediction:
         url += "&prediction=true"
     return url
@@ -141,7 +144,10 @@ def _hosted_upload_url(api_key, project_url, image_path, split):
 
 
 def _local_upload_url(api_key, project_url, batch_name, tag_names, kwargs):
-    url = f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}&batch={batch_name}"
+    url = (
+        f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}"
+        f"&batch={batch_name}"
+    )
     for key, value in kwargs.items():
         url += f"&{str(key)}={str(value)}"
     for tag in tag_names:
@@ -154,7 +160,7 @@ def _save_annotation_error(image_id, response):
     responsejson = None
     try:
         responsejson = response.json()
-    except:
+    except Exception:
         pass
     if not responsejson:
         errmsg += f"bad response: {response.status_code}: {response}"
