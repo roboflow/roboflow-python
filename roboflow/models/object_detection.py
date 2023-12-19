@@ -14,6 +14,7 @@ import tqdm
 from PIL import Image
 
 from roboflow.config import API_URL, OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
+
 from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
@@ -46,8 +47,7 @@ class ObjectDetectionModel(InferenceModel):
 
         Args:
             api_key (str): Your API key (obtained via your workspace API settings page).
-            name (str): The url-safe version of the dataset name. You can find it in the web UI by looking at
-                        the URL on the main project view or by clicking the "Get curl command" button in the train
+            name (str): The url-safe version of the dataset name. You can find it in the web UI by looking at the URL on the main project view or by clicking the "Get curl command" button in the train
                         results section of your dataset version after training your model.
             local (str): Address of the local server address if running a local Roboflow deployment server.
                         Ex. http://localhost:9001/
