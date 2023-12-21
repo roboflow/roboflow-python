@@ -13,7 +13,7 @@ from roboflow.core.workspace import Workspace
 from roboflow.models import CLIPModel, GazeModel
 from roboflow.util.general import write_line
 
-__version__ = "1.1.12"
+__version__ = "1.1.13"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
