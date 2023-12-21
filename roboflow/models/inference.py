@@ -162,7 +162,8 @@ class InferenceModel:
 
             >>> model = project.version("1").model
 
-            >>> job_id, signed_url, signed_url_expires = model.predict_video("video.mp4", fps=5, inference_type="object-detection")
+            >>> job_id,signed_url,signed_url_expires = model.predict_video("video.mp4"
+                ,fps=5, inference_type="object-detection")
         """
 
         signed_url_expires = None

@@ -12,11 +12,11 @@ jobs:
         python-version: [3.8]
     steps:
       - name: 🛎️ Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
       - name: 🐍 Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: 🦾 Install dependencies
@@ -24,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[dev]"
       - name: 🚀 Publish to PyPi
-        env: 
+        env:
           PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
           PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
           PYPI_TEST_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}

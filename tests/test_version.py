@@ -20,12 +20,18 @@ class TestDownload(unittest.TestCase):
             version_number="4",
         )
 
-        self.generating_url = "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
-        
+        self.generating_url = (
+            "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
+        )
+
     @responses.activate
     def test_download_raises_exception_on_bad_request(self):
         responses.add(responses.GET, self.api_url, status=404, json={"error": "Broken"})
-        responses.add(responses.GET, self.generating_url, json={"version": {"generating": False, "progress": 1.0}})
+        responses.add(
+            responses.GET,
+            self.generating_url,
+            json={"version": {"generating": False, "progress": 1.0}},
+        )
 
         with self.assertRaises(RuntimeError):
             self.version.download("coco")
@@ -33,7 +39,11 @@ class TestDownload(unittest.TestCase):
     @responses.activate
     def test_download_raises_exception_on_api_failure(self):
         responses.add(responses.GET, self.api_url, status=500)
-        responses.add(responses.GET, self.generating_url, json={"version": {"generating": False, "progress": 1.0}})
+        responses.add(
+            responses.GET,
+            self.generating_url,
+            json={"version": {"generating": False, "progress": 1.0}},
+        )
         with self.assertRaises(requests.exceptions.HTTPError):
             self.version.download("coco")
 
@@ -42,8 +52,12 @@ class TestDownload(unittest.TestCase):
     @patch.object(Version, "_Version__extract_zip")
     @patch.object(Version, "_Version__reformat_yaml")
     def test_download_returns_dataset(self, *_):
-        responses.add(responses.GET, self.api_url, json={"export": { "link": None }})
-        responses.add(responses.GET, self.generating_url, json={"version": {"generating": False, "progress": 1.0}})
+        responses.add(responses.GET, self.api_url, json={"export": {"link": None}})
+        responses.add(
+            responses.GET,
+            self.generating_url,
+            json={"version": {"generating": False, "progress": 1.0}},
+        )
         dataset = self.version.download("coco", location="/my-spot")
         self.assertEqual(dataset.name, self.version.name)
         self.assertEqual(dataset.version, self.version.version)
@@ -54,33 +68,57 @@ class TestDownload(unittest.TestCase):
 class TestExport(unittest.TestCase):
     def setUp(self):
         super(TestExport, self).setUp()
-        self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/test-format"
-        self.version = get_version(project_name="Test Dataset", id="test-workspace/test-project/2", version_number="4")
+        self.api_url = (
+            "https://api.roboflow.com/test-workspace/test-project/4/test-format"
+        )
+        self.version = get_version(
+            project_name="Test Dataset",
+            id="test-workspace/test-project/2",
+            version_number="4",
+        )
 
-        self.generating_url = "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
+        self.generating_url = (
+            "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
+        )
 
     @responses.activate
     def test_export_returns_true_on_api_success(self):
         responses.add(responses.GET, self.api_url, status=200)
-        responses.add(responses.GET, self.generating_url, json={"version": {"generating": False, "progress": 1.0}})
+        responses.add(
+            responses.GET,
+            self.generating_url,
+            json={"version": {"generating": False, "progress": 1.0}},
+        )
         export = self.version.export("test-format")
         request = responses.calls[0].request
 
         self.assertTrue(export)
         self.assertEqual(request.method, "GET")
-        self.assertDictEqual(request.params, {'nocache': 'true', "api_key": "test-api-key" })
+        self.assertDictEqual(
+            request.params, {"nocache": "true", "api_key": "test-api-key"}
+        )
 
     @responses.activate
     def test_export_raises_error_on_bad_request(self):
-        responses.add(responses.GET, self.api_url, status=400, json={ "error": "BROKEN!!"})
-        responses.add(responses.GET, self.generating_url, json={"version": {"generating": False, "progress": 1.0}})
+        responses.add(
+            responses.GET, self.api_url, status=400, json={"error": "BROKEN!!"}
+        )
+        responses.add(
+            responses.GET,
+            self.generating_url,
+            json={"version": {"generating": False, "progress": 1.0}},
+        )
         with self.assertRaises(RuntimeError):
             self.version.export("test-format")
 
     @responses.activate
     def test_export_raises_error_on_api_failure(self):
         responses.add(responses.GET, self.api_url, status=500)
-        responses.add(responses.GET, self.generating_url, json={"version": {"generating": False, "progress": 1.0}})
+        responses.add(
+            responses.GET,
+            self.generating_url,
+            json={"version": {"generating": False, "progress": 1.0}},
+        )
         with self.assertRaises(requests.exceptions.HTTPError):
             self.version.export("test-format")
 
@@ -95,19 +133,29 @@ class TestGetDownloadLocation(unittest.TestCase):
             version_number="3",
         )
 
-        # This is a weird python thing to get access to the private function for testing.
+        # This is a weird python thing to get access to the private function for testing
         self.get_download_location = self.version._Version__get_download_location
-        self.generating_url = "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
+        self.generating_url = (
+            "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
+        )
 
     @responses.activate
     def test_get_download_location_with_env_variable(self, *_):
-        responses.add(responses.GET, self.generating_url, json={"version": {"generating": False, "progress": 1.0}})
-        with patch.dict(os.environ, { "DATASET_DIRECTORY": "/my/exports"}, clear=True):
+        responses.add(
+            responses.GET,
+            self.generating_url,
+            json={"version": {"generating": False, "progress": 1.0}},
+        )
+        with patch.dict(os.environ, {"DATASET_DIRECTORY": "/my/exports"}, clear=True):
             self.assertEqual(self.get_download_location(), "/my/exports/Test-Dataset-3")
 
     @responses.activate
     def test_get_download_location_without_env_variable(self, *_):
-        responses.add(responses.GET, self.generating_url, json={"version": {"generating": False, "progress": 1.0}})
+        responses.add(
+            responses.GET,
+            self.generating_url,
+            json={"version": {"generating": False, "progress": 1.0}},
+        )
         self.assertEqual(self.get_download_location(), "Test-Dataset-3")
 
 
@@ -120,13 +168,19 @@ class TestGetDownloadURL(unittest.TestCase):
             version_number="3",
         )
 
-        # This is a weird python thing to get access to the private function for testing.
+        # This is a weird python thing to get access to the private function for testing
         self.get_download_url = self.version._Version__get_download_url
-        self.generating_url = "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
+        self.generating_url = (
+            "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
+        )
 
     @responses.activate
     def test_get_download_url(self):
-        responses.add(responses.GET, self.generating_url, json={"version": {"generating": False, "progress": 1.0}})
+        responses.add(
+            responses.GET,
+            self.generating_url,
+            json={"version": {"generating": False, "progress": 1.0}},
+        )
         url = self.get_download_url("yolo1337")
         self.assertEqual(
             url, "https://api.roboflow.com/test-workspace/test-project/3/yolo1337"
@@ -142,7 +196,7 @@ class TestGetFormatIdentifier(unittest.TestCase):
             version_number="3",
         )
 
-        # This is a weird python thing to get access to the private function for testing.
+        # This is a weird python thing to get access to the private function for testing
         self.get_format_identifier = self.version._Version__get_format_identifier
 
     def test_returns_simple_format(self):
@@ -159,7 +213,7 @@ class TestGetFormatIdentifier(unittest.TestCase):
         self.version.model_format = "fallback"
         self.assertEqual(self.get_format_identifier(None), "fallback")
 
-    def test_falls_back_to_instance_variable_if_model_format_is_none_and_converts_human_readable_format_to_identifier(
+    def test_falls_back_to_instance_variable_if_model_format_is_none_and_converts_human_readable_format_to_identifier(  # noqa: E501
         self,
     ):
         self.version.model_format = "yolov5"

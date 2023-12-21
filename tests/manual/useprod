@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/env bash
+
 cp data/.config-prod data/.config
 export API_URL=https://api.roboflow.com
 export APP_URL=https://app.roboflow.com

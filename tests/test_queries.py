@@ -1,6 +1,3 @@
-import os
-import unittest
-
 from _datetime import datetime
 
 from roboflow.core.project import Project

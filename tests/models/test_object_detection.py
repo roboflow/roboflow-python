@@ -25,7 +25,6 @@ MOCK_RESPONSE = {
 
 
 class TestObjectDetection(unittest.TestCase):
-
     api_key = "my-api-key"
     workspace = "roboflow"
     dataset_id = "test-123"
@@ -53,7 +52,8 @@ class TestObjectDetection(unittest.TestCase):
         )
 
         self.assertEqual(instance.id, self.version_id)
-        # self.assertEqual(instance.api_url, f"{OBJECT_DETECTION_URL}/{self.dataset_id}/{self.version}")
+        # self.assertEqual(instance.api_url,
+        # f"{OBJECT_DETECTION_URL}/{self.dataset_id}/{self.version}")
 
     @responses.activate
     def test_predict_returns_prediction_group(self):
@@ -89,7 +89,7 @@ class TestObjectDetection(unittest.TestCase):
 
     @responses.activate
     def test_predict_with_a_numpy_array_request(self):
-        np_array = np.ones((100,100,1), dtype=np.uint8)
+        np_array = np.ones((100, 100, 1), dtype=np.uint8)
         instance = ObjectDetectionModel(
             self.api_key, self.version_id, version=self.version
         )
@@ -104,14 +104,13 @@ class TestObjectDetection(unittest.TestCase):
         self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, self._default_params)
         self.assertIsNotNone(request.body)
-    
+
     def test_predict_with_local_wrong_image_request(self):
         image_path = "tests/images/not_an_image.txt"
         instance = ObjectDetectionModel(
             self.api_key, self.version_id, version=self.version
         )
         self.assertRaises(UnidentifiedImageError, instance.predict, image_path)
-
 
     @responses.activate
     def test_predict_with_hosted_image_request(self):
@@ -120,7 +119,9 @@ class TestObjectDetection(unittest.TestCase):
             **self._default_params,
             "image": image_path,
         }
-        instance = ObjectDetectionModel(self.api_key, self.version_id,  version=self.version)
+        instance = ObjectDetectionModel(
+            self.api_key, self.version_id, version=self.version
+        )
 
         # Mock the library validating that the URL is valid before sending to the API
         responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
@@ -139,7 +140,9 @@ class TestObjectDetection(unittest.TestCase):
         confidence = "100"
         image_path = "tests/images/rabbit.JPG"
         expected_params = {**self._default_params, "confidence": confidence}
-        instance = ObjectDetectionModel(self.api_key, self.version_id, version=self.version)
+        instance = ObjectDetectionModel(
+            self.api_key, self.version_id, version=self.version
+        )
 
         responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
 
@@ -157,7 +160,9 @@ class TestObjectDetection(unittest.TestCase):
         image_path = "tests/images/rabbit.JPG"
         responses.add(responses.POST, self.api_url, status=403)
 
-        instance = ObjectDetectionModel(self.api_key, self.version_id, version=self.version)
+        instance = ObjectDetectionModel(
+            self.api_key, self.version_id, version=self.version
+        )
 
         with self.assertRaises(HTTPError):
             instance.predict(image_path)

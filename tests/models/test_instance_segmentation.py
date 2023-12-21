@@ -41,7 +41,6 @@ MOCK_RESPONSE = {
 
 
 class TestInstanceSegmentation(unittest.TestCase):
-
     api_key = "my-api-key"
     workspace = "roboflow"
     dataset_id = "test-123"

@@ -4,7 +4,8 @@ from roboflow.models.inference import InferenceModel
 
 class InstanceSegmentationModel(InferenceModel):
     """
-    Run inference on a instance segmentation model hosted on Roboflow or served through Roboflow Inference.
+    Run inference on a instance segmentation model hosted on
+        Roboflow or served through Roboflow Inference.
     """
 
     def __init__(
@@ -56,7 +57,7 @@ class InstanceSegmentationModel(InferenceModel):
             >>> model = project.version("1").model
 
             >>> prediction = model.predict("YOUR_IMAGE.jpg")
-        """
+        """  # noqa: E501
         return super(InstanceSegmentationModel, self).predict(
             image_path,
             confidence=confidence,

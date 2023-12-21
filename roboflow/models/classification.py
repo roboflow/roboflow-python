@@ -14,7 +14,8 @@ from roboflow.util.prediction import PredictionGroup
 
 class ClassificationModel:
     """
-    Run inference on a classification model hosted on Roboflow or served through Roboflow Inference.
+    Run inference on a classification model hosted on Roboflow or served through
+        Roboflow Inference.
     """
 
     def __init__(

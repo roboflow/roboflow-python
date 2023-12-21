@@ -1,3 +1,5 @@
+#!/bin/env bash
+
 export ROBOFLOW_CONFIG_DIR=./data/.config
 # python ../../roboflow/roboflowpy.py download motusbots/cultura-pepino/2 -f coco -l ./data/cultura-pepino-coco
 # python ../../roboflow/roboflowpy.py download motusbots/cultura-pepino/2 -f yolov5pytorch -l ./data/cultura-pepino-yolov5pytorch

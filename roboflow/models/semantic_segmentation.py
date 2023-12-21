@@ -5,7 +5,7 @@ from roboflow.models.inference import InferenceModel
 class SemanticSegmentationModel(InferenceModel):
     """
     Run inference on a semantic segmentation model hosted on Roboflow or served through Roboflow Inference.
-    """
+    """  # noqa: E501 // docs
 
     def __init__(self, api_key: str, version_id: str):
         """
@@ -14,7 +14,7 @@ class SemanticSegmentationModel(InferenceModel):
         Args:
             api_key (str): private roboflow api key
             version_id (str): the workspace/project id
-        """
+        """  # noqa: E501 // docs
         super(SemanticSegmentationModel, self).__init__(api_key, version_id)
         self.api_url = f"{SEMANTIC_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
 
@@ -39,7 +39,7 @@ class SemanticSegmentationModel(InferenceModel):
             >>> model = project.version("1").model
 
             >>> prediction = model.predict("YOUR_IMAGE.jpg")
-        """
+        """  # noqa: E501 // docs
         return super(SemanticSegmentationModel, self).predict(
             image_path,
             confidence=confidence,

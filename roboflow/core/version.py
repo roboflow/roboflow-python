@@ -135,7 +135,7 @@ class Version:
         url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
         response = requests.get(url, params={"api_key": self.__api_key})
         response.raise_for_status()
-        if response.json()["version"]["progress"] == None:
+        if response.json()["version"]["progress"] is None:
             progress = 0.0
         else:
             progress = float(response.json()["version"]["progress"])
@@ -183,20 +183,21 @@ class Version:
         Raises:
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
             HTTPError: If the Network/Roboflow API fails and does not return JSON
-        """
+        """  # noqa: E501 // docs
 
         self.__wait_if_generating()
 
         if model_format == "yolov8":
-            # if ultralytics is installed, we will assume users will want to use yolov8 and we check for the supported version
+            # if ultralytics is installed, we will assume users will want to use yolov8 and we check for the supported version  # noqa: E501 // docs
             try:
                 import_module("ultralytics")
                 print_warn_for_wrong_dependencies_versions(
                     [("ultralytics", "==", "8.0.196")]
                 )
-            except ImportError as e:
+            except ImportError:
                 print(
-                    "[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. Roboflow `.deploy` supports only models trained with `ultralytics==8.0.196`, to intall it `pip install ultralytics==8.0.196`."
+                    "[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. "  # noqa: E501 // docs
+                    "Roboflow `.deploy` supports only models trained with `ultralytics==8.0.196`, to intall it `pip install ultralytics==8.0.196`."  # noqa: E501 // docs
                 )
                 # silently fail
                 pass
@@ -249,7 +250,7 @@ class Version:
         Raises:
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
             HTTPError: If the Network/Roboflow API fails and does not return JSON
-        """
+        """  # noqa: E501 // docs
 
         model_format = self.__get_format_identifier(model_format)
 
@@ -308,7 +309,7 @@ class Version:
         Raises:
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
             HTTPError: If the Network/Roboflow API fails and does not return JSON
-        """
+        """  # noqa: E501 // docs
 
         self.__wait_if_generating()
 
@@ -349,8 +350,6 @@ class Version:
         status = "training"
 
         if plot_in_notebook:
-            import collections
-
             from IPython.display import clear_output
             from matplotlib import pyplot as plt
 
@@ -470,7 +469,8 @@ class Version:
         ):
             raise (
                 ValueError(
-                    f"Model type {model_type} not supported. Supported models are {supported_models}"
+                    f"Model type {model_type} not supported. Supported models are"
+                    f" {supported_models}"
                 )
             )
 
@@ -479,9 +479,10 @@ class Version:
                 import torch
                 import ultralytics
 
-            except ImportError as e:
+            except ImportError:
                 raise (
-                    "The ultralytics python package is required to deploy yolov8 models. Please install it with `pip install ultralytics`"
+                    "The ultralytics python package is required to deploy yolov8"
+                    " models. Please install it with `pip install ultralytics`"
                 )
 
             print_warn_for_wrong_dependencies_versions(
@@ -491,9 +492,10 @@ class Version:
         elif "yolov5" in model_type or "yolov7" in model_type:
             try:
                 import torch
-            except ImportError as e:
+            except ImportError:
                 raise (
-                    "The torch python package is required to deploy yolov5 models. Please install it with `pip install torch`"
+                    "The torch python package is required to deploy yolov5 models."
+                    " Please install it with `pip install torch`"
                 )
 
         model = torch.load(os.path.join(model_path, "weights/best.pt"))
@@ -528,7 +530,7 @@ class Version:
                     "ultralytics_version": ultralytics.__version__,
                     "model_type": model_type,
                 }
-            except:
+            except Exception:
                 model_artifacts = {
                     "names": class_names,
                     "yaml": model["model"].yaml,
@@ -587,17 +589,20 @@ class Version:
                     if file in ["model_artifacts.json", "state_dict.pt"]:
                         raise (
                             ValueError(
-                                f"File {file} not found. Please make sure to provide a valid model path."
+                                f"File {file} not found. Please make sure to provide a"
+                                " valid model path."
                             )
                         )
 
         res = requests.get(
-            f"{API_URL}/{self.workspace}/{self.project}/{self.version}/uploadModel?api_key={self.__api_key}&modelType={model_type}&nocache=true"
+            f"{API_URL}/{self.workspace}/{self.project}/{self.version}"
+            f"/uploadModel?api_key={self.__api_key}&modelType={model_type}&nocache=true"
         )
         try:
             if res.status_code == 429:
                 raise RuntimeError(
-                    f"This version already has a trained model. Please generate and train a new version in order to upload model to Roboflow."
+                    "This version already has a trained model. Please generate and"
+                    " train a new version in order to upload model to Roboflow."
                 )
             else:
                 res.raise_for_status()
@@ -614,14 +619,18 @@ class Version:
 
             if self.public:
                 print(
-                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
+                    "View the status of your deployment at:"
+                    f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
                 print(
-                    f"Share your model with the world at: {UNIVERSE_URL}/{self.workspace}/{self.project}/model/{self.version}"
+                    "Share your model with the world at:"
+                    f" {UNIVERSE_URL}/{self.workspace}/{self.project}/"
+                    f"model/{self.version}"
                 )
             else:
                 print(
-                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
+                    "View the status of your deployment at:"
+                    f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
 
         except Exception as e:
@@ -635,7 +644,7 @@ class Version:
             link (str): link the URL of the remote zip file
             location (str): filepath of the data directory to save the zip file to
             format (str): the format identifier string
-        """
+        """  # noqa: E501 // docs
         if not os.path.exists(location):
             os.makedirs(location)
 
@@ -681,7 +690,7 @@ class Version:
 
         Raises:
             RuntimeError: If there is an error unzipping the file
-        """
+        """  # noqa: E501 // docs
         with zipfile.ZipFile(location + "/roboflow.zip", "r") as zip_ref:
             for member in tqdm(
                 zip_ref.infolist(),
@@ -736,13 +745,14 @@ class Version:
 
         Returns:
             str: format identifier string
-        """
+        """  # noqa: E501 // docs
         if not format:
             format = self.model_format
 
         if not format:
             raise RuntimeError(
-                "You must pass a format argument to version.download() or define a model in your Roboflow object"
+                "You must pass a format argument to version.download() or define a"
+                " model in your Roboflow object"
             )
 
         friendly_formats = {"yolov5": "yolov5pytorch", "yolov7": "yolov7pytorch"}
@@ -756,7 +766,7 @@ class Version:
         Args:
             location (str): filepath of the data directory that contains the yaml file
             format (str): the format identifier string
-        """
+        """  # noqa: E501 // docs
         data_path = os.path.join(location, "data.yaml")
 
         def data_yaml_callback(content: dict) -> dict:
@@ -768,7 +778,7 @@ class Version:
                 content["train"] = location + content["train"].lstrip("..")
                 content["val"] = location + content["val"].lstrip("..")
             try:
-                # get_wrong_dependencies_versions raises exception if ultralytics is not installed at all
+                # get_wrong_dependencies_versions raises exception if ultralytics is not installed at all  # noqa: E501 // docs
                 if format == "yolov8" and not get_wrong_dependencies_versions(
                     dependencies_versions=[("ultralytics", "==", "8.0.196")]
                 ):

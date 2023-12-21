@@ -271,7 +271,8 @@ class PredictionGroup:
         self.predictions = []
         # Base image path (path of image of first prediction in prediction group)
         self.base_image_path = image_path
-        # Base prediction type (prediction type of image of first prediction in prediction group)
+        # Base prediction type
+        # (prediction type of image of first prediction in prediction group)
         self.base_prediction_type = ""
 
         self.image_dims = image_dims
@@ -292,7 +293,8 @@ class PredictionGroup:
         :param prediction: Prediction to add to the prediction group
         """
         # If not a Prediction object then do not allow into the prediction group
-        # Also checks if prediction types are the same (i.e. object detection predictions in object detection groups)
+        # Also checks if prediction types are the same
+        # (i.e. object detection predictions in object detection groups)
         self.__exception_check(
             is_prediction_check=prediction,
             prediction_type_check=prediction["prediction_type"],
@@ -436,7 +438,8 @@ class PredictionGroup:
         """
         # final string to be returned for the prediction group
         prediction_group_string = ""
-        # Iterate through the predictions and convert each prediction into a string format
+        # Iterate through the predictions and convert
+        # each prediction into a string format
         for prediction in self.predictions:
             prediction_group_string += str(prediction) + "\n\n"
         # return the prediction group string
@@ -511,7 +514,7 @@ class PredictionGroup:
         :param image_path:
         :param image_dims:
         :return:
-        """
+        """  # noqa: E501 // docs
 
         colors = {} if colors is None else colors
         prediction_list = []

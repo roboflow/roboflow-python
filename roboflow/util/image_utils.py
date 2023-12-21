@@ -52,7 +52,8 @@ def mask_image(image, encoded_mask, transparency=60):
     # Mask the original image
     masked = cv2.bitwise_and(image, image, mask=mask)
 
-    # Overlay a translucent version of the original image on top of the masked image to give it a translucent effect
+    # Overlay a translucent version of the original image
+    # on top of the masked image to give it a translucent effect
     alpha = transparency / 100
     return cv2.addWeighted(masked, alpha, image, 1 - alpha, 0)
 
@@ -80,4 +81,4 @@ def file2jpeg(image_path):
 def load_labelmap(f):
     with open(f, "r") as file:
         lines = [line for line in file.readlines() if line.strip()]
-        return {i: l.strip() for i, l in enumerate(lines)}
+        return {i: line.strip() for i, line in enumerate(lines)}

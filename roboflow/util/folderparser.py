@@ -82,8 +82,8 @@ def _load_labelmaps(folder, labelmaps):
     for labelmap in labelmaps:
         try:
             labelmap["labelmap"] = load_labelmap(f"{folder}/{labelmap['file']}")
-        except:
-            # raise
+        except Exception:
+            # raise Exception(f"failed to load labelmap {labelmap['file']}")
             pass
     return [lm for lm in labelmaps if lm.get("labelmap")]
 

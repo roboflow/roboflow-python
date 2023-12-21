@@ -17,7 +17,7 @@ __version__ = "1.1.12"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
-    if type(api_key) is not str:
+    if not isinstance(api_key, str):
         raise RuntimeError(
             "API Key is of Incorrect Type \n Expected Type: "
             + str(type(""))
@@ -47,7 +47,8 @@ def check_key(api_key, model, notebook, num_retries=0):
                     return check_key(api_key, model, notebook, num_retries)
                 else:
                     raise RuntimeError(
-                        "There was an error validating the api key with Roboflow server."
+                        "There was an error validating the api key with Roboflow"
+                        " server."
                     )
             else:
                 r = response.json()
@@ -98,9 +99,7 @@ def login(workspace=None, force=False):
         os.remove(conf_location)
 
     if workspace is None:
-        write_line(
-            "visit " + APP_URL + "/auth-cli" " to get your authentication token."
-        )
+        write_line("visit " + APP_URL + "/auth-cli to get your authentication token.")
     else:
         write_line(
             "visit "
@@ -118,7 +117,7 @@ def login(workspace=None, force=False):
         r_login = r_login.json()
         if r_login is None:
             raise ValueError(
-                "Invalid API key. " "Please check your API key and try again."
+                "Invalid API key. Please check your API key and try again."
             )
 
         # make config directory if it doesn't exist
@@ -151,7 +150,8 @@ def initialize_roboflow(the_workspace=None):
     """High level function to initialize Roboflow.
 
     Args:
-        the_workspace: the workspace url to initialize. If None, the default workspace will be used.
+        the_workspace: the workspace url to initialize.
+            If None, the default workspace will be used.
 
     Returns:
         None
@@ -169,7 +169,7 @@ def initialize_roboflow(the_workspace=None):
             "To use this method, you must first login - run roboflow.login()"
         )
     else:
-        if the_workspace == None:
+        if the_workspace is None:
             active_workspace = Roboflow().workspace()
         else:
             active_workspace = Roboflow().workspace(the_workspace)
@@ -181,7 +181,8 @@ def load_model(model_url):
     """High level function to load Roboflow models.
 
     Args:
-        model_url: the model url to load. Must be from either app.roboflow.com or universe.roboflow.com
+        model_url: the model url to load.
+            Must be from either app.roboflow.com or universe.roboflow.com
 
     Returns:
         the model object to use for inference
@@ -209,7 +210,8 @@ def download_dataset(dataset_url, model_format, location=None):
     """High level function to download data from Roboflow.
 
     Args:
-        dataset_url: the dataset url to download. Must be from either app.roboflow.com or universe.roboflow.com
+        dataset_url: the dataset url to download.
+            Must be from either app.roboflow.com or universe.roboflow.com
         model_format: the format the dataset will be downloaded in
         location: the location the dataset will be downloaded to
 
@@ -243,7 +245,7 @@ class Roboflow:
         notebook="undefined",
     ):
         self.api_key = api_key
-        if self.api_key == None:
+        if self.api_key is None:
             self.api_key = load_roboflow_api_key()
 
         self.model_format = model_format
@@ -306,7 +308,8 @@ class Roboflow:
             + self.api_key
         )
 
-        # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset
+        # Throw error if dataset isn't valid/user doesn't have
+        #   permissions to access the dataset
         if dataset_info.status_code != 200:
             raise RuntimeError(dataset_info.text)
 
