@@ -56,6 +56,10 @@ class ClassificationModel:
         self.colors = {} if colors is None else colors
         self.preprocessing = {} if preprocessing is None else preprocessing
 
+        if local is not None:
+            print("initalizing local classification model hosted at :" + local)
+            self.base_url = local
+
     def predict(self, image_path, hosted=False):
         """
         Run inference on an image.
