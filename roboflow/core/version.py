@@ -164,7 +164,7 @@ class Version:
                 sys.stdout.flush()
             return
 
-    def download(self, model_format=None, location=None, overwrite: bool = True):
+    def download(self, model_format=None, location=None, overwrite: bool = False):
         """
         Download and extract a ZIP of a version's dataset in a given format
 
@@ -175,7 +175,7 @@ class Version:
         Args:
             model_format (str): A format to use for downloading
             location (str): An optional path for saving the file
-            overwrite (bool): An optional flag to prevent dataset overwrite when dataset is already downloaded
+            overwrite (bool): An optional flag to overwrite an existing dataset if the dataset has already downloaded
 
         Returns:
             Dataset Object
