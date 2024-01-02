@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 import re
-
 import roboflow
-from roboflow.config import DEFAULT_BATCH_NAME
+from roboflow import config as roboflow_config
+from roboflow.config import (
+    DEFAULT_BATCH_NAME,
+    APP_URL,
+    get_conditional_configuration_variable,
+)
 
 
 def login(args):
@@ -66,6 +70,48 @@ def upload_image(args):
     )
 
 
+def list_projects(args):
+    rf = roboflow.Roboflow()
+    workspace = rf.workspace(args.workspace)
+    projects = workspace.project_list
+    for p in projects:
+        print()
+        print(p["name"])
+        print(f"  link: {APP_URL}/{p['id']}")
+        print(f"  id: {p['id']}")
+        print(f"  type: {p['type']}")
+        print(f"  versions: {p['versions']}")
+        print(f"  images: {p['images']}")
+        print(f"  classes: {p['classes'].keys()}")
+
+
+def list_workspaces(args):
+    # rf = roboflow.Roboflow()
+    workspaces = roboflow_config.RF_WORKSPACES.values()
+    rf_workspace = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+    for w in workspaces:
+        print()
+        print(
+            f"{w['name']}{' (default workspace)' if w['url'] == rf_workspace else ''}"
+        )
+        print(f"  link: {APP_URL}/{w['id']}")
+        print(f"  id: {w['url']}")
+
+
+def get_workspace(args):
+    rf = roboflow.Roboflow()
+    workspace = rf.workspace(args.workspaceId)
+    print(workspace)  # TODO: print the detailed workspace
+
+
+def get_project(args):
+    # print(f"w {args.workspace} p {args.projectId}")
+    rf = roboflow.Roboflow()
+    workspace = rf.workspace(args.workspace)
+    project = workspace.project(args.projectId)
+    print(project)  # TODO: print the detailed project
+
+
 def _argparser():
     parser = argparse.ArgumentParser(
         description="Welcome to the roboflow CLI: computer vision at your fingertips 🪄"
@@ -75,6 +121,8 @@ def _argparser():
     _add_download_parser(subparsers)
     _add_upload_parser(subparsers)
     _add_import_parser(subparsers)
+    _add_projects_parser(subparsers)
+    _add_workspaces_parser(subparsers)
     return parser
 
 
@@ -197,6 +245,54 @@ def _add_import_parser(subparsers):
         default="auto",
     )
     import_parser.set_defaults(func=import_dataset)
+
+
+def _add_projects_parser(subparsers):
+    project_parser = subparsers.add_parser(
+        "project",
+        help="project related commands.  type 'roboflow project' to see detailed command help",
+    )
+    projectsubparsers = project_parser.add_subparsers(title="project subcommands")
+    projectlist_parser = projectsubparsers.add_parser("list", help="list projects")
+    projectlist_parser.add_argument(
+        "-w",
+        dest="workspace",
+        help="specify a workspace url or id (will use default workspace if not specified)",
+    )
+    projectlist_parser.set_defaults(func=list_projects)
+    projectget_parser = projectsubparsers.add_parser(
+        "get", help="show detailed info for a project"
+    )
+    projectget_parser.add_argument(
+        "projectId",
+        help="project ID",
+    )
+    projectget_parser.add_argument(
+        "-w",
+        dest="workspace",
+        help="specify a workspace url or id (will use default workspace if not specified)",
+    )
+    projectget_parser.set_defaults(func=get_project)
+
+
+def _add_workspaces_parser(subparsers):
+    workspace_parser = subparsers.add_parser(
+        "workspace",
+        help="workspace related commands.  type 'roboflow workspace' to see detailed command help",
+    )
+    workspacesubparsers = workspace_parser.add_subparsers(title="workspace subcommands")
+    workspacelist_parser = workspacesubparsers.add_parser(
+        "list", help="list workspaces"
+    )
+    workspacelist_parser.set_defaults(func=list_workspaces)
+    workspaceget_parser = workspacesubparsers.add_parser(
+        "get", help="show detailed info for a workspace"
+    )
+    workspaceget_parser.add_argument(
+        "projectId",
+        help="project ID",
+    )
+    workspaceget_parser.set_defaults(func=get_workspace)
 
 
 def _add_login_parser(subparsers):
