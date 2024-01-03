@@ -29,10 +29,7 @@ from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import write_line
-from roboflow.util.versions import (
-    get_wrong_dependencies_versions,
-    print_warn_for_wrong_dependencies_versions,
-)
+from roboflow.util.versions import get_wrong_dependencies_versions, print_warn_for_wrong_dependencies_versions
 
 load_dotenv()
 
