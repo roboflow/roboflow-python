@@ -18,7 +18,7 @@ class UploadError(RoboflowError):
 
 
 def get_workspace(api_key, workspace_url):
-    url = f"{API_URL}/{workspace_url}/?api_key={api_key}"
+    url = f"{API_URL}/{workspace_url}?api_key={api_key}"
     response = requests.get(url)
     if response.status_code != 200:
         raise RoboflowError(response.text)

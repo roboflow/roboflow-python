@@ -7,7 +7,7 @@ import responses
 
 from roboflow.core.version import Version, unwrap_version_id
 
-from .helpers import get_version
+from tests.helpers import get_version
 
 
 class TestDownload(unittest.TestCase):
@@ -20,9 +20,7 @@ class TestDownload(unittest.TestCase):
             version_number="4",
         )
 
-        self.generating_url = (
-            "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
-        )
+        self.generating_url = "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
 
     @responses.activate
     def test_download_raises_exception_on_bad_request(self):
@@ -68,18 +66,14 @@ class TestDownload(unittest.TestCase):
 class TestExport(unittest.TestCase):
     def setUp(self):
         super(TestExport, self).setUp()
-        self.api_url = (
-            "https://api.roboflow.com/test-workspace/test-project/4/test-format"
-        )
+        self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/test-format"
         self.version = get_version(
             project_name="Test Dataset",
             id="test-workspace/test-project/2",
             version_number="4",
         )
 
-        self.generating_url = (
-            "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
-        )
+        self.generating_url = "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
 
     @responses.activate
     def test_export_returns_true_on_api_success(self):
@@ -94,15 +88,11 @@ class TestExport(unittest.TestCase):
 
         self.assertTrue(export)
         self.assertEqual(request.method, "GET")
-        self.assertDictEqual(
-            request.params, {"nocache": "true", "api_key": "test-api-key"}
-        )
+        self.assertDictEqual(request.params, {"nocache": "true", "api_key": "test-api-key"})
 
     @responses.activate
     def test_export_raises_error_on_bad_request(self):
-        responses.add(
-            responses.GET, self.api_url, status=400, json={"error": "BROKEN!!"}
-        )
+        responses.add(responses.GET, self.api_url, status=400, json={"error": "BROKEN!!"})
         responses.add(
             responses.GET,
             self.generating_url,
@@ -135,9 +125,7 @@ class TestGetDownloadLocation(unittest.TestCase):
 
         # This is a weird python thing to get access to the private function for testing
         self.get_download_location = self.version._Version__get_download_location
-        self.generating_url = (
-            "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
-        )
+        self.generating_url = "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
 
     @responses.activate
     def test_get_download_location_with_env_variable(self, *_):
@@ -170,9 +158,7 @@ class TestGetDownloadURL(unittest.TestCase):
 
         # This is a weird python thing to get access to the private function for testing
         self.get_download_url = self.version._Version__get_download_url
-        self.generating_url = (
-            "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
-        )
+        self.generating_url = "https://api.roboflow.com/Test Workspace Name/Test Dataset/4"
 
     @responses.activate
     def test_get_download_url(self):
@@ -182,9 +168,7 @@ class TestGetDownloadURL(unittest.TestCase):
             json={"version": {"generating": False, "progress": 1.0}},
         )
         url = self.get_download_url("yolo1337")
-        self.assertEqual(
-            url, "https://api.roboflow.com/test-workspace/test-project/3/yolo1337"
-        )
+        self.assertEqual(url, "https://api.roboflow.com/test-workspace/test-project/3/yolo1337")
 
 
 class TestGetFormatIdentifier(unittest.TestCase):
@@ -205,9 +189,7 @@ class TestGetFormatIdentifier(unittest.TestCase):
     def test_returns_friendly_names_for_supported_formats(self):
         formats = [("yolov5", "yolov5pytorch"), ("yolov7", "yolov7pytorch")]
         for external_format, internal_format in formats:
-            self.assertEqual(
-                self.get_format_identifier(external_format), internal_format
-            )
+            self.assertEqual(self.get_format_identifier(external_format), internal_format)
 
     def test_falls_back_to_instance_variable_if_model_format_is_none(self):
         self.version.model_format = "fallback"
