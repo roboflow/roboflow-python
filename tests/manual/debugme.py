@@ -4,7 +4,7 @@ import sys
 thisdir = os.path.dirname(os.path.abspath(__file__))
 os.environ["ROBOFLOW_CONFIG_DIR"] = f"{thisdir}/data/.config"
 
-from roboflow.roboflowpy import _argparser  # flake8: noqa: E402
+from roboflow.roboflowpy import _argparser  # noqa: E402
 
 # import requests
 # requests.urllib3.disable_warnings()
@@ -22,7 +22,7 @@ if __name__ == "__main__":
         # "project get cultura-pepino-dark".split()
         # "workspace list".split()
         "workspace get wolfodorpythontests".split()
-        # f"infer -m cultura-pepino-voc/1 {thisdir}/data/cultura-pepino-coco/test/21_jpg.rf.d3a7fb90b0fafc6541378a6b362ab295.jpg".split()
+        # f"infer -m cultura-pepino-voc/1 {thisdir}/data/cultura-pepino-coco/test/21_jpg.rf.d3a7fb90b0fafc6541378a6b362ab295.jpg".split()  # noqa: E501 // docs
         # f"import {thisdir}/data/cultura-pepino-voc -w wolfodorpythontests -p cultura-pepino-voc -f auto -c 50".split()   # noqa: E501 // docs
         # f"import {thisdir}/data/cultura-pepino-darknet -w wolfodorpythontests -p cultura-pepino-darknet -f auto -c 100".split()   # noqa: E501 // docs
         # f"import {thisdir}/data/0311fisheye -w wolfodorpythontests -p 0311fisheye -f auto -c 50".split()   # noqa: E501 // docs
