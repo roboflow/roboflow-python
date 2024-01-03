@@ -6,12 +6,7 @@ import re
 import roboflow
 from roboflow import config as roboflow_config
 from roboflow.adapters import rfapi
-from roboflow.config import (
-    APP_URL,
-    DEFAULT_BATCH_NAME,
-    get_conditional_configuration_variable,
-    load_roboflow_api_key,
-)
+from roboflow.config import APP_URL, DEFAULT_BATCH_NAME, get_conditional_configuration_variable, load_roboflow_api_key
 from roboflow.models.object_detection import ObjectDetectionModel
 
 
