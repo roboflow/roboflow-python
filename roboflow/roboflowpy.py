@@ -307,13 +307,15 @@ def _add_infer_parser(subparsers):
     infer_parser.add_argument(
         "-c",
         dest="confidence",
-        help="specify a confidence threshold between 0.0 and 1.0, default is 0.5 (only applies to object-detection models)",
+        help="specify a confidence threshold between 0.0 and 1.0, default is 0.5"
+        "(only applies to object-detection models)",
         default=0.5,
     )
     infer_parser.add_argument(
         "-o",
         dest="overlap",
-        help="specify an overlap threshold between 0.0 and 1.0, default is 0.5 (only applies to object-detection models)",
+        help="specify an overlap threshold between 0.0 and 1.0, default is 0.5"
+        "(only applies to object-detection models)",
         default=0.5,
     )
     infer_parser.add_argument(
