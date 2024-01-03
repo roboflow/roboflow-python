@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 import argparse
-import re
-import roboflow
 import json
+import re
+
+import roboflow
 from roboflow import config as roboflow_config
-from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.adapters import rfapi
 from roboflow.config import (
-    DEFAULT_BATCH_NAME,
     APP_URL,
+    DEFAULT_BATCH_NAME,
     get_conditional_configuration_variable,
     load_roboflow_api_key,
 )
+from roboflow.models.object_detection import ObjectDetectionModel
 
 
 def login(args):

@@ -3,8 +3,6 @@ import glob
 import json
 import os
 import sys
-from roboflow.adapters import rfapi
-
 
 import requests
 import supervision as sv
@@ -12,6 +10,7 @@ from numpy import ndarray
 from PIL import Image
 from tqdm import tqdm
 
+from roboflow.adapters import rfapi
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.util import folderparser
