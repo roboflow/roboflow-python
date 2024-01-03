@@ -4,7 +4,6 @@ from roboflow.core.project import Project
 from roboflow.core.version import Version
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.object_detection import ObjectDetectionModel
-
 from tests import PROJECT_NAME, RoboflowTest, ordered
 
 
