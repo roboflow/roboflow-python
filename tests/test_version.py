@@ -6,7 +6,6 @@ import requests
 import responses
 
 from roboflow.core.version import Version, unwrap_version_id
-
 from tests.helpers import get_version
 
 
