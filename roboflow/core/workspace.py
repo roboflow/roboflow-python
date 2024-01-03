@@ -3,6 +3,8 @@ import glob
 import json
 import os
 import sys
+from roboflow.adapters import rfapi
+
 
 import requests
 import supervision as sv
@@ -91,15 +93,8 @@ class Workspace:
                 )
             )
 
-        dataset_info = requests.get(
-            API_URL + "/" + self.url + "/" + project_id + "?api_key=" + self.__api_key
-        )
-
-        # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset   # noqa: E501 // docs
-        if dataset_info.status_code != 200:
-            raise RuntimeError(dataset_info.text)
-
-        dataset_info = dataset_info.json()["project"]
+        dataset_info = rfapi.get_project(self.__api_key, self.url, project_id)
+        dataset_info = dataset_info["project"]
 
         return Project(self.__api_key, dataset_info, self.model_format)
 

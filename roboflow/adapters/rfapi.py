@@ -9,8 +9,30 @@ from roboflow.config import API_URL, DEFAULT_BATCH_NAME
 from roboflow.util import image_utils
 
 
-class UploadError(Exception):
+class RoboflowError(Exception):
     pass
+
+
+class UploadError(RoboflowError):
+    pass
+
+
+def get_workspace(api_key, workspace_url):
+    url = f"{API_URL}/{workspace_url}/?api_key={api_key}"
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    result = response.json()
+    return result
+
+
+def get_project(api_key, workspace_url, project_url):
+    url = f"{API_URL}/{workspace_url}/{project_url}?api_key={api_key}"
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    result = response.json()
+    return result
 
 
 def upload_image(

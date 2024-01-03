@@ -12,6 +12,7 @@ from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
 from roboflow.models import CLIPModel, GazeModel
 from roboflow.util.general import write_line
+from roboflow.adapters import rfapi
 
 __version__ = "1.1.14"
 
@@ -278,9 +279,7 @@ class Roboflow:
         if self.api_key in DEMO_KEYS:
             return Workspace({}, self.api_key, the_workspace, self.model_format)
 
-        list_projects = requests.get(
-            API_URL + "/" + the_workspace + "?api_key=" + self.api_key
-        ).json()
+        list_projects = rfapi.get_workspace(self.api_key, the_workspace)
 
         return Workspace(list_projects, self.api_key, the_workspace, self.model_format)
 

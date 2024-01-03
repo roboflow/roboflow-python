@@ -2,11 +2,15 @@
 import argparse
 import re
 import roboflow
+import json
 from roboflow import config as roboflow_config
+from roboflow.models.object_detection import ObjectDetectionModel
+from roboflow.adapters import rfapi
 from roboflow.config import (
     DEFAULT_BATCH_NAME,
     APP_URL,
     get_conditional_configuration_variable,
+    load_roboflow_api_key,
 )
 
 
@@ -86,7 +90,6 @@ def list_projects(args):
 
 
 def list_workspaces(args):
-    # rf = roboflow.Roboflow()
     workspaces = roboflow_config.RF_WORKSPACES.values()
     rf_workspace = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     for w in workspaces:
@@ -99,17 +102,36 @@ def list_workspaces(args):
 
 
 def get_workspace(args):
-    rf = roboflow.Roboflow()
-    workspace = rf.workspace(args.workspaceId)
-    print(workspace)  # TODO: print the detailed workspace
+    api_key = load_roboflow_api_key()
+    workspace_json = rfapi.get_workspace(api_key, args.workspaceId)
+    print(json.dumps(workspace_json, indent=2))
 
 
 def get_project(args):
-    # print(f"w {args.workspace} p {args.projectId}")
-    rf = roboflow.Roboflow()
-    workspace = rf.workspace(args.workspace)
-    project = workspace.project(args.projectId)
-    print(project)  # TODO: print the detailed project
+    api_key = load_roboflow_api_key()
+    workspace_url = args.workspace or get_conditional_configuration_variable(
+        "RF_WORKSPACE", default=None
+    )
+    dataset_json = rfapi.get_project(api_key, workspace_url, args.projectId)
+    print(json.dumps(dataset_json, indent=2))
+
+
+def infer(args):
+    api_key = load_roboflow_api_key()
+    workspace = args.workspace or get_conditional_configuration_variable(
+        "RF_WORKSPACE", default=None
+    )
+    version_id = f"{workspace}/{args.model}"
+    model = ObjectDetectionModel(
+        api_key, version_id
+    )  # TODO: detect/use correct model type
+    kwargs = {}
+    if args.confidence is not None:
+        kwargs["confidence"] = int(args.confidence * 100)
+    if args.overlap is not None:
+        kwargs["overlap"] = int(args.overlap * 100)
+    group = model.predict(args.file, **kwargs)
+    print(group)  # TODO: display prediction
 
 
 def _argparser():
@@ -121,6 +143,7 @@ def _argparser():
     _add_download_parser(subparsers)
     _add_upload_parser(subparsers)
     _add_import_parser(subparsers)
+    _add_infer_parser(subparsers)
     _add_projects_parser(subparsers)
     _add_workspaces_parser(subparsers)
     return parser
@@ -289,10 +312,55 @@ def _add_workspaces_parser(subparsers):
         "get", help="show detailed info for a workspace"
     )
     workspaceget_parser.add_argument(
-        "projectId",
+        "workspaceId",
         help="project ID",
     )
     workspaceget_parser.set_defaults(func=get_workspace)
+
+
+def _add_infer_parser(subparsers):
+    infer_parser = subparsers.add_parser(
+        "infer",
+        help="perform inference on an image",
+    )
+    infer_parser.add_argument(
+        "file",
+        help="filesystem path to an image file",
+    )
+    infer_parser.add_argument(
+        "-w",
+        dest="workspace",
+        help="specify a workspace url or id (will use default workspace if not specified)",
+    )
+    infer_parser.add_argument(
+        "-m",
+        dest="model",
+        help="model id (id of a version with trained model e.g. my-project/3)",
+    )
+    infer_parser.add_argument(
+        "-c",
+        dest="confidence",
+        help="specify a confidence threshold between 0.0 and 1.0, default is 0.5 (only applies to object-detection models)",
+        default=0.5,
+    )
+    infer_parser.add_argument(
+        "-o",
+        dest="overlap",
+        help="specify an overlap threshold between 0.0 and 1.0, default is 0.5 (only applies to object-detection models)",
+        default=0.5,
+    )
+    infer_parser.add_argument(
+        "-t",
+        dest="type",
+        help="specify the model type to skip api call to look it up",
+        choices=[
+            "object-detection",
+            "classification",
+            "instance-segmentation",
+            "semantic-segmentation",
+        ],
+    )
+    infer_parser.set_defaults(func=infer)
 
 
 def _add_login_parser(subparsers):
