@@ -72,7 +72,7 @@ class ObjectDetectionModel(InferenceModel):
         self.__api_key = api_key
         self.id = id
         self.name = name
-        self.version = version
+        self.version = version or self.version
         self.classes = classes
         self.overlap = overlap
         self.confidence = confidence

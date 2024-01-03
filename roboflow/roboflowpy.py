@@ -8,6 +8,9 @@ from roboflow import config as roboflow_config
 from roboflow.adapters import rfapi
 from roboflow.config import APP_URL, DEFAULT_BATCH_NAME, get_conditional_configuration_variable, load_roboflow_api_key
 from roboflow.models.object_detection import ObjectDetectionModel
+from roboflow.models.classification import ClassificationModel
+from roboflow.models.instance_segmentation import InstanceSegmentationModel
+from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 
 
 def login(args):
@@ -109,15 +112,30 @@ def get_project(args):
 def infer(args):
     workspace_url = args.workspace or get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     api_key = load_roboflow_api_key(workspace_url)
-    version_id = f"{workspace_url}/{args.model}"
-    model = ObjectDetectionModel(api_key, version_id)  # TODO: detect/use correct model type
+    project_url = f"{workspace_url}/{args.model}"
+    projectType = args.type
+    if not projectType:
+        projectId, _ = args.model.split("/")
+        dataset_json = rfapi.get_project(api_key, workspace_url, projectId)
+        projectType = dataset_json["project"]["type"]
+    modelClass = {
+        "object-detection": ObjectDetectionModel,
+        "classification": ClassificationModel,
+        "instance-segmentation": InstanceSegmentationModel,
+        "semantic-segmentation": SemanticSegmentationModel,
+    }[projectType]
+    model = modelClass(api_key, project_url)
     kwargs = {}
-    if args.confidence is not None:
+    if args.confidence is not None and projectType in [
+        "object-detection",
+        "instance-segmentation",
+        "semantic-segmentation",
+    ]:
         kwargs["confidence"] = int(args.confidence * 100)
-    if args.overlap is not None:
+    if args.overlap is not None and projectType == "object-detection":
         kwargs["overlap"] = int(args.overlap * 100)
     group = model.predict(args.file, **kwargs)
-    print(group)  # TODO: display prediction
+    print(group)
 
 
 def _argparser():
@@ -307,6 +325,7 @@ def _add_infer_parser(subparsers):
     infer_parser.add_argument(
         "-c",
         dest="confidence",
+        type=float,
         help="specify a confidence threshold between 0.0 and 1.0, default is 0.5"
         "(only applies to object-detection models)",
         default=0.5,
@@ -314,6 +333,7 @@ def _add_infer_parser(subparsers):
     infer_parser.add_argument(
         "-o",
         dest="overlap",
+        type=float,
         help="specify an overlap threshold between 0.0 and 1.0, default is 0.5"
         "(only applies to object-detection models)",
         default=0.5,

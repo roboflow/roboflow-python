@@ -18,11 +18,11 @@ if __name__ == "__main__":
     # args = parser.parse_args(f"upload {thisdir}/../datasets/chess -w wolfodorpythontests -p chess -f auto".split())   # noqa: E501 // docs
     args = parser.parse_args(
         # "download https://universe.roboflow.com/gdit/aerial-airport".split()
-        "project list -w wolfodorpythontests".split()
+        # "project list -w wolfodorpythontests".split()
         # "project get cultura-pepino-dark".split()
         # "workspace list".split()
         # "workspace get wolfodorpythontests".split()
-        # f"infer -m cultura-pepino-voc/1 {thisdir}/data/cultura-pepino-coco/test/21_jpg.rf.d3a7fb90b0fafc6541378a6b362ab295.jpg".split()  # noqa: E501 // docs
+        f"infer -w jacob-solawetz -m rock-paper-scissors-slim/5 -c .01 {thisdir}/data/scissors.png".split()  # noqa: E501 // docs
         # f"import {thisdir}/data/cultura-pepino-voc -w wolfodorpythontests -p cultura-pepino-voc -f auto -c 50".split()   # noqa: E501 // docs
         # f"import {thisdir}/data/cultura-pepino-darknet -w wolfodorpythontests -p cultura-pepino-darknet -f auto -c 100".split()   # noqa: E501 // docs
         # f"import {thisdir}/data/0311fisheye -w wolfodorpythontests -p 0311fisheye -f auto -c 50".split()   # noqa: E501 // docs
