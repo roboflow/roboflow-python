@@ -75,19 +75,19 @@ DEFAULT_BATCH_NAME = "Pip Package Upload"
 RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
 
 
-def load_roboflow_api_key():
-    RF_WORKSPACE = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+def load_roboflow_api_key(workspace=None):
+    workspace = workspace or get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
 
     # DEFAULT_WORKSPACE = get_conditional_configuration_variable("default_workspace", default=None)  # noqa: E501 // docs
-    if RF_WORKSPACE is None:
+    if workspace is None:
         RF_API_KEY = None
     else:
         RF_API_KEY = None
         for k in RF_WORKSPACES.keys():
-            workspace = RF_WORKSPACES[k]
-            if workspace["url"] == RF_WORKSPACE:
-                RF_API_KEY = workspace["apiKey"]
+            _workspace = RF_WORKSPACES[k]
+            if _workspace["url"] == workspace:
+                RF_API_KEY = _workspace["apiKey"]
     # ENV API_KEY OVERRIDE
     if os.getenv("RF_API_KEY") is not None:
         RF_API_KEY = os.getenv("RF_API_KEY")

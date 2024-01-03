@@ -89,27 +89,27 @@ def list_workspaces(args):
     for w in workspaces:
         print()
         print(f"{w['name']}{' (default workspace)' if w['url'] == rf_workspace else ''}")
-        print(f"  link: {APP_URL}/{w['id']}")
+        print(f"  link: {APP_URL}/{w['url']}")
         print(f"  id: {w['url']}")
 
 
 def get_workspace(args):
-    api_key = load_roboflow_api_key()
+    api_key = load_roboflow_api_key(args.workspaceId)
     workspace_json = rfapi.get_workspace(api_key, args.workspaceId)
     print(json.dumps(workspace_json, indent=2))
 
 
 def get_project(args):
-    api_key = load_roboflow_api_key()
     workspace_url = args.workspace or get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+    api_key = load_roboflow_api_key(workspace_url)
     dataset_json = rfapi.get_project(api_key, workspace_url, args.projectId)
     print(json.dumps(dataset_json, indent=2))
 
 
 def infer(args):
-    api_key = load_roboflow_api_key()
-    workspace = args.workspace or get_conditional_configuration_variable("RF_WORKSPACE", default=None)
-    version_id = f"{workspace}/{args.model}"
+    workspace_url = args.workspace or get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+    api_key = load_roboflow_api_key(workspace_url)
+    version_id = f"{workspace_url}/{args.model}"
     model = ObjectDetectionModel(api_key, version_id)  # TODO: detect/use correct model type
     kwargs = {}
     if args.confidence is not None:

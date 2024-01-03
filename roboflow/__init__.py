@@ -253,10 +253,11 @@ class Roboflow:
 
         if self.api_key in DEMO_KEYS:
             return Workspace({}, self.api_key, the_workspace, self.model_format)
+        workspace_api_key = load_roboflow_api_key(the_workspace)
+        api_key = workspace_api_key or self.api_key
 
-        list_projects = rfapi.get_workspace(self.api_key, the_workspace)
-
-        return Workspace(list_projects, self.api_key, the_workspace, self.model_format)
+        list_projects = rfapi.get_workspace(api_key, the_workspace)
+        return Workspace(list_projects, api_key, the_workspace, self.model_format)
 
     def project(self, project_name, the_workspace=None):
         """Function that takes in the name of the project and returns the project object
