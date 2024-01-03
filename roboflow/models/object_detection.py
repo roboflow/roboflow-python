@@ -187,9 +187,9 @@ class ObjectDetectionModel(InferenceModel):
                 # Here we resize the image to the preprocessing settings
                 # before sending it over the wire
                 if "resize" in self.preprocessing.keys():
-                    if dimensions[0] > int(
-                        self.preprocessing["resize"]["width"]
-                    ) or dimensions[1] > int(self.preprocessing["resize"]["height"]):
+                    if dimensions[0] > int(self.preprocessing["resize"]["width"]) or dimensions[1] > int(
+                        self.preprocessing["resize"]["height"]
+                    ):
                         image = image.resize(
                             (
                                 int(self.preprocessing["resize"]["width"]),
@@ -248,33 +248,13 @@ class ObjectDetectionModel(InferenceModel):
             if resize:
                 new_preds = []
                 for p in resp_json["predictions"]:
-                    p["x"] = int(
-                        p["x"]
-                        * (
-                            int(original_dimensions[0])
-                            / int(self.preprocessing["resize"]["width"])
-                        )
-                    )
-                    p["y"] = int(
-                        p["y"]
-                        * (
-                            int(original_dimensions[1])
-                            / int(self.preprocessing["resize"]["height"])
-                        )
-                    )
+                    p["x"] = int(p["x"] * (int(original_dimensions[0]) / int(self.preprocessing["resize"]["width"])))
+                    p["y"] = int(p["y"] * (int(original_dimensions[1]) / int(self.preprocessing["resize"]["height"])))
                     p["width"] = int(
-                        p["width"]
-                        * (
-                            int(original_dimensions[0])
-                            / int(self.preprocessing["resize"]["width"])
-                        )
+                        p["width"] * (int(original_dimensions[0]) / int(self.preprocessing["resize"]["width"]))
                     )
                     p["height"] = int(
-                        p["height"]
-                        * (
-                            int(original_dimensions[1])
-                            / int(self.preprocessing["resize"]["height"])
-                        )
+                        p["height"] * (int(original_dimensions[1]) / int(self.preprocessing["resize"]["height"]))
                     )
 
                     new_preds.append(p)
@@ -327,9 +307,7 @@ class ObjectDetectionModel(InferenceModel):
             inference_engine_url=inference_engine_url,
         )
 
-        def plot_one_box(
-            x, img, color=None, label=None, line_thickness=None, colors=None
-        ):
+        def plot_one_box(x, img, color=None, label=None, line_thickness=None, colors=None):
             # Plots one bounding box on image img
 
             self.colors = {} if colors is None else colors
@@ -341,9 +319,7 @@ class ObjectDetectionModel(InferenceModel):
             else:
                 color = [random.randint(0, 255) for _ in range(3)]
 
-            tl = (
-                line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1
-            )  # line/font thickness
+            tl = line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1  # line/font thickness
 
             c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
 
@@ -496,9 +472,7 @@ class ObjectDetectionModel(InferenceModel):
         """
         supported_formats = ["pt"]
         if format not in supported_formats:
-            raise Exception(
-                f"Unsupported format {format}. Must be one of {supported_formats}"
-            )
+            raise Exception(f"Unsupported format {format}. Must be one of {supported_formats}")
 
         workspace, project, version = self.id.rsplit("/")
 
@@ -541,9 +515,7 @@ class ObjectDetectionModel(InferenceModel):
         # Check if Image path exists exception check
         # (for both hosted URL and local image)
         if image_path_check is not None:
-            if not os.path.exists(image_path_check) and not check_image_url(
-                image_path_check
-            ):
+            if not os.path.exists(image_path_check) and not check_image_url(image_path_check):
                 raise Exception("Image does not exist at " + image_path_check + "!")
 
     def __generate_url(

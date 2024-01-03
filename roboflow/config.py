@@ -50,9 +50,7 @@ PREDICTION_OBJECT = os.getenv("PREDICTION_OBJECT", "Prediction")
 
 API_URL = get_conditional_configuration_variable("API_URL", "https://api.roboflow.com")
 APP_URL = get_conditional_configuration_variable("APP_URL", "https://app.roboflow.com")
-UNIVERSE_URL = get_conditional_configuration_variable(
-    "UNIVERSE_URL", "https://universe.roboflow.com"
-)
+UNIVERSE_URL = get_conditional_configuration_variable("UNIVERSE_URL", "https://universe.roboflow.com")
 
 INSTANCE_SEGMENTATION_URL = get_conditional_configuration_variable(
     "INSTANCE_SEGMENTATION_URL", "https://outline.roboflow.com"
@@ -60,13 +58,9 @@ INSTANCE_SEGMENTATION_URL = get_conditional_configuration_variable(
 SEMANTIC_SEGMENTATION_URL = get_conditional_configuration_variable(
     "SEMANTIC_SEGMENTATION_URL", "https://segment.roboflow.com"
 )
-OBJECT_DETECTION_URL = get_conditional_configuration_variable(
-    "OBJECT_DETECTION_URL", "https://detect.roboflow.com"
-)
+OBJECT_DETECTION_URL = get_conditional_configuration_variable("OBJECT_DETECTION_URL", "https://detect.roboflow.com")
 
-CLIP_FEATURIZE_URL = get_conditional_configuration_variable(
-    "CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV"
-)
+CLIP_FEATURIZE_URL = get_conditional_configuration_variable("CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV")
 OCR_URL = get_conditional_configuration_variable("OCR_URL", "OCR URL NOT IN ENV")
 
 DEMO_KEYS = ["coco-128-sample", "chess-sample-only-api-key"]

@@ -20,9 +20,7 @@ def _parse_url(url):
     if match:
         organization = match.group(1) or match.group(4)
         dataset = match.group(2) or match.group(5)
-        version = match.group(3) or match.group(
-            6
-        )  # This can be None if not present in the URL
+        version = match.group(3) or match.group(6)  # This can be None if not present in the URL
         return organization, dataset, version
     return None, None, None
 
@@ -90,9 +88,7 @@ def list_workspaces(args):
     rf_workspace = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     for w in workspaces:
         print()
-        print(
-            f"{w['name']}{' (default workspace)' if w['url'] == rf_workspace else ''}"
-        )
+        print(f"{w['name']}{' (default workspace)' if w['url'] == rf_workspace else ''}")
         print(f"  link: {APP_URL}/{w['id']}")
         print(f"  id: {w['url']}")
 
@@ -105,22 +101,16 @@ def get_workspace(args):
 
 def get_project(args):
     api_key = load_roboflow_api_key()
-    workspace_url = args.workspace or get_conditional_configuration_variable(
-        "RF_WORKSPACE", default=None
-    )
+    workspace_url = args.workspace or get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     dataset_json = rfapi.get_project(api_key, workspace_url, args.projectId)
     print(json.dumps(dataset_json, indent=2))
 
 
 def infer(args):
     api_key = load_roboflow_api_key()
-    workspace = args.workspace or get_conditional_configuration_variable(
-        "RF_WORKSPACE", default=None
-    )
+    workspace = args.workspace or get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     version_id = f"{workspace}/{args.model}"
-    model = ObjectDetectionModel(
-        api_key, version_id
-    )  # TODO: detect/use correct model type
+    model = ObjectDetectionModel(api_key, version_id)  # TODO: detect/use correct model type
     kwargs = {}
     if args.confidence is not None:
         kwargs["confidence"] = int(args.confidence * 100)
@@ -131,9 +121,7 @@ def infer(args):
 
 
 def _argparser():
-    parser = argparse.ArgumentParser(
-        description="Welcome to the roboflow CLI: computer vision at your fingertips 🪄"
-    )
+    parser = argparse.ArgumentParser(description="Welcome to the roboflow CLI: computer vision at your fingertips 🪄")
     subparsers = parser.add_subparsers(title="subcommands")
     _add_login_parser(subparsers)
     _add_download_parser(subparsers)
@@ -150,9 +138,7 @@ def _add_download_parser(subparsers):
         "download",
         help="Download a dataset version from your workspace or Roboflow Universe.",
     )
-    download_parser.add_argument(
-        "datasetUrl", help="Dataset URL (e.g., `roboflow-100/cells-uyemf/2`)"
-    )
+    download_parser.add_argument("datasetUrl", help="Dataset URL (e.g., `roboflow-100/cells-uyemf/2`)")
     download_parser.add_argument(
         "-f",
         dest="format",
@@ -162,16 +148,12 @@ def _add_download_parser(subparsers):
         "createml, clip, multiclass, coco-segmentation, yolo5-obb, "
         "png-mask-semantic, yolov8]",
     )
-    download_parser.add_argument(
-        "-l", dest="location", help="Location to download the dataset"
-    )
+    download_parser.add_argument("-l", dest="location", help="Location to download the dataset")
     download_parser.set_defaults(func=download)
 
 
 def _add_upload_parser(subparsers):
-    upload_parser = subparsers.add_parser(
-        "upload", help="Upload a single image to a dataset"
-    )
+    upload_parser = subparsers.add_parser("upload", help="Upload a single image to a dataset")
     upload_parser.add_argument(
         "imagefile",
         help="path to image file",
@@ -179,8 +161,7 @@ def _add_upload_parser(subparsers):
     upload_parser.add_argument(
         "-w",
         dest="workspace",
-        help="specify a workspace url or id "
-        "(will use default workspace if not specified)",
+        help="specify a workspace url or id " "(will use default workspace if not specified)",
     )
     upload_parser.add_argument(
         "-p",
@@ -231,9 +212,7 @@ def _add_upload_parser(subparsers):
 
 
 def _add_import_parser(subparsers):
-    import_parser = subparsers.add_parser(
-        "import", help="Import a dataset from a local folder"
-    )
+    import_parser = subparsers.add_parser("import", help="Import a dataset from a local folder")
     import_parser.add_argument(
         "folder",
         help="filesystem path to a folder that contains your dataset",
@@ -241,8 +220,7 @@ def _add_import_parser(subparsers):
     import_parser.add_argument(
         "-w",
         dest="workspace",
-        help="specify a workspace url or id "
-        "(will use default workspace if not specified)",
+        help="specify a workspace url or id " "(will use default workspace if not specified)",
     )
     import_parser.add_argument(
         "-p",
@@ -259,8 +237,7 @@ def _add_import_parser(subparsers):
     import_parser.add_argument(
         "-f",
         dest="format",
-        help="dataset format. Valid options are "
-        "[voc, yolov8, yolov5, auto] (use auto for autodetect)",
+        help="dataset format. Valid options are " "[voc, yolov8, yolov5, auto] (use auto for autodetect)",
         default="auto",
     )
     import_parser.set_defaults(func=import_dataset)
@@ -279,9 +256,7 @@ def _add_projects_parser(subparsers):
         help="specify a workspace url or id (will use default workspace if not specified)",
     )
     projectlist_parser.set_defaults(func=list_projects)
-    projectget_parser = projectsubparsers.add_parser(
-        "get", help="show detailed info for a project"
-    )
+    projectget_parser = projectsubparsers.add_parser("get", help="show detailed info for a project")
     projectget_parser.add_argument(
         "projectId",
         help="project ID",
@@ -300,13 +275,9 @@ def _add_workspaces_parser(subparsers):
         help="workspace related commands.  type 'roboflow workspace' to see detailed command help",
     )
     workspacesubparsers = workspace_parser.add_subparsers(title="workspace subcommands")
-    workspacelist_parser = workspacesubparsers.add_parser(
-        "list", help="list workspaces"
-    )
+    workspacelist_parser = workspacesubparsers.add_parser("list", help="list workspaces")
     workspacelist_parser.set_defaults(func=list_workspaces)
-    workspaceget_parser = workspacesubparsers.add_parser(
-        "get", help="show detailed info for a workspace"
-    )
+    workspaceget_parser = workspacesubparsers.add_parser("get", help="show detailed info for a workspace")
     workspaceget_parser.add_argument(
         "workspaceId",
         help="project ID",

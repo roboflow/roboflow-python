@@ -164,9 +164,7 @@ class ClassificationModel:
         """
         # Checks if image exists
         if image_path_check is not None:
-            if not os.path.exists(image_path_check) and not check_image_url(
-                image_path_check
-            ):
+            if not os.path.exists(image_path_check) and not check_image_url(image_path_check):
                 raise Exception("Image does not exist at " + image_path_check + "!")
 
     def __str__(self):
