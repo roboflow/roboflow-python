@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 [tool.flake8]
 exclude = ".venv"
 max-complexity = 10
-max-line-length = 88
+max-line-length = 160
 extend-ignore = """
     W503,
     E203,
@@ -18,7 +18,7 @@ per-file-ignores = """
 """
 
 [tool.isort]
-line_length = 88
+line_length = 160
 profile = "black"
 
 [tool.bandit]
@@ -115,7 +115,7 @@ exclude = [
 ]
 
 # Same as Black.
-line-length = 88
+line-length = 160
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
