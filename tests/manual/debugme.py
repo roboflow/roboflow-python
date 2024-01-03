@@ -4,7 +4,7 @@ import sys
 thisdir = os.path.dirname(os.path.abspath(__file__))
 os.environ["ROBOFLOW_CONFIG_DIR"] = f"{thisdir}/data/.config"
 
-from roboflow.roboflowpy import _argparser
+from roboflow.roboflowpy import _argparser  # flake8: noqa: E402
 
 # import requests
 # requests.urllib3.disable_warnings()
