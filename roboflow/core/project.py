@@ -469,6 +469,7 @@ class Project:
         image_path=None,
         annotation_path=None,
         annotation_labelmap=None,
+        annotation_overwrite=False,
         hosted_image=False,
         image_id=None,
         split="train",
@@ -513,6 +514,7 @@ class Project:
                     image_id,
                     is_prediction=is_prediction,
                     annotation_labelmap=annotation_labelmap,
+                    overwrite=annotation_overwrite,
                 )
             except BaseException as e:
                 uploaded_annotation = {"error": e}

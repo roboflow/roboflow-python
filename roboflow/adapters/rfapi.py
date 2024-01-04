@@ -85,6 +85,7 @@ def save_annotation(
     image_id: str,
     is_prediction: bool = False,
     annotation_labelmap=None,
+    overwrite: bool = False,
 ):
     """
     Upload an annotation to a specific project.
@@ -95,7 +96,7 @@ def save_annotation(
     """
 
     upload_url = _save_annotation_url(
-        api_key, project_url, annotation_name, image_id, is_prediction
+        api_key, project_url, annotation_name, image_id, is_prediction, overwrite
     )
 
     response = requests.post(
@@ -126,13 +127,17 @@ def save_annotation(
     return responsejson
 
 
-def _save_annotation_url(api_key, project_url, name, image_id, is_prediction):
+def _save_annotation_url(
+    api_key, project_url, name, image_id, is_prediction, overwrite=False
+):
     url = (
         f"{API_URL}/dataset/{project_url}/annotate/{image_id}?api_key={api_key}"
         f"&name={name}"
     )
     if is_prediction:
         url += "&prediction=true"
+    if overwrite:
+        url += "&overwrite=true"
     return url
 
 
