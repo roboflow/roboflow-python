@@ -23,6 +23,8 @@ if __name__ == "__main__":
         # "workspace list".split()
         # "workspace get wolfodorpythontests".split()
         f"infer -w jacob-solawetz -m rock-paper-scissors-slim/5 -c .01 {thisdir}/data/scissors.png".split()  # noqa: E501 // docs
+        # f"infer -w roboflow-6tyri -m usa-states/3 -c .94 -t instance-segmentation {thisdir}/data/unitedstates.jpg".split()  # noqa: E501 // docs
+        # f"infer -w naumov-igor-segmentation -m car-segmetarion/2 -t semantic-segmentation {thisdir}/data/car.jpg".split()  # noqa: E501 // docs
         # f"import {thisdir}/data/cultura-pepino-voc -w wolfodorpythontests -p cultura-pepino-voc -f auto -c 50".split()   # noqa: E501 // docs
         # f"import {thisdir}/data/cultura-pepino-darknet -w wolfodorpythontests -p cultura-pepino-darknet -f auto -c 100".split()   # noqa: E501 // docs
         # f"import {thisdir}/data/0311fisheye -w wolfodorpythontests -p 0311fisheye -f auto -c 50".split()   # noqa: E501 // docs
