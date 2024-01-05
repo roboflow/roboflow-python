@@ -143,7 +143,9 @@ class ClassificationModel:
         # Generates URL based on all parameters
         splitted = self.id.rsplit("/")
         without_workspace = splitted[1]
-        version = self.version or splitted[2]
+        version = self.version
+        if not version and len(splitted) > 2:
+            version = splitted[2]
 
         self.api_url = "".join(
             [
