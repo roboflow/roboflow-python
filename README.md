@@ -58,6 +58,14 @@ pip install roboflow
   ```
 </details>
 
+<details>
+  <summary>Command line tool</summary>
+
+  By installing roboflow python package you can use some of its functionality in the command line (without having to write python code).
+  See [CLI-COMMANDS.md](CLI-COMMANDS.md)
+</details>
+
+
 ## 🚀 Getting Started
 
 To use the Roboflow Python package, you first need to authenticate with your Roboflow account. You can do this by running the following command:

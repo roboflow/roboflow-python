@@ -1,4 +1,4 @@
-from . import RoboflowTest
+from tests import RoboflowTest
 
 
 class TestProject(RoboflowTest):

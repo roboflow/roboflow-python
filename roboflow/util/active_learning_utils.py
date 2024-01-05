@@ -18,9 +18,7 @@ def count_class_occurances(predictions, target_class):
 
 
 # compares counts and returns False if counts below requirement
-def count_comparisons(
-    predictions, required_objects_count, required_class_count, target_class
-):
+def count_comparisons(predictions, required_objects_count, required_class_count, target_class):
     if (
         len(predictions) < required_objects_count
         or target_class
@@ -33,11 +31,7 @@ def count_comparisons(
 
 # checks box size and returns False if not within requirements
 def check_box_size(prediction, minimum_size_requirement, maximum_size_requirement):
-    if (
-        maximum_size_requirement
-        > prediction["height"] * prediction["width"]
-        > minimum_size_requirement
-    ):
+    if maximum_size_requirement > prediction["height"] * prediction["width"] > minimum_size_requirement:
         return True
     else:
         return False

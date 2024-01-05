@@ -28,9 +28,7 @@ class InstanceSegmentationModel(InferenceModel):
         """
         super(InstanceSegmentationModel, self).__init__(api_key, version_id)
         if local is None:
-            self.api_url = (
-                f"{INSTANCE_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
-            )
+            self.api_url = f"{INSTANCE_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
         else:
             self.api_url = f"{local}/{self.dataset_id}/{self.version}"
         self.colors = {} if colors is None else colors

@@ -7,27 +7,23 @@ from urllib.parse import urlparse
 
 import requests
 
+from roboflow.adapters import rfapi
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS, load_roboflow_api_key
 from roboflow.core.project import Project
 from roboflow.core.workspace import Workspace
-from roboflow.models import CLIPModel, GazeModel
+from roboflow.models import CLIPModel, GazeModel  # noqa: F401
 from roboflow.util.general import write_line
 
-__version__ = "1.1.14"
+__version__ = "1.1.15"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
     if not isinstance(api_key, str):
         raise RuntimeError(
-            "API Key is of Incorrect Type \n Expected Type: "
-            + str(type(""))
-            + "\n Input Type: "
-            + str(type(api_key))
+            "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key))
         )
 
-    if any(
-        c for c in api_key if c.islower()
-    ):  # check if any of the api key characters are lowercase
+    if any(c for c in api_key if c.islower()):  # check if any of the api key characters are lowercase
         if api_key in DEMO_KEYS:
             # passthrough for public download of COCO-128 for the time being
             return api_key
@@ -46,10 +42,7 @@ def check_key(api_key, model, notebook, num_retries=0):
                     num_retries += 1
                     return check_key(api_key, model, notebook, num_retries)
                 else:
-                    raise RuntimeError(
-                        "There was an error validating the api key with Roboflow"
-                        " server."
-                    )
+                    raise RuntimeError("There was an error validating the api key with Roboflow" " server.")
             else:
                 r = response.json()
                 return r
@@ -88,10 +81,7 @@ def login(workspace=None, force=False):
     )
 
     if os.path.isfile(conf_location) and not force:
-        write_line(
-            "You are already logged into Roboflow. To make a different login,"
-            "run roboflow.login(force=True)."
-        )
+        write_line("You are already logged into Roboflow. To make a different login," "run roboflow.login(force=True).")
         return None
         # we could eventually return the workspace object here
         # return Roboflow().workspace()
@@ -101,13 +91,7 @@ def login(workspace=None, force=False):
     if workspace is None:
         write_line("visit " + APP_URL + "/auth-cli to get your authentication token.")
     else:
-        write_line(
-            "visit "
-            + APP_URL
-            + "/auth-cli/?workspace="
-            + workspace
-            + " to get your authentication token."
-        )
+        write_line("visit " + APP_URL + "/auth-cli/?workspace=" + workspace + " to get your authentication token.")
 
     token = getpass("Paste the authentication token here: ")
 
@@ -116,9 +100,7 @@ def login(workspace=None, force=False):
     if r_login.status_code == 200:
         r_login = r_login.json()
         if r_login is None:
-            raise ValueError(
-                "Invalid API key. Please check your API key and try again."
-            )
+            raise ValueError("Invalid API key. Please check your API key and try again.")
 
         # make config directory if it doesn't exist
         if not os.path.exists(os.path.dirname(conf_location)):
@@ -165,9 +147,7 @@ def initialize_roboflow(the_workspace=None):
     )
 
     if not os.path.isfile(conf_location):
-        raise RuntimeError(
-            "To use this method, you must first login - run roboflow.login()"
-        )
+        raise RuntimeError("To use this method, you must first login - run roboflow.login()")
     else:
         if the_workspace is None:
             active_workspace = Roboflow().workspace()
@@ -196,9 +176,7 @@ def load_model(model_url):
         project = path_parts[2]
         version = int(path_parts[-1])
     else:
-        raise (
-            "Model URL must be from either app.roboflow.com or universe.roboflow.com"
-        )
+        raise ("Model URL must be from either app.roboflow.com or universe.roboflow.com")
 
     project = operate_workspace.project(project)
     version = project.version(version)
@@ -226,9 +204,7 @@ def download_dataset(dataset_url, model_format, location=None):
         version = int(path_parts[-1])
         the_workspace = path_parts[1]
     else:
-        raise (
-            "Model URL must be from either app.roboflow.com or universe.roboflow.com"
-        )
+        raise ("Model URL must be from either app.roboflow.com or universe.roboflow.com")
     operate_workspace = initialize_roboflow(the_workspace=the_workspace)
 
     project = operate_workspace.project(project)
@@ -277,12 +253,11 @@ class Roboflow:
 
         if self.api_key in DEMO_KEYS:
             return Workspace({}, self.api_key, the_workspace, self.model_format)
+        workspace_api_key = load_roboflow_api_key(the_workspace)
+        api_key = workspace_api_key or self.api_key
 
-        list_projects = requests.get(
-            API_URL + "/" + the_workspace + "?api_key=" + self.api_key
-        ).json()
-
-        return Workspace(list_projects, self.api_key, the_workspace, self.model_format)
+        list_projects = rfapi.get_workspace(api_key, the_workspace)
+        return Workspace(list_projects, api_key, the_workspace, self.model_format)
 
     def project(self, project_name, the_workspace=None):
         """Function that takes in the name of the project and returns the project object
@@ -298,15 +273,7 @@ class Roboflow:
             else:
                 the_workspace = self.current_workspace
 
-        dataset_info = requests.get(
-            API_URL
-            + "/"
-            + the_workspace
-            + "/"
-            + project_name
-            + "?api_key="
-            + self.api_key
-        )
+        dataset_info = requests.get(API_URL + "/" + the_workspace + "/" + project_name + "?api_key=" + self.api_key)
 
         # Throw error if dataset isn't valid/user doesn't have
         #   permissions to access the dataset

@@ -29,10 +29,7 @@ from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import write_line
-from roboflow.util.versions import (
-    get_wrong_dependencies_versions,
-    print_warn_for_wrong_dependencies_versions,
-)
+from roboflow.util.versions import get_wrong_dependencies_versions, print_warn_for_wrong_dependencies_versions
 
 load_dotenv()
 
@@ -148,11 +145,7 @@ class Version:
         still_generating, progress = self.__check_if_generating()
 
         if still_generating:
-            progress_message = (
-                "Generating version still in progress. Progress: "
-                + str(round(progress * 100, 2))
-                + "%"
-            )
+            progress_message = "Generating version still in progress. Progress: " + str(round(progress * 100, 2)) + "%"
             sys.stdout.write("\r" + progress_message)
             sys.stdout.flush()
             time.sleep(5)
@@ -191,9 +184,7 @@ class Version:
             # if ultralytics is installed, we will assume users will want to use yolov8 and we check for the supported version  # noqa: E501 // docs
             try:
                 import_module("ultralytics")
-                print_warn_for_wrong_dependencies_versions(
-                    [("ultralytics", "==", "8.0.196")]
-                )
+                print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])
             except ImportError:
                 print(
                     "[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. "  # noqa: E501 // docs
@@ -212,9 +203,7 @@ class Version:
         if location is None:
             location = self.__get_download_location()
         if os.path.exists(location) and not overwrite:
-            return Dataset(
-                self.name, self.version, model_format, os.path.abspath(location)
-            )
+            return Dataset(self.name, self.version, model_format, os.path.abspath(location))
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
@@ -274,11 +263,7 @@ class Version:
                 if status_code_check == 202:
                     progress = response.json()["progress"]
                     progress_message = (
-                        "Exporting format "
-                        + model_format
-                        + " in progress : "
-                        + str(round(progress * 100, 2))
-                        + "%"
+                        "Exporting format " + model_format + " in progress : " + str(round(progress * 100, 2)) + "%"
                     )
                     sys.stdout.write("\r" + progress_message)
                     sys.stdout.flush()
@@ -372,9 +357,7 @@ class Version:
         num_machine_spin_dots = []
 
         while status == "training" or status == "running":
-            url = (
-                f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
-            )
+            url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
             response = requests.get(url, params={"api_key": self.__api_key})
             response.raise_for_status()
             version = response.json()["version"]
@@ -394,25 +377,11 @@ class Version:
 
             if "roboflow-train" in models.keys():
                 # training has started
-                epochs = np.array(
-                    [
-                        int(epoch["epoch"])
-                        for epoch in models["roboflow-train"]["epochs"]
-                    ]
-                )
-                mAP = np.array(
-                    [
-                        float(epoch["mAP"])
-                        for epoch in models["roboflow-train"]["epochs"]
-                    ]
-                )
+                epochs = np.array([int(epoch["epoch"]) for epoch in models["roboflow-train"]["epochs"]])
+                mAP = np.array([float(epoch["mAP"]) for epoch in models["roboflow-train"]["epochs"]])
                 loss = np.array(
                     [
-                        (
-                            float(epoch["box_loss"])
-                            + float(epoch["class_loss"])
-                            + float(epoch["obj_loss"])
-                        )
+                        (float(epoch["box_loss"]) + float(epoch["class_loss"]) + float(epoch["obj_loss"]))
                         for epoch in models["roboflow-train"]["epochs"]
                     ]
                 )
@@ -435,13 +404,7 @@ class Version:
                 else:
                     if len(epochs) > 0:
                         title = (
-                            title
-                            + ": Epoch: "
-                            + str(epochs[-1])
-                            + " mAP: "
-                            + str(mAP[-1])
-                            + " loss: "
-                            + str(loss[-1])
+                            title + ": Epoch: " + str(epochs[-1]) + " mAP: " + str(mAP[-1]) + " loss: " + str(loss[-1])
                         )
                     if not first_graph_write:
                         write_line(title)
@@ -464,15 +427,8 @@ class Version:
 
         supported_models = ["yolov5", "yolov7-seg", "yolov8"]
 
-        if not any(
-            supported_model in model_type for supported_model in supported_models
-        ):
-            raise (
-                ValueError(
-                    f"Model type {model_type} not supported. Supported models are"
-                    f" {supported_models}"
-                )
-            )
+        if not any(supported_model in model_type for supported_model in supported_models):
+            raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
 
         if "yolov8" in model_type:
             try:
@@ -485,9 +441,7 @@ class Version:
                     " models. Please install it with `pip install ultralytics`"
                 )
 
-            print_warn_for_wrong_dependencies_versions(
-                [("ultralytics", "==", "8.0.196")], ask_to_continue=True
-            )
+            print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")], ask_to_continue=True)
 
         elif "yolov5" in model_type or "yolov7" in model_type:
             try:
@@ -522,11 +476,7 @@ class Version:
                     "names": class_names,
                     "yaml": model["model"].yaml,
                     "nc": nc,
-                    "args": {
-                        k: val
-                        for k, val in args.items()
-                        if ((k == "model") or (k == "imgsz") or (k == "batch"))
-                    },
+                    "args": {k: val for k, val in args.items() if ((k == "model") or (k == "imgsz") or (k == "batch"))},
                     "ultralytics_version": ultralytics.__version__,
                     "model_type": model_type,
                 }
@@ -564,9 +514,7 @@ class Version:
         with open(os.path.join(model_path, "model_artifacts.json"), "w") as fp:
             json.dump(model_artifacts, fp)
 
-        torch.save(
-            model["model"].state_dict(), os.path.join(model_path, "state_dict.pt")
-        )
+        torch.save(model["model"].state_dict(), os.path.join(model_path, "state_dict.pt"))
 
         lista_files = [
             "results.csv",
@@ -575,9 +523,7 @@ class Version:
             "state_dict.pt",
         ]
 
-        with zipfile.ZipFile(
-            os.path.join(model_path, "roboflow_deploy.zip"), "w"
-        ) as zipMe:
+        with zipfile.ZipFile(os.path.join(model_path, "roboflow_deploy.zip"), "w") as zipMe:
             for file in lista_files:
                 if os.path.exists(os.path.join(model_path, file)):
                     zipMe.write(
@@ -587,12 +533,7 @@ class Version:
                     )
                 else:
                     if file in ["model_artifacts.json", "state_dict.pt"]:
-                        raise (
-                            ValueError(
-                                f"File {file} not found. Please make sure to provide a"
-                                " valid model path."
-                            )
-                        )
+                        raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
 
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}"
@@ -751,8 +692,7 @@ class Version:
 
         if not format:
             raise RuntimeError(
-                "You must pass a format argument to version.download() or define a"
-                " model in your Roboflow object"
+                "You must pass a format argument to version.download() or define a" " model in your Roboflow object"
             )
 
         friendly_formats = {"yolov5": "yolov5pytorch", "yolov7": "yolov7pytorch"}
