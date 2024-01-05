@@ -7,9 +7,9 @@ import roboflow
 from roboflow import config as roboflow_config
 from roboflow.adapters import rfapi
 from roboflow.config import APP_URL, DEFAULT_BATCH_NAME, get_conditional_configuration_variable, load_roboflow_api_key
-from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
+from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 
 
