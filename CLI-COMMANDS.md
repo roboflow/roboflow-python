@@ -1,3 +1,6 @@
+# The roboflow-python command line
+This has the same capabilities of the [roboflow node cli](https://www.npmjs.com/package/roboflow-cli) so that our users don't need to install two different tools.
+
 ## See available commands
 
 ```bash
@@ -100,4 +103,125 @@ total 16
 drwxr-xr-x@   60 tony  staff   1.9K Jan  5 10:32 test
 drwxr-xr-x@ 1214 tony  staff    38K Jan  5 10:32 train
 drwxr-xr-x@  118 tony  staff   3.7K Jan  5 10:32 valid
+```
+
+## Example: list workspaces
+List the workspaces you have access to
+
+```bash
+$ roboflow workspace list
+```
+
+```
+tonyprivate
+  link: https://app.roboflow.com/tonyprivate
+  id: tonyprivate
+
+wolfodorpythontests
+  link: https://app.roboflow.com/wolfodorpythontests
+  id: wolfodorpythontests
+
+test minimize
+  link: https://app.roboflow.com/test-minimize
+  id: test-minimize
+```
+
+## Example: get workspace details
+
+```bash
+$ roboflow workspace get tonyprivate
+```
+
+```
+{
+  "workspace": {
+    "name": "tonyprivate",
+    "url": "tonyprivate",
+    "members": 4,
+    "projects": [
+      {
+        "id": "tonyprivate/annotation-upload",
+        "type": "object-detection",
+        "name": "annotation-upload",
+        "created": 1685199749.708,
+        "updated": 1695910515.48,
+        "images": 1,
+        (...)
+      }
+    ]
+  }
+}
+```
+
+## Example: list projects
+
+```bash
+roboflow project list -w tonyprivate
+```
+```
+annotation-upload
+  link: https://app.roboflow.com/tonyprivate/annotation-upload
+  id: tonyprivate/annotation-upload
+  type: object-detection
+  versions: 0
+  images: 1
+  classes: dict_keys(['0', 'Rabbits1', 'Rabbits2', 'minion1', 'minion0', '5075E'])
+
+hand-gestures
+  link: https://app.roboflow.com/tonyprivate/hand-gestures-fsph8
+  id: tonyprivate/hand-gestures-fsph8
+  type: object-detection
+  versions: 5
+  images: 387
+  classes: dict_keys(['zero', 'four', 'one', 'two', 'five', 'three', 'Guard'])
+```
+
+## Example: get project details
+
+```bash
+roboflow project get -w tonyprivate annotation-upload
+```
+```
+{
+  "workspace": {
+    "name": "tonyprivate",
+    "url": "tonyprivate",
+    "members": 4
+  },
+  "project": {
+    "id": "tonyprivate/annotation-upload",
+    "type": "object-detection",
+    "name": "annotation-upload",
+    "created": 1685199749.708,
+    "updated": 1695910515.48,
+    "images": 1,
+    (...)
+  },
+  "versions": []
+}
+```
+
+## Example: run inference
+
+If your project has a trained model (or you are using a dataset from Roboflow Universe that has a trained model), you can run inference from the command line.
+
+Let's use [Rock-Paper-Scissors sample public dataset]([url](https://universe.roboflow.com/roboflow-58fyf/rock-paper-scissors-sxsw/model/11)) from Roboflow universe
+
+(In my case, `~/scissors.png` is me holding two fingers to the camera, you can use your own image file ;-))
+
+```bash
+roboflow infer -w roboflow-58fyf -m rock-paper-scissors-sxsw/11 ~/scissors.png
+```
+```
+{
+  "x": 1230.0,
+  "y": 814.5,
+  "width": 840.0,
+  "height": 1273.0,
+  "confidence": 0.8817358016967773,
+  "class": "Scissors",
+  "class_id": 2,
+  "image_path": "/Users/tony/scissors.png",
+  "prediction_type": "ObjectDetectionModel"
+}
 ```
