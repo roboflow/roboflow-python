@@ -7,7 +7,6 @@ matplotlib
 numpy>=1.18.5
 opencv-python-headless==4.8.0.74
 Pillow>=7.1.2
-pyparsing==2.4.7
 python-dateutil
 python-dotenv
 requests
