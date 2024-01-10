@@ -457,6 +457,7 @@ class Project:
         batch_name=DEFAULT_BATCH_NAME,
         tag_names=[],
         is_prediction: bool = False,
+        annotation_overwrite=False,
         **kwargs,
     ):
         project_url = self.id.rsplit("/")[1]
@@ -494,6 +495,7 @@ class Project:
                     image_id,
                     is_prediction=is_prediction,
                     annotation_labelmap=annotation_labelmap,
+                    overwrite=annotation_overwrite,
                 )
             except BaseException as e:
                 uploaded_annotation = {"error": e}
