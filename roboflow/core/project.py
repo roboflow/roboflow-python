@@ -469,7 +469,6 @@ class Project:
         image_path=None,
         annotation_path=None,
         annotation_labelmap=None,
-        annotation_overwrite=False,
         hosted_image=False,
         image_id=None,
         split="train",
@@ -477,6 +476,7 @@ class Project:
         batch_name=DEFAULT_BATCH_NAME,
         tag_names=[],
         is_prediction: bool = False,
+        annotation_overwrite=False,
         **kwargs,
     ):
         project_url = self.id.rsplit("/")[1]
