@@ -79,20 +79,13 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60, colors=Non
             # Plot Rectangle
             axes.add_patch(rect)
     elif prediction["prediction_type"] == CLASSIFICATION_MODEL:
-        axes.set_title(
-            "Class: "
-            + prediction["top"]
-            + " | Confidence: "
-            + str(prediction["confidence"])
-        )
+        axes.set_title("Class: " + prediction["top"] + " | Confidence: " + str(prediction["confidence"]))
     elif prediction["prediction_type"] == INSTANCE_SEGMENTATION_MODEL:
         if prediction["class"] in colors.keys():
             stroke_color = colors[prediction["class"]]
 
         points = [[p["x"], p["y"]] for p in prediction["points"]]
-        polygon = patches.Polygon(
-            points, linewidth=stroke, edgecolor=stroke_color, facecolor="none"
-        )
+        polygon = patches.Polygon(points, linewidth=stroke, edgecolor=stroke_color, facecolor="none")
         axes.add_patch(polygon)
     elif prediction["prediction_type"] == SEMANTIC_SEGMENTATION_MODEL:
         encoded_mask = prediction["segmentation_mask"]
@@ -233,9 +226,7 @@ class Prediction:
             np_points = np.array(points, dtype=np.int32)
             if self["class"] in self.colors.keys():
                 stroke_color = self.colors[self["class"]]
-            cv2.polylines(
-                image, [np_points], isClosed=True, color=stroke_color, thickness=stroke
-            )
+            cv2.polylines(image, [np_points], isClosed=True, color=stroke_color, thickness=stroke)
         elif self["prediction_type"] == SEMANTIC_SEGMENTATION_MODEL:
             image = mask_image(image, self["segmentation_mask"], transparency)
 
@@ -314,9 +305,7 @@ class PredictionGroup:
             validate_image_path(self.base_image_path)
             _, axes = plot_image(self.base_image_path)
             for single_prediction in self:
-                plot_annotation(
-                    axes, single_prediction, stroke, colors=single_prediction.colors
-                )
+                plot_annotation(axes, single_prediction, stroke, colors=single_prediction.colors)
         # Show the plot to the user
         plt.show()
 
@@ -355,9 +344,7 @@ class PredictionGroup:
                     stroke,
                 )
                 # Get size of text
-                text_size = cv2.getTextSize(
-                    class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1
-                )[0]
+                text_size = cv2.getTextSize(class_name, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)[0]
                 # Draw background rectangle for text
                 cv2.rectangle(
                     image,
@@ -385,13 +372,7 @@ class PredictionGroup:
                 height, width = image.shape[:2]
 
                 border_size = 100
-                text = (
-                    "Class: "
-                    + prediction["top"]
-                    + " | "
-                    + "Confidence: "
-                    + str(prediction["confidence"])
-                )
+                text = "Class: " + prediction["top"] + " | " + "Confidence: " + str(prediction["confidence"])
                 text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_COMPLEX, 1, 1)[0]
                 # Apply Border
                 image = cv2.copyMakeBorder(
@@ -462,18 +443,11 @@ class PredictionGroup:
         # Ensures only predictions can be added to a prediction group
         if is_prediction_check is not None:
             if type(is_prediction_check).__name__ is not PREDICTION_OBJECT:
-                raise Exception(
-                    "Cannot add type "
-                    + type(is_prediction_check).__name__
-                    + " to PredictionGroup"
-                )
+                raise Exception("Cannot add type " + type(is_prediction_check).__name__ + " to PredictionGroup")
 
         # Warns user if predictions have different prediction types
         if prediction_type_check is not None:
-            if (
-                self.__len__() > 0
-                and prediction_type_check != self.base_prediction_type
-            ):
+            if self.__len__() > 0 and prediction_type_check != self.base_prediction_type:
                 warnings.warn(
                     "This prediction is a different type ("
                     + prediction_type_check
@@ -502,9 +476,7 @@ class PredictionGroup:
         return prediction_group_json
 
     @staticmethod
-    def create_prediction_group(
-        json_response, image_path, prediction_type, image_dims, colors=None
-    ):
+    def create_prediction_group(json_response, image_path, prediction_type, image_dims, colors=None):
         """
         Method to create a prediction group based on the JSON Response
 
@@ -530,15 +502,11 @@ class PredictionGroup:
                 prediction_list.append(prediction)
             img_dims = image_dims
         elif prediction_type == CLASSIFICATION_MODEL:
-            prediction = Prediction(
-                json_response, image_path, prediction_type, colors=colors
-            )
+            prediction = Prediction(json_response, image_path, prediction_type, colors=colors)
             prediction_list.append(prediction)
             img_dims = image_dims
         elif prediction_type == SEMANTIC_SEGMENTATION_MODEL:
-            prediction = Prediction(
-                json_response, image_path, prediction_type, colors=colors
-            )
+            prediction = Prediction(json_response, image_path, prediction_type, colors=colors)
             prediction_list.append(prediction)
             img_dims = image_dims
 

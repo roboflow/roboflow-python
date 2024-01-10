@@ -10,14 +10,11 @@ from numpy import ndarray
 from PIL import Image
 from tqdm import tqdm
 
+from roboflow.adapters import rfapi
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.util import folderparser
-from roboflow.util.active_learning_utils import (
-    check_box_size,
-    clip_encode,
-    count_comparisons,
-)
+from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
 from roboflow.util.general import write_line
 from roboflow.util.two_stage_utils import ocr_infer
 
@@ -85,21 +82,10 @@ class Workspace:
         # project_id = project_id.replace(self.url + "/", "")
 
         if "/" in project_id:
-            raise RuntimeError(
-                "The {} project is not available in this ({}) workspace".format(
-                    project_id, self.url
-                )
-            )
+            raise RuntimeError("The {} project is not available in this ({}) workspace".format(project_id, self.url))
 
-        dataset_info = requests.get(
-            API_URL + "/" + self.url + "/" + project_id + "?api_key=" + self.__api_key
-        )
-
-        # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset   # noqa: E501 // docs
-        if dataset_info.status_code != 200:
-            raise RuntimeError(dataset_info.text)
-
-        dataset_info = dataset_info.json()["project"]
+        dataset_info = rfapi.get_project(self.__api_key, self.url, project_id)
+        dataset_info = dataset_info["project"]
 
         return Project(self.__api_key, dataset_info, self.model_format)
 
@@ -123,9 +109,7 @@ class Workspace:
             "annotation": annotation,
         }
 
-        r = requests.post(
-            API_URL + "/" + self.url + "/projects?api_key=" + self.__api_key, json=data
-        )
+        r = requests.post(API_URL + "/" + self.url + "/projects?api_key=" + self.__api_key, json=data)
 
         r.raise_for_status()
 
@@ -134,9 +118,7 @@ class Workspace:
 
         return self.project(r.json()["id"].split("/")[-1])
 
-    def clip_compare(
-        self, dir: str = "", image_ext: str = ".png", target_image: str = ""
-    ) -> dict:
+    def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> dict:
         """
         Compare all images in a directory to a target image using CLIP
 
@@ -197,10 +179,7 @@ class Workspace:
         # perform first inference
         predictions = stage_one_model.predict(image)
 
-        if (
-            stage_one_project.type == "object-detection"
-            and stage_two_project == "classification"
-        ):
+        if stage_one_project.type == "object-detection" and stage_two_project == "classification":
             # interact with each detected object from stage one inference results
             for boundingbox in predictions:
                 # rip bounding box coordinates from json1
@@ -284,10 +263,7 @@ class Workspace:
                 # capture OCR results from cropped image
                 results.append(ocr_infer(croppedImg)["results"])
         else:
-            print(
-                "please use an object detection model--can only perform two stage with"
-                " bounding box results"
-            )
+            print("please use an object detection model--can only perform two stage with" " bounding box results")
 
         return results
 
@@ -312,9 +288,7 @@ class Workspace:
             project_type (str): type of the project (only `object-detection` is supported)
         """  # noqa: E501 // docs
         if dataset_format == "auto":
-            return self._upload_dataset_auto(
-                dataset_path, project_name, num_workers, project_license, project_type
-            )
+            return self._upload_dataset_auto(dataset_path, project_name, num_workers, project_license, project_type)
         else:
             return self._upload_dataset_legacy(
                 dataset_path,
@@ -392,9 +366,7 @@ class Workspace:
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
             list(executor.map(_upload_image, images))
 
-    def _get_or_create_project(
-        self, project_id, license: str = "MIT", type: str = "object-detection"
-    ):
+    def _get_or_create_project(self, project_id, license: str = "MIT", type: str = "object-detection"):
         try:
             existing_project = self.project(project_id)
             return existing_project, False
@@ -465,14 +437,10 @@ class Workspace:
                 split (str): split to which the the image should be added (train, valid, test)
             """  # noqa: E501 // docs
             label_file = img_file.replace(".jpg", ".xml")
-            dataset_upload_project.upload(
-                image_path=img_file, annotation_path=label_file, split=split
-            )
+            dataset_upload_project.upload(image_path=img_file, annotation_path=label_file, split=split)
 
         def parallel_upload(file_list, split):
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=num_workers
-            ) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
                 list(
                     tqdm(
                         executor.map(upload_file, file_list, [split] * len(file_list)),
@@ -514,30 +482,18 @@ class Workspace:
         prediction_results = []
 
         # ensure that all fields of conditionals have a key:value pair
-        conditionals["target_classes"] = (
-            []
-            if "target_classes" not in conditionals
-            else conditionals["target_classes"]
-        )
+        conditionals["target_classes"] = [] if "target_classes" not in conditionals else conditionals["target_classes"]
         conditionals["confidence_interval"] = (
-            [30, 99]
-            if "confidence_interval" not in conditionals
-            else conditionals["confidence_interval"]
+            [30, 99] if "confidence_interval" not in conditionals else conditionals["confidence_interval"]
         )
         conditionals["required_class_variance_count"] = (
-            1
-            if "required_class_variance_count" not in conditionals
-            else conditionals["required_class_variance_count"]
+            1 if "required_class_variance_count" not in conditionals else conditionals["required_class_variance_count"]
         )
         conditionals["required_objects_count"] = (
-            1
-            if "required_objects_count" not in conditionals
-            else conditionals["required_objects_count"]
+            1 if "required_objects_count" not in conditionals else conditionals["required_objects_count"]
         )
         conditionals["required_class_count"] = (
-            0
-            if "required_class_count" not in conditionals
-            else conditionals["required_class_count"]
+            0 if "required_class_count" not in conditionals else conditionals["required_class_count"]
         )
         conditionals["minimum_size_requirement"] = (
             float("-inf")
@@ -545,18 +501,14 @@ class Workspace:
             else conditionals["minimum_size_requirement"]
         )
         conditionals["maximum_size_requirement"] = (
-            float("inf")
-            if "maximum_size_requirement" not in conditionals
-            else conditionals["maximum_size_requirement"]
+            float("inf") if "maximum_size_requirement" not in conditionals else conditionals["maximum_size_requirement"]
         )
 
         # check if inference_model references endpoint or local
         local = "http://localhost:9001/" if use_localhost else None
 
         inference_model = (
-            self.project(inference_endpoint[0])
-            .version(version_number=inference_endpoint[1], local=local)
-            .model
+            self.project(inference_endpoint[0]).version(version_number=inference_endpoint[1], local=local).model
         )
         upload_project = self.project(upload_destination)
 
@@ -575,13 +527,7 @@ class Workspace:
         for index, image in enumerate(globbed_files):
             try:
                 print(
-                    "*** Processing image ["
-                    + str(index + 1)
-                    + "/"
-                    + str(len(globbed_files))
-                    + "] - "
-                    + image
-                    + " ***"
+                    "*** Processing image [" + str(index + 1) + "/" + str(len(globbed_files)) + "] - " + image + " ***"
                 )
             except Exception:
                 pass
@@ -594,8 +540,7 @@ class Workspace:
 
                 if (
                     similarity <= conditionals["similarity_confidence_threshold"]
-                    or similarity_timeout_counter
-                    == conditionals["similarity_timeout_limit"]
+                    or similarity_timeout_counter == conditionals["similarity_timeout_limit"]
                 ):
                     image1 = image
                     similarity_timeout_counter = 0
@@ -634,10 +579,8 @@ class Workspace:
                 # compare confidence of detected object to confidence thresholds
                 # confidence comes in as a .XXX instead of XXX%
                 if (
-                    prediction["confidence"] * 100
-                    >= conditionals["confidence_interval"][0]
-                    and prediction["confidence"] * 100
-                    <= conditionals["confidence_interval"][1]
+                    prediction["confidence"] * 100 >= conditionals["confidence_interval"][0]
+                    and prediction["confidence"] * 100 <= conditionals["confidence_interval"][1]
                 ):
                     # filter out non-target_class uploads if enabled
                     if (
@@ -654,11 +597,7 @@ class Workspace:
 
         # return predictions with filenames if globbed images from dir,
         # otherwise return latest prediction result
-        return (
-            prediction_results
-            if type(raw_data_location) is not ndarray
-            else prediction_results[-1]["predictions"]
-        )
+        return prediction_results if type(raw_data_location) is not ndarray else prediction_results[-1]["predictions"]
 
     def __str__(self):
         projects = self.projects()

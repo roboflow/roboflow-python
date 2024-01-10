@@ -1,2 +1,2 @@
-from .clip import CLIPModel
-from .gaze import GazeModel
+from .clip import CLIPModel  # noqa: F401
+from .gaze import GazeModel  # noqa: F401

@@ -56,7 +56,7 @@ class ClassificationModel:
         self.colors = {} if colors is None else colors
         self.preprocessing = {} if preprocessing is None else preprocessing
 
-        if local is not None:
+        if local:
             print("initalizing local classification model hosted at :" + local)
             self.base_url = local
 
@@ -143,10 +143,13 @@ class ClassificationModel:
         # Generates URL based on all parameters
         splitted = self.id.rsplit("/")
         without_workspace = splitted[1]
+        version = self.version
+        if not version and len(splitted) > 2:
+            version = splitted[2]
 
         self.api_url = "".join(
             [
-                self.base_url + without_workspace + "/" + str(self.version),
+                self.base_url + without_workspace + "/" + str(version),
                 "?api_key=" + self.__api_key,
                 "&name=YOUR_IMAGE.jpg",
             ]
@@ -164,9 +167,7 @@ class ClassificationModel:
         """
         # Checks if image exists
         if image_path_check is not None:
-            if not os.path.exists(image_path_check) and not check_image_url(
-                image_path_check
-            ):
+            if not os.path.exists(image_path_check) and not check_image_url(image_path_check):
                 raise Exception("Image does not exist at " + image_path_check + "!")
 
     def __str__(self):

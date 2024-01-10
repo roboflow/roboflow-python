@@ -100,9 +100,7 @@ class VideoInferenceModel(InferenceModel):
                 raise Exception(f"Model {model} is no t supported for video inference.")
 
         if inference_type not in SUPPORTED_ROBOFLOW_MODELS:
-            raise Exception(
-                f"Model {inference_type} is not supported for video inference."
-            )
+            raise Exception(f"Model {inference_type} is not supported for video inference.")
 
         if not is_valid_video(video_path):
             raise Exception("Video path is not valid")
@@ -134,9 +132,7 @@ class VideoInferenceModel(InferenceModel):
         for model in additional_models:
             models.append(SUPPORTED_ADDITIONAL_MODELS[model])
 
-        payload = json.dumps(
-            {"input_url": signed_url, "infer_fps": fps, "models": models}
-        )
+        payload = json.dumps({"input_url": signed_url, "infer_fps": fps, "models": models})
 
         response = requests.request("POST", url, headers=headers, data=payload)
 
@@ -170,9 +166,7 @@ class VideoInferenceModel(InferenceModel):
         if job_id is None:
             job_id = self.job_id
 
-        url = urljoin(
-            API_URL, "/videoinfer/?api_key=", self.__api_key, "&job_id=", self.job_id
-        )
+        url = urljoin(API_URL, "/videoinfer/?api_key=", self.__api_key, "&job_id=", self.job_id)
 
         try:
             response = requests.get(url, headers={"Content-Type": "application/json"})
@@ -188,9 +182,7 @@ class VideoInferenceModel(InferenceModel):
         if data["success"] == 0:
             output_signed_url = data["output_signed_url"]
 
-            inference_data = requests.get(
-                output_signed_url, headers={"Content-Type": "application/json"}
-            )
+            inference_data = requests.get(output_signed_url, headers={"Content-Type": "application/json"})
 
             # frame_offset and model name are top-level keys
             return inference_data.json()

@@ -82,9 +82,7 @@ class InferenceModel:
         image_dims = {"width": str(dimensions[0]), "height": str(dimensions[1])}
         buffered = io.BytesIO()
         image.save(buffered, quality=90, format="JPEG")
-        data = MultipartEncoder(
-            fields={"file": ("imageToUpload", buffered.getvalue(), "image/jpeg")}
-        )
+        data = MultipartEncoder(fields={"file": ("imageToUpload", buffered.getvalue(), "image/jpeg")})
         return (
             {},
             {"data": data, "headers": {"Content-Type": data.content_type}},
@@ -214,9 +212,7 @@ class InferenceModel:
 
             signed_url = response.json()["signed_url"]
 
-            signed_url_expires = (
-                signed_url.split("&X-Goog-Expires")[1].split("&")[0].strip("=")
-            )
+            signed_url_expires = signed_url.split("&X-Goog-Expires")[1].split("&")[0].strip("=")
 
             # make a POST request to the signed URL
             headers = {"Content-Type": "application/octet-stream"}
@@ -233,9 +229,7 @@ class InferenceModel:
                 raise Exception(f"There was an error uploading the video: {e}")
 
             if not result.ok:
-                raise Exception(
-                    f"There was an error uploading the video: {result.text}"
-                )
+                raise Exception(f"There was an error uploading the video: {result.text}")
         else:
             signed_url = video_path
 
@@ -249,12 +243,8 @@ class InferenceModel:
             models = [
                 {
                     "model_id": SUPPORTED_ADDITIONAL_MODELS[model]["model_id"],
-                    "model_version": SUPPORTED_ADDITIONAL_MODELS[model][
-                        "model_version"
-                    ],
-                    "inference_type": SUPPORTED_ADDITIONAL_MODELS[model][
-                        "inference_type"
-                    ],
+                    "model_version": SUPPORTED_ADDITIONAL_MODELS[model]["model_version"],
+                    "inference_type": SUPPORTED_ADDITIONAL_MODELS[model]["inference_type"],
                 }
             ]
         else:
@@ -269,9 +259,7 @@ class InferenceModel:
         for model in additional_models:
             models.append(SUPPORTED_ADDITIONAL_MODELS[model])
 
-        payload = json.dumps(
-            {"input_url": signed_url, "infer_fps": fps, "models": models}
-        )
+        payload = json.dumps({"input_url": signed_url, "infer_fps": fps, "models": models})
 
         headers = {"Content-Type": "application/json"}
 
@@ -313,9 +301,7 @@ class InferenceModel:
         if job_id is None:
             job_id = self.job_id
 
-        url = urljoin(
-            API_URL, "/videoinfer/?api_key=" + self.__api_key + "&job_id=" + self.job_id
-        )
+        url = urljoin(API_URL, "/videoinfer/?api_key=" + self.__api_key + "&job_id=" + self.job_id)
         try:
             response = requests.get(url, headers={"Content-Type": "application/json"})
         except Exception as e:
@@ -332,9 +318,7 @@ class InferenceModel:
             return {}  # Still running
         else:  # done
             output_signed_url = data["output_signed_url"]
-            inference_data = requests.get(
-                output_signed_url, headers={"Content-Type": "application/json"}
-            )
+            inference_data = requests.get(output_signed_url, headers={"Content-Type": "application/json"})
 
             # frame_offset and model name are top-level keys
             return inference_data.json()

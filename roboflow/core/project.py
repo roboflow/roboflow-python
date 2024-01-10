@@ -85,13 +85,7 @@ class Project:
             >>> version_info = project.get_version_information()
         """
         dataset_info = requests.get(
-            API_URL
-            + "/"
-            + self.__workspace
-            + "/"
-            + self.__project_name
-            + "?api_key="
-            + self.__api_key
+            API_URL + "/" + self.__workspace + "/" + self.__project_name + "?api_key=" + self.__api_key
         )
 
         # Throw error if dataset isn't valid/user doesn't have permissions to access the dataset # noqa: E501 // docs
@@ -221,8 +215,7 @@ class Project:
             )
 
         r = requests.post(
-            f"{API_URL}/{self.__workspace}/{self.__project_name}/"
-            f"generate?api_key={self.__api_key}",
+            f"{API_URL}/{self.__workspace}/{self.__project_name}/" f"generate?api_key={self.__api_key}",
             json=settings,
         )
 
@@ -233,13 +226,7 @@ class Project:
 
         # if the generation succeeds, return the version that is being generated
         if r.status_code == 200:
-            sys.stdout.write(
-                "\r"
-                + r_json["message"]
-                + " for new version "
-                + str(r_json["version"])
-                + "."
-            )
+            sys.stdout.write("\r" + r_json["message"] + " for new version " + str(r_json["version"]) + ".")
             sys.stdout.write("\n")
             sys.stdout.flush()
             return int(r_json["version"])
@@ -291,9 +278,7 @@ class Project:
 
         new_version = self.generate_version(settings=new_version_settings)
         new_version = self.version(new_version)
-        new_model = new_version.train(
-            speed=speed, checkpoint=checkpoint, plot_in_notebook=plot_in_notebook
-        )
+        new_model = new_version.train(speed=speed, checkpoint=checkpoint, plot_in_notebook=plot_in_notebook)
 
         return new_model
 
@@ -405,9 +390,7 @@ class Project:
             >>> project.upload(image_path="YOUR_IMAGE.jpg")
         """  # noqa: E501 // docs
 
-        is_hosted = image_path.startswith("http://") or image_path.startswith(
-            "https://"
-        )
+        is_hosted = image_path.startswith("http://") or image_path.startswith("https://")
 
         is_file = os.path.isfile(image_path) or is_hosted
         is_dir = os.path.isdir(image_path)
@@ -424,9 +407,7 @@ class Project:
             if not is_image:
                 raise RuntimeError(
                     "The image you provided {} is not a supported file format. We"
-                    " currently support: {}.".format(
-                        image_path, ", ".join(ACCEPTED_IMAGE_FORMATS)
-                    )
+                    " currently support: {}.".format(image_path, ", ".join(ACCEPTED_IMAGE_FORMATS))
                 )
 
             self.single_upload(
@@ -609,13 +590,7 @@ class Project:
         payload["fields"] = fields
 
         data = requests.post(
-            API_URL
-            + "/"
-            + self.__workspace
-            + "/"
-            + self.__project_name
-            + "/search?api_key="
-            + self.__api_key,
+            API_URL + "/" + self.__workspace + "/" + self.__project_name + "/search?api_key=" + self.__api_key,
             json=payload,
         )
 

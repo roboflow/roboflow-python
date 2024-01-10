@@ -9,8 +9,30 @@ from roboflow.config import API_URL, DEFAULT_BATCH_NAME
 from roboflow.util import image_utils
 
 
-class UploadError(Exception):
+class RoboflowError(Exception):
     pass
+
+
+class UploadError(RoboflowError):
+    pass
+
+
+def get_workspace(api_key, workspace_url):
+    url = f"{API_URL}/{workspace_url}?api_key={api_key}"
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    result = response.json()
+    return result
+
+
+def get_project(api_key, workspace_url, project_url):
+    url = f"{API_URL}/{workspace_url}/{project_url}?api_key={api_key}"
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    result = response.json()
+    return result
 
 
 def upload_image(
@@ -38,9 +60,7 @@ def upload_image(
         image_name = os.path.basename(image_path)
         imgjpeg = image_utils.file2jpeg(image_path)
 
-        upload_url = _local_upload_url(
-            api_key, project_url, batch_name, tag_names, kwargs
-        )
+        upload_url = _local_upload_url(api_key, project_url, batch_name, tag_names, kwargs)
         m = MultipartEncoder(
             fields={
                 "name": image_name,
@@ -48,9 +68,7 @@ def upload_image(
                 "file": ("imageToUpload", imgjpeg, "image/jpeg"),
             }
         )
-        response = requests.post(
-            upload_url, data=m, headers={"Content-Type": m.content_type}
-        )
+        response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type})
 
     else:
         # Hosted image upload url
@@ -69,9 +87,7 @@ def upload_image(
         else:
             raise UploadError(f"Bad response: {response}")
     if not responsejson:  # fail fast
-        raise UploadError(
-            f"upload image {image_path} 200 OK, unexpected response: {response}"
-        )
+        raise UploadError(f"upload image {image_path} 200 OK, unexpected response: {response}")
     if not (responsejson.get("success") or responsejson.get("duplicate")):
         raise UploadError(f"Server rejected image: {responsejson}")
     return responsejson
@@ -101,9 +117,7 @@ def save_annotation(
 
     response = requests.post(
         upload_url,
-        data=json.dumps(
-            {"annotationFile": annotation_string, "labelmap": annotation_labelmap}
-        ),
+        data=json.dumps({"annotationFile": annotation_string, "labelmap": annotation_labelmap}),
         headers={"Content-Type": "application/json"},
     )
     responsejson = None
@@ -149,10 +163,7 @@ def _hosted_upload_url(api_key, project_url, image_path, split):
 
 
 def _local_upload_url(api_key, project_url, batch_name, tag_names, kwargs):
-    url = (
-        f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}"
-        f"&batch={batch_name}"
-    )
+    url = f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}" f"&batch={batch_name}"
     for key, value in kwargs.items():
         url += f"&{str(key)}={str(value)}"
     for tag in tag_names:

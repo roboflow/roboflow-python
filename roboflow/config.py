@@ -50,9 +50,7 @@ PREDICTION_OBJECT = os.getenv("PREDICTION_OBJECT", "Prediction")
 
 API_URL = get_conditional_configuration_variable("API_URL", "https://api.roboflow.com")
 APP_URL = get_conditional_configuration_variable("APP_URL", "https://app.roboflow.com")
-UNIVERSE_URL = get_conditional_configuration_variable(
-    "UNIVERSE_URL", "https://universe.roboflow.com"
-)
+UNIVERSE_URL = get_conditional_configuration_variable("UNIVERSE_URL", "https://universe.roboflow.com")
 
 INSTANCE_SEGMENTATION_URL = get_conditional_configuration_variable(
     "INSTANCE_SEGMENTATION_URL", "https://outline.roboflow.com"
@@ -60,13 +58,9 @@ INSTANCE_SEGMENTATION_URL = get_conditional_configuration_variable(
 SEMANTIC_SEGMENTATION_URL = get_conditional_configuration_variable(
     "SEMANTIC_SEGMENTATION_URL", "https://segment.roboflow.com"
 )
-OBJECT_DETECTION_URL = get_conditional_configuration_variable(
-    "OBJECT_DETECTION_URL", "https://detect.roboflow.com"
-)
+OBJECT_DETECTION_URL = get_conditional_configuration_variable("OBJECT_DETECTION_URL", "https://detect.roboflow.com")
 
-CLIP_FEATURIZE_URL = get_conditional_configuration_variable(
-    "CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV"
-)
+CLIP_FEATURIZE_URL = get_conditional_configuration_variable("CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV")
 OCR_URL = get_conditional_configuration_variable("OCR_URL", "OCR URL NOT IN ENV")
 
 DEMO_KEYS = ["coco-128-sample", "chess-sample-only-api-key"]
@@ -81,21 +75,14 @@ DEFAULT_BATCH_NAME = "Pip Package Upload"
 RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
 
 
-def load_roboflow_api_key():
-    RF_WORKSPACE = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
-    RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
-
-    # DEFAULT_WORKSPACE = get_conditional_configuration_variable("default_workspace", default=None)  # noqa: E501 // docs
-    if RF_WORKSPACE is None:
-        RF_API_KEY = None
-    else:
-        RF_API_KEY = None
-        for k in RF_WORKSPACES.keys():
-            workspace = RF_WORKSPACES[k]
-            if workspace["url"] == RF_WORKSPACE:
-                RF_API_KEY = workspace["apiKey"]
-    # ENV API_KEY OVERRIDE
+def load_roboflow_api_key(workspace_url=None):
     if os.getenv("RF_API_KEY") is not None:
-        RF_API_KEY = os.getenv("RF_API_KEY")
-
-    return RF_API_KEY
+        return os["RF_API_KEY"]
+    RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
+    workspaces_by_url = {w["url"]: w for w in RF_WORKSPACES.values()}
+    default_workspace_url = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+    default_workspace = workspaces_by_url.get(default_workspace_url, None)
+    workspace = workspaces_by_url.get(workspace_url, default_workspace)
+    workspace = workspace or get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+    if workspace:
+        return workspace.get("apiKey", None)
