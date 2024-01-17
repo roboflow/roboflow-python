@@ -4,6 +4,7 @@ import json
 import os
 import sys
 
+import numpy as np
 import requests
 import supervision as sv
 from numpy import ndarray
@@ -516,7 +517,7 @@ class Workspace:
         print("upload destination: ", upload_project)
 
         # check if raw data type is cv2 frame
-        if type(raw_data_location is type(ndarray)):
+        if issubclass(type(raw_data_location), np.ndarray):
             globbed_files = [raw_data_location]
         else:
             globbed_files = glob.glob(raw_data_location + "/*" + raw_data_extension)
