@@ -10,7 +10,7 @@ import urllib
 import cv2
 import numpy as np
 import requests
-import tqdm
+from tqdm import tqdm
 from PIL import Image
 
 from roboflow.config import API_URL, OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
