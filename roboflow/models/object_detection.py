@@ -10,8 +10,8 @@ import urllib
 import cv2
 import numpy as np
 import requests
-from tqdm import tqdm
 from PIL import Image
+from tqdm import tqdm
 
 from roboflow.config import API_URL, OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
 from roboflow.models.inference import InferenceModel
