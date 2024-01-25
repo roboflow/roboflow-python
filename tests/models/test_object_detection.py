@@ -40,6 +40,7 @@ class TestObjectDetection(unittest.TestCase):
         "name": "YOUR_IMAGE.jpg",
         "overlap": "30",
         "stroke": "1",
+        "source_info": "python-sdk",
     }
 
     def setUp(self):

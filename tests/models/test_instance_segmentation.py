@@ -51,6 +51,7 @@ class TestInstanceSegmentation(unittest.TestCase):
     _default_params = {
         "api_key": api_key,
         "confidence": "40",
+        "source_info": "python-sdk",
     }
 
     def setUp(self):
