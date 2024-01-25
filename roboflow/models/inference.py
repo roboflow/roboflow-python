@@ -118,6 +118,7 @@ class InferenceModel:
         params, request_kwargs, image_dims = self.__get_image_params(image_path)
 
         params["api_key"] = self.__api_key
+        params["source_info"] = "python-sdk"
 
         params.update(**kwargs)
 
