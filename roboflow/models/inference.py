@@ -5,11 +5,11 @@ import time
 import urllib
 from typing import List
 from urllib.parse import urljoin
-from tqdm import tqdm
 
 import requests
 from PIL import Image
 from requests_toolbelt.multipart.encoder import MultipartEncoder
+from tqdm import tqdm
 
 from roboflow.config import API_URL
 from roboflow.util.image_utils import validate_image_path
@@ -399,4 +399,3 @@ class InferenceModel:
                     f.flush()
 
         return
-

@@ -11,7 +11,7 @@ import numpy as np
 import requests
 from PIL import Image
 
-from roboflow.config import API_URL, OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
+from roboflow.config import OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
 from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
