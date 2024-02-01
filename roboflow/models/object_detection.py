@@ -4,16 +4,14 @@ import io
 import json
 import os
 import random
-import sys
 import urllib
 
 import cv2
 import numpy as np
 import requests
 from PIL import Image
-from tqdm import tqdm
 
-from roboflow.config import API_URL, OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
+from roboflow.config import OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
 from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
@@ -460,56 +458,6 @@ class ObjectDetectionModel(InferenceModel):
             thread.start()
         else:
             view(stopButton)
-
-    def download(self, format="pt", location="."):
-        """
-        Download the weights associated with a model.
-
-        Args:
-            format (str): The format of the output.
-                        - 'pt': returns a PyTorch weights file
-            location (str): The location to save the weights file to
-        """
-        supported_formats = ["pt"]
-        if format not in supported_formats:
-            raise Exception(f"Unsupported format {format}. Must be one of {supported_formats}")
-
-        workspace, project, version = self.id.rsplit("/")
-
-        # get pt url
-        pt_api_url = f"{API_URL}/{workspace}/{project}/{self.version}/ptFile"
-
-        r = requests.get(pt_api_url, params={"api_key": self.__api_key})
-
-        r.raise_for_status()
-
-        pt_weights_url = r.json()["weightsUrl"]
-
-        def bar_progress(current, total, width=80):
-            progress_message = (
-                "Downloading weights to "
-                + location
-                + "/weights.pt"
-                + ": %d%% [%d / %d] bytes" % (current / total * 100, current, total)
-            )
-            sys.stdout.write("\r" + progress_message)
-            sys.stdout.flush()
-
-        response = requests.get(pt_weights_url, stream=True)
-
-        # write the zip file to the desired location
-        with open(location + "/weights.pt", "wb") as f:
-            total_length = int(response.headers.get("content-length"))
-            for chunk in tqdm(
-                response.iter_content(chunk_size=1024),
-                desc=f"Downloading weights to {location}/weights.pt",
-                total=int(total_length / 1024) + 1,
-            ):
-                if chunk:
-                    f.write(chunk)
-                    f.flush()
-
-        return
 
     def __exception_check(self, image_path_check=None):
         # Check if Image path exists exception check
