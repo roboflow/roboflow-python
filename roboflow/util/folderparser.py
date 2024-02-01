@@ -1,5 +1,6 @@
 import os
 import re
+
 from .image_utils import load_labelmap
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
