@@ -43,6 +43,8 @@ def upload_image(
     split: str = "train",
     batch_name: str = DEFAULT_BATCH_NAME,
     tag_names: list = [],
+    sequence_number: int = None,
+    sequence_size: int = None,
     **kwargs,
 ):
     """
@@ -60,7 +62,9 @@ def upload_image(
         image_name = os.path.basename(image_path)
         imgjpeg = image_utils.file2jpeg(image_path)
 
-        upload_url = _local_upload_url(api_key, project_url, batch_name, tag_names, kwargs)
+        upload_url = _local_upload_url(
+            api_key, project_url, batch_name, tag_names, sequence_number, sequence_size, kwargs
+        )
         m = MultipartEncoder(
             fields={
                 "name": image_name,
@@ -155,8 +159,10 @@ def _hosted_upload_url(api_key, project_url, image_path, split):
     return url
 
 
-def _local_upload_url(api_key, project_url, batch_name, tag_names, kwargs):
-    url = f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}" f"&batch={batch_name}"
+def _local_upload_url(api_key, project_url, batch_name, tag_names, sequence_number, sequence_size, kwargs):
+    url = f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}&batch={batch_name}"
+    if sequence_number is not None and sequence_size is not None:
+        url += f"&sequence_number={sequence_number}&sequence_size={sequence_size}"
     for key, value in kwargs.items():
         url += f"&{str(key)}={str(value)}"
     for tag in tag_names:

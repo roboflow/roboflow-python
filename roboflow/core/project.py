@@ -458,6 +458,8 @@ class Project:
         tag_names=[],
         is_prediction: bool = False,
         annotation_overwrite=False,
+        sequence_number=None,
+        sequence_size=None,
         **kwargs,
     ):
         project_url = self.id.rsplit("/")[1]
@@ -480,6 +482,8 @@ class Project:
                 split=split,
                 batch_name=batch_name,
                 tag_names=tag_names,
+                sequence_number=sequence_number,
+                sequence_size=sequence_size,
                 **kwargs,
             )
             image_id = uploaded_image["id"]
