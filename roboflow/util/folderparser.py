@@ -1,5 +1,5 @@
 import os
-
+import re
 from .image_utils import load_labelmap
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
@@ -24,13 +24,33 @@ def parsefolder(folder):
     }
 
 
+def _alphanumkey(s):
+    s = os.path.splitext(s)[0]
+    # Split the string into two parts: all characters before the last digit sequence, and the last digit sequence
+    match = re.match(r"(.*?)(\d*)$", s)
+    if match:
+        alpha_part = match.group(1)
+        num_part = match.group(2)
+        num_part = int(num_part) if num_part else 0
+        return (alpha_part, num_part)
+    else:
+        return (s, 0)
+
+
 def _list_files(folder):
     filedescriptors = []
     for root, dirs, files in os.walk(folder):
         for file in files:
             file_path = os.path.join(root, file)
             filedescriptors.append(_describe_file(file_path.split(folder)[1]))
+    filedescriptors = sorted(filedescriptors, key=lambda x: _alphanumkey(x["file"]))
+    _add_indices(filedescriptors)
     return filedescriptors
+
+
+def _add_indices(files):
+    for i, f in enumerate(files):
+        f["index"] = i
 
 
 def _describe_file(f):

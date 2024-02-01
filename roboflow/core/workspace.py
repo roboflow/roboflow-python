@@ -359,6 +359,8 @@ class Workspace:
                     annotation_path=annotation_path,
                     annotation_labelmap=labelmap,
                     split=split,
+                    sequence_number=imagedesc.get("index"),
+                    sequence_size=len(images),
                 )
                 _log_img_upload(image_path, uploadres)
             except Exception as e:
