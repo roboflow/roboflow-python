@@ -19,18 +19,21 @@ if __name__ == "__main__":
     args = parser.parse_args(
         # "download https://universe.roboflow.com/gdit/aerial-airport".split()
         # "project list -w wolfodorpythontests".split()
-        # "project get cultura-pepino-dark".split()
+        # "project get -w wolfodorpythontests cultura-pepino-voc".split()
         # "workspace list".split()
         # "workspace get wolfodorpythontests".split()
         # f"infer -w jacob-solawetz -m rock-paper-scissors-slim/5 -c .01 {thisdir}/data/scissors.png".split()  # noqa: E501 // docs
         # f"infer -w roboflow-6tyri -m usa-states/3 -c .94 -t instance-segmentation {thisdir}/data/unitedstates.jpg".split()  # noqa: E501 // docs
         # f"infer -w naumov-igor-segmentation -m car-segmetarion/2 -t semantic-segmentation {thisdir}/data/car.jpg".split()  # noqa: E501 // docs
-        # f"import {thisdir}/data/cultura-pepino-voc -w wolfodorpythontests -p cultura-pepino-voc -f auto -c 50".split()   # noqa: E501 // docs
+        f"import {thisdir}/data/cultura-pepino-voc-no-annotations -w wolfodorpythontests -p cultura-pepino-voc -f auto -c 100".split()  # noqa: E501 // docs
+        # f"upload {thisdir}/data/cultura-pepino-voc/train/318_jpg.rf.d72edf4b7ebc3b537c48fbc2afe15503.jpg -w wolfodorpythontests -p cultura-pepino-voc".split()  # noqa: E501 // docs
         # f"import {thisdir}/data/cultura-pepino-darknet -w wolfodorpythontests -p cultura-pepino-darknet -f auto -c 100".split()   # noqa: E501 // docs
         # f"import {thisdir}/data/0311fisheye -w wolfodorpythontests -p 0311fisheye -f auto -c 50".split()   # noqa: E501 // docs
         # f"upload {thisdir}/data/cultura-pepino-darknet/train/10_jpg.rf.2b3a401b0ffd8482e52137ad22faa14f.jpg -a {thisdir}/data/cultura-pepino-darknet/train/10_jpg.rf.2b3a401b0ffd8482e52137ad22faa14f.txt -m {thisdir}/data/cultura-pepino-darknet/train/_darknet.labels -w wolfodorpythontests -p cultura-pepino-darknet -r 3".split()   # noqa: E501 // docs
         # f"upload -p ordered-uploading {thisdir}/data/ordered-upload/1.jpg".split()
-        f"import -p ordered-uploading {thisdir}/data/ordered-upload".split()
+        # f"import -p ordered-uploading {thisdir}/data/ordered-upload".split()
+        # f"import {thisdir}/data/yellow -w wolfodorpythontests -p yellow-auto -f auto".split()
+        # f"upload -w wolfodorpythontests -p yellow-auto {thisdir}/data/yellow/minion.jpg".split()
         # f" {thisdir}/data/cultura-pepino-darknet -w wolfodorpythontests -p cultura-pepino-darknet -f auto -c 100".split()   # noqa: E501 // docs
     )
     args.func(args)

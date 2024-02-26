@@ -13,6 +13,7 @@ def parsefolder(folder):
         raise Exception(f"folder does not exist. {folder}")
     files = _list_files(folder)
     images = [f for f in files if f["extension"] in IMAGE_EXTENSIONS]
+    _add_indices(images)
     _decide_split(images)
     annotations = [f for f in files if f["extension"] in ANNOTATION_EXTENSIONS]
     labelmaps = [f for f in files if f["extension"] in LABELMAPS_EXTENSIONS]
@@ -45,7 +46,6 @@ def _list_files(folder):
             file_path = os.path.join(root, file)
             filedescriptors.append(_describe_file(file_path.split(folder)[1]))
     filedescriptors = sorted(filedescriptors, key=lambda x: _alphanumkey(x["file"]))
-    _add_indices(filedescriptors)
     return filedescriptors
 
 
