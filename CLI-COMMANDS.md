@@ -57,7 +57,7 @@ positional arguments:
 options:
   -h, --help   show this help message and exit
   -f FORMAT    Specify the format to download the version. Available options: [coco, yolov5pytorch, yolov7pytorch, my-yolov6, darknet,
-               voc, tfrecord, createml, clip, multiclass, coco-segmentation, yolo5-obb, png-mask-semantic, yolov8]
+               voc, tfrecord, createml, clip, multiclass, coco-segmentation, yolo5-obb, png-mask-semantic, yolov8, yolov9]
   -l LOCATION  Location to download the dataset
 ```
 

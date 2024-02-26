@@ -714,7 +714,7 @@ class Version:
                 content["train"] = location + content["train"].lstrip(".")
                 content["val"] = location + content["val"].lstrip(".")
                 content["test"] = location + content["test"].lstrip(".")
-            if format in ["yolov5pytorch", "yolov7pytorch", "yolov8"]:
+            if format in ["yolov5pytorch", "yolov7pytorch", "yolov8", "yolov9"]:
                 content["train"] = location + content["train"].lstrip("..")
                 content["val"] = location + content["val"].lstrip("..")
             try:
@@ -729,7 +729,7 @@ class Version:
                 pass
             return content
 
-        if format in ["yolov5pytorch", "mt-yolov6", "yolov7pytorch", "yolov8"]:
+        if format in ["yolov5pytorch", "mt-yolov6", "yolov7pytorch", "yolov8", "yolov9"]:
             amend_data_yaml(path=data_path, callback=data_yaml_callback)
 
     def __str__(self):
