@@ -84,7 +84,7 @@ project = workspace.project("PROJECT_URL")
 version = project.version("VERSION_NUMBER")
 
 # upload a dataset
-project.upload_dataset(
+workspace.upload_dataset(
     dataset_path="./dataset/",
     num_workers=10,
     dataset_format="yolov8", # supports yolov8, yolov5, and Pascal VOC
