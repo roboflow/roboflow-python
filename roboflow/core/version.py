@@ -425,7 +425,7 @@ class Version:
             model_path (str): File path to model weights to be uploaded
         """
 
-        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolov9-seg"]
+        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9"]
 
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
