@@ -164,7 +164,7 @@ def _add_download_parser(subparsers):
         help="Specify the format to download the version. Available options: [coco, "
         "yolov5pytorch, yolov7pytorch, my-yolov6, darknet, voc, tfrecord, "
         "createml, clip, multiclass, coco-segmentation, yolo5-obb, "
-        "png-mask-semantic, yolov8]",
+        "png-mask-semantic, yolov8, yolov9]",
     )
     download_parser.add_argument("-l", dest="location", help="Location to download the dataset")
     download_parser.set_defaults(func=download)
