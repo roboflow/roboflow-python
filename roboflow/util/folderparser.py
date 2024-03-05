@@ -1,5 +1,6 @@
 import os
 import re
+import json
 
 from .image_utils import load_labelmap
 
@@ -13,12 +14,15 @@ def parsefolder(folder):
         raise Exception(f"folder does not exist. {folder}")
     files = _list_files(folder)
     images = [f for f in files if f["extension"] in IMAGE_EXTENSIONS]
+    _add_indices(images)
     _decide_split(images)
     annotations = [f for f in files if f["extension"] in ANNOTATION_EXTENSIONS]
     labelmaps = [f for f in files if f["extension"] in LABELMAPS_EXTENSIONS]
     labelmaps = _load_labelmaps(folder, labelmaps)
     _map_labelmaps_to_annotations(annotations, labelmaps)
-    _map_annotations_to_images(images, annotations)
+    if not _map_annotations_to_images_1to1(images, annotations):
+        annotations = _loadAnnotations(folder, annotations)
+        _map_annotations_to_images_1tomany(images, annotations)
     return {
         "location": folder,
         "images": images,
@@ -45,7 +49,6 @@ def _list_files(folder):
             file_path = os.path.join(root, file)
             filedescriptors.append(_describe_file(file_path.split(folder)[1]))
     filedescriptors = sorted(filedescriptors, key=lambda x: _alphanumkey(x["file"]))
-    _add_indices(filedescriptors)
     return filedescriptors
 
 
@@ -69,7 +72,7 @@ def _describe_file(f):
     }
 
 
-def _map_annotations_to_images(images, annotations):
+def _map_annotations_to_images_1to1(images, annotations):
     imgmap = {i["fullkey"]: i for i in images}
     countmapped = 0
     for ann in annotations:
@@ -77,13 +80,70 @@ def _map_annotations_to_images(images, annotations):
         if image:
             image["annotationfile"] = ann
             countmapped += 1
-    if countmapped >= 0:
-        return
-    imgmap = {i["key"]: i for i in images}
+    return countmapped > 0
+
+
+def _map_annotations_to_images_1tomany(images, annotations):
+    annotationsByDirname = {}
     for ann in annotations:
-        image = imgmap.get(ann["key"])
-        if image:
-            image["annotationfile"] = ann
+        dirname = ann["dirname"]
+        annotationsByDirname.setdefault(dirname, []).append(ann)
+    for image in images:
+        dirname = image["dirname"]
+        annotationsInSameDir = annotationsByDirname.get(dirname, [])
+        if annotationsInSameDir:
+            if len(annotationsInSameDir) > 1:
+                print(f"warning: found multiple annotation files on dir {dirname}")
+            annotation = annotationsInSameDir[0]
+            format = annotation["parsedType"]
+            image["annotationfile"] = _filterIndividualAnnotations(image, annotation, format)
+
+
+def _filterIndividualAnnotations(image, annotation, format):
+    parsed = annotation["parsed"]
+    if format == "coco":
+        imgReferences = [i for i in parsed["images"] if i["file_name"] == image["name"]]
+        if len(imgReferences) > 1:
+            print(f"warning: found multiple image entries for image {image['file']} in {annotation['file']}")
+        if imgReferences:
+            imgReference = imgReferences[0]
+            _annotation = {
+                "name": "annotation.coco.json",
+                "parsedType": "coco",
+                "parsed": {
+                    "info": parsed["info"],
+                    "licenses": parsed["licenses"],
+                    "categories": parsed["categories"],
+                    "images": [imgReference],
+                    "annotations": [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]],
+                },
+            }
+            return _annotation
+    # TODO: more formats
+    return None
+
+
+def _loadAnnotations(folder, annotations):
+    valid_extensions = {".json"}
+    annotations = [a for a in annotations if a["extension"] in valid_extensions]
+    for ann in annotations:
+        extension = ann["extension"]
+        with open(f"{folder}{ann['file']}", "r") as f:
+            parsed = json.load(f)
+            parsedType = _guessAnnotationFileFormat(parsed, extension)
+            if parsedType:
+                ann["parsed"] = parsed
+                ann["parsedType"] = parsedType
+    return annotations
+
+
+def _guessAnnotationFileFormat(parsed, extension):
+    if extension == ".json":
+        if isinstance(parsed, dict):
+            if isinstance(parsed.get("annotations"), list) and isinstance(parsed.get("images"), list):
+                return "coco"
+        # TODO - add more formats
+    return None
 
 
 def _map_labelmaps_to_annotations(annotations, labelmaps):

@@ -351,7 +351,10 @@ class Workspace:
             labelmap = None
             annotationdesc = imagedesc.get("annotationfile")
             if annotationdesc:
-                annotation_path = f"{location}{annotationdesc['file']}"
+                if annotationdesc.get("parsed"):
+                    annotation_path = {"name": annotationdesc["name"], "parsed": annotationdesc["parsed"]}
+                else:
+                    annotation_path = f"{location}{annotationdesc['file']}"
                 labelmap = annotationdesc.get("labelmap")
             try:
                 uploadres = project.single_upload(

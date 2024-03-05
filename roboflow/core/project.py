@@ -507,7 +507,10 @@ class Project:
 
     def _annotation_params(self, annotation_path):
         annotation_name, annotation_string = None, None
-        if os.path.exists(annotation_path):
+        if isinstance(annotation_path, dict):
+            annotation_name = annotation_path["name"]
+            annotation_string = json.dumps(annotation_path["parsed"])
+        elif os.path.exists(annotation_path):
             with open(annotation_path, "r"):
                 annotation_string = open(annotation_path, "r").read()
             annotation_name = os.path.basename(annotation_path)
