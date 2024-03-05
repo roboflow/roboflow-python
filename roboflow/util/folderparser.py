@@ -1,6 +1,6 @@
+import json
 import os
 import re
-import json
 
 from .image_utils import load_labelmap
 
