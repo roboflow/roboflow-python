@@ -6,9 +6,8 @@ import urllib
 import cv2
 import numpy as np
 import requests
-from PIL import Image
-
 import yaml
+from PIL import Image
 
 
 def check_image_path(image_path):
