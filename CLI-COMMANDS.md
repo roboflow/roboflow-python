@@ -78,7 +78,6 @@ options:
   -w WORKSPACE    specify a workspace url or id (will use default workspace if not specified)
   -p PROJECT      project will be created if it does not exist
   -c CONCURRENCY  how many image uploads to perform concurrently (default: 10)
-  -f FORMAT       dataset format. Valid options are [voc, yolov8, yolov5, auto] (use auto for autodetect)
 ```
 
 ## Example: download dataset
@@ -103,6 +102,26 @@ total 16
 drwxr-xr-x@   60 tony  staff   1.9K Jan  5 10:32 test
 drwxr-xr-x@ 1214 tony  staff    38K Jan  5 10:32 train
 drwxr-xr-x@  118 tony  staff   3.7K Jan  5 10:32 valid
+```
+
+## Example: import a dataset
+
+Upload a dataset from a folder to a project in your workspace
+
+```bash
+roboflow import -w my-workspace -p my-chess ~/tmp/chess
+```
+
+```
+loading Roboflow workspace...
+loading Roboflow project...
+Uploading to existing project my-workspace/my-chess
+[UPLOADED] /home/jonny/tmp/chess/102_jpg.rf.205e2a0cb0fabbbf32b4a936e2d6f1e4.jpg (sFpTfnyLpLA8QcqPwdvf) / annotations = OK
+[UPLOADED] /home/jonny/tmp/chess/2_jpg.rf.c1a4ed4e0c3947743b22ede09f7e1212.jpg (wDA2yxnLJWY5YwYwO7dP) / annotations = OK
+[UPLOADED] /home/jonny/tmp/chess/221_jpg.rf.e841c9bbb31a135b8f6274643f522686.jpg (UCv7MeuvEqo7PYElatEn) / annotations = OK
+[UPLOADED] /home/jonny/tmp/chess/10_jpg.rf.841f3ccdfc4b93ee68566e602025c03f.jpg (HnkCpUcYzxStvQF49VQW) / annotations = OK
+[UPLOADED] /home/jonny/tmp/chess/130_jpg.rf.29f756d510d2e488eb5e12769c7707ff.jpg (WxrFIhfaJ9H1JvaXMgfF) / annotations = OK
+[UPLOADED] /home/jonny/tmp/chess/112_jpg.rf.1a6e7b87410fa3f787f10e82bd02b54e.jpg (7tWtAn573cKrefeg5pIO) / annotations = OK
 ```
 
 ## Example: list workspaces
