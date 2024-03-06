@@ -302,19 +302,22 @@ class Workspace:
             img_success = uploadres.get("image", {}).get("success")
             img_duplicate = uploadres.get("image", {}).get("duplicate")
             annotation = uploadres.get("annotation")
+            image = uploadres.get("image")
+            upload_time_str = f"[{uploadres['upload_time']:.1f}s]" if uploadres.get("upload_time") else ""
+            annotation_time_str = f"[{uploadres['annotation_time']:.1f}s]" if uploadres.get("annotation_time") else ""
             if img_duplicate:
-                msg = f"[DUPLICATE] {image_path} ({image_id})"
+                msg = f"[DUPLICATE] {image_path} ({image_id}) {upload_time_str}"
             elif img_success:
-                msg = f"[UPLOADED] {image_path} ({image_id})"
+                msg = f"[UPLOADED] {image_path} ({image_id}) {upload_time_str}"
             else:
-                msg = f"[ERR] {image_path} ({uploadres})"
+                msg = f"[ERR] {image_path} ({image}) {upload_time_str}"
             if annotation:
                 if annotation.get("success"):
-                    msg += " / annotations = OK"
+                    msg += f" / annotations = OK {annotation_time_str}"
                 elif annotation.get("warn"):
-                    msg += f" / annotations = WARN: {annotation['warn']}"
+                    msg += f" / annotations = WARN: {annotation['warn']} {annotation_time_str}"
                 elif annotation.get("error"):
-                    msg += f" / annotations = ERR: {annotation['error']}"
+                    msg += f" / annotations = ERR: {annotation['error']} {annotation_time_str}"
             print(msg)
 
         def _log_img_upload_err(image_path, e):

@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import warnings
+import time
 
 import requests
 from PIL import Image, UnidentifiedImageError
@@ -470,27 +471,36 @@ class Project:
         if isinstance(annotation_labelmap, str):
             annotation_labelmap = load_labelmap(annotation_labelmap)
         uploaded_image, uploaded_annotation = None, None
+        upload_time = None
         if image_path:
-            uploaded_image = retry(
-                num_retry_uploads,
-                Exception,
-                rfapi.upload_image,
-                self.__api_key,
-                project_url,
-                image_path,
-                hosted_image=hosted_image,
-                split=split,
-                batch_name=batch_name,
-                tag_names=tag_names,
-                sequence_number=sequence_number,
-                sequence_size=sequence_size,
-                **kwargs,
-            )
-            image_id = uploaded_image["id"]
+            t0 = time.time()
+            try:
+                uploaded_image = retry(
+                    num_retry_uploads,
+                    Exception,
+                    rfapi.upload_image,
+                    self.__api_key,
+                    project_url,
+                    image_path,
+                    hosted_image=hosted_image,
+                    split=split,
+                    batch_name=batch_name,
+                    tag_names=tag_names,
+                    sequence_number=sequence_number,
+                    sequence_size=sequence_size,
+                    **kwargs,
+                )
+                image_id = uploaded_image["id"]
+            except BaseException as e:
+                uploaded_image = {"error": e}
+            finally:
+                upload_time = time.time() - t0
 
-        if annotation_path:
+        annotation_time = None
+        if annotation_path and image_id:
             annotation_name, annotation_str = self._annotation_params(annotation_path)
             try:
+                t0 = time.time()
                 uploaded_annotation = rfapi.save_annotation(
                     self.__api_key,
                     project_url,
@@ -503,7 +513,14 @@ class Project:
                 )
             except BaseException as e:
                 uploaded_annotation = {"error": e}
-        return {"image": uploaded_image, "annotation": uploaded_annotation}
+            finally:
+                annotation_time = time.time() - t0
+        return {
+            "image": uploaded_image,
+            "annotation": uploaded_annotation,
+            "upload_time": upload_time,
+            "annotation_time": annotation_time,
+        }
 
     def _annotation_params(self, annotation_path):
         annotation_name, annotation_string = None, None
