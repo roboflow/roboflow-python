@@ -274,7 +274,6 @@ class Workspace:
         dataset_path: str,
         project_name: str,
         num_workers: int = 10,
-        dataset_format: str = "yolov8",
         project_license: str = "MIT",
         project_type: str = "object-detection",
     ):
@@ -289,26 +288,6 @@ class Workspace:
             project_license (str): license of the project (set to `private` for private projects, only available for paid customers)
             project_type (str): type of the project (only `object-detection` is supported)
         """  # noqa: E501 // docs
-        if dataset_format == "auto":
-            return self._upload_dataset_auto(dataset_path, project_name, num_workers, project_license, project_type)
-        else:
-            return self._upload_dataset_legacy(
-                dataset_path,
-                project_name,
-                num_workers,
-                dataset_format,
-                project_license,
-                project_type,
-            )
-
-    def _upload_dataset_auto(
-        self,
-        dataset_path: str,
-        project_name: str,
-        num_workers: int = 10,
-        project_license: str = "MIT",
-        project_type: str = "object-detection",
-    ):
         parsed_dataset = folderparser.parsefolder(dataset_path)
         project, created = self._get_or_create_project(
             project_id=project_name, license=project_license, type=project_type
@@ -387,86 +366,6 @@ class Workspace:
                 ),
                 True,
             )
-
-    # DEPRECATED. Will die.
-    def _upload_dataset_legacy(
-        self,
-        dataset_path: str,
-        project_name: str,
-        num_workers: int = 10,
-        dataset_format: str = "yolov8",
-        project_license: str = "MIT",
-        project_type: str = "object-detection",
-    ):
-        if project_type != "object-detection":
-            raise "upload_dataset only supported for object-detection projects"
-
-        if dataset_format not in ["voc", "yolov8", "yolov5", "darknet"]:
-            raise Exception(
-                "dataset_format not supported - please use voc, yolov8, yolov5. PS, "
-                "you can always convert your dataset in the Roboflow UI"
-            )
-        # check type stuff and convert
-        if dataset_format == "yolov8" or dataset_format == "yolov5":
-            # convert to voc
-            for split in ["train", "valid", "test"]:
-                dataset = sv.DetectionDataset.from_yolo(
-                    images_directory_path=dataset_path + "/" + split + "/images",
-                    annotations_directory_path=dataset_path + "/" + split + "/labels",
-                    data_yaml_path=dataset_path + "/data.yaml",
-                )
-
-                dataset.as_pascal_voc(
-                    images_directory_path=dataset_path + "_voc" + "/" + split,
-                    annotations_directory_path=dataset_path + "_voc" + "/" + split,
-                )
-
-            dataset_path = dataset_path + "_voc"
-
-        if project_name in [p["name"] for p in self.project_list]:
-            dataset_upload_project = self.project(project_name)
-            print(f"Uploading to existing project {dataset_upload_project.id}")
-        else:
-            dataset_upload_project = self.create_project(
-                project_name,
-                project_license=project_license,
-                annotation=project_name,
-                project_type=project_type,
-            )
-            print(f"Created project {dataset_upload_project.id}")
-
-        def upload_file(img_file: str, split: str):
-            """
-            Upload an image or annotation to a project.
-
-            Args:
-                img_file (str): path to the image
-                split (str): split to which the the image should be added (train, valid, test)
-            """  # noqa: E501 // docs
-            label_file = img_file.replace(".jpg", ".xml")
-            dataset_upload_project.upload(image_path=img_file, annotation_path=label_file, split=split)
-
-        def parallel_upload(file_list, split):
-            with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-                list(
-                    tqdm(
-                        executor.map(upload_file, file_list, [split] * len(file_list)),
-                        total=len(file_list),
-                        file=sys.stdout,
-                    )
-                )
-
-        write_line("uploading training set...")
-        file_list = glob.glob(dataset_path + "/train/*.jpg")
-        parallel_upload(file_list, "train")
-
-        write_line("uploading validation set...")
-        file_list = glob.glob(dataset_path + "/valid/*.jpg")
-        parallel_upload(file_list, "valid")
-
-        write_line("uploading test set...")
-        file_list = glob.glob(dataset_path + "/test/*.jpg")
-        parallel_upload(file_list, "test")
 
     def active_learning(
         self,

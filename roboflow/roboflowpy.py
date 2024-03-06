@@ -49,7 +49,6 @@ def import_dataset(args):
     workspace = rf.workspace(args.workspace)
     workspace.upload_dataset(
         dataset_path=args.folder,
-        dataset_format=args.format,
         project_name=args.project,
         num_workers=args.concurrency,
     )
@@ -251,12 +250,6 @@ def _add_import_parser(subparsers):
         type=int,
         help="how many image uploads to perform concurrently (default: 10)",
         default=10,
-    )
-    import_parser.add_argument(
-        "-f",
-        dest="format",
-        help="dataset format. Valid options are " "[voc, yolov8, yolov5, auto] (use auto for autodetect)",
-        default="auto",
     )
     import_parser.set_defaults(func=import_dataset)
 
