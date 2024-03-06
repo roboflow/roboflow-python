@@ -6,10 +6,8 @@ import sys
 
 import numpy as np
 import requests
-import supervision as sv
 from numpy import ndarray
 from PIL import Image
-from tqdm import tqdm
 
 from roboflow.adapters import rfapi
 from roboflow.adapters.rfapi import RoboflowError
@@ -17,7 +15,6 @@ from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
-from roboflow.util.general import write_line
 from roboflow.util.two_stage_utils import ocr_infer
 
 
