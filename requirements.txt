@@ -11,7 +11,6 @@ python-dateutil
 python-dotenv
 requests
 six
-supervision
 urllib3>=1.26.6
 tqdm>=4.41.0
 PyYAML>=5.3.1
