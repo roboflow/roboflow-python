@@ -273,6 +273,7 @@ class Workspace:
         num_workers: int = 10,
         project_license: str = "MIT",
         project_type: str = "object-detection",
+        batch_name=None,
     ):
         """
         Upload a dataset to Roboflow.
@@ -344,6 +345,7 @@ class Workspace:
                     split=split,
                     sequence_number=imagedesc.get("index"),
                     sequence_size=len(images),
+                    batch_name=batch_name,
                 )
                 _log_img_upload(image_path, uploadres)
             except Exception as e:

@@ -9,7 +9,7 @@ import requests
 from PIL import Image, UnidentifiedImageError
 
 from roboflow.adapters import rfapi
-from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEMO_KEYS
+from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
 from roboflow.util.general import retry
 from roboflow.util.image_utils import load_labelmap
@@ -362,7 +362,7 @@ class Project:
         image_id: str = None,
         split: str = "train",
         num_retry_uploads: int = 0,
-        batch_name: str = DEFAULT_BATCH_NAME,
+        batch_name: str = None,
         tag_names: list = [],
         is_prediction: bool = False,
         **kwargs,
@@ -455,7 +455,7 @@ class Project:
         image_id=None,
         split="train",
         num_retry_uploads=0,
-        batch_name=DEFAULT_BATCH_NAME,
+        batch_name=None,
         tag_names=[],
         is_prediction: bool = False,
         annotation_overwrite=False,
@@ -507,6 +507,7 @@ class Project:
                     annotation_name,
                     annotation_str,
                     image_id,
+                    job_name=batch_name,
                     is_prediction=is_prediction,
                     annotation_labelmap=annotation_labelmap,
                     overwrite=annotation_overwrite,

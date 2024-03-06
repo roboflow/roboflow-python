@@ -5,7 +5,7 @@ import urllib
 import requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
-from roboflow.config import API_URL, DEFAULT_BATCH_NAME
+from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
 from roboflow.util import image_utils
 
 
@@ -58,7 +58,6 @@ def upload_image(
 
     # If image is not a hosted image
     if not hosted_image:
-        batch_name = batch_name or DEFAULT_BATCH_NAME
         image_name = os.path.basename(image_path)
         imgjpeg = image_utils.file2jpeg(image_path)
 
@@ -103,6 +102,7 @@ def save_annotation(
     annotation_name: str,
     annotation_string: str,
     image_id: str,
+    job_name: str = DEFAULT_JOB_NAME,
     is_prediction: bool = False,
     annotation_labelmap=None,
     overwrite: bool = False,
@@ -115,7 +115,9 @@ def save_annotation(
         image_id (str): image id you'd like to upload that has annotations for it.
     """
 
-    upload_url = _save_annotation_url(api_key, project_url, annotation_name, image_id, is_prediction, overwrite)
+    upload_url = _save_annotation_url(
+        api_key, project_url, annotation_name, image_id, job_name, is_prediction, overwrite
+    )
 
     response = requests.post(
         upload_url,
@@ -143,8 +145,10 @@ def save_annotation(
     return responsejson
 
 
-def _save_annotation_url(api_key, project_url, name, image_id, is_prediction, overwrite=False):
+def _save_annotation_url(api_key, project_url, name, image_id, job_name, is_prediction, overwrite=False):
     url = f"{API_URL}/dataset/{project_url}/annotate/{image_id}?api_key={api_key}" f"&name={name}"
+    if job_name:
+        url += f"&jobName={job_name}"
     if is_prediction:
         url += "&prediction=true"
     if overwrite:

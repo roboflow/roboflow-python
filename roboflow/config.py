@@ -71,6 +71,7 @@ TYPE_INSTANCE_SEGMENTATION = "instance-segmentation"
 TYPE_SEMANTIC_SEGMENTATION = "semantic-segmentation"
 
 DEFAULT_BATCH_NAME = "Pip Package Upload"
+DEFAULT_JOB_NAME = "Annotated via API"
 
 RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
 

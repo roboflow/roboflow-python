@@ -78,6 +78,7 @@ options:
   -w WORKSPACE    specify a workspace url or id (will use default workspace if not specified)
   -p PROJECT      project will be created if it does not exist
   -c CONCURRENCY  how many image uploads to perform concurrently (default: 10)
+  -n BATCH_NAME   name of batch to upload to within project
 ```
 
 ## Example: download dataset
