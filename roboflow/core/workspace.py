@@ -18,6 +18,7 @@ from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
 from roboflow.util.general import write_line
 from roboflow.util.two_stage_utils import ocr_infer
+from roboflow.adapters.rfapi import RoboflowError
 
 
 class Workspace:
@@ -376,7 +377,7 @@ class Workspace:
         try:
             existing_project = self.project(project_id)
             return existing_project, False
-        except RuntimeError:
+        except RoboflowError:
             return (
                 self.create_project(
                     project_name=project_id,
