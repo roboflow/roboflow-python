@@ -2,8 +2,8 @@ import datetime
 import json
 import os
 import sys
-import warnings
 import time
+import warnings
 
 import requests
 from PIL import Image, UnidentifiedImageError
