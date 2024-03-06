@@ -119,7 +119,18 @@ def _filterIndividualAnnotations(image, annotation, format):
                 },
             }
             return _annotation
-    # TODO: more formats
+    elif format == "createml":
+        imgReferences = [i for i in parsed if i["image"] == image["name"]]
+        if len(imgReferences) > 1:
+            print(f"warning: found multiple image entries for image {image['file']} in {annotation['file']}")
+        if imgReferences:
+            imgReference = imgReferences[0]
+            _annotation = {
+                "name": "annotation.createml.json",
+                "parsedType": "createml",
+                "parsed": [imgReference],
+            }
+            return _annotation
     return None
 
 
@@ -142,7 +153,8 @@ def _guessAnnotationFileFormat(parsed, extension):
         if isinstance(parsed, dict):
             if isinstance(parsed.get("annotations"), list) and isinstance(parsed.get("images"), list):
                 return "coco"
-        # TODO - add more formats
+        elif isinstance(parsed, list):
+            return "createml"
     return None
 
 
