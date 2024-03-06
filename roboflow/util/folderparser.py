@@ -6,7 +6,7 @@ from .image_utils import load_labelmap
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml"}
-LABELMAPS_EXTENSIONS = {".labels"}
+LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
 
 
 def parsefolder(folder):
@@ -61,6 +61,7 @@ def _describe_file(f):
     name = f.split("/")[-1]
     dirname = os.path.dirname(f)
     fullkey, extension = os.path.splitext(f)
+    fullkey2 = fullkey.replace("/labels", "").replace("/images", "")
     key = os.path.splitext(name)[0]
     return {
         "file": f,
@@ -69,6 +70,7 @@ def _describe_file(f):
         "extension": extension.lower(),
         "key": key.lower(),
         "fullkey": fullkey.lower(),
+        "fullkey2": fullkey2.lower(),
     }
 
 
@@ -77,6 +79,14 @@ def _map_annotations_to_images_1to1(images, annotations):
     countmapped = 0
     for ann in annotations:
         image = imgmap.get(ann["fullkey"])
+        if image:
+            image["annotationfile"] = ann
+            countmapped += 1
+    if countmapped > 0:
+        return True
+    imgmap = {i["fullkey2"]: i for i in images}
+    for ann in annotations:
+        image = imgmap.get(ann["fullkey2"])
         if image:
             image["annotationfile"] = ann
             countmapped += 1
@@ -162,11 +172,12 @@ def _map_labelmaps_to_annotations(annotations, labelmaps):
     if not labelmaps:
         return
     labelmapmap = {lm["dirname"]: lm for lm in labelmaps}
+    rootLabelmap = labelmapmap.get("/")
     if len(labelmapmap) < len(labelmaps):
         print("warning: unexpectedly found multiple labelmaps per directory")
         print([lm["file"] for lm in labelmaps])
     for ann in annotations:
-        labelmap = labelmapmap.get(ann["dirname"])
+        labelmap = labelmapmap.get(ann["dirname"]) or rootLabelmap
         if labelmap:
             ann["labelmap"] = labelmap["labelmap"]
 
@@ -174,7 +185,7 @@ def _map_labelmaps_to_annotations(annotations, labelmaps):
 def _load_labelmaps(folder, labelmaps):
     for labelmap in labelmaps:
         try:
-            labelmap["labelmap"] = load_labelmap(f"{folder}/{labelmap['file']}")
+            labelmap["labelmap"] = load_labelmap(f"{folder}{labelmap['file']}")
         except Exception:
             # raise Exception(f"failed to load labelmap {labelmap['file']}")
             pass
