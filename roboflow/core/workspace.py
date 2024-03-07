@@ -271,6 +271,7 @@ class Workspace:
         dataset_path: str,
         project_name: str,
         num_workers: int = 10,
+        dataset_format: str = "NOT_USED", # deprecated. keep for backward compatibility
         project_license: str = "MIT",
         project_type: str = "object-detection",
         batch_name=None,
@@ -286,6 +287,8 @@ class Workspace:
             project_license (str): license of the project (set to `private` for private projects, only available for paid customers)
             project_type (str): type of the project (only `object-detection` is supported)
         """  # noqa: E501 // docs
+        if dataset_format != "NOT_USED":
+            print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
         parsed_dataset = folderparser.parsefolder(dataset_path)
         project, created = self._get_or_create_project(
             project_id=project_name, license=project_license, type=project_type
