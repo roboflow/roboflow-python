@@ -271,7 +271,7 @@ class Workspace:
         dataset_path: str,
         project_name: str,
         num_workers: int = 10,
-        dataset_format: str = "NOT_USED", # deprecated. keep for backward compatibility
+        dataset_format: str = "NOT_USED",  # deprecated. keep for backward compatibility
         project_license: str = "MIT",
         project_type: str = "object-detection",
         batch_name=None,
