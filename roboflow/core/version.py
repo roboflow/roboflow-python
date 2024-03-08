@@ -430,9 +430,9 @@ class Version:
 
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
-        
+
         if "yolonas" in model_type:
-            self.deploy_yolonas(model_path)
+            self.deploy_yolonas(model_type, model_path)
             return
 
         if "yolov8" in model_type:
@@ -521,7 +521,7 @@ class Version:
 
         torch.save(model["model"].state_dict(), os.path.join(model_path, "state_dict.pt"))
 
-        lista_files = [
+        list_files = [
             "results.csv",
             "results.png",
             "model_artifacts.json",
@@ -529,7 +529,7 @@ class Version:
         ]
 
         with zipfile.ZipFile(os.path.join(model_path, "roboflow_deploy.zip"), "w") as zipMe:
-            for file in lista_files:
+            for file in list_files:
                 if os.path.exists(os.path.join(model_path, file)):
                     zipMe.write(
                         os.path.join(model_path, file),
@@ -554,8 +554,21 @@ class Version:
         model = torch.load(os.path.join(model_path, "weights/best.pt"), map_location="cpu")
         class_names = model["processing_params"]["class_names"]
 
+        opt_path = os.path.join(model_path, "opt.yaml")
+        if not os.path.exists(opt_path):
+            raise RuntimeError(
+                f"You must create an opt.yaml file at {os.path.join(model_path, '')} of the format:\n"
+                f"imgsz: <resolution of model>\n"
+                f"batch_size: <batch size of inference model>\n"
+                f"architecture: <one of [yolo_nas_s, yolo_nas_m, yolo_nas_l]."
+                f"s, m, l refer to small, medium, large architecture sizes, respectively>\n"
+            )
         with open(os.path.join(model_path, "opt.yaml"), "r") as stream:
             opts = yaml.safe_load(stream)
+        required_keys = ["imgsz", "batch_size", "architecture"]
+        for key in required_keys:
+            if key not in opts:
+                raise RuntimeError(f"{opt_path} lacks required key {key}. Required keys: {required_keys}")
 
         model_artifacts = {
             "names": class_names,
@@ -563,6 +576,7 @@ class Version:
             "args": {
                 "imgsz": opts["imgsz"] if "imgsz" in opts else opts["img_size"],
                 "batch": opts["batch_size"],
+                "architecture": opts["architecture"],
             },
             "model_type": model_type,
         }
@@ -570,10 +584,9 @@ class Version:
         with open(os.path.join(model_path, "model_artifacts.json"), "w") as fp:
             json.dump(model_artifacts, fp)
 
-        shutil.copy(os.path.join(model_path, "weights/best.pt"),
-                    os.path.join(model_path, "state_dict.pt"))
+        shutil.copy(os.path.join(model_path, "weights/best.pt"), os.path.join(model_path, "state_dict.pt"))
 
-        lista_files = [
+        list_files = [
             "results.json",
             "results.png",
             "model_artifacts.json",
@@ -581,7 +594,7 @@ class Version:
         ]
 
         with zipfile.ZipFile(os.path.join(model_path, "roboflow_deploy.zip"), "w") as zipMe:
-            for file in lista_files:
+            for file in list_files:
                 if os.path.exists(os.path.join(model_path, file)):
                     zipMe.write(
                         os.path.join(model_path, file),
@@ -591,7 +604,7 @@ class Version:
                 else:
                     if file in ["model_artifacts.json", "best.pt"]:
                         raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
-        
+
         self.upload_zip(model_type, model_path)
 
     def upload_zip(self, model_type: str, model_path: str):
