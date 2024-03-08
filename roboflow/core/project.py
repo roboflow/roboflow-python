@@ -372,10 +372,11 @@ class Project:
 
         Args:
             image_path (str): path to image you'd like to upload
-            annotation_path (str): if you're upload annotation, path to it
+            annotation_path (str): path to the annotation file. If not provided, the image will be uploaded without annotation.
+                Special case: in classification projects, this can instead be a class name. e.g. "dog".
             hosted_image (bool): whether the image is hosted
             image_id (str): id of the image
-            split (str): to upload the image to
+            split (str): which split to upload to - "train", "valid" or "test"
             num_retry_uploads (int): how many times to retry upload on failure
             batch_name (str): name of batch to upload to within project
             tag_names (list[str]): tags to be applied to an image
