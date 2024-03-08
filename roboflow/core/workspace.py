@@ -6,17 +6,15 @@ import sys
 
 import numpy as np
 import requests
-import supervision as sv
 from numpy import ndarray
 from PIL import Image
-from tqdm import tqdm
 
 from roboflow.adapters import rfapi
+from roboflow.adapters.rfapi import RoboflowError
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
-from roboflow.util.general import write_line
 from roboflow.util.two_stage_utils import ocr_infer
 
 
@@ -273,9 +271,10 @@ class Workspace:
         dataset_path: str,
         project_name: str,
         num_workers: int = 10,
-        dataset_format: str = "yolov8",
+        dataset_format: str = "NOT_USED",  # deprecated. keep for backward compatibility
         project_license: str = "MIT",
         project_type: str = "object-detection",
+        batch_name=None,
     ):
         """
         Upload a dataset to Roboflow.
@@ -288,26 +287,8 @@ class Workspace:
             project_license (str): license of the project (set to `private` for private projects, only available for paid customers)
             project_type (str): type of the project (only `object-detection` is supported)
         """  # noqa: E501 // docs
-        if dataset_format == "auto":
-            return self._upload_dataset_auto(dataset_path, project_name, num_workers, project_license, project_type)
-        else:
-            return self._upload_dataset_legacy(
-                dataset_path,
-                project_name,
-                num_workers,
-                dataset_format,
-                project_license,
-                project_type,
-            )
-
-    def _upload_dataset_auto(
-        self,
-        dataset_path: str,
-        project_name: str,
-        num_workers: int = 10,
-        project_license: str = "MIT",
-        project_type: str = "object-detection",
-    ):
+        if dataset_format != "NOT_USED":
+            print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
         parsed_dataset = folderparser.parsefolder(dataset_path)
         project, created = self._get_or_create_project(
             project_id=project_name, license=project_license, type=project_type
@@ -325,19 +306,22 @@ class Workspace:
             img_success = uploadres.get("image", {}).get("success")
             img_duplicate = uploadres.get("image", {}).get("duplicate")
             annotation = uploadres.get("annotation")
+            image = uploadres.get("image")
+            upload_time_str = f"[{uploadres['upload_time']:.1f}s]" if uploadres.get("upload_time") else ""
+            annotation_time_str = f"[{uploadres['annotation_time']:.1f}s]" if uploadres.get("annotation_time") else ""
             if img_duplicate:
-                msg = f"[DUPLICATE] {image_path} ({image_id})"
+                msg = f"[DUPLICATE] {image_path} ({image_id}) {upload_time_str}"
             elif img_success:
-                msg = f"[UPLOADED] {image_path} ({image_id})"
+                msg = f"[UPLOADED] {image_path} ({image_id}) {upload_time_str}"
             else:
-                msg = f"[ERR] {image_path} ({uploadres})"
+                msg = f"[ERR] {image_path} ({image}) {upload_time_str}"
             if annotation:
                 if annotation.get("success"):
-                    msg += " / annotations = OK"
+                    msg += f" / annotations = OK {annotation_time_str}"
                 elif annotation.get("warn"):
-                    msg += f" / annotations = WARN: {annotation['warn']}"
+                    msg += f" / annotations = WARN: {annotation['warn']} {annotation_time_str}"
                 elif annotation.get("error"):
-                    msg += f" / annotations = ERR: {annotation['error']}"
+                    msg += f" / annotations = ERR: {annotation['error']} {annotation_time_str}"
             print(msg)
 
         def _log_img_upload_err(image_path, e):
@@ -351,7 +335,10 @@ class Workspace:
             labelmap = None
             annotationdesc = imagedesc.get("annotationfile")
             if annotationdesc:
-                annotation_path = f"{location}{annotationdesc['file']}"
+                if annotationdesc.get("parsed"):
+                    annotation_path = {"name": annotationdesc["name"], "parsed": annotationdesc["parsed"]}
+                else:
+                    annotation_path = f"{location}{annotationdesc['file']}"
                 labelmap = annotationdesc.get("labelmap")
             try:
                 uploadres = project.single_upload(
@@ -361,6 +348,7 @@ class Workspace:
                     split=split,
                     sequence_number=imagedesc.get("index"),
                     sequence_size=len(images),
+                    batch_name=batch_name,
                 )
                 _log_img_upload(image_path, uploadres)
             except Exception as e:
@@ -373,7 +361,7 @@ class Workspace:
         try:
             existing_project = self.project(project_id)
             return existing_project, False
-        except RuntimeError:
+        except RoboflowError:
             return (
                 self.create_project(
                     project_name=project_id,
@@ -383,86 +371,6 @@ class Workspace:
                 ),
                 True,
             )
-
-    # DEPRECATED. Will die.
-    def _upload_dataset_legacy(
-        self,
-        dataset_path: str,
-        project_name: str,
-        num_workers: int = 10,
-        dataset_format: str = "yolov8",
-        project_license: str = "MIT",
-        project_type: str = "object-detection",
-    ):
-        if project_type != "object-detection":
-            raise "upload_dataset only supported for object-detection projects"
-
-        if dataset_format not in ["voc", "yolov8", "yolov5", "darknet"]:
-            raise Exception(
-                "dataset_format not supported - please use voc, yolov8, yolov5. PS, "
-                "you can always convert your dataset in the Roboflow UI"
-            )
-        # check type stuff and convert
-        if dataset_format == "yolov8" or dataset_format == "yolov5":
-            # convert to voc
-            for split in ["train", "valid", "test"]:
-                dataset = sv.DetectionDataset.from_yolo(
-                    images_directory_path=dataset_path + "/" + split + "/images",
-                    annotations_directory_path=dataset_path + "/" + split + "/labels",
-                    data_yaml_path=dataset_path + "/data.yaml",
-                )
-
-                dataset.as_pascal_voc(
-                    images_directory_path=dataset_path + "_voc" + "/" + split,
-                    annotations_directory_path=dataset_path + "_voc" + "/" + split,
-                )
-
-            dataset_path = dataset_path + "_voc"
-
-        if project_name in [p["name"] for p in self.project_list]:
-            dataset_upload_project = self.project(project_name)
-            print(f"Uploading to existing project {dataset_upload_project.id}")
-        else:
-            dataset_upload_project = self.create_project(
-                project_name,
-                project_license=project_license,
-                annotation=project_name,
-                project_type=project_type,
-            )
-            print(f"Created project {dataset_upload_project.id}")
-
-        def upload_file(img_file: str, split: str):
-            """
-            Upload an image or annotation to a project.
-
-            Args:
-                img_file (str): path to the image
-                split (str): split to which the the image should be added (train, valid, test)
-            """  # noqa: E501 // docs
-            label_file = img_file.replace(".jpg", ".xml")
-            dataset_upload_project.upload(image_path=img_file, annotation_path=label_file, split=split)
-
-        def parallel_upload(file_list, split):
-            with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-                list(
-                    tqdm(
-                        executor.map(upload_file, file_list, [split] * len(file_list)),
-                        total=len(file_list),
-                        file=sys.stdout,
-                    )
-                )
-
-        write_line("uploading training set...")
-        file_list = glob.glob(dataset_path + "/train/*.jpg")
-        parallel_upload(file_list, "train")
-
-        write_line("uploading validation set...")
-        file_list = glob.glob(dataset_path + "/valid/*.jpg")
-        parallel_upload(file_list, "valid")
-
-        write_line("uploading test set...")
-        file_list = glob.glob(dataset_path + "/test/*.jpg")
-        parallel_upload(file_list, "test")
 
     def active_learning(
         self,

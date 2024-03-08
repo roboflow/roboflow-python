@@ -1,3 +1,4 @@
+import json
 import os
 import re
 
@@ -5,7 +6,7 @@ from .image_utils import load_labelmap
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml"}
-LABELMAPS_EXTENSIONS = {".labels"}
+LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
 
 
 def parsefolder(folder):
@@ -13,12 +14,15 @@ def parsefolder(folder):
         raise Exception(f"folder does not exist. {folder}")
     files = _list_files(folder)
     images = [f for f in files if f["extension"] in IMAGE_EXTENSIONS]
+    _add_indices(images)
     _decide_split(images)
     annotations = [f for f in files if f["extension"] in ANNOTATION_EXTENSIONS]
     labelmaps = [f for f in files if f["extension"] in LABELMAPS_EXTENSIONS]
     labelmaps = _load_labelmaps(folder, labelmaps)
     _map_labelmaps_to_annotations(annotations, labelmaps)
-    _map_annotations_to_images(images, annotations)
+    if not _map_annotations_to_images_1to1(images, annotations):
+        annotations = _loadAnnotations(folder, annotations)
+        _map_annotations_to_images_1tomany(images, annotations)
     return {
         "location": folder,
         "images": images,
@@ -45,7 +49,6 @@ def _list_files(folder):
             file_path = os.path.join(root, file)
             filedescriptors.append(_describe_file(file_path.split(folder)[1]))
     filedescriptors = sorted(filedescriptors, key=lambda x: _alphanumkey(x["file"]))
-    _add_indices(filedescriptors)
     return filedescriptors
 
 
@@ -58,6 +61,7 @@ def _describe_file(f):
     name = f.split("/")[-1]
     dirname = os.path.dirname(f)
     fullkey, extension = os.path.splitext(f)
+    fullkey2 = fullkey.replace("/labels", "").replace("/images", "")
     key = os.path.splitext(name)[0]
     return {
         "file": f,
@@ -66,10 +70,11 @@ def _describe_file(f):
         "extension": extension.lower(),
         "key": key.lower(),
         "fullkey": fullkey.lower(),
+        "fullkey2": fullkey2.lower(),
     }
 
 
-def _map_annotations_to_images(images, annotations):
+def _map_annotations_to_images_1to1(images, annotations):
     imgmap = {i["fullkey"]: i for i in images}
     countmapped = 0
     for ann in annotations:
@@ -77,24 +82,102 @@ def _map_annotations_to_images(images, annotations):
         if image:
             image["annotationfile"] = ann
             countmapped += 1
-    if countmapped >= 0:
-        return
-    imgmap = {i["key"]: i for i in images}
+    if countmapped > 0:
+        return True
+    imgmap = {i["fullkey2"]: i for i in images}
     for ann in annotations:
-        image = imgmap.get(ann["key"])
+        image = imgmap.get(ann["fullkey2"])
         if image:
             image["annotationfile"] = ann
+            countmapped += 1
+    return countmapped > 0
+
+
+def _map_annotations_to_images_1tomany(images, annotations):
+    annotationsByDirname = {}
+    for ann in annotations:
+        dirname = ann["dirname"]
+        annotationsByDirname.setdefault(dirname, []).append(ann)
+    for image in images:
+        dirname = image["dirname"]
+        annotationsInSameDir = annotationsByDirname.get(dirname, [])
+        if annotationsInSameDir:
+            if len(annotationsInSameDir) > 1:
+                print(f"warning: found multiple annotation files on dir {dirname}")
+            annotation = annotationsInSameDir[0]
+            format = annotation["parsedType"]
+            image["annotationfile"] = _filterIndividualAnnotations(image, annotation, format)
+
+
+def _filterIndividualAnnotations(image, annotation, format):
+    parsed = annotation["parsed"]
+    if format == "coco":
+        imgReferences = [i for i in parsed["images"] if i["file_name"] == image["name"]]
+        if len(imgReferences) > 1:
+            print(f"warning: found multiple image entries for image {image['file']} in {annotation['file']}")
+        if imgReferences:
+            imgReference = imgReferences[0]
+            _annotation = {
+                "name": "annotation.coco.json",
+                "parsedType": "coco",
+                "parsed": {
+                    "info": parsed["info"],
+                    "licenses": parsed["licenses"],
+                    "categories": parsed["categories"],
+                    "images": [imgReference],
+                    "annotations": [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]],
+                },
+            }
+            return _annotation
+    elif format == "createml":
+        imgReferences = [i for i in parsed if i["image"] == image["name"]]
+        if len(imgReferences) > 1:
+            print(f"warning: found multiple image entries for image {image['file']} in {annotation['file']}")
+        if imgReferences:
+            imgReference = imgReferences[0]
+            _annotation = {
+                "name": "annotation.createml.json",
+                "parsedType": "createml",
+                "parsed": [imgReference],
+            }
+            return _annotation
+    return None
+
+
+def _loadAnnotations(folder, annotations):
+    valid_extensions = {".json"}
+    annotations = [a for a in annotations if a["extension"] in valid_extensions]
+    for ann in annotations:
+        extension = ann["extension"]
+        with open(f"{folder}{ann['file']}", "r") as f:
+            parsed = json.load(f)
+            parsedType = _guessAnnotationFileFormat(parsed, extension)
+            if parsedType:
+                ann["parsed"] = parsed
+                ann["parsedType"] = parsedType
+    return annotations
+
+
+def _guessAnnotationFileFormat(parsed, extension):
+    if extension == ".json":
+        if isinstance(parsed, dict):
+            if isinstance(parsed.get("annotations"), list) and isinstance(parsed.get("images"), list):
+                return "coco"
+        elif isinstance(parsed, list):
+            return "createml"
+    return None
 
 
 def _map_labelmaps_to_annotations(annotations, labelmaps):
     if not labelmaps:
         return
     labelmapmap = {lm["dirname"]: lm for lm in labelmaps}
+    rootLabelmap = labelmapmap.get("/")
     if len(labelmapmap) < len(labelmaps):
         print("warning: unexpectedly found multiple labelmaps per directory")
         print([lm["file"] for lm in labelmaps])
     for ann in annotations:
-        labelmap = labelmapmap.get(ann["dirname"])
+        labelmap = labelmapmap.get(ann["dirname"]) or rootLabelmap
         if labelmap:
             ann["labelmap"] = labelmap["labelmap"]
 
@@ -102,7 +185,7 @@ def _map_labelmaps_to_annotations(annotations, labelmaps):
 def _load_labelmaps(folder, labelmaps):
     for labelmap in labelmaps:
         try:
-            labelmap["labelmap"] = load_labelmap(f"{folder}/{labelmap['file']}")
+            labelmap["labelmap"] = load_labelmap(f"{folder}{labelmap['file']}")
         except Exception:
             # raise Exception(f"failed to load labelmap {labelmap['file']}")
             pass

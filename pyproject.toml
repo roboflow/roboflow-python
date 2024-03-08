@@ -30,8 +30,7 @@ tests = ["B201", "B301"]
 
 [tool.autoflake]
 check = true
-imports = ["cv2", "roboflow", "supervision"]
-
+imports = ["cv2", "roboflow"]
 
 [tool.ruff]
 target-version = "py38"

@@ -6,7 +6,7 @@ import re
 import roboflow
 from roboflow import config as roboflow_config
 from roboflow.adapters import rfapi
-from roboflow.config import APP_URL, DEFAULT_BATCH_NAME, get_conditional_configuration_variable, load_roboflow_api_key
+from roboflow.config import APP_URL, get_conditional_configuration_variable, load_roboflow_api_key
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.object_detection import ObjectDetectionModel
@@ -48,10 +48,7 @@ def import_dataset(args):
     rf = roboflow.Roboflow()
     workspace = rf.workspace(args.workspace)
     workspace.upload_dataset(
-        dataset_path=args.folder,
-        dataset_format=args.format,
-        project_name=args.project,
-        num_workers=args.concurrency,
+        dataset_path=args.folder, project_name=args.project, num_workers=args.concurrency, batch_name=args.batch_name
     )
 
 
@@ -213,7 +210,6 @@ def _add_upload_parser(subparsers):
         "-b",
         dest="batch",
         help="Batch name to upload to (optional)",
-        default=DEFAULT_BATCH_NAME,
     )
     upload_parser.add_argument(
         "-t",
@@ -253,10 +249,9 @@ def _add_import_parser(subparsers):
         default=10,
     )
     import_parser.add_argument(
-        "-f",
-        dest="format",
-        help="dataset format. Valid options are " "[voc, yolov8, yolov5, auto] (use auto for autodetect)",
-        default="auto",
+        "-n",
+        dest="batch_name",
+        help="name of batch to upload to within project",
     )
     import_parser.set_defaults(func=import_dataset)
 

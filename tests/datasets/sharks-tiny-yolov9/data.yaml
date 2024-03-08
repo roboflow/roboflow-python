@@ -1,0 +1,14 @@
+names:
+- fish
+- primary
+- shark
+nc: 3
+roboflow:
+  license: MIT
+  project: sharks-tiny-q9lmf
+  url: https://universe.roboflow.com/wolfodorpythontests/sharks-tiny-q9lmf/dataset/774
+  version: 774
+  workspace: wolfodorpythontests
+test: ../test/images
+train: /Users/tony/tmp/sharks-tiny-yolov9/train/images
+val: /Users/tony/tmp/sharks-tiny-yolov9/valid/images

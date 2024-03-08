@@ -2,13 +2,14 @@ import datetime
 import json
 import os
 import sys
+import time
 import warnings
 
 import requests
 from PIL import Image, UnidentifiedImageError
 
 from roboflow.adapters import rfapi
-from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEMO_KEYS
+from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
 from roboflow.util.general import retry
 from roboflow.util.image_utils import load_labelmap
@@ -361,7 +362,7 @@ class Project:
         image_id: str = None,
         split: str = "train",
         num_retry_uploads: int = 0,
-        batch_name: str = DEFAULT_BATCH_NAME,
+        batch_name: str = None,
         tag_names: list = [],
         is_prediction: bool = False,
         **kwargs,
@@ -454,7 +455,7 @@ class Project:
         image_id=None,
         split="train",
         num_retry_uploads=0,
-        batch_name=DEFAULT_BATCH_NAME,
+        batch_name=None,
         tag_names=[],
         is_prediction: bool = False,
         annotation_overwrite=False,
@@ -470,44 +471,64 @@ class Project:
         if isinstance(annotation_labelmap, str):
             annotation_labelmap = load_labelmap(annotation_labelmap)
         uploaded_image, uploaded_annotation = None, None
+        upload_time = None
         if image_path:
-            uploaded_image = retry(
-                num_retry_uploads,
-                Exception,
-                rfapi.upload_image,
-                self.__api_key,
-                project_url,
-                image_path,
-                hosted_image=hosted_image,
-                split=split,
-                batch_name=batch_name,
-                tag_names=tag_names,
-                sequence_number=sequence_number,
-                sequence_size=sequence_size,
-                **kwargs,
-            )
-            image_id = uploaded_image["id"]
+            t0 = time.time()
+            try:
+                uploaded_image = retry(
+                    num_retry_uploads,
+                    Exception,
+                    rfapi.upload_image,
+                    self.__api_key,
+                    project_url,
+                    image_path,
+                    hosted_image=hosted_image,
+                    split=split,
+                    batch_name=batch_name,
+                    tag_names=tag_names,
+                    sequence_number=sequence_number,
+                    sequence_size=sequence_size,
+                    **kwargs,
+                )
+                image_id = uploaded_image["id"]
+            except BaseException as e:
+                uploaded_image = {"error": e}
+            finally:
+                upload_time = time.time() - t0
 
-        if annotation_path:
+        annotation_time = None
+        if annotation_path and image_id:
             annotation_name, annotation_str = self._annotation_params(annotation_path)
             try:
+                t0 = time.time()
                 uploaded_annotation = rfapi.save_annotation(
                     self.__api_key,
                     project_url,
                     annotation_name,
                     annotation_str,
                     image_id,
+                    job_name=batch_name,
                     is_prediction=is_prediction,
                     annotation_labelmap=annotation_labelmap,
                     overwrite=annotation_overwrite,
                 )
             except BaseException as e:
                 uploaded_annotation = {"error": e}
-        return {"image": uploaded_image, "annotation": uploaded_annotation}
+            finally:
+                annotation_time = time.time() - t0
+        return {
+            "image": uploaded_image,
+            "annotation": uploaded_annotation,
+            "upload_time": upload_time,
+            "annotation_time": annotation_time,
+        }
 
     def _annotation_params(self, annotation_path):
         annotation_name, annotation_string = None, None
-        if os.path.exists(annotation_path):
+        if isinstance(annotation_path, dict):
+            annotation_name = annotation_path["name"]
+            annotation_string = json.dumps(annotation_path["parsed"])
+        elif os.path.exists(annotation_path):
             with open(annotation_path, "r"):
                 annotation_string = open(annotation_path, "r").read()
             annotation_name = os.path.basename(annotation_path)
