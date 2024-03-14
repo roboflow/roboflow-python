@@ -419,11 +419,13 @@ class Version:
         return self.model
 
     # @warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])
-    def deploy(self, model_type: str, model_path: str) -> None:
-        """Uploads provided weights file to Roboflow
+    def deploy(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
+        """Uploads provided weights file to Roboflow.
 
         Args:
-            model_path (str): File path to model weights to be uploaded
+            model_type (str): The type of the model to be deployed.
+            model_path (str): File path to the model weights to be uploaded.
+            filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
 
         supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas"]
@@ -457,7 +459,7 @@ class Version:
                     " Please install it with `pip install torch`"
                 )
 
-        model = torch.load(os.path.join(model_path, "weights/best.pt"))
+        model = torch.load(os.path.join(model_path, filename))
 
         if isinstance(model["model"].names, list):
             class_names = model["model"].names
