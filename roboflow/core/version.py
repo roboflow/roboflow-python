@@ -434,7 +434,7 @@ class Version:
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
 
         if "yolonas" in model_type:
-            self.deploy_yolonas(model_type, model_path)
+            self.deploy_yolonas(model_type, model_path, filename)
             return
 
         if "yolov8" in model_type:

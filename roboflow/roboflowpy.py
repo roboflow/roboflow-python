@@ -68,6 +68,15 @@ def upload_image(args):
     )
 
 
+def upload_model(args):
+    rf = roboflow.Roboflow(args.api_key)
+    workspace = rf.workspace(args.workspace)
+    project = workspace.project(args.project)
+    version = project.version(args.version_number)
+    print(args.model_type, args.model_path, args.filename)
+    version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
+
+
 def list_projects(args):
     rf = roboflow.Roboflow()
     workspace = rf.workspace(args.workspace)
@@ -145,6 +154,7 @@ def _argparser():
     _add_infer_parser(subparsers)
     _add_projects_parser(subparsers)
     _add_workspaces_parser(subparsers)
+    _add_upload_model_parser(subparsers)
     return parser
 
 
@@ -345,6 +355,51 @@ def _add_infer_parser(subparsers):
         ],
     )
     infer_parser.set_defaults(func=infer)
+
+
+def _add_upload_model_parser(subparsers):
+    upload_model_parser = subparsers.add_parser(
+        "upload_model",
+        help="Upload a trained model to Roboflow",
+    )
+    upload_model_parser.add_argument(
+        "-a",
+        dest="api_key",
+        help="api_key",
+    )
+    upload_model_parser.add_argument(
+        "-w",
+        dest="workspace",
+        help="specify a workspace url or id (will use default workspace if not specified)",
+    )
+    upload_model_parser.add_argument(
+        "-p",
+        dest="project",
+        help="project_id to upload the model into",
+    )
+    upload_model_parser.add_argument(
+        "-v",
+        dest="version_number",
+        type=int,
+        help="version number to upload the model to",
+    )
+    upload_model_parser.add_argument(
+        "-t",
+        dest="model_type",
+        help="type of the model (e.g., yolov8, yolov5)",
+    )
+    upload_model_parser.add_argument(
+        "-m",
+        dest="model_path",
+        help="path to the trained model file",
+    )
+    upload_model_parser.add_argument(
+        "-f",
+        dest="filename",
+        default="weights/best.pt",
+        help="name of the model file",
+    )
+    upload_model_parser.set_defaults(func=upload_model)
 
 
 def _add_login_parser(subparsers):
