@@ -544,7 +544,7 @@ class Version:
 
         self.upload_zip(model_type, model_path)
 
-    def deploy_yolonas(self, model_type: str, model_path: str) -> None:
+    def deploy_yolonas(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
         try:
             import torch
         except ImportError:
@@ -553,7 +553,7 @@ class Version:
                 " Please install it with `pip install torch`"
             )
 
-        model = torch.load(os.path.join(model_path, "weights/best.pt"), map_location="cpu")
+        model = torch.load(os.path.join(model_path, filename), map_location="cpu")
         class_names = model["processing_params"]["class_names"]
 
         opt_path = os.path.join(model_path, "opt.yaml")
@@ -586,7 +586,7 @@ class Version:
         with open(os.path.join(model_path, "model_artifacts.json"), "w") as fp:
             json.dump(model_artifacts, fp)
 
-        shutil.copy(os.path.join(model_path, "weights/best.pt"), os.path.join(model_path, "state_dict.pt"))
+        shutil.copy(os.path.join(model_path, filename), os.path.join(model_path, "state_dict.pt"))
 
         list_files = [
             "results.json",
@@ -604,7 +604,7 @@ class Version:
                         compress_type=zipfile.ZIP_DEFLATED,
                     )
                 else:
-                    if file in ["model_artifacts.json", "best.pt"]:
+                    if file in ["model_artifacts.json", filename]:
                         raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
 
         self.upload_zip(model_type, model_path)
