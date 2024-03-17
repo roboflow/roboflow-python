@@ -5,7 +5,13 @@ If you want to extend our Python library or if you find a bug, please open a PR!
 
 Also be sure to test your code the `unittest` command at the `/root` level directory.
 
-Run tests:
+### Devcontainer
+
+This project comes with a [convenient devcontainer](https://www.loom.com/share/a183c4a351ed4700a79476fedf08ab9b) that makes it easier to run tests and has black configured to run on save.
+
+On rare occasions a full rebuild is needed, you can do it in VSCode by pressing `Ctrl+Shift+P` and running `Dev Containers: Rebuild Container`.
+
+### Tests
 
 ```bash
 python -m unittest
@@ -39,4 +45,12 @@ make check_code_quality
 
 **Note** These tests will be run automatically when you commit thanks to git hooks.
 
-**Note** This project also comes with a [convenient devcontainer](https://www.loom.com/share/a183c4a351ed4700a79476fedf08ab9b) that makes it easier to run tests and has black configured to run on save.
+### Docs
+
+The docs can be built with `mkdocs serve`.
+
+Before that, install the dependencies:
+
+```python
+python -m pip install mkdocs mkdocs-material mkdocstrings mkdocstrings[python]
+```
