@@ -275,6 +275,7 @@ class Workspace:
         project_license: str = "MIT",
         project_type: str = "object-detection",
         batch_name=None,
+        num_retries = 0,
     ):
         """
         Upload a dataset to Roboflow.
@@ -309,12 +310,13 @@ class Workspace:
             image = uploadres.get("image")
             upload_time_str = f"[{uploadres['upload_time']:.1f}s]" if uploadres.get("upload_time") else ""
             annotation_time_str = f"[{uploadres['annotation_time']:.1f}s]" if uploadres.get("annotation_time") else ""
+            retry_attempts = f" (with {uploadres['upload_retry_attempts']} retries)" if uploadres.get("upload_retry_attempts", 0) > 0 else ""
             if img_duplicate:
-                msg = f"[DUPLICATE] {image_path} ({image_id}) {upload_time_str}"
+                msg = f"[DUPLICATE]{retry_attempts} {image_path} ({image_id}) {upload_time_str}"
             elif img_success:
-                msg = f"[UPLOADED] {image_path} ({image_id}) {upload_time_str}"
+                msg = f"[UPLOADED]{retry_attempts} {image_path} ({image_id}) {upload_time_str}"
             else:
-                msg = f"[ERR] {image_path} ({image}) {upload_time_str}"
+                msg = f"[ERR]{retry_attempts} {image_path} ({image}) {upload_time_str}"
             if annotation:
                 if annotation.get("success"):
                     msg += f" / annotations = OK {annotation_time_str}"
@@ -349,6 +351,7 @@ class Workspace:
                     sequence_number=imagedesc.get("index"),
                     sequence_size=len(images),
                     batch_name=batch_name,
+                    num_retry_uploads=num_retries,
                 )
                 _log_img_upload(image_path, uploadres)
             except Exception as e:

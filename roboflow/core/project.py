@@ -11,7 +11,7 @@ from PIL import Image, UnidentifiedImageError
 from roboflow.adapters import rfapi
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
-from roboflow.util.general import retry
+from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
 
 ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
@@ -476,9 +476,8 @@ class Project:
         if image_path:
             t0 = time.time()
             try:
+                retry = Retry(num_retry_uploads, Exception)
                 uploaded_image = retry(
-                    num_retry_uploads,
-                    Exception,
                     rfapi.upload_image,
                     self.__api_key,
                     project_url,
@@ -492,6 +491,7 @@ class Project:
                     **kwargs,
                 )
                 image_id = uploaded_image["id"]
+                uploaded_image['upload_retry_attempts'] = retry.retries
             except BaseException as e:
                 uploaded_image = {"error": e}
             finally:
