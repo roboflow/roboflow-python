@@ -134,8 +134,8 @@ def _filterIndividualAnnotations(image, annotation, format):
                     "licenses": parsed["licenses"],
                     "categories": parsed["categories"],
                     "images": [imgReference],
-                    "annotations": [fake_annotation]
-                    + [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]],
+                    "annotations": [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]]
+                    or [fake_annotation],
                 },
             }
             return _annotation
