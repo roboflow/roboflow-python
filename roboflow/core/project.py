@@ -473,6 +473,7 @@ class Project:
             annotation_labelmap = load_labelmap(annotation_labelmap)
         uploaded_image, uploaded_annotation = None, None
         upload_time = None
+        upload_retry_attempts = 0
         if image_path:
             t0 = time.time()
             try:
@@ -491,7 +492,7 @@ class Project:
                     **kwargs,
                 )
                 image_id = uploaded_image["id"]
-                uploaded_image['upload_retry_attempts'] = retry.retries
+                upload_retry_attempts = retry.retries
             except BaseException as e:
                 uploaded_image = {"error": e}
             finally:
@@ -522,6 +523,7 @@ class Project:
             "annotation": uploaded_annotation,
             "upload_time": upload_time,
             "annotation_time": annotation_time,
+            "upload_retry_attempts": upload_retry_attempts,
         }
 
     def _annotation_params(self, annotation_path):
