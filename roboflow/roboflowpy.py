@@ -52,7 +52,7 @@ def import_dataset(args):
         project_name=args.project,
         num_workers=args.concurrency,
         batch_name=args.batch_name,
-        num_retries=args.num_retries
+        num_retries=args.num_retries,
     )
 
 
@@ -268,11 +268,7 @@ def _add_import_parser(subparsers):
         help="name of batch to upload to within project",
     )
     import_parser.add_argument(
-        "-r",
-        dest="num_retries",
-        type=int,
-        help="Retry failed uploads this many times (default=0)",
-        default=0
+        "-r", dest="num_retries", type=int, help="Retry failed uploads this many times (default=0)", default=0
     )
     import_parser.set_defaults(func=import_dataset)
 

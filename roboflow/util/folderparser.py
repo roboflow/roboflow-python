@@ -123,7 +123,7 @@ def _filterIndividualAnnotations(image, annotation, format):
                 "category_id": 0,
                 "area": 1,
                 "segmentation": [],
-                "iscrowd": 0
+                "iscrowd": 0,
             }
             imgReference = imgReferences[0]
             _annotation = {
@@ -134,7 +134,8 @@ def _filterIndividualAnnotations(image, annotation, format):
                     "licenses": parsed["licenses"],
                     "categories": parsed["categories"],
                     "images": [imgReference],
-                    "annotations": [fake_annotation] + [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]],
+                    "annotations": [fake_annotation]
+                    + [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]],
                 },
             }
             return _annotation

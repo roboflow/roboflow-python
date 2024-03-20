@@ -275,7 +275,7 @@ class Workspace:
         project_license: str = "MIT",
         project_type: str = "object-detection",
         batch_name=None,
-        num_retries = 0,
+        num_retries=0,
     ):
         """
         Upload a dataset to Roboflow.
@@ -310,7 +310,11 @@ class Workspace:
             image = uploadres.get("image")
             upload_time_str = f"[{uploadres['upload_time']:.1f}s]" if uploadres.get("upload_time") else ""
             annotation_time_str = f"[{uploadres['annotation_time']:.1f}s]" if uploadres.get("annotation_time") else ""
-            retry_attempts = f" (with {uploadres['upload_retry_attempts']} retries)" if uploadres.get("upload_retry_attempts", 0) > 0 else ""
+            retry_attempts = (
+                f" (with {uploadres['upload_retry_attempts']} retries)"
+                if uploadres.get("upload_retry_attempts", 0) > 0
+                else ""
+            )
             if img_duplicate:
                 msg = f"[DUPLICATE]{retry_attempts} {image_path} ({image_id}) {upload_time_str}"
             elif img_success:

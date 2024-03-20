@@ -6,6 +6,7 @@ def write_line(line):
     sys.stdout.write("\n")
     sys.stdout.flush()
 
+
 class Retry:
     def __init__(self, max_retries, retry_on):
         self.max_retries = max_retries
@@ -28,4 +29,3 @@ class Retry:
                         raise
                 else:
                     raise
-
