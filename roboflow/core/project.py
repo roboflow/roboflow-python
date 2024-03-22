@@ -11,7 +11,7 @@ from PIL import Image, UnidentifiedImageError
 from roboflow.adapters import rfapi
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
-from roboflow.util.general import retry
+from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
 
 ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
@@ -473,12 +473,12 @@ class Project:
             annotation_labelmap = load_labelmap(annotation_labelmap)
         uploaded_image, uploaded_annotation = None, None
         upload_time = None
+        upload_retry_attempts = 0
         if image_path:
             t0 = time.time()
             try:
+                retry = Retry(num_retry_uploads, Exception)
                 uploaded_image = retry(
-                    num_retry_uploads,
-                    Exception,
                     rfapi.upload_image,
                     self.__api_key,
                     project_url,
@@ -492,6 +492,7 @@ class Project:
                     **kwargs,
                 )
                 image_id = uploaded_image["id"]
+                upload_retry_attempts = retry.retries
             except BaseException as e:
                 uploaded_image = {"error": e}
             finally:
@@ -522,6 +523,7 @@ class Project:
             "annotation": uploaded_annotation,
             "upload_time": upload_time,
             "annotation_time": annotation_time,
+            "upload_retry_attempts": upload_retry_attempts,
         }
 
     def _annotation_params(self, annotation_path):

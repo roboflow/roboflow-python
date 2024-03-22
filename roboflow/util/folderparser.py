@@ -116,6 +116,15 @@ def _filterIndividualAnnotations(image, annotation, format):
         if len(imgReferences) > 1:
             print(f"warning: found multiple image entries for image {image['file']} in {annotation['file']}")
         if imgReferences:
+            # workaround to make Annotations.js correctly identify this as coco in the backend
+            fake_annotation = {
+                "id": 999999999,
+                "image_id": 999999999,
+                "category_id": 0,
+                "area": 1,
+                "segmentation": [],
+                "iscrowd": 0,
+            }
             imgReference = imgReferences[0]
             _annotation = {
                 "name": "annotation.coco.json",
@@ -125,7 +134,8 @@ def _filterIndividualAnnotations(image, annotation, format):
                     "licenses": parsed["licenses"],
                     "categories": parsed["categories"],
                     "images": [imgReference],
-                    "annotations": [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]],
+                    "annotations": [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]]
+                    or [fake_annotation],
                 },
             }
             return _annotation
