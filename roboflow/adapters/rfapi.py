@@ -123,7 +123,7 @@ def save_annotation(
         upload_url,
         data=json.dumps({"annotationFile": annotation_string, "labelmap": annotation_labelmap}),
         headers={"Content-Type": "application/json"},
-        timeout=(60, 60)
+        timeout=(60, 60),
     )
     responsejson = None
     try:
