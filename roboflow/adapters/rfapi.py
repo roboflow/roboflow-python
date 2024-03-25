@@ -71,14 +71,14 @@ def upload_image(
                 "file": ("imageToUpload", imgjpeg, "image/jpeg"),
             }
         )
-        response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type})
+        response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
 
     else:
         # Hosted image upload url
 
         upload_url = _hosted_upload_url(api_key, project_url, image_path, split)
         # Get response
-        response = requests.post(upload_url)
+        response = requests.post(upload_url, timeout=(300, 300))
     responsejson = None
     try:
         responsejson = response.json()
@@ -123,6 +123,7 @@ def save_annotation(
         upload_url,
         data=json.dumps({"annotationFile": annotation_string, "labelmap": annotation_labelmap}),
         headers={"Content-Type": "application/json"},
+        timeout=(60, 60),
     )
     responsejson = None
     try:
