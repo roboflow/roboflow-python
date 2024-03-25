@@ -31,7 +31,7 @@ repos:
         name: Sort imports
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
+    rev: 7.0.0
     hooks:
       - id: flake8
         name: Flake8 Checks
@@ -40,14 +40,14 @@ repos:
 
 
   -   repo: https://github.com/PyCQA/bandit
-      rev: '1.7.6'
+      rev: '1.7.8'
       hooks:
       -   id: bandit
           args: ["-c", "pyproject.toml"]
           additional_dependencies: ["bandit[toml]"]
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.1.9
+      rev: v0.3.4
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]
