@@ -5,7 +5,7 @@ import re
 from .image_utils import load_labelmap
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
-ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml"}
+ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv"}
 LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
 
 
@@ -138,6 +138,7 @@ def _filterIndividualAnnotations(image, annotation, format):
                     or [fake_annotation],
                 },
             }
+            _annotation["rawText"] = json.dumps(_annotation["parsed"])
             return _annotation
     elif format == "createml":
         imgReferences = [i for i in parsed if i["image"] == image["name"]]
@@ -149,23 +150,56 @@ def _filterIndividualAnnotations(image, annotation, format):
                 "name": "annotation.createml.json",
                 "parsedType": "createml",
                 "parsed": [imgReference],
+                "rawText": json.dumps([imgReference]),
             }
             return _annotation
+    elif format == "csv":
+        imgLines = [l["line"] for l in parsed["lines"] if l["file_name"] == image["name"]]
+        if imgLines:
+            headers = parsed["headers"]
+            _annotation = {
+                "name": "annotation.csv",
+                "parsedType": "csv",
+                "parsed": {
+                    "headers": headers,
+                    "lines": imgLines,
+                },
+                "rawText": "".join([headers] + imgLines),
+            }
+            return _annotation
+        else:
+            return None
     return None
 
 
 def _loadAnnotations(folder, annotations):
-    valid_extensions = {".json"}
+    valid_extensions = {".json", ".csv"}
     annotations = [a for a in annotations if a["extension"] in valid_extensions]
     for ann in annotations:
         extension = ann["extension"]
-        with open(f"{folder}{ann['file']}", "r") as f:
-            parsed = json.load(f)
-            parsedType = _guessAnnotationFileFormat(parsed, extension)
-            if parsedType:
-                ann["parsed"] = parsed
-                ann["parsedType"] = parsedType
+        if extension == ".json":
+            with open(f"{folder}{ann['file']}", "r") as f:
+                parsed = json.load(f)
+                parsedType = _guessAnnotationFileFormat(parsed, extension)
+                if parsedType:
+                    ann["parsed"] = parsed
+                    ann["parsedType"] = parsedType
+        elif extension == ".csv":
+            ann["parsedType"] = "csv"
+            ann["parsed"] = _parseAnnotationCSV(f"{folder}{ann['file']}")
     return annotations
+
+
+def _parseAnnotationCSV(filename):
+    # TODO: use a proper CSV library?
+    with open(filename, "r") as f:
+        lines = f.readlines()
+    headers = lines[0]
+    lines = [{"file_name": l.split(",")[0].strip(), "line": l} for l in lines[1:]]
+    return {
+        "headers": headers,
+        "lines": lines,
+    }
 
 
 def _guessAnnotationFileFormat(parsed, extension):

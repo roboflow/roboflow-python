@@ -38,6 +38,17 @@ class TestFolderParser(unittest.TestCase):
         assert testImage["annotationfile"]["file"] == expectAnnotationFile
         assert testImage["annotationfile"]["labelmap"] == {0: "fish", 1: "primary", 2: "shark"}
 
+    def test_parse_mosquitos_csv(self):
+        sharksfolder = f"{thisdir}/../datasets/mosquitos"
+        parsed = folderparser.parsefolder(sharksfolder)
+        testImagePath = "/train_10308.jpeg"
+        testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
+        assert testImage["annotationfile"]["name"] == "annotation.csv"
+        headers = testImage["annotationfile"]["parsed"]["headers"]
+        lines = testImage["annotationfile"]["parsed"]["lines"]
+        assert headers == "img_fName,img_w,img_h,class_label,bbx_xtl,bbx_ytl,bbx_xbr,bbx_ybr\n"
+        assert lines == ["train_10308.jpeg,1058,943,japonicus/koreicus,28,187,908,815\n"]
+
 
 def _assertJsonMatchesFile(actual, filename):
     with open(filename, "r") as file:

@@ -528,9 +528,9 @@ class Project:
 
     def _annotation_params(self, annotation_path):
         annotation_name, annotation_string = None, None
-        if isinstance(annotation_path, dict):
+        if isinstance(annotation_path, dict) and annotation_path.get("rawText"):
             annotation_name = annotation_path["name"]
-            annotation_string = json.dumps(annotation_path["parsed"])
+            annotation_string = annotation_path["rawText"]
         elif os.path.exists(annotation_path):
             with open(annotation_path, "r"):
                 annotation_string = open(annotation_path, "r").read()
