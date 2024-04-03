@@ -8,9 +8,9 @@ import requests
 from PIL import Image
 
 from roboflow.config import CLASSIFICATION_MODEL
+from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
-from roboflow.models.inference import InferenceModel
 
 
 class ClassificationModel(InferenceModel):
