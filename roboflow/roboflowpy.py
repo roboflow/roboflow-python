@@ -11,7 +11,7 @@ from roboflow.models.classification import ClassificationModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
-
+from roboflow.models.keypoint_detection import KeypointDetectionModel
 
 def login(args):
     roboflow.login()
@@ -133,6 +133,7 @@ def infer(args):
         "classification": ClassificationModel,
         "instance-segmentation": InstanceSegmentationModel,
         "semantic-segmentation": SemanticSegmentationModel,
+        "keypoint-detection": KeypointDetectionModel,
     }[projectType]
     model = modelClass(api_key, project_url)
     kwargs = {}
