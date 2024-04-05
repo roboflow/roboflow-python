@@ -154,7 +154,7 @@ def _filterIndividualAnnotations(image, annotation, format):
             }
             return _annotation
     elif format == "csv":
-        imgLines = [l["line"] for l in parsed["lines"] if l["file_name"] == image["name"]]
+        imgLines = [ld["line"] for ld in parsed["lines"] if ld["file_name"] == image["name"]]
         if imgLines:
             headers = parsed["headers"]
             _annotation = {
@@ -195,7 +195,7 @@ def _parseAnnotationCSV(filename):
     with open(filename, "r") as f:
         lines = f.readlines()
     headers = lines[0]
-    lines = [{"file_name": l.split(",")[0].strip(), "line": l} for l in lines[1:]]
+    lines = [{"file_name": ld.split(",")[0].strip(), "line": ld} for ld in lines[1:]]
     return {
         "headers": headers,
         "lines": lines,
