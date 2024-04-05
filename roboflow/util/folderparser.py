@@ -10,6 +10,9 @@ LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
 
 
 def parsefolder(folder):
+    folder = folder.strip()
+    if folder.endswith("/"):
+        folder = folder[:-1]
     if not os.path.exists(folder):
         raise Exception(f"folder does not exist. {folder}")
     files = _list_files(folder)
