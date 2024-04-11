@@ -191,6 +191,8 @@ class InferenceModel:
             self.type = "gaze-detection"
         elif model_class == "CLIPModel":
             self.type = "clip-embed-image"
+        elif model_class == "KeypointDetectionModel":
+            self.type = "keypoint-detection"
         else:
             raise Exception("Model type not supported for video inference.")
 
