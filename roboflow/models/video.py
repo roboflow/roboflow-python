@@ -9,12 +9,7 @@ import requests
 from roboflow.config import API_URL
 from roboflow.models.inference import InferenceModel
 
-SUPPORTED_ROBOFLOW_MODELS = [
-    "object-detection",
-    "classification",
-    "instance-segmentation",
-    "keypoint-detection"
-]
+SUPPORTED_ROBOFLOW_MODELS = ["object-detection", "classification", "instance-segmentation", "keypoint-detection"]
 
 SUPPORTED_ADDITIONAL_MODELS = {
     "clip": {
