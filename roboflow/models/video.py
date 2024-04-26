@@ -9,11 +9,7 @@ import requests
 from roboflow.config import API_URL
 from roboflow.models.inference import InferenceModel
 
-SUPPORTED_ROBOFLOW_MODELS = [
-    "object-detection",
-    "classification",
-    "instance-segmentation",
-]
+SUPPORTED_ROBOFLOW_MODELS = ["object-detection", "classification", "instance-segmentation", "keypoint-detection"]
 
 SUPPORTED_ADDITIONAL_MODELS = {
     "clip": {
@@ -97,7 +93,7 @@ class VideoInferenceModel(InferenceModel):
 
         for model in additional_models:
             if model not in SUPPORTED_ADDITIONAL_MODELS:
-                raise Exception(f"Model {model} is no t supported for video inference.")
+                raise Exception(f"Model {model} is not supported for video inference.")
 
         if inference_type not in SUPPORTED_ROBOFLOW_MODELS:
             raise Exception(f"Model {inference_type} is not supported for video inference.")

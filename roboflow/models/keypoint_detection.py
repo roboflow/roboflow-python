@@ -13,7 +13,7 @@ from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 
 
-class ClassificationModel(InferenceModel):
+class KeypointDetectionModel(InferenceModel):
     """
     Run inference on a classification model hosted on Roboflow or served through
         Roboflow Inference.
@@ -26,8 +26,6 @@ class ClassificationModel(InferenceModel):
         name: str = None,
         version: int = None,
         local: bool = False,
-        colors: dict = None,
-        preprocessing: dict = None,
     ):
         """
         Create a ClassificationModel object through which you can run inference.
@@ -45,21 +43,18 @@ class ClassificationModel(InferenceModel):
             ClassificationModel Object
         """
         # Instantiate different API URL parameters
-        super(ClassificationModel, self).__init__(api_key, id, version=version)
+        super(KeypointDetectionModel, self).__init__(api_key, id, version=version)
         self.__api_key = api_key
         self.id = id
         self.name = name
         self.version = version
-        self.base_url = "https://classify.roboflow.com/"
+        self.base_url = "https://detect.roboflow.com/"
 
         if self.name is not None and version is not None:
             self.__generate_url()
 
-        self.colors = {} if colors is None else colors
-        self.preprocessing = {} if preprocessing is None else preprocessing
-
         if local:
-            print("initalizing local classification model hosted at :" + local)
+            print("initalizing local keypoint detection model hosted at :" + local)
             self.base_url = local
 
     def predict(self, image_path, hosted=False):
