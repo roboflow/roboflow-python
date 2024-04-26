@@ -31,17 +31,20 @@ class TestFolderParser(unittest.TestCase):
         assert len(imgReference["annotations"]) == 5
 
     def test_parse_sharks_yolov9(self):
-        sharksfolder = f"{thisdir}/../datasets/sharks-tiny-yolov9"
-        parsed = folderparser.parsefolder(sharksfolder)
-        testImagePath = "/train/images/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.jpg"
-        testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
-        expectAnnotationFile = "/train/labels/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.txt"
-        assert testImage["annotationfile"]["file"] == expectAnnotationFile
-        assert testImage["annotationfile"]["labelmap"] == {0: "fish", 1: "primary", 2: "shark"}
+        def test(sharksfolder):
+            parsed = folderparser.parsefolder(sharksfolder)
+            testImagePath = "/train/images/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.jpg"
+            testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
+            expectAnnotationFile = "/train/labels/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.txt"
+            assert testImage["annotationfile"]["file"] == expectAnnotationFile
+            assert testImage["annotationfile"]["labelmap"] == {0: "fish", 1: "primary", 2: "shark"}
+
+        test(f"{thisdir}/../datasets/sharks-tiny-yolov9")
+        test(f"{thisdir}/../datasets/sharks-tiny-yolov9/")  # this was a bug once, can you believe it?
 
     def test_parse_mosquitos_csv(self):
-        sharksfolder = f"{thisdir}/../datasets/mosquitos"
-        parsed = folderparser.parsefolder(sharksfolder)
+        folder = f"{thisdir}/../datasets/mosquitos"
+        parsed = folderparser.parsefolder(folder)
         testImagePath = "/train_10308.jpeg"
         testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
         assert testImage["annotationfile"]["name"] == "annotation.csv"
