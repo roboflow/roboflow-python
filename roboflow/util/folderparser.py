@@ -126,19 +126,17 @@ def _filterIndividualAnnotations(image, annotation, format):
                 "iscrowd": 0,
             }
             imgReference = imgReferences[0]
-            _annotation = {
-                "name": "annotation.coco.json",
-                "parsedType": "coco",
-                "parsed": {
+            _annotation = {"name": "annotation.coco.json"}
+            _annotation["rawText"] = json.dumps(
+                {
                     "info": parsed["info"],
                     "licenses": parsed["licenses"],
                     "categories": parsed["categories"],
                     "images": [imgReference],
                     "annotations": [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]]
                     or [fake_annotation],
-                },
-            }
-            _annotation["rawText"] = json.dumps(_annotation["parsed"])
+                }
+            )
             return _annotation
     elif format == "createml":
         imgReferences = [i for i in parsed if i["image"] == image["name"]]
@@ -148,8 +146,6 @@ def _filterIndividualAnnotations(image, annotation, format):
             imgReference = imgReferences[0]
             _annotation = {
                 "name": "annotation.createml.json",
-                "parsedType": "createml",
-                "parsed": [imgReference],
                 "rawText": json.dumps([imgReference]),
             }
             return _annotation
@@ -159,11 +155,6 @@ def _filterIndividualAnnotations(image, annotation, format):
             headers = parsed["headers"]
             _annotation = {
                 "name": "annotation.csv",
-                "parsedType": "csv",
-                "parsed": {
-                    "headers": headers,
-                    "lines": imgLines,
-                },
                 "rawText": "".join([headers] + imgLines),
             }
             return _annotation
