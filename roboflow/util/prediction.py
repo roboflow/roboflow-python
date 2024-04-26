@@ -477,7 +477,7 @@ class PredictionGroup:
 
         prediction_group_dict["image"] = self.image_dims
         return prediction_group_dict
-    
+
     @staticmethod
     def create_prediction_group(json_response, image_path, prediction_type, image_dims, colors=None):
         """
