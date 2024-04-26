@@ -467,14 +467,17 @@ class PredictionGroup:
                     + ")"
                 )
 
-    def json(self):
-        prediction_group_json = {"predictions": []}
+    def json(self) -> str:
+        return json.dumps(self.dict())
+
+    def dict(self):
+        prediction_group_dict = {"predictions": []}
         for prediction in self.predictions:
-            prediction_group_json["predictions"].append(prediction.json())
+            prediction_group_dict["predictions"].append(prediction.json())
 
-        prediction_group_json["image"] = self.image_dims
-        return prediction_group_json
-
+        prediction_group_dict["image"] = self.image_dims
+        return prediction_group_dict
+    
     @staticmethod
     def create_prediction_group(json_response, image_path, prediction_type, image_dims, colors=None):
         """
