@@ -19,6 +19,7 @@ from roboflow.config import (
     DEMO_KEYS,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
+    TYPE_KEYPOINT_DETECTION,
     TYPE_OBJECT_DETECTION,
     TYPE_SEMANTIC_SEGMENTATION,
     UNIVERSE_URL,
@@ -26,6 +27,7 @@ from roboflow.config import (
 from roboflow.core.dataset import Dataset
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
+from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
@@ -124,6 +126,8 @@ class Version:
                 )
             elif self.type == TYPE_SEMANTIC_SEGMENTATION:
                 self.model = SemanticSegmentationModel(self.__api_key, self.id)
+            elif self.type == TYPE_KEYPOINT_DETECTION:
+                self.model = KeypointDetectionModel(self.__api_key, self.id, version=version_without_workspace)
             else:
                 self.model = None
 

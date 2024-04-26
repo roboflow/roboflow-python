@@ -129,19 +129,17 @@ def _filterIndividualAnnotations(image, annotation, format):
                 "iscrowd": 0,
             }
             imgReference = imgReferences[0]
-            _annotation = {
-                "name": "annotation.coco.json",
-                "parsedType": "coco",
-                "parsed": {
+            _annotation = {"name": "annotation.coco.json"}
+            _annotation["rawText"] = json.dumps(
+                {
                     "info": parsed["info"],
                     "licenses": parsed["licenses"],
                     "categories": parsed["categories"],
                     "images": [imgReference],
                     "annotations": [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]]
                     or [fake_annotation],
-                },
-            }
-            _annotation["rawText"] = json.dumps(_annotation["parsed"])
+                }
+            )
             return _annotation
     elif format == "createml":
         imgReferences = [i for i in parsed if i["image"] == image["name"]]
@@ -151,22 +149,15 @@ def _filterIndividualAnnotations(image, annotation, format):
             imgReference = imgReferences[0]
             _annotation = {
                 "name": "annotation.createml.json",
-                "parsedType": "createml",
-                "parsed": [imgReference],
                 "rawText": json.dumps([imgReference]),
             }
             return _annotation
     elif format == "csv":
-        imgLines = [l["line"] for l in parsed["lines"] if l["file_name"] == image["name"]]
+        imgLines = [ld["line"] for ld in parsed["lines"] if ld["file_name"] == image["name"]]
         if imgLines:
             headers = parsed["headers"]
             _annotation = {
                 "name": "annotation.csv",
-                "parsedType": "csv",
-                "parsed": {
-                    "headers": headers,
-                    "lines": imgLines,
-                },
                 "rawText": "".join([headers] + imgLines),
             }
             return _annotation
@@ -198,7 +189,7 @@ def _parseAnnotationCSV(filename):
     with open(filename, "r") as f:
         lines = f.readlines()
     headers = lines[0]
-    lines = [{"file_name": l.split(",")[0].strip(), "line": l} for l in lines[1:]]
+    lines = [{"file_name": ld.split(",")[0].strip(), "line": ld} for ld in lines[1:]]
     return {
         "headers": headers,
         "lines": lines,

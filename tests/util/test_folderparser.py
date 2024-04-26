@@ -18,15 +18,16 @@ class TestFolderParser(unittest.TestCase):
         parsed = folderparser.parsefolder(sharksfolder)
         testImagePath = "/train/sharks_mp4-20_jpg.rf.90ba2e8e9ca0613f71359efb7ed48b26.jpg"
         testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
-        assert len(testImage["annotationfile"]["parsed"]["annotations"]) == 5
+        assert len(json.loads(testImage["annotationfile"]["rawText"])["annotations"]) == 5
 
     def test_parse_sharks_createml(self):
         sharksfolder = f"{thisdir}/../datasets/sharks-tiny-createml"
         parsed = folderparser.parsefolder(sharksfolder)
         testImagePath = "/train/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.jpg"
         testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
-        assert len(testImage["annotationfile"]["parsed"]) == 1
-        imgReference = testImage["annotationfile"]["parsed"][0]
+        imgParsedAnnotations = json.loads(testImage["annotationfile"]["rawText"])
+        assert len(imgParsedAnnotations) == 1
+        imgReference = imgParsedAnnotations[0]
         assert len(imgReference["annotations"]) == 5
 
     def test_parse_sharks_yolov9(self):
@@ -47,10 +48,9 @@ class TestFolderParser(unittest.TestCase):
         testImagePath = "/train_10308.jpeg"
         testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
         assert testImage["annotationfile"]["name"] == "annotation.csv"
-        headers = testImage["annotationfile"]["parsed"]["headers"]
-        lines = testImage["annotationfile"]["parsed"]["lines"]
-        assert headers == "img_fName,img_w,img_h,class_label,bbx_xtl,bbx_ytl,bbx_xbr,bbx_ybr\n"
-        assert lines == ["train_10308.jpeg,1058,943,japonicus/koreicus,28,187,908,815\n"]
+        expected = "img_fName,img_w,img_h,class_label,bbx_xtl,bbx_ytl,bbx_xbr,bbx_ybr\n"
+        expected += "train_10308.jpeg,1058,943,japonicus/koreicus,28,187,908,815\n"
+        assert testImage["annotationfile"]["rawText"] == expected
 
 
 def _assertJsonMatchesFile(actual, filename):

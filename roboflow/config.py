@@ -69,6 +69,7 @@ TYPE_CLASSICATION = "classification"
 TYPE_OBJECT_DETECTION = "object-detection"
 TYPE_INSTANCE_SEGMENTATION = "instance-segmentation"
 TYPE_SEMANTIC_SEGMENTATION = "semantic-segmentation"
+TYPE_KEYPOINT_DETECTION = "keypoint-detection"
 
 DEFAULT_BATCH_NAME = "Pip Package Upload"
 DEFAULT_JOB_NAME = "Annotated via API"
