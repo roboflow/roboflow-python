@@ -1,0 +1,5 @@
+img_fName,img_w,img_h,class_label,bbx_xtl,bbx_ytl,bbx_xbr,bbx_ybr
+train_10307.jpeg,3024,4032,culex,1459,1389,1826,2062
+train_10308.jpeg,1058,943,japonicus/koreicus,28,187,908,815
+train_10309.jpeg,1024,1365,culex,304,438,614,785
+train_10310.jpeg,2976,3968,albopictus,1900,1280,2163,1653

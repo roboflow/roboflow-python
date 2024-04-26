@@ -5,7 +5,7 @@ import re
 from .image_utils import load_labelmap
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
-ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml"}
+ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv"}
 LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
 
 
@@ -126,18 +126,17 @@ def _filterIndividualAnnotations(image, annotation, format):
                 "iscrowd": 0,
             }
             imgReference = imgReferences[0]
-            _annotation = {
-                "name": "annotation.coco.json",
-                "parsedType": "coco",
-                "parsed": {
+            _annotation = {"name": "annotation.coco.json"}
+            _annotation["rawText"] = json.dumps(
+                {
                     "info": parsed["info"],
                     "licenses": parsed["licenses"],
                     "categories": parsed["categories"],
                     "images": [imgReference],
                     "annotations": [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]]
                     or [fake_annotation],
-                },
-            }
+                }
+            )
             return _annotation
     elif format == "createml":
         imgReferences = [i for i in parsed if i["image"] == image["name"]]
@@ -147,25 +146,51 @@ def _filterIndividualAnnotations(image, annotation, format):
             imgReference = imgReferences[0]
             _annotation = {
                 "name": "annotation.createml.json",
-                "parsedType": "createml",
-                "parsed": [imgReference],
+                "rawText": json.dumps([imgReference]),
             }
             return _annotation
+    elif format == "csv":
+        imgLines = [ld["line"] for ld in parsed["lines"] if ld["file_name"] == image["name"]]
+        if imgLines:
+            headers = parsed["headers"]
+            _annotation = {
+                "name": "annotation.csv",
+                "rawText": "".join([headers] + imgLines),
+            }
+            return _annotation
+        else:
+            return None
     return None
 
 
 def _loadAnnotations(folder, annotations):
-    valid_extensions = {".json"}
+    valid_extensions = {".json", ".csv"}
     annotations = [a for a in annotations if a["extension"] in valid_extensions]
     for ann in annotations:
         extension = ann["extension"]
-        with open(f"{folder}{ann['file']}", "r") as f:
-            parsed = json.load(f)
-            parsedType = _guessAnnotationFileFormat(parsed, extension)
-            if parsedType:
-                ann["parsed"] = parsed
-                ann["parsedType"] = parsedType
+        if extension == ".json":
+            with open(f"{folder}{ann['file']}", "r") as f:
+                parsed = json.load(f)
+                parsedType = _guessAnnotationFileFormat(parsed, extension)
+                if parsedType:
+                    ann["parsed"] = parsed
+                    ann["parsedType"] = parsedType
+        elif extension == ".csv":
+            ann["parsedType"] = "csv"
+            ann["parsed"] = _parseAnnotationCSV(f"{folder}{ann['file']}")
     return annotations
+
+
+def _parseAnnotationCSV(filename):
+    # TODO: use a proper CSV library?
+    with open(filename, "r") as f:
+        lines = f.readlines()
+    headers = lines[0]
+    lines = [{"file_name": ld.split(",")[0].strip(), "line": ld} for ld in lines[1:]]
+    return {
+        "headers": headers,
+        "lines": lines,
+    }
 
 
 def _guessAnnotationFileFormat(parsed, extension):

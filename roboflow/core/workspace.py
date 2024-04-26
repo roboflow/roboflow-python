@@ -341,8 +341,8 @@ class Workspace:
             labelmap = None
             annotationdesc = imagedesc.get("annotationfile")
             if annotationdesc:
-                if annotationdesc.get("parsed"):
-                    annotation_path = {"name": annotationdesc["name"], "parsed": annotationdesc["parsed"]}
+                if annotationdesc.get("rawText"):
+                    annotation_path = annotationdesc
                 else:
                     annotation_path = f"{location}{annotationdesc['file']}"
                 labelmap = annotationdesc.get("labelmap")
