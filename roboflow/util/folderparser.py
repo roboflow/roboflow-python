@@ -99,10 +99,7 @@ def _map_annotations_to_images_1to1(images, annotations):
 
 
 def _map_annotations_to_images_1tomany(images, annotations):
-    annotationsByDirname = {}
-    for ann in annotations:
-        dirname = ann["dirname"]
-        annotationsByDirname.setdefault(dirname, []).append(ann)
+    annotationsByDirname = _list_map(annotations, "dirname")
 
     parsed = annotationsByDirname.get(dirname, [])[0]["parsed"]
 
@@ -113,7 +110,6 @@ def _map_annotations_to_images_1tomany(images, annotations):
             img_dict[file_name] = img_reference
     except:
         img_dict = {}
-
 
     anno_dict = {}
     try:
@@ -140,9 +136,9 @@ def _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict)
     parsed = annotation["parsed"]
     if format == "coco":
 
-        image_name = image["name"]
-        imgReferences = [img_dict.get(image_name)]
-        # imgReferences = [i for i in parsed["images"] if i["file_name"] == image["name"]]
+        # image_name = image["name"]
+        # imgReferences = [img_dict.get(image_name)]
+        imgReferences = [i for i in parsed["images"] if i["file_name"] == image["name"]]
 
         if len(imgReferences) > 1:
             print(f"warning: found multiple image entries for image {image['file']} in {annotation['file']}")
@@ -159,12 +155,14 @@ def _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict)
 
             imgReference = imgReferences[0]
             _annotation = {"name": "annotation.coco.json"}
-            try:
-                img_id = imgReference["id"]
-                annotations_for_image = anno_dict.get(img_id, [])
-            except TypeError:
-                annotations_for_image = []
-                print("Couldn't parse imgReference ID for image", image["name"])
+            # try:
+            #     img_id = imgReference["id"]
+            #     annotations_for_image = anno_dict.get(img_id, [])
+            # except TypeError:
+            #     annotations_for_image = []
+            #     print("Couldn't parse imgReference ID for image", image["name"])
+            # annotations_for_image = [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]] or [fake_annotation]
+            annotations_for_image = anno_dict.get(imgReference["id"], []) or [fake_annotation]
 
             _annotation["rawText"] = json.dumps(
                 {
@@ -172,7 +170,7 @@ def _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict)
                     "licenses": parsed["licenses"],
                     "categories": parsed["categories"],
                     "images": [imgReference],
-                    "annotations": annotations_for_image or [fake_annotation]
+                    "annotations": annotations_for_image or [fake_annotation],
                 }
             )
             return _annotation
@@ -276,3 +274,10 @@ def _decide_split(images):
             i["split"] = "test"
         else:
             i["split"] = "train"
+
+
+def _list_map(l, key):
+    d = {}
+    for i in l:
+        d.setdefault(i[key], []).append(i)
+    return d
