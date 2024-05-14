@@ -2,10 +2,9 @@ import json
 import os
 import re
 
-from .image_utils import load_labelmap
-
 from tqdm import tqdm
-from collections import defaultdict
+
+from .image_utils import load_labelmap
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv"}
@@ -108,7 +107,7 @@ def _map_annotations_to_images_1tomany(images, annotations):
     parsed = annotationsByDirname.get(dirname, [])[0]["parsed"]
 
     img_dict = {}
-    try: 
+    try:
         for img_reference in parsed["images"]:
             file_name = img_reference["file_name"]
             img_dict[file_name] = img_reference
@@ -163,8 +162,8 @@ def _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict)
             try:
                 img_id = imgReference["id"]
                 annotations_for_image = anno_dict.get(img_id, [])
-            except TypeError as e:
-                annotations_for_image = []  
+            except TypeError:
+                annotations_for_image = []
                 print("Couldn't parse imgReference ID for image", image["name"])
 
             _annotation["rawText"] = json.dumps(
@@ -173,7 +172,7 @@ def _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict)
                     "licenses": parsed["licenses"],
                     "categories": parsed["categories"],
                     "images": [imgReference],
-                    "annotations": annotations_for_image or [fake_annotation] 
+                    "annotations": annotations_for_image or [fake_annotation]
                 }
             )
             return _annotation

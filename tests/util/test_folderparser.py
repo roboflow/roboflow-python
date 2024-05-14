@@ -54,9 +54,9 @@ class TestFolderParser(unittest.TestCase):
         assert testImage["annotationfile"]["rawText"] == expected
 
     def test_parse_coconut(self):
-        folder = f"/coconut/images/COCONut-S/"
+        folder = "/coconut/images/COCONut-S/"
         parsed = folderparser.parsefolder(folder)
-        
+
 
 
 def _assertJsonMatchesFile(actual, filename):
