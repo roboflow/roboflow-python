@@ -4,6 +4,9 @@ import re
 
 from .image_utils import load_labelmap
 
+from tqdm import tqdm
+from collections import defaultdict
+
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv"}
 LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
@@ -101,7 +104,29 @@ def _map_annotations_to_images_1tomany(images, annotations):
     for ann in annotations:
         dirname = ann["dirname"]
         annotationsByDirname.setdefault(dirname, []).append(ann)
-    for image in images:
+
+    parsed = annotationsByDirname.get(dirname, [])[0]["parsed"]
+
+    img_dict = {}
+    try: 
+        for img_reference in parsed["images"]:
+            file_name = img_reference["file_name"]
+            img_dict[file_name] = img_reference
+    except:
+        img_dict = {}
+
+
+    anno_dict = {}
+    try:
+        for annotation in parsed["annotations"]:
+            image_id = annotation["image_id"]
+            if image_id not in anno_dict:
+                anno_dict[image_id] = []
+            anno_dict[image_id].append(annotation)
+    except:
+        anno_dict = {}
+
+    for image in tqdm(images, unit="percentage"):
         dirname = image["dirname"]
         annotationsInSameDir = annotationsByDirname.get(dirname, [])
         if annotationsInSameDir:
@@ -109,13 +134,17 @@ def _map_annotations_to_images_1tomany(images, annotations):
                 print(f"warning: found multiple annotation files on dir {dirname}")
             annotation = annotationsInSameDir[0]
             format = annotation["parsedType"]
-            image["annotationfile"] = _filterIndividualAnnotations(image, annotation, format)
+            image["annotationfile"] = _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict)
 
 
-def _filterIndividualAnnotations(image, annotation, format):
+def _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict):
     parsed = annotation["parsed"]
     if format == "coco":
-        imgReferences = [i for i in parsed["images"] if i["file_name"] == image["name"]]
+
+        image_name = image["name"]
+        imgReferences = [img_dict.get(image_name)]
+        # imgReferences = [i for i in parsed["images"] if i["file_name"] == image["name"]]
+
         if len(imgReferences) > 1:
             print(f"warning: found multiple image entries for image {image['file']} in {annotation['file']}")
         if imgReferences:
@@ -128,16 +157,23 @@ def _filterIndividualAnnotations(image, annotation, format):
                 "segmentation": [],
                 "iscrowd": 0,
             }
+
             imgReference = imgReferences[0]
             _annotation = {"name": "annotation.coco.json"}
+            try:
+                img_id = imgReference["id"]
+                annotations_for_image = anno_dict.get(img_id, [])
+            except TypeError as e:
+                annotations_for_image = []  
+                print("Couldn't parse imgReference ID for image", image["name"])
+
             _annotation["rawText"] = json.dumps(
                 {
                     "info": parsed["info"],
                     "licenses": parsed["licenses"],
                     "categories": parsed["categories"],
                     "images": [imgReference],
-                    "annotations": [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]]
-                    or [fake_annotation],
+                    "annotations": annotations_for_image or [fake_annotation] 
                 }
             )
             return _annotation

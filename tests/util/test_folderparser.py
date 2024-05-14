@@ -18,6 +18,7 @@ class TestFolderParser(unittest.TestCase):
         parsed = folderparser.parsefolder(sharksfolder)
         testImagePath = "/train/sharks_mp4-20_jpg.rf.90ba2e8e9ca0613f71359efb7ed48b26.jpg"
         testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
+        print(len(json.loads(testImage["annotationfile"]["rawText"])["annotations"]))
         assert len(json.loads(testImage["annotationfile"]["rawText"])["annotations"]) == 5
 
     def test_parse_sharks_createml(self):
@@ -51,6 +52,11 @@ class TestFolderParser(unittest.TestCase):
         expected = "img_fName,img_w,img_h,class_label,bbx_xtl,bbx_ytl,bbx_xbr,bbx_ybr\n"
         expected += "train_10308.jpeg,1058,943,japonicus/koreicus,28,187,908,815\n"
         assert testImage["annotationfile"]["rawText"] == expected
+
+    def test_parse_coconut(self):
+        folder = f"/coconut/images/COCONut-S/"
+        parsed = folderparser.parsefolder(folder)
+        
 
 
 def _assertJsonMatchesFile(actual, filename):
