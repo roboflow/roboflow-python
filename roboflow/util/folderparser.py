@@ -119,7 +119,7 @@ def _map_annotations_to_images_1tomany(images, annotations):
                 key = f"{directory}/{annotation['image_id']}"
                 annotationByDirectoryImageId[key].append(annotation)
 
-    for image in tqdm(images, unit="percentage"):
+    for image in tqdm(images):
         dirname = image["dirname"]
         annotationsInSameDir = annotationsByDirname.get(dirname, [])
         if annotationsInSameDir:
