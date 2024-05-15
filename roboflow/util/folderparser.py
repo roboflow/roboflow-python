@@ -107,10 +107,10 @@ def _map_annotations_to_images_1tomany(images, annotations):
 
     for directory, annotation_files in annotationsByDirname.items():
         parsed_data = annotation_files[0]["parsed"]
-        parsed_type = annotation_files[0]['parsedType']
+        parsed_type = annotation_files[0]["parsedType"]
 
         # Process only if the format is COCO
-        if parsed_type == 'coco':
+        if parsed_type == "coco":
             for image_info in parsed_data["images"]:
                 imageByFilename[image_info["file_name"]] = image_info
 
@@ -118,7 +118,6 @@ def _map_annotations_to_images_1tomany(images, annotations):
                 # Since image_id aren't unique across directories, create a unique key with the directory name.
                 key = f"{directory}/{annotation['image_id']}"
                 annotationByDirectoryImageId[key].append(annotation)
-
 
     for image in tqdm(images, unit="percentage"):
         dirname = image["dirname"]
@@ -128,7 +127,9 @@ def _map_annotations_to_images_1tomany(images, annotations):
                 print(f"warning: found multiple annotation files on dir {dirname}")
             annotation = annotationsInSameDir[0]
             format = annotation["parsedType"]
-            image["annotationfile"] = _filterIndividualAnnotations(image, annotation, format, imageByFilename, annotationByDirectoryImageId)
+            image["annotationfile"] = _filterIndividualAnnotations(
+                image, annotation, format, imageByFilename, annotationByDirectoryImageId
+            )
 
 
 def _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict):
@@ -260,8 +261,8 @@ def _decide_split(images):
             i["split"] = "train"
 
 
-def _list_map(l, key):
+def _list_map(my_list, key):
     d = {}
-    for i in l:
+    for i in my_list:
         d.setdefault(i[key], []).append(i)
     return d
