@@ -99,25 +99,9 @@ def _map_annotations_to_images_1to1(images, annotations):
     return countmapped > 0
 
 
-def _map_annotations_to_images_1tomany(images, annotations):
-    annotationsByDirname = _list_map(annotations, "dirname")
-
-    imageByFilename = {}
-    annotationByDirectoryImageId = defaultdict(list)
-
-    for directory, annotation_files in annotationsByDirname.items():
-        parsed_data = annotation_files[0]["parsed"]
-        parsed_type = annotation_files[0]["parsedType"]
-
-        # Process only if the format is COCO
-        if parsed_type == "coco":
-            for image_info in parsed_data["images"]:
-                imageByFilename[image_info["file_name"]] = image_info
-
-            for annotation in parsed_data["annotations"]:
-                # Since image_id aren't unique across directories, create a unique key with the directory name.
-                key = f"{directory}/{annotation['image_id']}"
-                annotationByDirectoryImageId[key].append(annotation)
+def _map_annotations_to_images_1tomany(images, annotationFiles):
+    annotationsByDirname = _list_map(annotationFiles, "dirname")
+    imgRefMap, annotationMap = _build_image_and_annotation_maps(annotationFiles)
 
     for image in tqdm(images):
         dirname = image["dirname"]
@@ -125,17 +109,35 @@ def _map_annotations_to_images_1tomany(images, annotations):
         if annotationsInSameDir:
             if len(annotationsInSameDir) > 1:
                 print(f"warning: found multiple annotation files on dir {dirname}")
-            annotation = annotationsInSameDir[0]
-            format = annotation["parsedType"]
+            annotationFile = annotationsInSameDir[0]
+            format = annotationFile["parsedType"]
             image["annotationfile"] = _filterIndividualAnnotations(
-                image, annotation, format, imageByFilename, annotationByDirectoryImageId
+                image, annotationFile, format, imgRefMap, annotationMap
             )
 
 
-def _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict):
+def _build_image_and_annotation_maps(annotationFiles):
+    imgRefMap = {}
+    annotationMap = defaultdict(list)
+    for annFile in annotationFiles:
+        filename, dirname, parsed, parsedType = (
+            annFile["file"],
+            annFile["dirname"],
+            annFile["parsed"],
+            annFile["parsedType"],
+        )
+        if parsedType == "coco":
+            for imageRef in parsed["images"]:
+                imgRefMap[f"{filename}/{imageRef['file_name']}"] = imageRef
+            for annotation in parsed["annotations"]:
+                annotationMap[f"{dirname}/{annotation['image_id']}"].append(annotation)
+    return imgRefMap, annotationMap
+
+
+def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotationMap):
     parsed = annotation["parsed"]
     if format == "coco":
-        imgReference = img_dict.get(image["name"])
+        imgReference = imgRefMap.get(f"{annotation['file']}/{image['name']}")
         if imgReference:
             # workaround to make Annotations.js correctly identify this as coco in the backend
             fake_annotation = {
@@ -147,8 +149,7 @@ def _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict)
                 "iscrowd": 0,
             }
             _annotation = {"name": "annotation.coco.json"}
-            key = f"{image['dirname']}/{imgReference['id']}"
-            annotations_for_image = anno_dict.get(key, [])
+            annotations_for_image = annotationMap.get(f"{image['dirname']}/{imgReference['id']}", [])
             _annotation["rawText"] = json.dumps(
                 {
                     "info": parsed["info"],
