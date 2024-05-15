@@ -1,9 +1,9 @@
 import json
 import os
 import re
+from collections import defaultdict
 
 from tqdm import tqdm
-from collections import defaultdict
 
 from .image_utils import load_labelmap
 
