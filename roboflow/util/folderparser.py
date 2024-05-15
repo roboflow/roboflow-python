@@ -1,6 +1,9 @@
 import json
 import os
 import re
+from collections import defaultdict
+
+from tqdm import tqdm
 
 from .image_utils import load_labelmap
 
@@ -96,29 +99,46 @@ def _map_annotations_to_images_1to1(images, annotations):
     return countmapped > 0
 
 
-def _map_annotations_to_images_1tomany(images, annotations):
-    annotationsByDirname = {}
-    for ann in annotations:
-        dirname = ann["dirname"]
-        annotationsByDirname.setdefault(dirname, []).append(ann)
-    for image in images:
+def _map_annotations_to_images_1tomany(images, annotationFiles):
+    annotationsByDirname = _list_map(annotationFiles, "dirname")
+    imgRefMap, annotationMap = _build_image_and_annotation_maps(annotationFiles)
+
+    for image in tqdm(images):
         dirname = image["dirname"]
         annotationsInSameDir = annotationsByDirname.get(dirname, [])
         if annotationsInSameDir:
             if len(annotationsInSameDir) > 1:
                 print(f"warning: found multiple annotation files on dir {dirname}")
-            annotation = annotationsInSameDir[0]
-            format = annotation["parsedType"]
-            image["annotationfile"] = _filterIndividualAnnotations(image, annotation, format)
+            annotationFile = annotationsInSameDir[0]
+            format = annotationFile["parsedType"]
+            image["annotationfile"] = _filterIndividualAnnotations(
+                image, annotationFile, format, imgRefMap, annotationMap
+            )
 
 
-def _filterIndividualAnnotations(image, annotation, format):
+def _build_image_and_annotation_maps(annotationFiles):
+    imgRefMap = {}
+    annotationMap = defaultdict(list)
+    for annFile in annotationFiles:
+        filename, dirname, parsed, parsedType = (
+            annFile["file"],
+            annFile["dirname"],
+            annFile["parsed"],
+            annFile["parsedType"],
+        )
+        if parsedType == "coco":
+            for imageRef in parsed["images"]:
+                imgRefMap[f"{filename}/{imageRef['file_name']}"] = imageRef
+            for annotation in parsed["annotations"]:
+                annotationMap[f"{dirname}/{annotation['image_id']}"].append(annotation)
+    return imgRefMap, annotationMap
+
+
+def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotationMap):
     parsed = annotation["parsed"]
     if format == "coco":
-        imgReferences = [i for i in parsed["images"] if i["file_name"] == image["name"]]
-        if len(imgReferences) > 1:
-            print(f"warning: found multiple image entries for image {image['file']} in {annotation['file']}")
-        if imgReferences:
+        imgReference = imgRefMap.get(f"{annotation['file']}/{image['name']}")
+        if imgReference:
             # workaround to make Annotations.js correctly identify this as coco in the backend
             fake_annotation = {
                 "id": 999999999,
@@ -128,16 +148,15 @@ def _filterIndividualAnnotations(image, annotation, format):
                 "segmentation": [],
                 "iscrowd": 0,
             }
-            imgReference = imgReferences[0]
             _annotation = {"name": "annotation.coco.json"}
+            annotations_for_image = annotationMap.get(f"{image['dirname']}/{imgReference['id']}", [])
             _annotation["rawText"] = json.dumps(
                 {
                     "info": parsed["info"],
                     "licenses": parsed["licenses"],
                     "categories": parsed["categories"],
                     "images": [imgReference],
-                    "annotations": [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]]
-                    or [fake_annotation],
+                    "annotations": annotations_for_image or [fake_annotation],
                 }
             )
             return _annotation
@@ -241,3 +260,10 @@ def _decide_split(images):
             i["split"] = "test"
         else:
             i["split"] = "train"
+
+
+def _list_map(my_list, key):
+    d = {}
+    for i in my_list:
+        d.setdefault(i[key], []).append(i)
+    return d
