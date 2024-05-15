@@ -3,6 +3,7 @@ import os
 import re
 
 from tqdm import tqdm
+from collections import defaultdict
 
 from .image_utils import load_labelmap
 
@@ -101,25 +102,23 @@ def _map_annotations_to_images_1to1(images, annotations):
 def _map_annotations_to_images_1tomany(images, annotations):
     annotationsByDirname = _list_map(annotations, "dirname")
 
-    parsed = annotationsByDirname.get(dirname, [])[0]["parsed"]
+    imageByFilename = {}
+    annotationByDirectoryImageId = defaultdict(list)
 
-    img_dict = {}
-    try:
-        for img_reference in parsed["images"]:
-            file_name = img_reference["file_name"]
-            img_dict[file_name] = img_reference
-    except:
-        img_dict = {}
+    for directory, annotation_files in annotationsByDirname.items():
+        parsed_data = annotation_files[0]["parsed"]
+        parsed_type = annotation_files[0]['parsedType']
 
-    anno_dict = {}
-    try:
-        for annotation in parsed["annotations"]:
-            image_id = annotation["image_id"]
-            if image_id not in anno_dict:
-                anno_dict[image_id] = []
-            anno_dict[image_id].append(annotation)
-    except:
-        anno_dict = {}
+        # Process only if the format is COCO
+        if parsed_type == 'coco':
+            for image_info in parsed_data["images"]:
+                imageByFilename[image_info["file_name"]] = image_info
+
+            for annotation in parsed_data["annotations"]:
+                # Since image_id aren't unique across directories, create a unique key with the directory name.
+                key = f"{directory}/{annotation['image_id']}"
+                annotationByDirectoryImageId[key].append(annotation)
+
 
     for image in tqdm(images, unit="percentage"):
         dirname = image["dirname"]
@@ -129,20 +128,14 @@ def _map_annotations_to_images_1tomany(images, annotations):
                 print(f"warning: found multiple annotation files on dir {dirname}")
             annotation = annotationsInSameDir[0]
             format = annotation["parsedType"]
-            image["annotationfile"] = _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict)
+            image["annotationfile"] = _filterIndividualAnnotations(image, annotation, format, imageByFilename, annotationByDirectoryImageId)
 
 
 def _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict):
     parsed = annotation["parsed"]
     if format == "coco":
-
-        # image_name = image["name"]
-        # imgReferences = [img_dict.get(image_name)]
-        imgReferences = [i for i in parsed["images"] if i["file_name"] == image["name"]]
-
-        if len(imgReferences) > 1:
-            print(f"warning: found multiple image entries for image {image['file']} in {annotation['file']}")
-        if imgReferences:
+        imgReference = img_dict.get(image["name"])
+        if imgReference:
             # workaround to make Annotations.js correctly identify this as coco in the backend
             fake_annotation = {
                 "id": 999999999,
@@ -152,18 +145,9 @@ def _filterIndividualAnnotations(image, annotation, format, img_dict, anno_dict)
                 "segmentation": [],
                 "iscrowd": 0,
             }
-
-            imgReference = imgReferences[0]
             _annotation = {"name": "annotation.coco.json"}
-            # try:
-            #     img_id = imgReference["id"]
-            #     annotations_for_image = anno_dict.get(img_id, [])
-            # except TypeError:
-            #     annotations_for_image = []
-            #     print("Couldn't parse imgReference ID for image", image["name"])
-            # annotations_for_image = [a for a in parsed["annotations"] if a["image_id"] == imgReference["id"]] or [fake_annotation]
-            annotations_for_image = anno_dict.get(imgReference["id"], []) or [fake_annotation]
-
+            key = f"{image['dirname']}/{imgReference['id']}"
+            annotations_for_image = anno_dict.get(key, [])
             _annotation["rawText"] = json.dumps(
                 {
                     "info": parsed["info"],
