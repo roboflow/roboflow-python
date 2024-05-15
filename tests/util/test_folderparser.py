@@ -18,7 +18,6 @@ class TestFolderParser(unittest.TestCase):
         parsed = folderparser.parsefolder(sharksfolder)
         testImagePath = "/train/sharks_mp4-20_jpg.rf.90ba2e8e9ca0613f71359efb7ed48b26.jpg"
         testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
-        print(len(json.loads(testImage["annotationfile"]["rawText"])["annotations"]))
         assert len(json.loads(testImage["annotationfile"]["rawText"])["annotations"]) == 5
 
     def test_parse_sharks_createml(self):
