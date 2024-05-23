@@ -432,10 +432,14 @@ class Version:
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
 
-        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas"]
+        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas", "paligemma"]
 
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
+
+        if "paligemma" in model_type:
+            self.deploy_paligemma(model_type, model_path, filename)
+            return
 
         if "yolonas" in model_type:
             self.deploy_yolonas(model_type, model_path, filename)
@@ -548,6 +552,56 @@ class Version:
 
         self.upload_zip(model_type, model_path)
 
+    def deploy_paligemma(
+        self, model_type: str, model_path: str, filename: str = "fine-tuned-paligemma-3b-pt-224.f16.npz"
+    ) -> None:
+        # Check if model_path exists
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model path {model_path} does not exist.")
+        model_files = os.listdir(model_path)
+        print(f"Model files found in {model_path}: {model_files}")
+
+        files_to_deploy = []
+
+        # Find first .npz file in model_path
+        npz_filename = next((file for file in model_files if file.endswith(".npz")), None)
+        if any([file.endswith(".safetensors") for file in model_files]):
+            print("Found .safetensors file in model path. Deploying PyTorch PaliGemma model.")
+            necessary_files = [
+                "config.json",
+                "generation_config.json",
+                "model.safetensors.index.json",
+                "preprocessor_config.json",
+                "special_tokens_map.json",
+                "tokenizer_config.json",
+                "tokenizer.json",
+            ]
+            for file in necessary_files:
+                if file not in model_files:
+                    print("Missing necessary file", file)
+                    res = input("Do you want to continue? (y/n)")
+                    if res.lower() != "y":
+                        exit(1)
+            for file in model_files:
+                files_to_deploy.append(file)
+        elif npz_filename is not None:
+            print(f"Found .npz file {npz_filename} in model path. Deploying JAX PaliGemma model.")
+            files_to_deploy.append(npz_filename)
+        else:
+            raise FileNotFoundError(f"No .npz or .safetensors file found in model path {model_path}.")
+        
+        if len(files_to_deploy) == 0:
+            raise FileNotFoundError(f"No valid files found in model path {model_path}.")
+        
+        import tarfile
+        with tarfile.open(os.path.join(model_path, "roboflow_deploy.tar"), "w") as tar:
+            for file in files_to_deploy:
+                tar.add(os.path.join(model_path, file), arcname=file)
+            
+
+        print("Uploading model to Roboflow... May take several minutes.")
+        self.upload_zip(model_type, model_path, "roboflow_deploy.tar")
+
     def deploy_yolonas(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
         try:
             import torch
@@ -613,7 +667,7 @@ class Version:
 
         self.upload_zip(model_type, model_path)
 
-    def upload_zip(self, model_type: str, model_path: str):
+    def upload_zip(self, model_type: str, model_path: str, model_file_name: str = "roboflow_deploy.zip"):
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}"
             f"/uploadModel?api_key={self.__api_key}&modelType={model_type}&nocache=true"
@@ -632,7 +686,7 @@ class Version:
 
         res = requests.put(
             res.json()["url"],
-            data=open(os.path.join(model_path, "roboflow_deploy.zip"), "rb"),
+            data=open(os.path.join(model_path, model_file_name), "rb"),
         )
         try:
             res.raise_for_status()
