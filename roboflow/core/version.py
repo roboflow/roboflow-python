@@ -589,15 +589,15 @@ class Version:
             files_to_deploy.append(npz_filename)
         else:
             raise FileNotFoundError(f"No .npz or .safetensors file found in model path {model_path}.")
-        
+
         if len(files_to_deploy) == 0:
             raise FileNotFoundError(f"No valid files found in model path {model_path}.")
-        
+
         import tarfile
         with tarfile.open(os.path.join(model_path, "roboflow_deploy.tar"), "w") as tar:
             for file in files_to_deploy:
                 tar.add(os.path.join(model_path, file), arcname=file)
-            
+
 
         print("Uploading model to Roboflow... May take several minutes.")
         self.upload_zip(model_type, model_path, "roboflow_deploy.tar")
