@@ -594,10 +594,10 @@ class Version:
             raise FileNotFoundError(f"No valid files found in model path {model_path}.")
 
         import tarfile
+
         with tarfile.open(os.path.join(model_path, "roboflow_deploy.tar"), "w") as tar:
             for file in files_to_deploy:
                 tar.add(os.path.join(model_path, file), arcname=file)
-
 
         print("Uploading model to Roboflow... May take several minutes.")
         self.upload_zip(model_type, model_path, "roboflow_deploy.tar")
