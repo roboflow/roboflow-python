@@ -592,6 +592,7 @@ class Version:
 
         if len(files_to_deploy) == 0:
             raise FileNotFoundError(f"No valid files found in model path {model_path}.")
+        print(f"Zipping files for deploy: {files_to_deploy}")
 
         import tarfile
 
@@ -599,7 +600,7 @@ class Version:
             for file in files_to_deploy:
                 tar.add(os.path.join(model_path, file), arcname=file)
 
-        print("Uploading model to Roboflow... May take several minutes.")
+        print("Uploading to Roboflow... May take several minutes.")
         self.upload_zip(model_type, model_path, "roboflow_deploy.tar")
 
     def deploy_yolonas(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
