@@ -23,6 +23,7 @@ from roboflow.config import (
     TYPE_OBJECT_DETECTION,
     TYPE_SEMANTIC_SEGMENTATION,
     UNIVERSE_URL,
+    TQDM_DESCRIPTIONS
 )
 from roboflow.core.dataset import Dataset
 from roboflow.models.classification import ClassificationModel
@@ -740,9 +741,13 @@ class Version:
             # write the zip file to the desired location
             with open(location + "/roboflow.zip", "wb") as f:
                 total_length = int(response.headers.get("content-length"))
+                if TQDM_DESCRIPTIONS == "false":
+                    desc = None
+                else:
+                    desc = f"Downloading Dataset Version Zip in {location} to {format}:"
                 for chunk in tqdm(
                     response.iter_content(chunk_size=1024),
-                    desc=f"Downloading Dataset Version Zip in {location} to {format}:",
+                    desc=desc,
                     total=int(total_length / 1024) + 1,
                 ):
                     if chunk:
@@ -766,10 +771,14 @@ class Version:
         Raises:
             RuntimeError: If there is an error unzipping the file
         """  # noqa: E501 // docs
+        if TQDM_DESCRIPTIONS == "false":
+            desc = None
+        else:
+            desc = f"Extracting Dataset Version Zip to {location} in {format}:"
         with zipfile.ZipFile(location + "/roboflow.zip", "r") as zip_ref:
             for member in tqdm(
                 zip_ref.infolist(),
-                desc=f"Extracting Dataset Version Zip to {location} in {format}:",
+                desc=desc,
             ):
                 try:
                     zip_ref.extract(member, location)

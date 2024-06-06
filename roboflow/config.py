@@ -75,7 +75,7 @@ DEFAULT_BATCH_NAME = "Pip Package Upload"
 DEFAULT_JOB_NAME = "Annotated via API"
 
 RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
-
+TQDM_DESCRIPTIONS = os.getenv("TQDM_DESCRIPTIONS", "true")
 
 def load_roboflow_api_key(workspace_url=None):
     if os.getenv("ROBOFLOW_API_KEY") is not None:
