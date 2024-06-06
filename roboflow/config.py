@@ -77,6 +77,7 @@ DEFAULT_JOB_NAME = "Annotated via API"
 RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
 TQDM_DISABLE = os.getenv("TQDM_DISABLE", None)
 
+
 def load_roboflow_api_key(workspace_url=None):
     if os.getenv("ROBOFLOW_API_KEY") is not None:
         return os.getenv("ROBOFLOW_API_KEY")

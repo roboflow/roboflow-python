@@ -12,17 +12,18 @@ import requests
 import yaml
 from dotenv import load_dotenv
 from tqdm import tqdm
+
 from roboflow.config import (
     API_URL,
     APP_URL,
     DEMO_KEYS,
+    TQDM_DISABLE,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_KEYPOINT_DETECTION,
     TYPE_OBJECT_DETECTION,
     TYPE_SEMANTIC_SEGMENTATION,
     UNIVERSE_URL,
-    TQDM_DISABLE
 )
 from roboflow.core.dataset import Dataset
 from roboflow.models.classification import ClassificationModel
