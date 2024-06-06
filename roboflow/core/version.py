@@ -459,7 +459,7 @@ class Version:
 
             print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")], ask_to_continue=True)
 
-        if "yolov10" in model_type:
+        elif "yolov10" in model_type:
             try:
                 import torch
                 import ultralytics
