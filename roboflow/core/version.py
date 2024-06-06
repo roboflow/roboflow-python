@@ -433,7 +433,7 @@ class Version:
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
 
-        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas", "paligemma","yolov10"]
+        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas", "paligemma", "yolov10"]
 
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
@@ -458,7 +458,7 @@ class Version:
                 )
 
             print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")], ask_to_continue=True)
-        
+
         if "yolov10" in model_type:
             try:
                 import torch
