@@ -433,7 +433,7 @@ class Version:
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
 
-        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas", "paligemma"]
+        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas", "paligemma", "yolov10"]
 
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
@@ -459,6 +459,17 @@ class Version:
 
             print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")], ask_to_continue=True)
 
+        elif "yolov10" in model_type:
+            try:
+                import torch
+                import ultralytics
+
+            except ImportError:
+                raise (
+                    "The ultralytics python package is required to deploy yolov10"
+                    " models. Please install it with `pip install ultralytics`"
+                )
+
         elif "yolov5" in model_type or "yolov7" in model_type or "yolov9" in model_type:
             try:
                 import torch
@@ -479,7 +490,7 @@ class Version:
             class_names.sort(key=lambda x: x[0])
             class_names = [x[1] for x in class_names]
 
-        if "yolov8" in model_type:
+        if "yolov8" in model_type or "yolov10" in model_type:
             # try except for backwards compatibility with older versions of ultralytics
             if "-cls" in model_type:
                 nc = model["model"].yaml["nc"]
