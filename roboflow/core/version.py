@@ -17,6 +17,7 @@ from roboflow.config import (
     API_URL,
     APP_URL,
     DEMO_KEYS,
+    TQDM_DISABLE,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_KEYPOINT_DETECTION,
@@ -432,10 +433,14 @@ class Version:
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
 
-        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas"]
+        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas", "paligemma", "yolov10"]
 
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
+
+        if "paligemma" in model_type:
+            self.deploy_paligemma(model_type, model_path, filename)
+            return
 
         if "yolonas" in model_type:
             self.deploy_yolonas(model_type, model_path, filename)
@@ -453,6 +458,17 @@ class Version:
                 )
 
             print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")], ask_to_continue=True)
+
+        elif "yolov10" in model_type:
+            try:
+                import torch
+                import ultralytics
+
+            except ImportError:
+                raise (
+                    "The ultralytics python package is required to deploy yolov10"
+                    " models. Please install it with `pip install ultralytics`"
+                )
 
         elif "yolov5" in model_type or "yolov7" in model_type or "yolov9" in model_type:
             try:
@@ -474,7 +490,7 @@ class Version:
             class_names.sort(key=lambda x: x[0])
             class_names = [x[1] for x in class_names]
 
-        if "yolov8" in model_type:
+        if "yolov8" in model_type or "yolov10" in model_type:
             # try except for backwards compatibility with older versions of ultralytics
             if "-cls" in model_type:
                 nc = model["model"].yaml["nc"]
@@ -548,6 +564,57 @@ class Version:
 
         self.upload_zip(model_type, model_path)
 
+    def deploy_paligemma(
+        self, model_type: str, model_path: str, filename: str = "fine-tuned-paligemma-3b-pt-224.f16.npz"
+    ) -> None:
+        # Check if model_path exists
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model path {model_path} does not exist.")
+        model_files = os.listdir(model_path)
+        print(f"Model files found in {model_path}: {model_files}")
+
+        files_to_deploy = []
+
+        # Find first .npz file in model_path
+        npz_filename = next((file for file in model_files if file.endswith(".npz")), None)
+        if any([file.endswith(".safetensors") for file in model_files]):
+            print("Found .safetensors file in model path. Deploying PyTorch PaliGemma model.")
+            necessary_files = [
+                "config.json",
+                "generation_config.json",
+                "model.safetensors.index.json",
+                "preprocessor_config.json",
+                "special_tokens_map.json",
+                "tokenizer_config.json",
+                "tokenizer.json",
+            ]
+            for file in necessary_files:
+                if file not in model_files:
+                    print("Missing necessary file", file)
+                    res = input("Do you want to continue? (y/n)")
+                    if res.lower() != "y":
+                        exit(1)
+            for file in model_files:
+                files_to_deploy.append(file)
+        elif npz_filename is not None:
+            print(f"Found .npz file {npz_filename} in model path. Deploying JAX PaliGemma model.")
+            files_to_deploy.append(npz_filename)
+        else:
+            raise FileNotFoundError(f"No .npz or .safetensors file found in model path {model_path}.")
+
+        if len(files_to_deploy) == 0:
+            raise FileNotFoundError(f"No valid files found in model path {model_path}.")
+        print(f"Zipping files for deploy: {files_to_deploy}")
+
+        import tarfile
+
+        with tarfile.open(os.path.join(model_path, "roboflow_deploy.tar"), "w") as tar:
+            for file in files_to_deploy:
+                tar.add(os.path.join(model_path, file), arcname=file)
+
+        print("Uploading to Roboflow... May take several minutes.")
+        self.upload_zip(model_type, model_path, "roboflow_deploy.tar")
+
     def deploy_yolonas(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
         try:
             import torch
@@ -613,7 +680,7 @@ class Version:
 
         self.upload_zip(model_type, model_path)
 
-    def upload_zip(self, model_type: str, model_path: str):
+    def upload_zip(self, model_type: str, model_path: str, model_file_name: str = "roboflow_deploy.zip"):
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}"
             f"/uploadModel?api_key={self.__api_key}&modelType={model_type}&nocache=true"
@@ -632,7 +699,7 @@ class Version:
 
         res = requests.put(
             res.json()["url"],
-            data=open(os.path.join(model_path, "roboflow_deploy.zip"), "rb"),
+            data=open(os.path.join(model_path, model_file_name), "rb"),
         )
         try:
             res.raise_for_status()
@@ -685,9 +752,10 @@ class Version:
             # write the zip file to the desired location
             with open(location + "/roboflow.zip", "wb") as f:
                 total_length = int(response.headers.get("content-length"))
+                desc = None if TQDM_DISABLE else f"Downloading Dataset Version Zip in {location} to {format}:"
                 for chunk in tqdm(
                     response.iter_content(chunk_size=1024),
-                    desc=f"Downloading Dataset Version Zip in {location} to {format}:",
+                    desc=desc,
                     total=int(total_length / 1024) + 1,
                 ):
                     if chunk:
@@ -711,10 +779,11 @@ class Version:
         Raises:
             RuntimeError: If there is an error unzipping the file
         """  # noqa: E501 // docs
+        desc = None if TQDM_DISABLE else f"Extracting Dataset Version Zip to {location} in {format}:"
         with zipfile.ZipFile(location + "/roboflow.zip", "r") as zip_ref:
             for member in tqdm(
                 zip_ref.infolist(),
-                desc=f"Extracting Dataset Version Zip to {location} in {format}:",
+                desc=desc,
             ):
                 try:
                     zip_ref.extract(member, location)
