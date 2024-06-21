@@ -1,6 +1,7 @@
 import json
 import os
 import urllib
+from typing import Optional
 
 import requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
@@ -43,8 +44,8 @@ def upload_image(
     split: str = "train",
     batch_name: str = DEFAULT_BATCH_NAME,
     tag_names: list = [],
-    sequence_number: int | None = None,
-    sequence_size: int | None = None,
+    sequence_number: Optional[int] = None,
+    sequence_size: Optional[int] = None,
     **kwargs,
 ):
     """

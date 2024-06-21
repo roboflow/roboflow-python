@@ -3,6 +3,7 @@ import io
 import json
 import os
 import urllib
+from typing import Optional
 
 import requests
 from PIL import Image
@@ -23,11 +24,11 @@ class ClassificationModel(InferenceModel):
         self,
         api_key: str,
         id: str,
-        name: str | None = None,
-        version: int | None = None,
+        name: Optional[str] = None,
+        version: Optional[int] = None,
         local: bool = False,
-        colors: dict | None = None,
-        preprocessing: dict | None = None,
+        colors: Optional[dict] = None,
+        preprocessing: Optional[dict] = None,
     ):
         """
         Create a ClassificationModel object through which you can run inference.
