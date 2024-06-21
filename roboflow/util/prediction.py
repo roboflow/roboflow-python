@@ -500,15 +500,12 @@ class PredictionGroup:
                     colors=colors,
                 )
                 prediction_list.append(prediction)
-            img_dims = image_dims
         elif prediction_type == CLASSIFICATION_MODEL:
             prediction = Prediction(json_response, image_path, prediction_type, colors=colors)
             prediction_list.append(prediction)
-            img_dims = image_dims
         elif prediction_type == SEMANTIC_SEGMENTATION_MODEL:
             prediction = Prediction(json_response, image_path, prediction_type, colors=colors)
             prediction_list.append(prediction)
-            img_dims = image_dims
 
         # Seperate list and return as a prediction group
-        return PredictionGroup(img_dims, image_path, *prediction_list)
+        return PredictionGroup(image_dims, image_path, *prediction_list)

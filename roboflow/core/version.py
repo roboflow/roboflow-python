@@ -359,7 +359,7 @@ class Version:
                 plt.show()
 
         first_graph_write = False
-        previous_epochs = []
+        previous_epochs: np.ndarray | list = []
         num_machine_spin_dots = []
 
         while status == "training" or status == "running":
@@ -380,6 +380,10 @@ class Version:
                     if version["train"]["status"] == "failed":
                         write_line(line="Training failed")
                         break
+
+            epochs: np.ndarray | list
+            mAP: np.ndarray | list
+            loss: np.ndarray | list
 
             if "roboflow-train" in models.keys():
                 # training has started
@@ -452,7 +456,7 @@ class Version:
                 import ultralytics
 
             except ImportError:
-                raise RuntimeError(
+                raise RuntimeErrorException(
                     "The ultralytics python package is required to deploy yolov8"
                     " models. Please install it with `pip install ultralytics`"
                 )

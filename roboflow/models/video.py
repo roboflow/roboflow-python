@@ -61,8 +61,8 @@ class VideoInferenceModel(InferenceModel):
         video_path: str,
         inference_type: str,
         fps: int = 5,
-        additional_models: list = None,
-    ) -> List[str, str]:
+        additional_models: list | None = None,
+    ) -> tuple[str, str]:
         """
         Infers detections based on image from specified model and image path.
 
@@ -90,6 +90,9 @@ class VideoInferenceModel(InferenceModel):
 
         if fps > 30:
             raise Exception("FPS must be less than or equal to 30.")
+
+        if additional_models is None:
+            additional_models = []
 
         for model in additional_models:
             if model not in SUPPORTED_ADDITIONAL_MODELS:
@@ -138,7 +141,7 @@ class VideoInferenceModel(InferenceModel):
 
         return job_id, signed_url
 
-    def poll_for_results(self, job_id: str = None) -> dict:
+    def poll_for_results(self, job_id: str | None = None) -> dict:
         """
         Polls the Roboflow API to check if video inference is complete.
 

@@ -43,8 +43,8 @@ def upload_image(
     split: str = "train",
     batch_name: str = DEFAULT_BATCH_NAME,
     tag_names: list = [],
-    sequence_number: int = None,
-    sequence_size: int = None,
+    sequence_number: int | None = None,
+    sequence_size: int | None = None,
     **kwargs,
 ):
     """

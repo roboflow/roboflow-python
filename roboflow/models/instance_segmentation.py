@@ -12,8 +12,8 @@ class InstanceSegmentationModel(InferenceModel):
         self,
         api_key: str,
         version_id: str,
-        colors: dict = None,
-        preprocessing: dict = None,
+        colors: dict | None = None,
+        preprocessing: dict | None = None,
         local: bool = None,
     ):
         """

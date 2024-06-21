@@ -23,11 +23,11 @@ class ClassificationModel(InferenceModel):
         self,
         api_key: str,
         id: str,
-        name: str = None,
-        version: int = None,
+        name: str | None = None,
+        version: int | None = None,
         local: bool = False,
-        colors: dict = None,
-        preprocessing: dict = None,
+        colors: dict | None = None,
+        preprocessing: dict | None = None,
     ):
         """
         Create a ClassificationModel object through which you can run inference.
@@ -59,7 +59,7 @@ class ClassificationModel(InferenceModel):
         self.preprocessing = {} if preprocessing is None else preprocessing
 
         if local:
-            print("initalizing local classification model hosted at :" + local)
+            print(f"initalizing local classification model hosted at : {local}")
             self.base_url = local
 
     def predict(self, image_path, hosted=False):

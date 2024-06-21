@@ -22,7 +22,7 @@ def custom_formatwarning(msg, *args, **kwargs):
     return str(msg) + "\n"
 
 
-warnings.formatwarning = custom_formatwarning
+warnings.formatwarning = custom_formatwarning  # type: ignore[assignment]
 
 
 class Project:
@@ -30,7 +30,7 @@ class Project:
     A Roboflow Project.
     """
 
-    def __init__(self, api_key: str, a_project: str, model_format: str = None):
+    def __init__(self, api_key: str, a_project: dict, model_format: str | None = None):
         """
         Create a Project object that represents a Project associated with a Workspace.
 
@@ -283,7 +283,7 @@ class Project:
 
         return new_model
 
-    def version(self, version_number: int, local: str = None):
+    def version(self, version_number: int, local: str | None = None):
         """
         Retrieves information about a specific version and returns a Version() object.
 
@@ -357,13 +357,13 @@ class Project:
 
     def upload(
         self,
-        image_path: str = None,
-        annotation_path: str = None,
+        image_path: str,
+        annotation_path: str | None = None,
         hosted_image: bool = False,
-        image_id: str = None,
+        image_id: str | None = None,
         split: str = "train",
         num_retry_uploads: int = 0,
-        batch_name: str = None,
+        batch_name: str | None = None,
         tag_names: list = [],
         is_prediction: bool = False,
         **kwargs,
@@ -549,15 +549,15 @@ class Project:
 
     def search(
         self,
-        like_image: str = None,
-        prompt: str = None,
+        like_image: str | None = None,
+        prompt: str | None = None,
         offset: int = 0,
         limit: int = 100,
-        tag: str = None,
-        class_name: str = None,
-        in_dataset: str = None,
+        tag: str | None = None,
+        class_name: str | None = None,
+        in_dataset: str | None = None,
         batch: bool = False,
-        batch_id: str = None,
+        batch_id: str | None = None,
         fields: list = ["id", "created", "name", "labels"],
     ):
         """
@@ -587,7 +587,7 @@ class Project:
 
             >>> results = project.search(query="cat", limit=10)
         """  # noqa: E501 // docs
-        payload = {}
+        payload: dict[str, str | int | list[str]] = {}
 
         if like_image is not None:
             payload["like_image"] = like_image
@@ -627,15 +627,15 @@ class Project:
 
     def search_all(
         self,
-        like_image: str = None,
-        prompt: str = None,
+        like_image: str | None = None,
+        prompt: str | None = None,
         offset: int = 0,
         limit: int = 100,
-        tag: str = None,
-        class_name: str = None,
-        in_dataset: str = None,
+        tag: str | None = None,
+        class_name: str | None = None,
+        in_dataset: str | None = None,
         batch: bool = False,
-        batch_id: str = None,
+        batch_id: str | None = None,
         fields: list = ["id", "created"],
     ):
         """

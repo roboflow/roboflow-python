@@ -140,7 +140,7 @@ class InferenceModel:
         fps: int = 5,
         additional_models: list = [],
         prediction_type: str = "batch-video",
-    ) -> List[str]:
+    ) -> tuple[str, str, str | None]:
         """
         Infers detections based on image from specified model and image path.
 
@@ -280,7 +280,7 @@ class InferenceModel:
 
         return job_id, signed_url, signed_url_expires
 
-    def poll_for_video_results(self, job_id: str = None) -> dict:
+    def poll_for_video_results(self, job_id: str | None = None) -> dict:
         """
         Polls the Roboflow API to check if video inference is complete.
 

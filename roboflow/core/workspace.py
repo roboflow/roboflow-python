@@ -117,7 +117,7 @@ class Workspace:
 
         return self.project(r.json()["id"].split("/")[-1])
 
-    def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> dict:
+    def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> list[dict]:
         """
         Compare all images in a directory to a target image using CLIP
 
@@ -127,6 +127,7 @@ class Workspace:
             target_image (str): name reference for target image to compare individual images from directory against
 
         Returns:
+            # TODO: fix docs
             dict: a key:value mapping of image_name:comparison_score_to_target
         """  # noqa: E501 // docs
 
@@ -148,7 +149,7 @@ class Workspace:
         first_stage_model_version: int = 0,
         second_stage_model_name: str = "",
         second_stage_model_version: int = 0,
-    ) -> dict:
+    ) -> list[dict]:
         """
         For each prediction in a first stage detection, perform detection with the second stage model
 
@@ -160,6 +161,7 @@ class Workspace:
             second_stage_model_version (int): version number for the second stage model
 
         Returns:
+            # TODO: fix docs
             dict: a json obj containing the results of the second stage detection
         """  # noqa: E501 // docs
         results = []
@@ -218,7 +220,7 @@ class Workspace:
         image: str = "",
         first_stage_model_name: str = "",
         first_stage_model_version: int = 0,
-    ) -> dict:
+    ) -> list[dict]:
         """
         For each prediction in the first stage object detection, perform OCR as second stage.
 
@@ -228,6 +230,7 @@ class Workspace:
             first_stage_model_version (int): version number for the first stage model
 
         Returns:
+            # TODO: fix docs
             dict: a json obj containing the results of the second stage detection
         """  # noqa: E501 // docs
         results = []
