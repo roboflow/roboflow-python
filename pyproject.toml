@@ -135,3 +135,24 @@ convention = "google"
 
 [tool.ruff.pylint]
 max-args = 20
+
+[tool.mypy]
+exclude = [
+    "^build/"
+]
+
+[[tool.mypy.overrides]]
+module = "_datetime.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "requests_toolbelt.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "ultralytics.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "ipywidgets.*"
+ignore_missing_imports = true
