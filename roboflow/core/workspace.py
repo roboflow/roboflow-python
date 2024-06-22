@@ -135,7 +135,7 @@ class Workspace:
         # grab all images in a given directory with ext type
         for image in glob.glob(f"./{dir}/*{image_ext}"):
             # compare image
-            similarity = clip_encode(image, target_image)
+            similarity = clip_encode(image, target_image, CLIP_FEATURIZE_URL)
             # map image name to similarity score
             comparisons.append({image: similarity})
             comparisons = sorted(comparisons, key=lambda item: -list(item.values())[0])
