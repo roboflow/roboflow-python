@@ -553,8 +553,9 @@ class Project:
 
     def _parse_upload_error(self, error: rfapi.UploadError) -> str:
         dict_part = str(error).split(": ", 2)[2]
-        parsed_dict = ast.literal_eval(dict_part)
-        return parsed_dict.get("message")
+        parsed_dict: dict = ast.literal_eval(dict_part)
+        message = parsed_dict.get("message")
+        return message or str(parsed_dict)
 
     def search(
         self,
