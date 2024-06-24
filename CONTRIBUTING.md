@@ -3,7 +3,7 @@
 
 If you want to extend our Python library or if you find a bug, please open a PR!
 
-Also be sure to test your code the `unittest` command at the `/root` level directory.
+Also be sure to test your code with the `unittest` command at the `/root` level directory.
 
 ### Devcontainer
 
@@ -17,7 +17,7 @@ On rare occasions a full rebuild is needed, you can do it in VSCode by pressing 
 python -m unittest
 ```
 
-When creating new functions, please follow the [Google style Python docstrings](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html). See example below:
+When creating new functions, please follow the [Google style for Python docstrings](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html). See example below:
 
 ```python
 def example_function(param1: int, param2: str) -> bool:
