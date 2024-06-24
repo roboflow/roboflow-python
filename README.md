@@ -150,7 +150,7 @@ project = workspace.project("PROJECT_URL")
 version = project.version("VERSION_NUMBER")
 ```
 
-The workspace, project, and version parameters are the same that you will find in the URL addresses at app.roboflow.com and universe.roboflow.com.
+The workspace, project, and version parameters are the same as those you will find in the URL addresses at app.roboflow.com and universe.roboflow.com.
 
 Within the workspace object you can perform actions like making a new project, listing your projects, or performing active learning where you are using predictions from one project's model to upload images to a new project.
 
