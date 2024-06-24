@@ -311,6 +311,7 @@ class Project:
                 local=None,
                 workspace="",
                 project="",
+                public=True,
             )
 
         version_info = self.get_version_information()

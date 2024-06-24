@@ -86,7 +86,7 @@ class VideoInferenceModel(InferenceModel):
             >>> prediction = model.predict("video.mp4", fps=5, inference_type="object-detection")
         """  # noqa: E501 // docs
 
-        url = urljoin(API_URL, "/video_upload_signed_url/?api_key=", self.__api_key)
+        url = urljoin(API_URL, f"/video_upload_signed_url/?api_key={self.__api_key}")
 
         if fps > 30:
             raise Exception("FPS must be less than or equal to 30.")
@@ -115,7 +115,7 @@ class VideoInferenceModel(InferenceModel):
 
         print("Uploaded video to signed url: " + signed_url)
 
-        url = urljoin(API_URL, "/videoinfer/?api_key=", self.__api_key)
+        url = urljoin(API_URL, f"/videoinfer/?api_key={self.__api_key}")
 
         models = [
             {
@@ -162,7 +162,7 @@ class VideoInferenceModel(InferenceModel):
         if job_id is None:
             job_id = self.job_id
 
-        url = urljoin(API_URL, "/videoinfer/?api_key=", self.__api_key, "&job_id=", self.job_id)
+        url = urljoin(API_URL, f"/videoinfer/?api_key={self.__api_key}&job_id={self.job_id}")
 
         try:
             response = requests.get(url, headers={"Content-Type": "application/json"})
@@ -216,7 +216,7 @@ class VideoInferenceModel(InferenceModel):
         attempts = 0
 
         while True:
-            response = self.poll_for_response()
+            response = self.poll_for_results()
 
             attempts += 1
 

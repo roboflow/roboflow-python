@@ -452,7 +452,7 @@ class Version:
                 import ultralytics
 
             except ImportError:
-                raise (
+                raise RuntimeError(
                     "The ultralytics python package is required to deploy yolov8"
                     " models. Please install it with `pip install ultralytics`"
                 )
@@ -465,7 +465,7 @@ class Version:
                 import ultralytics
 
             except ImportError:
-                raise (
+                raise RuntimeError(
                     "The ultralytics python package is required to deploy yolov10"
                     " models. Please install it with `pip install ultralytics`"
                 )
@@ -474,7 +474,7 @@ class Version:
             try:
                 import torch
             except ImportError:
-                raise (
+                raise RuntimeError(
                     "The torch python package is required to deploy yolov5 models."
                     " Please install it with `pip install torch`"
                 )
@@ -619,7 +619,7 @@ class Version:
         try:
             import torch
         except ImportError:
-            raise (
+            raise RuntimeError(
                 "The torch python package is required to deploy yolonas models."
                 " Please install it with `pip install torch`"
             )
