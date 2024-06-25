@@ -6,6 +6,7 @@ import sys
 import time
 import zipfile
 from importlib import import_module
+from typing import Union
 
 import numpy as np
 import requests
@@ -359,7 +360,7 @@ class Version:
                 plt.show()
 
         first_graph_write = False
-        previous_epochs: np.ndarray | list = []
+        previous_epochs: Union[np.ndarray, list] = []
         num_machine_spin_dots = []
 
         while status == "training" or status == "running":
@@ -381,9 +382,9 @@ class Version:
                         write_line(line="Training failed")
                         break
 
-            epochs: np.ndarray | list
-            mAP: np.ndarray | list
-            loss: np.ndarray | list
+            epochs: Union[np.ndarray, list]
+            mAP: Union[np.ndarray, list]
+            loss: Union[np.ndarray, list]
 
             if "roboflow-train" in models.keys():
                 # training has started

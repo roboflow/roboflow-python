@@ -4,7 +4,7 @@ import os
 import sys
 import time
 import warnings
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 import requests
 from PIL import Image, UnidentifiedImageError
@@ -588,7 +588,7 @@ class Project:
 
             >>> results = project.search(query="cat", limit=10)
         """  # noqa: E501 // docs
-        payload: dict[str, str | int | List[str]] = {}
+        payload: Dict[str, Union[str, int, List[str]]] = {}
 
         if like_image is not None:
             payload["like_image"] = like_image
