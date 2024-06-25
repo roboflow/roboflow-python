@@ -3,7 +3,7 @@ import json
 import os
 import time
 import urllib
-from typing import Optional
+from typing import Optional, Tuple
 from urllib.parse import urljoin
 
 import requests
@@ -140,7 +140,7 @@ class InferenceModel:
         fps: int = 5,
         additional_models: list = [],
         prediction_type: str = "batch-video",
-    ) -> tuple[str, str, Optional[str]]:
+    ) -> Tuple[str, str, Optional[str]]:
         """
         Infers detections based on image from specified model and image path.
 

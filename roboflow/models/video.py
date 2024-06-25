@@ -1,6 +1,6 @@
 import json
 import time
-from typing import Optional
+from typing import Optional, Tuple
 from urllib.parse import urljoin
 
 import magic
@@ -62,7 +62,7 @@ class VideoInferenceModel(InferenceModel):
         inference_type: str,
         fps: int = 5,
         additional_models: Optional[list] = None,
-    ) -> tuple[str, str]:
+    ) -> Tuple[str, str]:
         """
         Infers detections based on image from specified model and image path.
 
