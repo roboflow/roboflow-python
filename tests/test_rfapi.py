@@ -10,90 +10,84 @@ from roboflow.adapters.rfapi import upload_image
 
 
 class TestUploadImage(unittest.TestCase):
+    API_KEY = "test_api_key"
+    PROJECT_URL = "test_project"
+    SEQUENCE_NUMBER = 1
+    SEQUENCE_SIZE = 10
+    TAG_NAMES_LOCAL = ["lonely-tag"]
+    TAG_NAMES_HOSTED = ["tag1", "tag2"]
+    IMAGE_PATH_LOCAL = "test_image.jpg"
+    IMAGE_PATH_HOSTED = "http://example.com/test_image.jpg"
+    IMAGE_NAME_HOSTED = os.path.basename(IMAGE_PATH_HOSTED)
 
     @responses.activate
     @patch("roboflow.util.image_utils.file2jpeg")
     def test_upload_image_local(self, mock_file2jpeg):
-        api_key = "test_api_key"
-        project_url = "test_project"
-        sequence_number = 1
-        sequence_size = 10
-        tag_names = ["lonely-tag"]
-        
+        mock_file2jpeg.return_value = b"image_data"
+
         scenarios = [
             {
                 "desc": "with batch_name",
                 "batch_name": "My personal batch",
-                "expected_url": (f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}"
-                                 f"&batch_name=My%20personal%20batch&sequence_number=1&sequence_size=10&tag=lonely-tag")
+                "expected_url": f"{API_URL}/dataset/{self.PROJECT_URL}/upload?api_key={self.API_KEY}&batch_name=My%20personal%20batch&sequence_number=1&sequence_size=10&tag=lonely-tag",
             },
             {
                 "desc": "without batch_name",
                 "batch_name": None,
-                "expected_url": (f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}"
-                                 f"&batch_name={DEFAULT_BATCH_NAME}&sequence_number=1&sequence_size=10&tag=lonely-tag")
-            }
+                "expected_url": f"{API_URL}/dataset/{self.PROJECT_URL}/upload?api_key={self.API_KEY}&batch_name={DEFAULT_BATCH_NAME}&sequence_number=1&sequence_size=10&tag=lonely-tag",
+            },
         ]
-        
-        mock_file2jpeg.return_value = b"image_data"
-        
+
         for scenario in scenarios:
             with self.subTest(scenario=scenario["desc"]):
-                responses.reset()  # Clear previous responses
+                self._reset_responses()
                 responses.add(responses.POST, scenario["expected_url"], json={"success": True}, status=200)
-                
-                upload_image_payload = dict(
-                    sequence_number=sequence_number,
-                    sequence_size=sequence_size,
-                    tag_names=tag_names
-                )
-                
-                if scenario["batch_name"]:
-                    upload_image_payload.update(batch_name=scenario["batch_name"])
-                
-                result = upload_image(api_key, project_url, "test_image.jpg", **upload_image_payload)
-                self.assertTrue(result["success"])
+
+                upload_image_payload = {
+                    "sequence_number": self.SEQUENCE_NUMBER,
+                    "sequence_size": self.SEQUENCE_SIZE,
+                    "tag_names": self.TAG_NAMES_LOCAL,
+                }
+
+                if scenario["batch_name"] is not None:
+                    upload_image_payload["batch_name"] = scenario["batch_name"]
+
+                result = upload_image(self.API_KEY, self.PROJECT_URL, self.IMAGE_PATH_LOCAL, **upload_image_payload)
+                self.assertTrue(result["success"], msg=f"Failed in scenario: {scenario['desc']}")
 
     @responses.activate
     def test_upload_image_hosted(self):
-        api_key = "test_api_key"
-        project_url = "test_project"
-        image_path = "http://example.com/test_image.jpg"
-        tag_names = ["tag1", "tag2"]
-        image_name = os.path.basename(image_path)
-        
         scenarios = [
             {
                 "desc": "with batch_name",
                 "batch_name": "My batch",
-                "expected_url": (f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}"
-                                 f"&name={image_name}&split=train&image={urllib.parse.quote_plus(image_path)}"
-                                 f"&batch_name=My%20batch&tag=tag1&tag=tag2")
+                "expected_url": f"{API_URL}/dataset/{self.PROJECT_URL}/upload?api_key={self.API_KEY}&name={self.IMAGE_NAME_HOSTED}&split=train&image={urllib.parse.quote_plus(self.IMAGE_PATH_HOSTED)}&batch_name=My%20batch&tag=tag1&tag=tag2",
             },
             {
                 "desc": "without batch_name",
                 "batch_name": None,
-                "expected_url": (f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}"
-                                 f"&name={image_name}&split=train&image={urllib.parse.quote_plus(image_path)}"
-                                 f"&batch_name={DEFAULT_BATCH_NAME}&tag=tag1&tag=tag2")
-            }
+                "expected_url": f"{API_URL}/dataset/{self.PROJECT_URL}/upload?api_key={self.API_KEY}&name={self.IMAGE_NAME_HOSTED}&split=train&image={urllib.parse.quote_plus(self.IMAGE_PATH_HOSTED)}&batch_name={DEFAULT_BATCH_NAME}&tag=tag1&tag=tag2",
+            },
         ]
-        
+
         for scenario in scenarios:
             with self.subTest(scenario=scenario["desc"]):
-                responses.reset()  # Clear previous responses
+                self._reset_responses()
                 responses.add(responses.POST, scenario["expected_url"], json={"success": True}, status=200)
-                
-                upload_image_payload = dict(
-                    hosted_image=True,
-                    tag_names=tag_names
-                )
-                
-                if scenario["batch_name"]:
-                    upload_image_payload.update(batch_name=scenario["batch_name"])
-                
-                result = upload_image(api_key, project_url, image_path, **upload_image_payload)
-                self.assertTrue(result["success"])
+
+                upload_image_payload = {
+                    "hosted_image": True,
+                    "tag_names": self.TAG_NAMES_HOSTED,
+                }
+
+                if scenario["batch_name"] is not None:
+                    upload_image_payload["batch_name"] = scenario["batch_name"]
+
+                result = upload_image(self.API_KEY, self.PROJECT_URL, self.IMAGE_PATH_HOSTED, **upload_image_payload)
+                self.assertTrue(result["success"], msg=f"Failed in scenario: {scenario['desc']}")
+
+    def _reset_responses(self):
+        responses.reset()
 
 
 if __name__ == '__main__':
