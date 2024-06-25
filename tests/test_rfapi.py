@@ -29,12 +29,20 @@ class TestUploadImage(unittest.TestCase):
             {
                 "desc": "with batch_name",
                 "batch_name": "My personal batch",
-                "expected_url": f"{API_URL}/dataset/{self.PROJECT_URL}/upload?api_key={self.API_KEY}&batch_name=My%20personal%20batch&sequence_number=1&sequence_size=10&tag=lonely-tag",
+                "expected_url": (
+                    f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
+                    f"api_key={self.API_KEY}&batch_name=My%20personal%20batch"
+                    f"&sequence_number=1&sequence_size=10&tag=lonely-tag"
+                ),
             },
             {
                 "desc": "without batch_name",
                 "batch_name": None,
-                "expected_url": f"{API_URL}/dataset/{self.PROJECT_URL}/upload?api_key={self.API_KEY}&batch_name={DEFAULT_BATCH_NAME}&sequence_number=1&sequence_size=10&tag=lonely-tag",
+                "expected_url": (
+                    f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
+                    f"api_key={self.API_KEY}&batch_name={DEFAULT_BATCH_NAME}"
+                    f"&sequence_number=1&sequence_size=10&tag=lonely-tag"
+                ),
             },
         ]
 
@@ -61,12 +69,22 @@ class TestUploadImage(unittest.TestCase):
             {
                 "desc": "with batch_name",
                 "batch_name": "My batch",
-                "expected_url": f"{API_URL}/dataset/{self.PROJECT_URL}/upload?api_key={self.API_KEY}&name={self.IMAGE_NAME_HOSTED}&split=train&image={urllib.parse.quote_plus(self.IMAGE_PATH_HOSTED)}&batch_name=My%20batch&tag=tag1&tag=tag2",
+                "expected_url": (
+                    f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
+                    f"api_key={self.API_KEY}&name={self.IMAGE_NAME_HOSTED}"
+                    f"&split=train&image={urllib.parse.quote_plus(self.IMAGE_PATH_HOSTED)}"
+                    f"&batch_name=My%20batch&tag=tag1&tag=tag2"
+                ),
             },
             {
                 "desc": "without batch_name",
                 "batch_name": None,
-                "expected_url": f"{API_URL}/dataset/{self.PROJECT_URL}/upload?api_key={self.API_KEY}&name={self.IMAGE_NAME_HOSTED}&split=train&image={urllib.parse.quote_plus(self.IMAGE_PATH_HOSTED)}&batch_name={DEFAULT_BATCH_NAME}&tag=tag1&tag=tag2",
+                "expected_url": (
+                    f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
+                    f"api_key={self.API_KEY}&name={self.IMAGE_NAME_HOSTED}"
+                    f"&split=train&image={urllib.parse.quote_plus(self.IMAGE_PATH_HOSTED)}"
+                    f"&batch_name={DEFAULT_BATCH_NAME}&tag=tag1&tag=tag2"
+                ),
             },
         ]
 
