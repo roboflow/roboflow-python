@@ -3,6 +3,7 @@ import io
 import json
 import os
 import urllib
+from typing import Optional
 
 import requests
 from PIL import Image
@@ -23,8 +24,8 @@ class KeypointDetectionModel(InferenceModel):
         self,
         api_key: str,
         id: str,
-        name: str | None = None,
-        version: int | None = None,
+        name: Optional[str] = None,
+        version: Optional[int] = None,
         local: bool = False,
     ):
         """
