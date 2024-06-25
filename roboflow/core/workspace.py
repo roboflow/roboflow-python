@@ -3,6 +3,7 @@ import glob
 import json
 import os
 import sys
+from typing import List
 
 import numpy as np
 import requests
@@ -117,7 +118,7 @@ class Workspace:
 
         return self.project(r.json()["id"].split("/")[-1])
 
-    def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> list[dict]:
+    def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> List[dict]:
         """
         Compare all images in a directory to a target image using CLIP
 
@@ -149,7 +150,7 @@ class Workspace:
         first_stage_model_version: int = 0,
         second_stage_model_name: str = "",
         second_stage_model_version: int = 0,
-    ) -> list[dict]:
+    ) -> List[dict]:
         """
         For each prediction in a first stage detection, perform detection with the second stage model
 
@@ -220,7 +221,7 @@ class Workspace:
         image: str = "",
         first_stage_model_name: str = "",
         first_stage_model_version: int = 0,
-    ) -> list[dict]:
+    ) -> List[dict]:
         """
         For each prediction in the first stage object detection, perform OCR as second stage.
 
