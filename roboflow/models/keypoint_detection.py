@@ -3,6 +3,7 @@ import io
 import json
 import os
 import urllib
+from typing import Optional
 
 import requests
 from PIL import Image
@@ -23,8 +24,8 @@ class KeypointDetectionModel(InferenceModel):
         self,
         api_key: str,
         id: str,
-        name: str = None,
-        version: int = None,
+        name: Optional[str] = None,
+        version: Optional[int] = None,
         local: bool = False,
     ):
         """
@@ -54,7 +55,7 @@ class KeypointDetectionModel(InferenceModel):
             self.__generate_url()
 
         if local:
-            print("initalizing local keypoint detection model hosted at :" + local)
+            print(f"initalizing local keypoint detection model hosted at : {local}")
             self.base_url = local
 
     def predict(self, image_path, hosted=False):

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from roboflow.config import INSTANCE_SEGMENTATION_MODEL, INSTANCE_SEGMENTATION_URL
 from roboflow.models.inference import InferenceModel
 
@@ -12,8 +14,8 @@ class InstanceSegmentationModel(InferenceModel):
         self,
         api_key: str,
         version_id: str,
-        colors: dict = None,
-        preprocessing: dict = None,
+        colors: Optional[dict] = None,
+        preprocessing: Optional[dict] = None,
         local: bool = None,
     ):
         """

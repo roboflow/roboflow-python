@@ -3,7 +3,7 @@ import json
 import os
 import time
 import urllib
-from typing import List
+from typing import Optional, Tuple
 from urllib.parse import urljoin
 
 import requests
@@ -140,7 +140,7 @@ class InferenceModel:
         fps: int = 5,
         additional_models: list = [],
         prediction_type: str = "batch-video",
-    ) -> List[str]:
+    ) -> Tuple[str, str, Optional[str]]:
         """
         Infers detections based on image from specified model and image path.
 
@@ -280,7 +280,7 @@ class InferenceModel:
 
         return job_id, signed_url, signed_url_expires
 
-    def poll_for_video_results(self, job_id: str = None) -> dict:
+    def poll_for_video_results(self, job_id: Optional[str] = None) -> dict:
         """
         Polls the Roboflow API to check if video inference is complete.
 

@@ -137,6 +137,7 @@ convention = "google"
 max-args = 20
 
 [tool.mypy]
+python_version = "3.8"
 exclude = [
     "^build/"
 ]
