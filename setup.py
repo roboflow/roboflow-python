@@ -5,7 +5,9 @@ from setuptools import find_packages
 
 with open("./roboflow/__init__.py", "r") as f:
     content = f.read()
-    version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content).group(1)
+_search_version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content)
+assert _search_version
+version = _search_version.group(1)
 
 
 with open("README.md", "r") as fh:

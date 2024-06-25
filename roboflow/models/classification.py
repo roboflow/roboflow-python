@@ -3,6 +3,7 @@ import io
 import json
 import os
 import urllib
+from typing import Optional
 
 import requests
 from PIL import Image
@@ -23,11 +24,11 @@ class ClassificationModel(InferenceModel):
         self,
         api_key: str,
         id: str,
-        name: str = None,
-        version: int = None,
+        name: Optional[str] = None,
+        version: Optional[int] = None,
         local: bool = False,
-        colors: dict = None,
-        preprocessing: dict = None,
+        colors: Optional[dict] = None,
+        preprocessing: Optional[dict] = None,
     ):
         """
         Create a ClassificationModel object through which you can run inference.
@@ -59,7 +60,7 @@ class ClassificationModel(InferenceModel):
         self.preprocessing = {} if preprocessing is None else preprocessing
 
         if local:
-            print("initalizing local classification model hosted at :" + local)
+            print(f"initalizing local classification model hosted at : {local}")
             self.base_url = local
 
     def predict(self, image_path, hosted=False):
