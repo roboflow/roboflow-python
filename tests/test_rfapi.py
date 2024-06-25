@@ -90,5 +90,5 @@ class TestUploadImage(unittest.TestCase):
         responses.reset()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
