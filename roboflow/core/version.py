@@ -456,7 +456,7 @@ class Version:
                 import ultralytics
 
             except ImportError:
-                raise RuntimeErrorException(
+                raise RuntimeError(
                     "The ultralytics python package is required to deploy yolov8"
                     " models. Please install it with `pip install ultralytics`"
                 )
