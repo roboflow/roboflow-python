@@ -1,12 +1,12 @@
 import os
 import unittest
+import urllib
 from unittest.mock import patch
 
 import responses
-import urllib
 
-from roboflow.config import API_URL, DEFAULT_BATCH_NAME
 from roboflow.adapters.rfapi import upload_image
+from roboflow.config import API_URL, DEFAULT_BATCH_NAME
 
 
 class TestUploadImage(unittest.TestCase):
