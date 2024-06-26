@@ -160,7 +160,7 @@ def _save_annotation_url(api_key, project_url, name, image_id, job_name, is_pred
 
 def _upload_url(api_key, project_url, **kwargs):
     url = f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}"
-    
+
     if kwargs:
         querystring = urllib.parse.urlencode(kwargs, doseq=True)
         url += f"&{querystring}"
