@@ -160,12 +160,10 @@ def _save_annotation_url(api_key, project_url, name, image_id, job_name, is_pred
 
 def _upload_url(api_key, project_url, **kwargs):
     url = f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}"
-
-    for key, value in kwargs.items():
-        if isinstance(value, list):
-            url += "".join([f"&{str(key)}={str(v)}" for v in value])
-        else:
-            url += f"&{str(key)}={str(value)}"
+    
+    if kwargs:
+        querystring = urllib.parse.urlencode(kwargs, doseq=True)
+        url += f"&{querystring}"
 
     return url
 
@@ -176,14 +174,14 @@ def _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_
         project_url,
         name=os.path.basename(image_path),
         split=split,
-        image=urllib.parse.quote_plus(image_path),
-        batch_name=batch_name,
+        image=image_path,
+        batch=batch_name,
         tag=tag_names,
     )
 
 
 def _local_upload_url(api_key, project_url, batch_name, tag_names, sequence_number, sequence_size, kwargs):
-    query_params = dict(batch_name=batch_name, tag=tag_names, **kwargs)
+    query_params = dict(batch=batch_name, tag=tag_names, **kwargs)
 
     if sequence_number is not None and sequence_size is not None:
         query_params.update(sequence_number=sequence_number, sequence_size=sequence_size)

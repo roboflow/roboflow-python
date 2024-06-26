@@ -31,7 +31,7 @@ class TestUploadImage(unittest.TestCase):
                 "batch_name": "My personal batch",
                 "expected_url": (
                     f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
-                    f"api_key={self.API_KEY}&batch_name=My%20personal%20batch"
+                    f"api_key={self.API_KEY}&batch=My%20personal%20batch"
                     f"&sequence_number=1&sequence_size=10&tag=lonely-tag"
                 ),
             },
@@ -40,7 +40,7 @@ class TestUploadImage(unittest.TestCase):
                 "batch_name": None,
                 "expected_url": (
                     f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
-                    f"api_key={self.API_KEY}&batch_name={DEFAULT_BATCH_NAME}"
+                    f"api_key={self.API_KEY}&batch={urllib.parse.quote_plus(DEFAULT_BATCH_NAME)}"
                     f"&sequence_number=1&sequence_size=10&tag=lonely-tag"
                 ),
             },
@@ -73,7 +73,7 @@ class TestUploadImage(unittest.TestCase):
                     f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
                     f"api_key={self.API_KEY}&name={self.IMAGE_NAME_HOSTED}"
                     f"&split=train&image={urllib.parse.quote_plus(self.IMAGE_PATH_HOSTED)}"
-                    f"&batch_name=My%20batch&tag=tag1&tag=tag2"
+                    f"&batch=My%20batch&tag=tag1&tag=tag2"
                 ),
             },
             {
@@ -83,7 +83,7 @@ class TestUploadImage(unittest.TestCase):
                     f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
                     f"api_key={self.API_KEY}&name={self.IMAGE_NAME_HOSTED}"
                     f"&split=train&image={urllib.parse.quote_plus(self.IMAGE_PATH_HOSTED)}"
-                    f"&batch_name={DEFAULT_BATCH_NAME}&tag=tag1&tag=tag2"
+                    f"&batch={urllib.parse.quote_plus(DEFAULT_BATCH_NAME)}&tag=tag1&tag=tag2"
                 ),
             },
         ]
