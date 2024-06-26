@@ -438,13 +438,13 @@ class Version:
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
 
-        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas", "paligemma", "yolov10"]
+        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas", "paligemma", "yolov10", "florence-2"]
 
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
 
-        if "paligemma" in model_type:
-            self.deploy_paligemma(model_type, model_path, filename)
+        if "paligemma" in model_type or "florence-2" in model_type:
+            self.deploy_huggingface(model_type, model_path, filename)
             return
 
         if "yolonas" in model_type:
@@ -569,7 +569,7 @@ class Version:
 
         self.upload_zip(model_type, model_path)
 
-    def deploy_paligemma(
+    def deploy_huggingface(
         self, model_type: str, model_path: str, filename: str = "fine-tuned-paligemma-3b-pt-224.f16.npz"
     ) -> None:
         # Check if model_path exists
@@ -583,11 +583,8 @@ class Version:
         # Find first .npz file in model_path
         npz_filename = next((file for file in model_files if file.endswith(".npz")), None)
         if any([file.endswith(".safetensors") for file in model_files]):
-            print("Found .safetensors file in model path. Deploying PyTorch PaliGemma model.")
+            print(f"Found .safetensors file in model path. Deploying PyTorch {model_type} model.")
             necessary_files = [
-                "config.json",
-                "generation_config.json",
-                "model.safetensors.index.json",
                 "preprocessor_config.json",
                 "special_tokens_map.json",
                 "tokenizer_config.json",
