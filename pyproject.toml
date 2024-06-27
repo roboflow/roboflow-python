@@ -151,6 +151,11 @@ module = "requests_toolbelt.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+# torch is an optional dependency
+module = "torch.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = "ultralytics.*"
 ignore_missing_imports = true
 
