@@ -5,6 +5,7 @@ import shutil
 import sys
 import time
 import zipfile
+import requests
 from importlib import import_module
 from typing import Optional, Union
 
@@ -104,14 +105,8 @@ class Version:
             version_info = requests.get(
                 API_URL + "/" + workspace + "/" + project + "/" + self.version + "?api_key=" + self.__api_key
             )
-            if version_info.status_code != 200:
-                raise RuntimeError(version_info.text)
 
-            version_info = version_info.json()["version"]
-
-            if not bool(version_info["models"]):
-                self.model = None
-            elif self.type == TYPE_OBJECT_DETECTION:
+            if self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
                     self.__api_key,
                     self.id,
@@ -145,6 +140,13 @@ class Version:
                 self.model = KeypointDetectionModel(self.__api_key, self.id, version=version_without_workspace)
             else:
                 self.model = None
+
+            # check if version has a model
+            if version_info.status_code == 200:
+                version_info = version_info.json()["version"]
+
+                if not bool(version_info["models"]):
+                    self.model = None
 
     def __check_if_generating(self):
         # check Roboflow API to see if this version is still generating
