@@ -6,7 +6,7 @@ import sys
 import time
 import zipfile
 from importlib import import_module
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import requests
@@ -28,6 +28,7 @@ from roboflow.config import (
 )
 from roboflow.core.dataset import Dataset
 from roboflow.models.classification import ClassificationModel
+from roboflow.models.inference import InferenceModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.object_detection import ObjectDetectionModel
@@ -43,6 +44,8 @@ class Version:
     """
     Class representing a Roboflow dataset version.
     """
+    
+    model: Optional[InferenceModel]
 
     def __init__(
         self,
@@ -52,7 +55,7 @@ class Version:
         name,
         version,
         model_format,
-        local,
+        local: Optional[str],
         workspace,
         project,
         public,
@@ -286,7 +289,7 @@ class Version:
             except json.JSONDecodeError:
                 response.raise_for_status()
 
-    def train(self, speed=None, checkpoint=None, plot_in_notebook=False) -> bool:
+    def train(self, speed=None, checkpoint=None, plot_in_notebook=False) -> InferenceModel:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
 
@@ -426,6 +429,7 @@ class Version:
             time.sleep(5)
 
         # return the model object
+        assert self.model
         return self.model
 
     # @warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])

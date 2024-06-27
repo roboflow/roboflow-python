@@ -16,7 +16,7 @@ class InstanceSegmentationModel(InferenceModel):
         version_id: str,
         colors: Optional[dict] = None,
         preprocessing: Optional[dict] = None,
-        local: bool = None,
+        local: Optional[str] = None,
     ):
         """
         Create a InstanceSegmentationModel object through which you can run inference.
@@ -26,13 +26,12 @@ class InstanceSegmentationModel(InferenceModel):
             version_id (str): the workspace/project id
             colors (dict): colors to use for the image
             preprocessing (dict): preprocessing to use for the image
-            local (bool): whether the image is local or hosted
+            local (str): localhost address and port if pointing towards local inference engine
         """
         super(InstanceSegmentationModel, self).__init__(api_key, version_id)
-        if local is None:
-            self.api_url = f"{INSTANCE_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
-        else:
-            self.api_url = f"{local}/{self.dataset_id}/{self.version}"
+
+        base_url = local or INSTANCE_SEGMENTATION_URL
+        self.api_url = f"{base_url}/{self.dataset_id}/{self.version}"
         self.colors = {} if colors is None else colors
         self.preprocessing = {} if preprocessing is None else preprocessing
 

@@ -25,8 +25,8 @@ class KeypointDetectionModel(InferenceModel):
         api_key: str,
         id: str,
         name: Optional[str] = None,
-        version: Optional[int] = None,
-        local: bool = False,
+        version: Optional[str] = None,
+        local: Optional[str] = None,
     ):
         """
         Create a ClassificationModel object through which you can run inference.
@@ -35,8 +35,8 @@ class KeypointDetectionModel(InferenceModel):
             api_key (str): private roboflow api key
             id (str): the workspace/project id
             name (str): is the name of the project
-            version (int): version number
-            local (bool): whether the image is local or hosted
+            version (str): version number
+            local (str): localhost address and port if pointing towards local inference engine
             colors (dict): colors to use for the image
             preprocessing (dict): preprocessing to use for the image
 
