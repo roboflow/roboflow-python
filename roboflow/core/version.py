@@ -44,7 +44,7 @@ class Version:
     """
     Class representing a Roboflow dataset version.
     """
-    
+
     model: Optional[InferenceModel]
 
     def __init__(
