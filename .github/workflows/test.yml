@@ -34,5 +34,3 @@ jobs:
         run: "python -m unittest"
       - name: Check types with mypy
         run: mypy .
-        # TODO: Fix typing
-        continue-on-error: true

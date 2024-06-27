@@ -56,7 +56,7 @@ class VideoInferenceModel(InferenceModel):
         """  # noqa: E501 // docs
         self.__api_key = api_key
 
-    def predict(
+    def predict(  # type: ignore[override]
         self,
         video_path: str,
         inference_type: str,
@@ -124,7 +124,7 @@ class VideoInferenceModel(InferenceModel):
             {
                 "model_id": self.dataset_id,
                 "model_version": self.version,
-                "inference_type": self.inference_type,
+                "inference_type": inference_type,
             }
         ]
 
