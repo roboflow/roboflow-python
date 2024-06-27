@@ -5,7 +5,6 @@ import shutil
 import sys
 import time
 import zipfile
-import requests
 from importlib import import_module
 from typing import Optional, Union
 
