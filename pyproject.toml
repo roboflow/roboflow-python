@@ -155,5 +155,10 @@ module = "ultralytics.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+# IPython is an optional dependency
+module = "IPython.display.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = "ipywidgets.*"
 ignore_missing_imports = true
