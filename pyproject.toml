@@ -143,27 +143,16 @@ exclude = [
 ]
 
 [[tool.mypy.overrides]]
-module = "_datetime.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "requests_toolbelt.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-# torch is an optional dependency
-module = "torch.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "ultralytics.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-# IPython is an optional dependency
-module = "IPython.display.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "ipywidgets.*"
+module = 
+    "_datetime.*",
+    # IPython is an optional dependency
+    "IPython.display.*",
+    # ipywidgets is an optional dependency
+    "ipywidgets.*",
+    # matplotlib typing is not available for Python 3.8
+    # remove this when we stop supporting Python 3.8
+    "matplotlib",
+    "requests_toolbelt.*",
+    "torch.*",
+    "ultralytics.*",
 ignore_missing_imports = true
