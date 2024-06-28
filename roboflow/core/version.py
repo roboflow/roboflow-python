@@ -101,11 +101,15 @@ class Version:
 
             version_without_workspace = os.path.basename(str(version))
 
-            version_info = requests.get(
-                API_URL + "/" + workspace + "/" + project + "/" + self.version + "?api_key=" + self.__api_key
-            )
+            version_info = requests.get(f"{API_URL}/{workspace}/{project}/{self.version}?api_key={self.__api_key}")
 
-            if self.type == TYPE_OBJECT_DETECTION:
+            # check if version has a model
+            if version_info.status_code == 200:
+                version_info = version_info.json()["version"]
+
+            if not version_info["models"]:
+                self.model = None
+            elif self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
                     self.__api_key,
                     self.id,
@@ -139,13 +143,6 @@ class Version:
                 self.model = KeypointDetectionModel(self.__api_key, self.id, version=version_without_workspace)
             else:
                 self.model = None
-
-            # check if version has a model
-            if version_info.status_code == 200:
-                version_info = version_info.json()["version"]
-
-                if not bool(version_info["models"]):
-                    self.model = None
 
     def __check_if_generating(self):
         # check Roboflow API to see if this version is still generating
