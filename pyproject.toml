@@ -151,7 +151,7 @@ module = [
     "ipywidgets.*",
     # matplotlib typing is not available for Python 3.8
     # remove this when we stop supporting Python 3.8
-    "matplotlib",
+    "matplotlib.*",
     "requests_toolbelt.*",
     "torch.*",
     "ultralytics.*",
