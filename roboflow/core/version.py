@@ -443,7 +443,7 @@ class Version:
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
 
-        if "paligemma" in model_type or "florence-2" in model_type:
+        if model_type.startswith(("paligemma", "florence-2")):
             self.deploy_huggingface(model_type, model_path, filename)
             return
 
