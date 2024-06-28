@@ -107,7 +107,7 @@ class Version:
             if version_info.status_code == 200:
                 version_info = version_info.json()["version"]
 
-            if not version_info["models"]:
+            if ("models" in version_info) and (not version_info["models"]):
                 self.model = None
             elif self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
