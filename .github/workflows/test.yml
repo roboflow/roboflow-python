@@ -30,7 +30,7 @@ jobs:
       - name: 🧹 Lint with flake8
         run: |
           make check_code_quality
-      - name: 🧪 Test
-        run: "python -m unittest"
       - name: Check types with mypy
         run: mypy .
+      - name: 🧪 Test
+        run: "python -m unittest"
