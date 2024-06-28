@@ -12,9 +12,13 @@ import requests
 from matplotlib import patches
 from PIL import Image
 
-from roboflow.config import (CLASSIFICATION_MODEL, INSTANCE_SEGMENTATION_MODEL,
-                             OBJECT_DETECTION_MODEL, PREDICTION_OBJECT,
-                             SEMANTIC_SEGMENTATION_MODEL)
+from roboflow.config import (
+    CLASSIFICATION_MODEL,
+    INSTANCE_SEGMENTATION_MODEL,
+    OBJECT_DETECTION_MODEL,
+    PREDICTION_OBJECT,
+    SEMANTIC_SEGMENTATION_MODEL,
+)
 from roboflow.util.image_utils import mask_image, validate_image_path
 
 

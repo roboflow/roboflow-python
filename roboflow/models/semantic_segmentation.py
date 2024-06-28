@@ -1,5 +1,4 @@
-from roboflow.config import (SEMANTIC_SEGMENTATION_MODEL,
-                             SEMANTIC_SEGMENTATION_URL)
+from roboflow.config import SEMANTIC_SEGMENTATION_MODEL, SEMANTIC_SEGMENTATION_URL
 from roboflow.models.inference import InferenceModel
 
 
