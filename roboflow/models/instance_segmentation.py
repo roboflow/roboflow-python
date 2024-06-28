@@ -1,6 +1,7 @@
 from typing import Optional
 
-from roboflow.config import INSTANCE_SEGMENTATION_MODEL, INSTANCE_SEGMENTATION_URL
+from roboflow.config import (INSTANCE_SEGMENTATION_MODEL,
+                             INSTANCE_SEGMENTATION_URL)
 from roboflow.models.inference import InferenceModel
 
 

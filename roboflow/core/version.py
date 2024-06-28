@@ -14,18 +14,10 @@ import yaml
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-from roboflow.config import (
-    API_URL,
-    APP_URL,
-    DEMO_KEYS,
-    TQDM_DISABLE,
-    TYPE_CLASSICATION,
-    TYPE_INSTANCE_SEGMENTATION,
-    TYPE_KEYPOINT_DETECTION,
-    TYPE_OBJECT_DETECTION,
-    TYPE_SEMANTIC_SEGMENTATION,
-    UNIVERSE_URL,
-)
+from roboflow.config import (API_URL, APP_URL, DEMO_KEYS, TQDM_DISABLE,
+                             TYPE_CLASSICATION, TYPE_INSTANCE_SEGMENTATION,
+                             TYPE_KEYPOINT_DETECTION, TYPE_OBJECT_DETECTION,
+                             TYPE_SEMANTIC_SEGMENTATION, UNIVERSE_URL)
 from roboflow.core.dataset import Dataset
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.inference import InferenceModel
@@ -35,7 +27,8 @@ from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import write_line
-from roboflow.util.versions import get_wrong_dependencies_versions, print_warn_for_wrong_dependencies_versions
+from roboflow.util.versions import (get_wrong_dependencies_versions,
+                                    print_warn_for_wrong_dependencies_versions)
 
 load_dotenv()
 
