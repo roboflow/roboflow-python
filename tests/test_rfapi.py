@@ -37,6 +37,14 @@ class TestUploadImage(unittest.TestCase):
             },
             {
                 "desc": "without batch_name",
+                "expected_url": (
+                    f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
+                    f"api_key={self.API_KEY}&batch={urllib.parse.quote_plus(DEFAULT_BATCH_NAME)}"
+                    f"&sequence_number=1&sequence_size=10&tag=lonely-tag"
+                ),
+            },
+            {
+                "desc": "without batch_name",
                 "batch_name": None,
                 "expected_url": (
                     f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
@@ -57,7 +65,7 @@ class TestUploadImage(unittest.TestCase):
                     "tag_names": self.TAG_NAMES_LOCAL,
                 }
 
-                if scenario["batch_name"] is not None:
+                if "batch_name" in scenario:
                     upload_image_payload["batch_name"] = scenario["batch_name"]
 
                 result = upload_image(self.API_KEY, self.PROJECT_URL, self.IMAGE_PATH_LOCAL, **upload_image_payload)
@@ -74,6 +82,15 @@ class TestUploadImage(unittest.TestCase):
                     f"api_key={self.API_KEY}&name={self.IMAGE_NAME_HOSTED}"
                     f"&split=train&image={urllib.parse.quote_plus(self.IMAGE_PATH_HOSTED)}"
                     f"&batch=My%20batch&tag=tag1&tag=tag2"
+                ),
+            },
+            {
+                "desc": "without batch_name",
+                "expected_url": (
+                    f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
+                    f"api_key={self.API_KEY}&batch={urllib.parse.quote_plus(DEFAULT_BATCH_NAME)}"
+                    f"&name={self.IMAGE_NAME_HOSTED}&split=train"
+                    f"&image={urllib.parse.quote_plus(self.IMAGE_PATH_HOSTED)}&tag=tag1&tag=tag2"
                 ),
             },
             {
@@ -98,7 +115,7 @@ class TestUploadImage(unittest.TestCase):
                     "tag_names": self.TAG_NAMES_HOSTED,
                 }
 
-                if scenario["batch_name"] is not None:
+                if "batch_name" in scenario:
                     upload_image_payload["batch_name"] = scenario["batch_name"]
 
                 result = upload_image(self.API_KEY, self.PROJECT_URL, self.IMAGE_PATH_HOSTED, **upload_image_payload)
