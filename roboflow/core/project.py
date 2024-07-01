@@ -335,7 +335,7 @@ class Project:
                 )
                 return vers
 
-        raise RuntimeError("Version number {} is not found.".format(version_number))
+        raise RuntimeError(f"Version number {version_number} is not found.")
 
     def check_valid_image(self, image_path: str):
         """
@@ -534,8 +534,8 @@ class Project:
             annotation_name = annotation_path["name"]
             annotation_string = annotation_path["rawText"]
         elif os.path.exists(annotation_path):
-            with open(annotation_path, "r"):
-                annotation_string = open(annotation_path, "r").read()
+            with open(annotation_path):
+                annotation_string = open(annotation_path).read()
             annotation_name = os.path.basename(annotation_path)
         elif self.type == "classification":
             print(f"-> using {annotation_path} as classname for classification project")

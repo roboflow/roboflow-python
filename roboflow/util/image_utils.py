@@ -81,11 +81,11 @@ def file2jpeg(image_path):
 
 def load_labelmap(f):
     if f.lower().endswith(".yaml") or f.lower().endswith(".yml"):
-        with open(f, "r") as file:
+        with open(f) as file:
             data = yaml.safe_load(file)
             if "names" in data:
                 return {i: name for i, name in enumerate(data["names"])}
     else:
-        with open(f, "r") as file:
+        with open(f) as file:
             lines = [line for line in file.readlines() if line.strip()]
         return {i: line.strip() for i, line in enumerate(lines)}

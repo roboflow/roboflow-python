@@ -65,8 +65,6 @@ class TestQueries(RoboflowTest):
     @ordered
     def test_version_methods(self):
         self.assertTrue(
-            (
                 isinstance(self.version.model, ClassificationModel)
                 or (isinstance(self.version.model, ObjectDetectionModel))
-            )
         )

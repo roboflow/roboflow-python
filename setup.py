@@ -3,17 +3,17 @@ import re
 import setuptools
 from setuptools import find_packages
 
-with open("./roboflow/__init__.py", "r") as f:
+with open("./roboflow/__init__.py") as f:
     content = f.read()
 _search_version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', content)
 assert _search_version
 version = _search_version.group(1)
 
 
-with open("README.md", "r") as fh:
+with open("README.md") as fh:
     long_description = fh.read()
 
-with open("requirements.txt", "r") as fh:
+with open("requirements.txt") as fh:
     install_requires = fh.read().split("\n")
 
 setuptools.setup(

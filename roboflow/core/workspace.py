@@ -82,7 +82,7 @@ class Workspace:
         # project_id = project_id.replace(self.url + "/", "")
 
         if "/" in project_id:
-            raise RuntimeError("The {} project is not available in this ({}) workspace".format(project_id, self.url))
+            raise RuntimeError(f"The {project_id} project is not available in this ({self.url}) workspace")
 
         dataset_info = rfapi.get_project(self.__api_key, self.url, project_id)
         dataset_info = dataset_info["project"]
