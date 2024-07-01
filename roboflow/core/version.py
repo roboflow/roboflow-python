@@ -541,7 +541,7 @@ class Version:
         elif "yolov5" in model_type or "yolov7" in model_type or "yolov9" in model_type:
             # parse from yaml for yolov5
 
-            with open(os.path.join(model_path, "opt.yaml"), "r") as stream:
+            with open(os.path.join(model_path, "opt.yaml")) as stream:
                 opts = yaml.safe_load(stream)
 
             model_artifacts = {
@@ -651,7 +651,7 @@ class Version:
                 f"architecture: <one of [yolo_nas_s, yolo_nas_m, yolo_nas_l]."
                 f"s, m, l refer to small, medium, large architecture sizes, respectively>\n"
             )
-        with open(os.path.join(model_path, "opt.yaml"), "r") as stream:
+        with open(os.path.join(model_path, "opt.yaml")) as stream:
             opts = yaml.safe_load(stream)
         required_keys = ["imgsz", "batch_size", "architecture"]
         for key in required_keys:

@@ -15,7 +15,7 @@ class SemanticSegmentationModel(InferenceModel):
             api_key (str): private roboflow api key
             version_id (str): the workspace/project id
         """  # noqa: E501 // docs
-        super(SemanticSegmentationModel, self).__init__(api_key, version_id)
+        super().__init__(api_key, version_id)
         self.api_url = f"{SEMANTIC_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
 
     def predict(self, image_path: str, confidence: int = 50):  # type: ignore[override]
@@ -40,7 +40,7 @@ class SemanticSegmentationModel(InferenceModel):
 
             >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """  # noqa: E501 // docs
-        return super(SemanticSegmentationModel, self).predict(
+        return super().predict(
             image_path,
             confidence=confidence,
             prediction_type=SEMANTIC_SEGMENTATION_MODEL,

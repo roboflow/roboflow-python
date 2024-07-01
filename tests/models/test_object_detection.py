@@ -43,7 +43,7 @@ class TestObjectDetection(unittest.TestCase):
     }
 
     def setUp(self):
-        super(TestObjectDetection, self).setUp()
+        super().setUp()
         self.version_id = f"{self.workspace}/{self.dataset_id}/{self.version}"
 
     def test_init_sets_attributes(self):

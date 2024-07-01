@@ -11,7 +11,7 @@ from tests.helpers import get_version
 
 class TestDownload(unittest.TestCase):
     def setUp(self):
-        super(TestDownload, self).setUp()
+        super().setUp()
         self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/coco"
         self.version = get_version(
             project_name="Test Dataset",
@@ -64,7 +64,7 @@ class TestDownload(unittest.TestCase):
 
 class TestExport(unittest.TestCase):
     def setUp(self):
-        super(TestExport, self).setUp()
+        super().setUp()
         self.api_url = "https://api.roboflow.com/test-workspace/test-project/4/test-format"
         self.version = get_version(
             project_name="Test Dataset",
@@ -115,7 +115,7 @@ class TestExport(unittest.TestCase):
 @patch.object(os, "makedirs")
 class TestGetDownloadLocation(unittest.TestCase):
     def setUp(self, *_):
-        super(TestGetDownloadLocation, self).setUp()
+        super().setUp()
         self.version = get_version(
             project_name="Test Dataset",
             id="test-workspace/test-project/2",
@@ -148,7 +148,7 @@ class TestGetDownloadLocation(unittest.TestCase):
 
 class TestGetDownloadURL(unittest.TestCase):
     def setUp(self):
-        super(TestGetDownloadURL, self).setUp()
+        super().setUp()
         self.version = get_version(
             project_name="Test Dataset",
             id="test-workspace/test-project/2",
@@ -172,7 +172,7 @@ class TestGetDownloadURL(unittest.TestCase):
 
 class TestGetFormatIdentifier(unittest.TestCase):
     def setUp(self):
-        super(TestGetFormatIdentifier, self).setUp()
+        super().setUp()
         self.version = get_version(
             project_name="Test Dataset",
             id="test-workspace/test-project/2",

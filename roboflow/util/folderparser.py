@@ -191,7 +191,7 @@ def _loadAnnotations(folder, annotations):
     for ann in annotations:
         extension = ann["extension"]
         if extension == ".json":
-            with open(f"{folder}{ann['file']}", "r") as f:
+            with open(f"{folder}{ann['file']}") as f:
                 parsed = json.load(f)
                 parsedType = _guessAnnotationFileFormat(parsed, extension)
                 if parsedType:
@@ -205,7 +205,7 @@ def _loadAnnotations(folder, annotations):
 
 def _parseAnnotationCSV(filename):
     # TODO: use a proper CSV library?
-    with open(filename, "r") as f:
+    with open(filename) as f:
         lines = f.readlines()
     headers = lines[0]
     lines = [{"file_name": ld.split(",")[0].strip(), "line": ld} for ld in lines[1:]]

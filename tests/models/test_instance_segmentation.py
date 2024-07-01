@@ -54,7 +54,7 @@ class TestInstanceSegmentation(unittest.TestCase):
     }
 
     def setUp(self):
-        super(TestInstanceSegmentation, self).setUp()
+        super().setUp()
         self.version_id = f"{self.workspace}/{self.dataset_id}/{self.version}"
 
     def test_init_sets_attributes(self):
