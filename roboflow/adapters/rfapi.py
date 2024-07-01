@@ -57,13 +57,15 @@ def upload_image(
         split (str): the dataset split the image to
     """
 
+    coalesced_batch_name = batch_name or DEFAULT_BATCH_NAME
+
     # If image is not a hosted image
     if not hosted_image:
         image_name = os.path.basename(image_path)
         imgjpeg = image_utils.file2jpeg(image_path)
 
         upload_url = _local_upload_url(
-            api_key, project_url, batch_name, tag_names, sequence_number, sequence_size, kwargs
+            api_key, project_url, coalesced_batch_name, tag_names, sequence_number, sequence_size, kwargs
         )
         m = MultipartEncoder(
             fields={
@@ -77,7 +79,7 @@ def upload_image(
     else:
         # Hosted image upload url
 
-        upload_url = _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_names)
+        upload_url = _hosted_upload_url(api_key, project_url, image_path, split, coalesced_batch_name, tag_names)
         # Get response
         response = requests.post(upload_url, timeout=(300, 300))
     responsejson = None
