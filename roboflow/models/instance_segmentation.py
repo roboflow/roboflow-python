@@ -28,7 +28,7 @@ class InstanceSegmentationModel(InferenceModel):
             preprocessing (dict): preprocessing to use for the image
             local (str): localhost address and port if pointing towards local inference engine
         """
-        super(InstanceSegmentationModel, self).__init__(api_key, version_id)
+        super().__init__(api_key, version_id)
 
         base_url = local or INSTANCE_SEGMENTATION_URL
         self.api_url = f"{base_url}/{self.dataset_id}/{self.version}"
@@ -57,7 +57,7 @@ class InstanceSegmentationModel(InferenceModel):
 
             >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """  # noqa: E501
-        return super(InstanceSegmentationModel, self).predict(
+        return super().predict(
             image_path,
             confidence=confidence,
             prediction_type=INSTANCE_SEGMENTATION_MODEL,

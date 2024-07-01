@@ -66,7 +66,7 @@ class ObjectDetectionModel(InferenceModel):
         """  # noqa: E501 // docs
         # Instantiate different API URL parameters
         # To be moved to predict
-        super(ObjectDetectionModel, self).__init__(api_key, id)
+        super().__init__(api_key, id)
         self.__api_key = api_key
         self.id = id
         self.name = name

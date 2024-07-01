@@ -6,22 +6,22 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
-      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-case-conflict
       - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-toml
-      - id: check-case-conflict
-      - id: check-added-large-files
+      - id: check-yaml
       - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: end-of-file-fixer
       - id: forbid-new-submodules
+      - id: mixed-line-ending
       - id: pretty-format-json
         args: ['--autofix', '--no-sort-keys', '--indent=4']
-      - id: end-of-file-fixer
-      - id: mixed-line-ending
+      - id: trailing-whitespace
 
 
   - repo: https://github.com/PyCQA/isort
@@ -31,7 +31,7 @@ repos:
         name: Sort imports
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
+    rev: 7.1.0
     hooks:
       - id: flake8
         name: Flake8 Checks
@@ -40,14 +40,20 @@ repos:
 
 
   -   repo: https://github.com/PyCQA/bandit
-      rev: '1.7.6'
+      rev: 1.7.9
       hooks:
       -   id: bandit
           args: ["-c", "pyproject.toml"]
           additional_dependencies: ["bandit[toml]"]
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.1.9
+      rev: v0.5.0
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.16.0
+    hooks:
+      - id: pyupgrade
+        args: [--py38-plus]

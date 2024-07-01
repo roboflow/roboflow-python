@@ -54,6 +54,6 @@ class TestFolderParser(unittest.TestCase):
 
 
 def _assertJsonMatchesFile(actual, filename):
-    with open(filename, "r") as file:
+    with open(filename) as file:
         expected = json.load(file)
         return actual == expected
