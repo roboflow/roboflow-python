@@ -6,7 +6,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -31,7 +31,7 @@ repos:
         name: Sort imports
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
+    rev: 7.1.0
     hooks:
       - id: flake8
         name: Flake8 Checks
@@ -40,14 +40,14 @@ repos:
 
 
   -   repo: https://github.com/PyCQA/bandit
-      rev: '1.7.6'
+      rev: '1.7.9'
       hooks:
       -   id: bandit
           args: ["-c", "pyproject.toml"]
           additional_dependencies: ["bandit[toml]"]
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.1.9
+      rev: v0.5.0
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]
