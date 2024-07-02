@@ -101,7 +101,15 @@ class Version:
 
             version_without_workspace = os.path.basename(str(version))
 
-            if self.type == TYPE_OBJECT_DETECTION:
+            version_info = requests.get(f"{API_URL}/{workspace}/{project}/{self.version}?api_key={self.__api_key}")
+
+            # check if version has a model
+            if version_info.status_code == 200:
+                version_info = version_info.json()["version"]
+
+            if ("models" in version_info) and (not version_info["models"]):
+                self.model = None
+            elif self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
                     self.__api_key,
                     self.id,
