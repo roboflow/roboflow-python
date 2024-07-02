@@ -102,9 +102,11 @@ class Version:
             version_without_workspace = os.path.basename(str(version))
 
             response = requests.get(f"{API_URL}/{workspace}/{project}/{self.version}?api_key={self.__api_key}")
-            response.raise_for_status()
-            version_info = response.json()["version"]
-            has_model = bool(version_info.get("models"))
+            if response.ok:
+                version_info = response.json()["version"]
+                has_model = bool(version_info.get("models"))
+            else:
+                has_model = False
 
             if not has_model:
                 self.model = None
