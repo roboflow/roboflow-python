@@ -1,3 +1,4 @@
+import ast
 import datetime
 import json
 import os
@@ -495,6 +496,8 @@ class Project:
                 )
                 image_id = uploaded_image["id"]
                 upload_retry_attempts = retry.retries
+            except rfapi.UploadError as e:
+                raise RuntimeError(f"Error uploading image: {self._parse_upload_error(e)}")
             except BaseException as e:
                 uploaded_image = {"error": e}
             finally:
@@ -516,6 +519,8 @@ class Project:
                     annotation_labelmap=annotation_labelmap,
                     overwrite=annotation_overwrite,
                 )
+            except rfapi.UploadError as e:
+                raise RuntimeError(f"Error uploading annotation: {self._parse_upload_error(e)}")
             except BaseException as e:
                 uploaded_annotation = {"error": e}
             finally:
@@ -547,6 +552,12 @@ class Project:
                 f"type project with invalid string. - {annotation_path}"
             )
         return annotation_name, annotation_string
+
+    def _parse_upload_error(self, error: rfapi.UploadError) -> str:
+        dict_part = str(error).split(": ", 2)[2]
+        parsed_dict: dict = ast.literal_eval(dict_part)
+        message = parsed_dict.get("message")
+        return message or str(parsed_dict)
 
     def search(
         self,
