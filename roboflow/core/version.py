@@ -101,13 +101,12 @@ class Version:
 
             version_without_workspace = os.path.basename(str(version))
 
-            version_info = requests.get(f"{API_URL}/{workspace}/{project}/{self.version}?api_key={self.__api_key}")
+            response = requests.get(f"{API_URL}/{workspace}/{project}/{self.version}?api_key={self.__api_key}")
+            response.raise_for_status()
+            version_info = response.json()["version"]
+            has_model = bool(version_info.get("models"))
 
-            # check if version has a model
-            if version_info.status_code == 200:
-                version_info = version_info.json()["version"]
-
-            if ("models" in version_info) and (not version_info["models"]):
+            if not has_model:
                 self.model = None
             elif self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
