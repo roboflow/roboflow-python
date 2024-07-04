@@ -6,9 +6,10 @@ import re
 import roboflow
 from roboflow import config as roboflow_config
 from roboflow.adapters import rfapi
-from roboflow.config import APP_URL, DEFAULT_BATCH_NAME, get_conditional_configuration_variable, load_roboflow_api_key
+from roboflow.config import APP_URL, get_conditional_configuration_variable, load_roboflow_api_key
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
+from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 
@@ -49,9 +50,10 @@ def import_dataset(args):
     workspace = rf.workspace(args.workspace)
     workspace.upload_dataset(
         dataset_path=args.folder,
-        dataset_format=args.format,
         project_name=args.project,
         num_workers=args.concurrency,
+        batch_name=args.batch_name,
+        num_retries=args.num_retries,
     )
 
 
@@ -69,6 +71,15 @@ def upload_image(args):
         tag_names=args.tag_names.split(",") if args.tag_names else [],
         is_prediction=args.is_prediction,
     )
+
+
+def upload_model(args):
+    rf = roboflow.Roboflow(args.api_key)
+    workspace = rf.workspace(args.workspace)
+    project = workspace.project(args.project)
+    version = project.version(args.version_number)
+    print(args.model_type, args.model_path, args.filename)
+    version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
 
 
 def list_projects(args):
@@ -123,6 +134,7 @@ def infer(args):
         "classification": ClassificationModel,
         "instance-segmentation": InstanceSegmentationModel,
         "semantic-segmentation": SemanticSegmentationModel,
+        "keypoint-detection": KeypointDetectionModel,
     }[projectType]
     model = modelClass(api_key, project_url)
     kwargs = {}
@@ -148,6 +160,7 @@ def _argparser():
     _add_infer_parser(subparsers)
     _add_projects_parser(subparsers)
     _add_workspaces_parser(subparsers)
+    _add_upload_model_parser(subparsers)
     return parser
 
 
@@ -164,7 +177,7 @@ def _add_download_parser(subparsers):
         help="Specify the format to download the version. Available options: [coco, "
         "yolov5pytorch, yolov7pytorch, my-yolov6, darknet, voc, tfrecord, "
         "createml, clip, multiclass, coco-segmentation, yolo5-obb, "
-        "png-mask-semantic, yolov8]",
+        "png-mask-semantic, yolov8, yolov9]",
     )
     download_parser.add_argument("-l", dest="location", help="Location to download the dataset")
     download_parser.set_defaults(func=download)
@@ -213,7 +226,6 @@ def _add_upload_parser(subparsers):
         "-b",
         dest="batch",
         help="Batch name to upload to (optional)",
-        default=DEFAULT_BATCH_NAME,
     )
     upload_parser.add_argument(
         "-t",
@@ -253,10 +265,12 @@ def _add_import_parser(subparsers):
         default=10,
     )
     import_parser.add_argument(
-        "-f",
-        dest="format",
-        help="dataset format. Valid options are " "[voc, yolov8, yolov5, auto] (use auto for autodetect)",
-        default="auto",
+        "-n",
+        dest="batch_name",
+        help="name of batch to upload to within project",
+    )
+    import_parser.add_argument(
+        "-r", dest="num_retries", type=int, help="Retry failed uploads this many times (default=0)", default=0
     )
     import_parser.set_defaults(func=import_dataset)
 
@@ -350,6 +364,51 @@ def _add_infer_parser(subparsers):
         ],
     )
     infer_parser.set_defaults(func=infer)
+
+
+def _add_upload_model_parser(subparsers):
+    upload_model_parser = subparsers.add_parser(
+        "upload_model",
+        help="Upload a trained model to Roboflow",
+    )
+    upload_model_parser.add_argument(
+        "-a",
+        dest="api_key",
+        help="api_key",
+    )
+    upload_model_parser.add_argument(
+        "-w",
+        dest="workspace",
+        help="specify a workspace url or id (will use default workspace if not specified)",
+    )
+    upload_model_parser.add_argument(
+        "-p",
+        dest="project",
+        help="project_id to upload the model into",
+    )
+    upload_model_parser.add_argument(
+        "-v",
+        dest="version_number",
+        type=int,
+        help="version number to upload the model to",
+    )
+    upload_model_parser.add_argument(
+        "-t",
+        dest="model_type",
+        help="type of the model (e.g., yolov8, yolov5)",
+    )
+    upload_model_parser.add_argument(
+        "-m",
+        dest="model_path",
+        help="path to the trained model file",
+    )
+    upload_model_parser.add_argument(
+        "-f",
+        dest="filename",
+        default="weights/best.pt",
+        help="name of the model file",
+    )
+    upload_model_parser.set_defaults(func=upload_model)
 
 
 def _add_login_parser(subparsers):

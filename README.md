@@ -44,6 +44,13 @@ Run the following command to install the Roboflow Python package:
 pip install roboflow
 ```
 
+For desktop features, use:
+
+```bash
+pip install "roboflow[desktop]"
+```
+
+
 <details>
   <summary>Install from source</summary>
 
@@ -54,7 +61,7 @@ pip install roboflow
   cd roboflow-python
   python3 -m venv env
   source env/bin/activate
-  pip3 install -r requirements.txt
+  pip install .
   ```
 </details>
 
@@ -113,7 +120,7 @@ project = workspace.project("PROJECT_URL")
 version = project.version("VERSION_NUMBER")
 
 # upload a dataset
-project.upload_dataset(
+workspace.upload_dataset(
     dataset_path="./dataset/",
     num_workers=10,
     dataset_format="yolov8", # supports yolov8, yolov5, and Pascal VOC
@@ -150,7 +157,7 @@ project = workspace.project("PROJECT_URL")
 version = project.version("VERSION_NUMBER")
 ```
 
-The workspace, project, and version parameters are the same that you will find in the URL addresses at app.roboflow.com and universe.roboflow.com.
+The workspace, project, and version parameters are the same as those you will find in the URL addresses at app.roboflow.com and universe.roboflow.com.
 
 Within the workspace object you can perform actions like making a new project, listing your projects, or performing active learning where you are using predictions from one project's model to upload images to a new project.
 

@@ -30,8 +30,7 @@ tests = ["B201", "B301"]
 
 [tool.autoflake]
 check = true
-imports = ["cv2", "roboflow", "supervision"]
-
+imports = ["cv2", "roboflow"]
 
 [tool.ruff]
 target-version = "py38"
@@ -136,3 +135,25 @@ convention = "google"
 
 [tool.ruff.pylint]
 max-args = 20
+
+[tool.mypy]
+python_version = "3.8"
+exclude = [
+    "^build/"
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "_datetime.*",
+    # IPython is an optional dependency
+    "IPython.display.*",
+    # ipywidgets is an optional dependency
+    "ipywidgets.*",
+    # matplotlib typing is not available for Python 3.8
+    # remove this when we stop supporting Python 3.8
+    "matplotlib.*",
+    "requests_toolbelt.*",
+    "torch.*",
+    "ultralytics.*",
+]
+ignore_missing_imports = true

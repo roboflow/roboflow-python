@@ -34,7 +34,7 @@ unittest.defaultTestLoader.sortTestMethodsUsing = compare
 
 class RoboflowTest(unittest.TestCase):
     def setUp(self):
-        super(RoboflowTest, self).setUp()
+        super().setUp()
         responses.start()
 
         # Check key
@@ -116,7 +116,7 @@ class RoboflowTest(unittest.TestCase):
                 },
                 "versions": [
                     {
-                        "id": f"{WORKSPACE_NAME}/{PROJECT_NAME}/2",
+                        "id": f"{WORKSPACE_NAME}/{PROJECT_NAME}/{PROJECT_VERSION}",
                         "name": "augmented-416x416",
                         "created": 1663104679.539,
                         "images": 240,
@@ -158,11 +158,62 @@ class RoboflowTest(unittest.TestCase):
             status=200,
         )
 
+        # Get version
+        responses.add(
+            responses.GET,
+            f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/{PROJECT_VERSION}?api_key={ROBOFLOW_API_KEY}",
+            json={
+                "workspace": {"name": WORKSPACE_NAME, "url": WORKSPACE_NAME, "members": 1},
+                "project": {
+                    "id": f"{WORKSPACE_NAME}/{PROJECT_NAME}",
+                    "type": "object-detection",
+                    "name": "Hard Hat Sample",
+                    "created": 1593802673.521,
+                    "updated": 1663269501.654,
+                    "images": 100,
+                    "unannotated": 3,
+                    "annotation": "Workers",
+                    "versions": 2,
+                    "public": False,
+                    "splits": {"test": 10, "train": 70, "valid": 20},
+                    "colors": {
+                        "person": "#FF00FF",
+                        "helmet": "#C7FC00",
+                        "head": "#8622FF",
+                    },
+                    "classes": {"person": 9, "helmet": 287, "head": 90},
+                },
+                "version": {
+                    "id": f"{WORKSPACE_NAME}/{PROJECT_NAME}/{PROJECT_VERSION}",
+                    "name": "augmented-416x416",
+                    "created": 1663104679.539,
+                    "images": 240,
+                    "splits": {"train": 210, "test": 10, "valid": 20},
+                    "generating": False,
+                    "progress": 1,
+                    "preprocessing": {
+                        "resize": {"height": "416", "enabled": True, "width": "416", "format": "Stretch to"},
+                        "auto-orient": {"enabled": True},
+                    },
+                    "augmentation": {
+                        "blur": {"enabled": True, "pixels": 1.5},
+                        "image": {"enabled": True, "versions": 3},
+                        "rotate": {"degrees": 15, "enabled": True},
+                        "crop": {"enabled": True, "percent": 40, "min": 0},
+                        "flip": {"horizontal": True, "enabled": True, "vertical": False},
+                    },
+                    "exports": [],
+                    "models": {},
+                    "classes": [],
+                },
+            },
+            status=200,
+        )
+
         # Upload image
         responses.add(
             responses.POST,
-            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}"
-            f"&batch={DEFAULT_BATCH_NAME}",
+            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}" f"&batch={DEFAULT_BATCH_NAME}",
             json={"duplicate": True, "id": "hbALkCFdNr9rssgOUXug"},
             status=200,
         )
@@ -170,7 +221,7 @@ class RoboflowTest(unittest.TestCase):
         self.connect_to_roboflow()
 
     def tearDown(self):
-        super(RoboflowTest, self).tearDown()
+        super().tearDown()
         responses.stop()
         responses.reset()
 

@@ -69,15 +69,18 @@ TYPE_CLASSICATION = "classification"
 TYPE_OBJECT_DETECTION = "object-detection"
 TYPE_INSTANCE_SEGMENTATION = "instance-segmentation"
 TYPE_SEMANTIC_SEGMENTATION = "semantic-segmentation"
+TYPE_KEYPOINT_DETECTION = "keypoint-detection"
 
 DEFAULT_BATCH_NAME = "Pip Package Upload"
+DEFAULT_JOB_NAME = "Annotated via API"
 
 RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
+TQDM_DISABLE = os.getenv("TQDM_DISABLE", None)
 
 
 def load_roboflow_api_key(workspace_url=None):
-    if os.getenv("RF_API_KEY") is not None:
-        return os["RF_API_KEY"]
+    if os.getenv("ROBOFLOW_API_KEY") is not None:
+        return os.getenv("ROBOFLOW_API_KEY")
     RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
     workspaces_by_url = {w["url"]: w for w in RF_WORKSPACES.values()}
     default_workspace_url = get_conditional_configuration_variable("RF_WORKSPACE", default=None)

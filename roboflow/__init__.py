@@ -14,13 +14,13 @@ from roboflow.core.workspace import Workspace
 from roboflow.models import CLIPModel, GazeModel  # noqa: F401
 from roboflow.util.general import write_line
 
-__version__ = "1.1.19"
+__version__ = "1.1.34"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
     if not isinstance(api_key, str):
         raise RuntimeError(
-            "API Key is of Incorrect Type \n Expected Type: " + str(type("")) + "\n Input Type: " + str(type(api_key))
+            "API Key is of Incorrect Type \n Expected Type: " + str(str) + "\n Input Type: " + str(type(api_key))
         )
 
     if any(c for c in api_key if c.islower()):  # check if any of the api key characters are lowercase

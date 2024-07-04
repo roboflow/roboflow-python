@@ -2,15 +2,17 @@ import datetime
 import json
 import os
 import sys
+import time
 import warnings
+from typing import Dict, List, Optional, Union
 
 import requests
 from PIL import Image, UnidentifiedImageError
 
 from roboflow.adapters import rfapi
-from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEMO_KEYS
+from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
-from roboflow.util.general import retry
+from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
 
 ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
@@ -21,7 +23,7 @@ def custom_formatwarning(msg, *args, **kwargs):
     return str(msg) + "\n"
 
 
-warnings.formatwarning = custom_formatwarning
+warnings.formatwarning = custom_formatwarning  # type: ignore[assignment]
 
 
 class Project:
@@ -29,7 +31,7 @@ class Project:
     A Roboflow Project.
     """
 
-    def __init__(self, api_key: str, a_project: str, model_format: str = None):
+    def __init__(self, api_key: str, a_project: dict, model_format: Optional[str] = None):
         """
         Create a Project object that represents a Project associated with a Workspace.
 
@@ -282,7 +284,7 @@ class Project:
 
         return new_model
 
-    def version(self, version_number: int, local: str = None):
+    def version(self, version_number: int, local: Optional[str] = None):
         """
         Retrieves information about a specific version and returns a Version() object.
 
@@ -310,6 +312,7 @@ class Project:
                 local=None,
                 workspace="",
                 project="",
+                public=True,
             )
 
         version_info = self.get_version_information()
@@ -332,7 +335,7 @@ class Project:
                 )
                 return vers
 
-        raise RuntimeError("Version number {} is not found.".format(version_number))
+        raise RuntimeError(f"Version number {version_number} is not found.")
 
     def check_valid_image(self, image_path: str):
         """
@@ -355,13 +358,13 @@ class Project:
 
     def upload(
         self,
-        image_path: str = None,
-        annotation_path: str = None,
+        image_path: str,
+        annotation_path: Optional[str] = None,
         hosted_image: bool = False,
-        image_id: str = None,
+        image_id: Optional[str] = None,
         split: str = "train",
         num_retry_uploads: int = 0,
-        batch_name: str = DEFAULT_BATCH_NAME,
+        batch_name: Optional[str] = None,
         tag_names: list = [],
         is_prediction: bool = False,
         **kwargs,
@@ -371,10 +374,11 @@ class Project:
 
         Args:
             image_path (str): path to image you'd like to upload
-            annotation_path (str): if you're upload annotation, path to it
+            annotation_path (str): path to the annotation file. If not provided, the image will be uploaded without annotation.
+                Special case: in classification projects, this can instead be a class name. e.g. "dog".
             hosted_image (bool): whether the image is hosted
             image_id (str): id of the image
-            split (str): to upload the image to
+            split (str): which split to upload to - "train", "valid" or "test"
             num_retry_uploads (int): how many times to retry upload on failure
             batch_name (str): name of batch to upload to within project
             tag_names (list[str]): tags to be applied to an image
@@ -427,7 +431,7 @@ class Project:
             images = os.listdir(image_path)
             for image in images:
                 path = image_path + "/" + image
-                if self.check_valid_image(image):
+                if self.check_valid_image(path):
                     self.single_upload(
                         image_path=path,
                         annotation_path=annotation_path,
@@ -454,7 +458,7 @@ class Project:
         image_id=None,
         split="train",
         num_retry_uploads=0,
-        batch_name=DEFAULT_BATCH_NAME,
+        batch_name=None,
         tag_names=[],
         is_prediction: bool = False,
         annotation_overwrite=False,
@@ -470,46 +474,68 @@ class Project:
         if isinstance(annotation_labelmap, str):
             annotation_labelmap = load_labelmap(annotation_labelmap)
         uploaded_image, uploaded_annotation = None, None
+        upload_time = None
+        upload_retry_attempts = 0
         if image_path:
-            uploaded_image = retry(
-                num_retry_uploads,
-                Exception,
-                rfapi.upload_image,
-                self.__api_key,
-                project_url,
-                image_path,
-                hosted_image=hosted_image,
-                split=split,
-                batch_name=batch_name,
-                tag_names=tag_names,
-                sequence_number=sequence_number,
-                sequence_size=sequence_size,
-                **kwargs,
-            )
-            image_id = uploaded_image["id"]
+            t0 = time.time()
+            try:
+                retry = Retry(num_retry_uploads, Exception)
+                uploaded_image = retry(
+                    rfapi.upload_image,
+                    self.__api_key,
+                    project_url,
+                    image_path,
+                    hosted_image=hosted_image,
+                    split=split,
+                    batch_name=batch_name,
+                    tag_names=tag_names,
+                    sequence_number=sequence_number,
+                    sequence_size=sequence_size,
+                    **kwargs,
+                )
+                image_id = uploaded_image["id"]
+                upload_retry_attempts = retry.retries
+            except BaseException as e:
+                uploaded_image = {"error": e}
+            finally:
+                upload_time = time.time() - t0
 
-        if annotation_path:
+        annotation_time = None
+        if annotation_path and image_id:
             annotation_name, annotation_str = self._annotation_params(annotation_path)
             try:
+                t0 = time.time()
                 uploaded_annotation = rfapi.save_annotation(
                     self.__api_key,
                     project_url,
                     annotation_name,
                     annotation_str,
                     image_id,
+                    job_name=batch_name,
                     is_prediction=is_prediction,
                     annotation_labelmap=annotation_labelmap,
                     overwrite=annotation_overwrite,
                 )
             except BaseException as e:
                 uploaded_annotation = {"error": e}
-        return {"image": uploaded_image, "annotation": uploaded_annotation}
+            finally:
+                annotation_time = time.time() - t0
+        return {
+            "image": uploaded_image,
+            "annotation": uploaded_annotation,
+            "upload_time": upload_time,
+            "annotation_time": annotation_time,
+            "upload_retry_attempts": upload_retry_attempts,
+        }
 
     def _annotation_params(self, annotation_path):
         annotation_name, annotation_string = None, None
-        if os.path.exists(annotation_path):
-            with open(annotation_path, "r"):
-                annotation_string = open(annotation_path, "r").read()
+        if isinstance(annotation_path, dict) and annotation_path.get("rawText"):
+            annotation_name = annotation_path["name"]
+            annotation_string = annotation_path["rawText"]
+        elif os.path.exists(annotation_path):
+            with open(annotation_path):
+                annotation_string = open(annotation_path).read()
             annotation_name = os.path.basename(annotation_path)
         elif self.type == "classification":
             print(f"-> using {annotation_path} as classname for classification project")
@@ -524,15 +550,15 @@ class Project:
 
     def search(
         self,
-        like_image: str = None,
-        prompt: str = None,
+        like_image: Optional[str] = None,
+        prompt: Optional[str] = None,
         offset: int = 0,
         limit: int = 100,
-        tag: str = None,
-        class_name: str = None,
-        in_dataset: str = None,
+        tag: Optional[str] = None,
+        class_name: Optional[str] = None,
+        in_dataset: Optional[str] = None,
         batch: bool = False,
-        batch_id: str = None,
+        batch_id: Optional[str] = None,
         fields: list = ["id", "created", "name", "labels"],
     ):
         """
@@ -562,7 +588,7 @@ class Project:
 
             >>> results = project.search(query="cat", limit=10)
         """  # noqa: E501 // docs
-        payload = {}
+        payload: Dict[str, Union[str, int, List[str]]] = {}
 
         if like_image is not None:
             payload["like_image"] = like_image
@@ -602,15 +628,15 @@ class Project:
 
     def search_all(
         self,
-        like_image: str = None,
-        prompt: str = None,
+        like_image: Optional[str] = None,
+        prompt: Optional[str] = None,
         offset: int = 0,
         limit: int = 100,
-        tag: str = None,
-        class_name: str = None,
-        in_dataset: str = None,
+        tag: Optional[str] = None,
+        class_name: Optional[str] = None,
+        in_dataset: Optional[str] = None,
         batch: bool = False,
-        batch_id: str = None,
+        batch_id: Optional[str] = None,
         fields: list = ["id", "created"],
     ):
         """

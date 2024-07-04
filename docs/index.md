@@ -84,7 +84,7 @@ project = workspace.project("PROJECT_URL")
 version = project.version("VERSION_NUMBER")
 
 # upload a dataset
-project.upload_dataset(
+workspace.upload_dataset(
     dataset_path="./dataset/",
     num_workers=10,
     dataset_format="yolov8", # supports yolov8, yolov5, and Pascal VOC
@@ -121,7 +121,7 @@ project = workspace.project("PROJECT_URL")
 version = project.version("VERSION_NUMBER")
 ```
 
-The workspace, project, and version parameters are the same that you will find in the URL addresses at app.roboflow.com and universe.roboflow.com.
+The workspace, project, and version parameters are the same as those you will find in the URL addresses at app.roboflow.com and universe.roboflow.com.
 
 Within the workspace object you can perform actions like making a new project, listing your projects, or performing active learning where you are using predictions from one project's model to upload images to a new project.
 
@@ -164,17 +164,17 @@ We would love your input on how we can improve the Roboflow Python package! Plea
         />
     </a>
     <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
-    <a href="https://disuss.roboflow.com">
+    <a href="https://discuss.roboflow.com">
         <img
           src="https://media.roboflow.com/notebooks/template/icons/purple/forum.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633584"
           width="3%"
         />
+    </a>
     <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
     <a href="https://blog.roboflow.com">
         <img
           src="https://media.roboflow.com/notebooks/template/icons/purple/blog.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633605"
           width="3%"
         />
-    </a>
     </a>
 </div>

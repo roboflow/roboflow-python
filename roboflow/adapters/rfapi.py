@@ -1,11 +1,12 @@
 import json
 import os
 import urllib
+from typing import Optional
 
 import requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
-from roboflow.config import API_URL, DEFAULT_BATCH_NAME
+from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
 from roboflow.util import image_utils
 
 
@@ -43,8 +44,8 @@ def upload_image(
     split: str = "train",
     batch_name: str = DEFAULT_BATCH_NAME,
     tag_names: list = [],
-    sequence_number: int = None,
-    sequence_size: int = None,
+    sequence_number: Optional[int] = None,
+    sequence_size: Optional[int] = None,
     **kwargs,
 ):
     """
@@ -56,14 +57,15 @@ def upload_image(
         split (str): the dataset split the image to
     """
 
+    coalesced_batch_name = batch_name or DEFAULT_BATCH_NAME
+
     # If image is not a hosted image
     if not hosted_image:
-        batch_name = batch_name or DEFAULT_BATCH_NAME
         image_name = os.path.basename(image_path)
         imgjpeg = image_utils.file2jpeg(image_path)
 
         upload_url = _local_upload_url(
-            api_key, project_url, batch_name, tag_names, sequence_number, sequence_size, kwargs
+            api_key, project_url, coalesced_batch_name, tag_names, sequence_number, sequence_size, kwargs
         )
         m = MultipartEncoder(
             fields={
@@ -72,14 +74,14 @@ def upload_image(
                 "file": ("imageToUpload", imgjpeg, "image/jpeg"),
             }
         )
-        response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type})
+        response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
 
     else:
         # Hosted image upload url
 
-        upload_url = _hosted_upload_url(api_key, project_url, image_path, split)
+        upload_url = _hosted_upload_url(api_key, project_url, image_path, split, coalesced_batch_name, tag_names)
         # Get response
-        response = requests.post(upload_url)
+        response = requests.post(upload_url, timeout=(300, 300))
     responsejson = None
     try:
         responsejson = response.json()
@@ -103,6 +105,7 @@ def save_annotation(
     annotation_name: str,
     annotation_string: str,
     image_id: str,
+    job_name: str = DEFAULT_JOB_NAME,
     is_prediction: bool = False,
     annotation_labelmap=None,
     overwrite: bool = False,
@@ -115,12 +118,15 @@ def save_annotation(
         image_id (str): image id you'd like to upload that has annotations for it.
     """
 
-    upload_url = _save_annotation_url(api_key, project_url, annotation_name, image_id, is_prediction, overwrite)
+    upload_url = _save_annotation_url(
+        api_key, project_url, annotation_name, image_id, job_name, is_prediction, overwrite
+    )
 
     response = requests.post(
         upload_url,
         data=json.dumps({"annotationFile": annotation_string, "labelmap": annotation_labelmap}),
         headers={"Content-Type": "application/json"},
+        timeout=(60, 60),
     )
     responsejson = None
     try:
@@ -143,8 +149,10 @@ def save_annotation(
     return responsejson
 
 
-def _save_annotation_url(api_key, project_url, name, image_id, is_prediction, overwrite=False):
+def _save_annotation_url(api_key, project_url, name, image_id, job_name, is_prediction, overwrite=False):
     url = f"{API_URL}/dataset/{project_url}/annotate/{image_id}?api_key={api_key}" f"&name={name}"
+    if job_name:
+        url += f"&jobName={job_name}"
     if is_prediction:
         url += "&prediction=true"
     if overwrite:
@@ -152,22 +160,35 @@ def _save_annotation_url(api_key, project_url, name, image_id, is_prediction, ov
     return url
 
 
-def _hosted_upload_url(api_key, project_url, image_path, split):
+def _upload_url(api_key, project_url, **kwargs):
     url = f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}"
-    url += f"&name={os.path.basename(image_path)}&split={split}"
-    url += f"&image={urllib.parse.quote_plus(image_path)}"
+
+    if kwargs:
+        querystring = urllib.parse.urlencode(kwargs, doseq=True)
+        url += f"&{querystring}"
+
     return url
+
+
+def _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_names):
+    return _upload_url(
+        api_key,
+        project_url,
+        name=os.path.basename(image_path),
+        split=split,
+        image=image_path,
+        batch=batch_name,
+        tag=tag_names,
+    )
 
 
 def _local_upload_url(api_key, project_url, batch_name, tag_names, sequence_number, sequence_size, kwargs):
-    url = f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}&batch={batch_name}"
+    query_params = dict(batch=batch_name, tag=tag_names, **kwargs)
+
     if sequence_number is not None and sequence_size is not None:
-        url += f"&sequence_number={sequence_number}&sequence_size={sequence_size}"
-    for key, value in kwargs.items():
-        url += f"&{str(key)}={str(value)}"
-    for tag in tag_names:
-        url += f"&tag={tag}"
-    return url
+        query_params.update(sequence_number=sequence_number, sequence_size=sequence_size)
+
+    return _upload_url(api_key, project_url, **query_params)
 
 
 def _save_annotation_error(image_id, response):

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from roboflow.config import INSTANCE_SEGMENTATION_MODEL, INSTANCE_SEGMENTATION_URL
 from roboflow.models.inference import InferenceModel
 
@@ -12,9 +14,9 @@ class InstanceSegmentationModel(InferenceModel):
         self,
         api_key: str,
         version_id: str,
-        colors: dict = None,
-        preprocessing: dict = None,
-        local: bool = None,
+        colors: Optional[dict] = None,
+        preprocessing: Optional[dict] = None,
+        local: Optional[str] = None,
     ):
         """
         Create a InstanceSegmentationModel object through which you can run inference.
@@ -24,13 +26,12 @@ class InstanceSegmentationModel(InferenceModel):
             version_id (str): the workspace/project id
             colors (dict): colors to use for the image
             preprocessing (dict): preprocessing to use for the image
-            local (bool): whether the image is local or hosted
+            local (str): localhost address and port if pointing towards local inference engine
         """
-        super(InstanceSegmentationModel, self).__init__(api_key, version_id)
-        if local is None:
-            self.api_url = f"{INSTANCE_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
-        else:
-            self.api_url = f"{local}/{self.dataset_id}/{self.version}"
+        super().__init__(api_key, version_id)
+
+        base_url = local or INSTANCE_SEGMENTATION_URL
+        self.api_url = f"{base_url}/{self.dataset_id}/{self.version}"
         self.colors = {} if colors is None else colors
         self.preprocessing = {} if preprocessing is None else preprocessing
 
@@ -56,7 +57,7 @@ class InstanceSegmentationModel(InferenceModel):
 
             >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """  # noqa: E501
-        return super(InstanceSegmentationModel, self).predict(
+        return super().predict(
             image_path,
             confidence=confidence,
             prediction_type=INSTANCE_SEGMENTATION_MODEL,

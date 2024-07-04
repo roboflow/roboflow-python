@@ -1,6 +1,6 @@
 import json
 import time
-from typing import List
+from typing import Optional, Tuple
 from urllib.parse import urljoin
 
 import magic
@@ -9,11 +9,7 @@ import requests
 from roboflow.config import API_URL
 from roboflow.models.inference import InferenceModel
 
-SUPPORTED_ROBOFLOW_MODELS = [
-    "object-detection",
-    "classification",
-    "instance-segmentation",
-]
+SUPPORTED_ROBOFLOW_MODELS = ["object-detection", "classification", "instance-segmentation", "keypoint-detection"]
 
 SUPPORTED_ADDITIONAL_MODELS = {
     "clip": {
@@ -60,13 +56,13 @@ class VideoInferenceModel(InferenceModel):
         """  # noqa: E501 // docs
         self.__api_key = api_key
 
-    def predict(
+    def predict(  # type: ignore[override]
         self,
         video_path: str,
         inference_type: str,
         fps: int = 5,
-        additional_models: list = None,
-    ) -> List[str, str]:
+        additional_models: Optional[list] = None,
+    ) -> Tuple[str, str]:
         """
         Infers detections based on image from specified model and image path.
 
@@ -90,14 +86,17 @@ class VideoInferenceModel(InferenceModel):
             >>> prediction = model.predict("video.mp4", fps=5, inference_type="object-detection")
         """  # noqa: E501 // docs
 
-        url = urljoin(API_URL, "/video_upload_signed_url/?api_key=", self.__api_key)
+        url = urljoin(API_URL, f"/video_upload_signed_url/?api_key={self.__api_key}")
 
         if fps > 30:
             raise Exception("FPS must be less than or equal to 30.")
 
+        if additional_models is None:
+            additional_models = []
+
         for model in additional_models:
             if model not in SUPPORTED_ADDITIONAL_MODELS:
-                raise Exception(f"Model {model} is no t supported for video inference.")
+                raise Exception(f"Model {model} is not supported for video inference.")
 
         if inference_type not in SUPPORTED_ROBOFLOW_MODELS:
             raise Exception(f"Model {inference_type} is not supported for video inference.")
@@ -119,13 +118,13 @@ class VideoInferenceModel(InferenceModel):
 
         print("Uploaded video to signed url: " + signed_url)
 
-        url = urljoin(API_URL, "/videoinfer/?api_key=", self.__api_key)
+        url = urljoin(API_URL, f"/videoinfer/?api_key={self.__api_key}")
 
         models = [
             {
                 "model_id": self.dataset_id,
                 "model_version": self.version,
-                "inference_type": self.inference_type,
+                "inference_type": inference_type,
             }
         ]
 
@@ -142,7 +141,7 @@ class VideoInferenceModel(InferenceModel):
 
         return job_id, signed_url
 
-    def poll_for_results(self, job_id: str = None) -> dict:
+    def poll_for_results(self, job_id: Optional[str] = None) -> dict:
         """
         Polls the Roboflow API to check if video inference is complete.
 
@@ -166,7 +165,7 @@ class VideoInferenceModel(InferenceModel):
         if job_id is None:
             job_id = self.job_id
 
-        url = urljoin(API_URL, "/videoinfer/?api_key=", self.__api_key, "&job_id=", self.job_id)
+        url = urljoin(API_URL, f"/videoinfer/?api_key={self.__api_key}&job_id={self.job_id}")
 
         try:
             response = requests.get(url, headers={"Content-Type": "application/json"})
@@ -220,7 +219,7 @@ class VideoInferenceModel(InferenceModel):
         attempts = 0
 
         while True:
-            response = self.poll_for_response()
+            response = self.poll_for_results()
 
             attempts += 1
 

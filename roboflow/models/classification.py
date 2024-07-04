@@ -3,16 +3,18 @@ import io
 import json
 import os
 import urllib
+from typing import Optional
 
 import requests
 from PIL import Image
 
 from roboflow.config import CLASSIFICATION_MODEL
+from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 
 
-class ClassificationModel:
+class ClassificationModel(InferenceModel):
     """
     Run inference on a classification model hosted on Roboflow or served through
         Roboflow Inference.
@@ -22,11 +24,11 @@ class ClassificationModel:
         self,
         api_key: str,
         id: str,
-        name: str = None,
-        version: int = None,
-        local: bool = False,
-        colors: dict = None,
-        preprocessing: dict = None,
+        name: Optional[str] = None,
+        version: Optional[str] = None,
+        local: Optional[str] = None,
+        colors: Optional[dict] = None,
+        preprocessing: Optional[dict] = None,
     ):
         """
         Create a ClassificationModel object through which you can run inference.
@@ -35,8 +37,8 @@ class ClassificationModel:
             api_key (str): private roboflow api key
             id (str): the workspace/project id
             name (str): is the name of the project
-            version (int): version number
-            local (bool): whether the image is local or hosted
+            version (str): version number
+            local (str): localhost address and port if pointing towards local inference engine
             colors (dict): colors to use for the image
             preprocessing (dict): preprocessing to use for the image
 
@@ -44,6 +46,7 @@ class ClassificationModel:
             ClassificationModel Object
         """
         # Instantiate different API URL parameters
+        super().__init__(api_key, id, version=version)
         self.__api_key = api_key
         self.id = id
         self.name = name
@@ -57,7 +60,7 @@ class ClassificationModel:
         self.preprocessing = {} if preprocessing is None else preprocessing
 
         if local:
-            print("initalizing local classification model hosted at :" + local)
+            print(f"initalizing local classification model hosted at : {local}")
             self.base_url = local
 
     def predict(self, image_path, hosted=False):

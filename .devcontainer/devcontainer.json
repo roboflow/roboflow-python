@@ -8,6 +8,7 @@
         "vscode": {
             "extensions": [
                 "ms-python.python",
+                "ms-python.debugpy",
                 "ms-python.black-formatter"
             ],
             "settings": {
