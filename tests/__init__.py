@@ -34,7 +34,7 @@ unittest.defaultTestLoader.sortTestMethodsUsing = compare
 
 class RoboflowTest(unittest.TestCase):
     def setUp(self):
-        super(RoboflowTest, self).setUp()
+        super().setUp()
         responses.start()
 
         # Check key
@@ -221,7 +221,7 @@ class RoboflowTest(unittest.TestCase):
         self.connect_to_roboflow()
 
     def tearDown(self):
-        super(RoboflowTest, self).tearDown()
+        super().tearDown()
         responses.stop()
         responses.reset()
 

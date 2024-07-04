@@ -44,7 +44,7 @@ class KeypointDetectionModel(InferenceModel):
             ClassificationModel Object
         """
         # Instantiate different API URL parameters
-        super(KeypointDetectionModel, self).__init__(api_key, id, version=version)
+        super().__init__(api_key, id, version=version)
         self.__api_key = api_key
         self.id = id
         self.name = name

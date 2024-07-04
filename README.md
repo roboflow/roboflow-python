@@ -44,6 +44,13 @@ Run the following command to install the Roboflow Python package:
 pip install roboflow
 ```
 
+For desktop features, use:
+
+```bash
+pip install "roboflow[desktop]"
+```
+
+
 <details>
   <summary>Install from source</summary>
 
@@ -54,7 +61,7 @@ pip install roboflow
   cd roboflow-python
   python3 -m venv env
   source env/bin/activate
-  pip3 install -r requirements.txt
+  pip install .
   ```
 </details>
 
