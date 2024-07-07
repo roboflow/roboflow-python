@@ -6,7 +6,7 @@ from packaging.version import Version
 
 
 def get_wrong_dependencies_versions(
-    dependencies_versions: List[Tuple[str, str, str]]
+    dependencies_versions: List[Tuple[str, str, str]],
 ) -> List[Tuple[str, str, str, str]]:
     """
     Get a list of mismatching dependencies with current version installed.
