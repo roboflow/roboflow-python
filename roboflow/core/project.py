@@ -401,8 +401,8 @@ class Project:
 
         if not is_file and not is_dir:
             raise RuntimeError(
-                "The provided image path [ {} ] is not a valid path. Please provide a"
-                " path to an image or a directory.".format(image_path)
+                f"The provided image path [ {image_path} ] is not a valid path. Please provide a"
+                " path to an image or a directory."
             )
 
         if is_file:
@@ -410,8 +410,9 @@ class Project:
 
             if not is_image:
                 raise RuntimeError(
-                    "The image you provided {} is not a supported file format. We"
-                    " currently support: {}.".format(image_path, ", ".join(ACCEPTED_IMAGE_FORMATS))
+                    "The image you provided {} is not a supported file format. We" " currently support: {}.".format(
+                        image_path, ", ".join(ACCEPTED_IMAGE_FORMATS)
+                    )
                 )
 
             self.single_upload(

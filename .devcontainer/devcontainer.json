@@ -9,7 +9,7 @@
             "extensions": [
                 "ms-python.python",
                 "ms-python.debugpy",
-                "ms-python.black-formatter"
+                "charliermarsh.ruff"
             ],
             "settings": {
                 "extensions.verifySignature": false

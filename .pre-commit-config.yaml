@@ -20,40 +20,19 @@ repos:
       - id: forbid-new-submodules
       - id: mixed-line-ending
       - id: pretty-format-json
-        args: ['--autofix', '--no-sort-keys', '--indent=4']
+        args: ["--autofix", "--no-sort-keys", "--indent=4"]
       - id: trailing-whitespace
 
-
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.9
     hooks:
-      - id: isort
-        name: Sort imports
+      - id: bandit
+        args: ["-c", "pyproject.toml"]
+        additional_dependencies: ["bandit[toml]"]
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.1.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.1
     hooks:
-      - id: flake8
-        name: Flake8 Checks
-        entry: flake8
-        additional_dependencies: [Flake8-pyproject]
-
-
-  -   repo: https://github.com/PyCQA/bandit
-      rev: 1.7.9
-      hooks:
-      -   id: bandit
-          args: ["-c", "pyproject.toml"]
-          additional_dependencies: ["bandit[toml]"]
-
-  -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.5.0
-      hooks:
-      -   id: ruff
-          args: [--fix, --exit-non-zero-on-fix]
-
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.16.0
-    hooks:
-      - id: pyupgrade
-        args: [--py38-plus]
+      - id: ruff-format
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]

@@ -12,9 +12,8 @@
     ],
     "editor.formatOnSave": true,
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter"
+        "editor.defaultFormatter": "charliermarsh.ruff"
     },
-    "python.formatting.provider": "none",
     "python.testing.pytestEnabled": false,
     "editor.inlineSuggest.showToolbar": "onHover"
 }

@@ -28,7 +28,7 @@ pip install -e ".[dev]"
 
 ### Devcontainer
 
-This project comes with a [convenient devcontainer](https://www.loom.com/share/a183c4a351ed4700a79476fedf08ab9b) that makes it easier to run tests and has black configured to run on save.
+This project comes with a [convenient devcontainer](https://www.loom.com/share/a183c4a351ed4700a79476fedf08ab9b) that makes it easier to run tests and has lint configured to run on save.
 
 On rare occasions a full rebuild is needed, you can do it in VSCode by pressing `Ctrl+Shift+P` and running `Dev Containers: Rebuild Container`.
 
@@ -57,10 +57,10 @@ def example_function(param1: int, param2: str) -> bool:
 We provide a `Makefile` to format and ensure code quality. **Be sure to run them before creating a PR**.
 
 ```bash
-# format code with `black` and `isort`
+# format code with `ruff`
 make style
 
-# check code with flake8
+# check code with `ruff`
 make check_code_quality
 ```
 

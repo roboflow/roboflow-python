@@ -31,17 +31,15 @@ setuptools.setup(
     extras_require={
         "desktop": ["opencv-python==4.8.0.74"],
         "dev": [
-            "flake8",
-            "black==22.3.0",
-            "isort",
-            "responses",
-            "twine",
-            "wheel",
             "mypy",
-            "types-requests",
+            "responses",
+            "ruff",
+            "twine",
             "types-pyyaml",
+            "types-requests",
             "types-setuptools",
             "types-tqdm",
+            "wheel",
         ],
     },
     entry_points={

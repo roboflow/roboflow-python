@@ -4,16 +4,12 @@ export PYTHONPATH = .
 check_dirs := roboflow
 
 style:
-	black  $(check_dirs)
-	isort --profile black $(check_dirs)
+	ruff format $(check_dirs)
+	ruff check $(check_dirs) --fix
 
 check_code_quality:
-	black --check $(check_dirs)
-	isort --check-only --profile black $(check_dirs)
-	# stop the build if there are Python syntax errors or undefined names
-	flake8 $(check_dirs) --count --select=E9,F63,F7,F82 --show-source --statistics
-	# exit-zero treats all errors as warnings. E203 for black, E501 for docstring, W503 for line breaks before logical operators
-	flake8 $(check_dirs) --count --max-line-length=120 --exit-zero  --ignore=D --extend-ignore=E203,E501,W503  --statistics
+	ruff format $(check_dirs) --check
+	ruff check $(check_dirs)
 
 publish:
 	python setup.py sdist bdist_wheel
