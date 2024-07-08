@@ -31,7 +31,6 @@ setuptools.setup(
     extras_require={
         "desktop": ["opencv-python==4.8.0.74"],
         "dev": [
-            "flake8",
             "mypy",
             "responses",
             "ruff",

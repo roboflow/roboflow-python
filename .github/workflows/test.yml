@@ -27,7 +27,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install ".[dev]"
-      - name: 🧹 Lint with flake8
+      - name: 🧹 Lint
         run: |
           make check_code_quality
       - name: Check types with mypy

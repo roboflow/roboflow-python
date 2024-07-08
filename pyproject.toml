@@ -2,38 +2,49 @@
 requires = ["setuptools>=57", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.flake8]
-exclude = ".venv"
-max-complexity = 10
-max-line-length = 120
-extend-ignore = """
-    W503,
-    E203,
-    E701,
-    C901,
-"""
-per-file-ignores = """
-    __init__.py: F401
-"""
-
 [tool.bandit]
 target = ["test", "roboflow"]
 tests = ["B201", "B301"]
 
 [tool.ruff]
 target-version = "py38"
-# Same as Black.
 line-length = 120
 
 [tool.ruff.lint]
 select = [
-    "E",  # pycodestyle errors
-    "F",  # pyflakes
-    "I",  # isort
-    "UP", # pyupgrade
+    "ALL",
 ]
 ignore = [
-    "E501", # line too long, handled by black
+    "A",
+    "ANN",
+    "ARG",
+    "B",
+    "BLE",
+    "C",
+    "COM",
+    "D",
+    "DTZ",
+    "EM",
+    "ERA",
+    "FBT",
+    "FIX",
+    "FLY",
+    "ISC",
+    "N",
+    "PERF",
+    "PIE",
+    "PLR",
+    "PLW",
+    "PT",
+    "PTH",
+    "RET",
+    "RUF",
+    "S",
+    "SIM",
+    "SLF",
+    "T",
+    "TD",
+    "TRY",
 ]
 
 # Exclude a variety of commonly ignored directories.
