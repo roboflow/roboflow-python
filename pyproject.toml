@@ -29,6 +29,7 @@ ignore = [
     "FBT",
     "FIX",
     "FLY",
+    "FURB",
     "ISC",
     "N",
     "PERF",
