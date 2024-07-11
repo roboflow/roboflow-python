@@ -15,7 +15,7 @@ from roboflow.core.version import Version
 from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
 
-ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
+ACCEPTED_IMAGE_FORMATS = ["PNG", "JPG", "JPEG", "BMP", "WEBP"]
 
 
 def custom_formatwarning(msg, *args, **kwargs):
