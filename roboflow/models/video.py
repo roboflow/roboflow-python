@@ -3,7 +3,7 @@ import time
 from typing import Optional, Tuple
 from urllib.parse import urljoin
 
-import magic
+import filetype
 import requests
 
 from roboflow.config import API_URL
@@ -24,11 +24,20 @@ SUPPORTED_ADDITIONAL_MODELS = {
     },
 }
 
+ACCEPTED_VIDEO_FORMATS = {
+    "video/mp4",
+    "video/x-msvideo",  # AVI
+    "video/webm",
+}
+
 
 def is_valid_mime(filename):
-    mime = magic.Magic(mime=True)
-    file_type = mime.from_file(filename)
-    return file_type in ["video/mp4", "video/avi", "video/webm"]
+    kind = filetype.guess(filename)
+
+    if kind is None:
+        return False
+
+    return kind.mime in ACCEPTED_VIDEO_FORMATS
 
 
 def is_valid_video(filename):
