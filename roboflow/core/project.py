@@ -343,7 +343,7 @@ class Project:
 
         raise RuntimeError(f"Version number {version_number} is not found.")
 
-    def check_valid_image(self, image_path: str):
+    def check_valid_image(self, image_path: str) -> bool:
         """
         Check if an image is valid. Useful before attempting to upload an image to Roboflow.
 
