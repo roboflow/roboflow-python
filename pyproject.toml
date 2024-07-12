@@ -101,6 +101,7 @@ exclude = ["^build/"]
 [[tool.mypy.overrides]]
 module = [
     "_datetime.*",
+    "filetype.*",
     # IPython is an optional dependency
     "IPython.display.*",
     # ipywidgets is an optional dependency

@@ -15,4 +15,4 @@ urllib3>=1.26.6
 tqdm>=4.41.0
 PyYAML>=5.3.1
 requests_toolbelt
-python-magic
+filetype

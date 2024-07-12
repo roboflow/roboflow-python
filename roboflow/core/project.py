@@ -1,13 +1,14 @@
 import datetime
 import json
+import mimetypes
 import os
 import sys
 import time
 import warnings
 from typing import Dict, List, Optional, Union
 
+import filetype
 import requests
-from PIL import Image, UnidentifiedImageError
 
 from roboflow.adapters import rfapi
 from roboflow.config import API_URL, DEMO_KEYS
@@ -15,7 +16,12 @@ from roboflow.core.version import Version
 from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
 
-ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
+ACCEPTED_IMAGE_FORMATS = {
+    "image/bmp",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
 
 
 def custom_formatwarning(msg, *args, **kwargs):
@@ -337,7 +343,7 @@ class Project:
 
         raise RuntimeError(f"Version number {version_number} is not found.")
 
-    def check_valid_image(self, image_path: str):
+    def check_valid_image(self, image_path: str) -> bool:
         """
         Check if an image is valid. Useful before attempting to upload an image to Roboflow.
 
@@ -346,15 +352,18 @@ class Project:
 
         Returns:
             bool: whether the image is valid or not
-        """  # noqa: E501 // docs
-        try:
-            img = Image.open(image_path)
-            valid = img.format in ACCEPTED_IMAGE_FORMATS
-            img.close()
-        except UnidentifiedImageError:
+        """
+        kind = filetype.guess(image_path)
+
+        if kind is None:
             return False
 
-        return valid
+        extension_mimetype, _ = mimetypes.guess_type(image_path)
+
+        if extension_mimetype and extension_mimetype != kind.mime:
+            print(f"[{image_path}] file type ({kind.mime}) does not match filename extension.")
+
+        return kind.mime in ACCEPTED_IMAGE_FORMATS
 
     def upload(
         self,
