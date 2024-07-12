@@ -1,1 +1,20 @@
+# Python cache files
+__pycache__
+*.pyc
+
+# IDE settings
+.vscode/
+
+# Version control
+.git/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv
+
+# Testing
 /tests/manual/data

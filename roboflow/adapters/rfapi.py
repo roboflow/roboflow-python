@@ -1,7 +1,7 @@
 import json
 import os
-import urllib
 from typing import Optional
+from urllib import parse
 
 import requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
@@ -164,7 +164,7 @@ def _upload_url(api_key, project_url, **kwargs):
     url = f"{API_URL}/dataset/{project_url}/upload?api_key={api_key}"
 
     if kwargs:
-        querystring = urllib.parse.urlencode(kwargs, doseq=True)
+        querystring = parse.urlencode(kwargs, doseq=True)
         url += f"&{querystring}"
 
     return url

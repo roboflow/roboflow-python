@@ -65,7 +65,7 @@ class VideoInferenceModel(InferenceModel):
         """  # noqa: E501 // docs
         self.__api_key = api_key
 
-    def predict(  # type: ignore[override]
+    def predict(
         self,
         video_path: str,
         inference_type: str,

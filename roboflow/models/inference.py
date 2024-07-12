@@ -2,8 +2,8 @@ import io
 import json
 import os
 import time
-import urllib
 from typing import Optional, Tuple
+from urllib import parse
 from urllib.parse import urljoin
 
 import requests
@@ -72,7 +72,7 @@ class InferenceModel:
         """
         validate_image_path(image_path)
 
-        hosted_image = urllib.parse.urlparse(image_path).scheme in ("http", "https")
+        hosted_image = parse.urlparse(image_path).scheme in ("http", "https")
 
         if hosted_image:
             image_dims = {"width": "Undefined", "height": "Undefined"}
@@ -121,8 +121,7 @@ class InferenceModel:
         params["api_key"] = self.__api_key
 
         params.update(**kwargs)
-
-        url = f"{self.api_url}?{urllib.parse.urlencode(params)}"
+        url = f"{self.api_url}?{parse.urlencode(params)}"  # type: ignore[attr-defined]
         response = requests.post(url, **request_kwargs)
         response.raise_for_status()
 
@@ -390,7 +389,7 @@ class InferenceModel:
 
         # write the zip file to the desired location
         with open(location + "/weights.pt", "wb") as f:
-            total_length = int(response.headers.get("content-length"))
+            total_length = int(response.headers.get("content-length"))  # type: ignore[arg-type]
             for chunk in tqdm(
                 response.iter_content(chunk_size=1024),
                 desc=f"Downloading weights to {location}/weights.pt",

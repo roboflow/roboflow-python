@@ -18,7 +18,7 @@ class SemanticSegmentationModel(InferenceModel):
         super().__init__(api_key, version_id)
         self.api_url = f"{SEMANTIC_SEGMENTATION_URL}/{self.dataset_id}/{self.version}"
 
-    def predict(self, image_path: str, confidence: int = 50):  # type: ignore[override]
+    def predict(self, image_path: str, confidence: int = 50):
         """
         Infers detections based on image from a specified model and image path.
 

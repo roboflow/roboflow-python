@@ -230,7 +230,7 @@ class Project:
         try:
             r_json = r.json()
         except Exception:
-            raise "Error when requesting to generate a new version for project."
+            raise RuntimeError("Error when requesting to generate a new version for project.")
 
         # if the generation succeeds, return the version that is being generated
         if r.status_code == 200:
@@ -256,7 +256,7 @@ class Project:
         speed=None,
         checkpoint=None,
         plot_in_notebook=False,
-    ) -> bool:
+    ):
         """
         Ask the Roboflow API to train a previously exported version's dataset.
 
@@ -503,7 +503,7 @@ class Project:
                     sequence_size=sequence_size,
                     **kwargs,
                 )
-                image_id = uploaded_image["id"]
+                image_id = uploaded_image["id"]  # type: ignore[index]
                 upload_retry_attempts = retry.retries
             except BaseException as e:
                 uploaded_image = {"error": e}
@@ -518,10 +518,10 @@ class Project:
                 uploaded_annotation = rfapi.save_annotation(
                     self.__api_key,
                     project_url,
-                    annotation_name,
-                    annotation_str,
+                    annotation_name,  # type: ignore[type-var]
+                    annotation_str,  # type: ignore[type-var]
                     image_id,
-                    job_name=batch_name,
+                    job_name=batch_name,  # type: ignore[type-var]
                     is_prediction=is_prediction,
                     annotation_labelmap=annotation_labelmap,
                     overwrite=annotation_overwrite,
@@ -543,10 +543,10 @@ class Project:
         if isinstance(annotation_path, dict) and annotation_path.get("rawText"):
             annotation_name = annotation_path["name"]
             annotation_string = annotation_path["rawText"]
-        elif os.path.exists(annotation_path):
-            with open(annotation_path):
-                annotation_string = open(annotation_path).read()
-            annotation_name = os.path.basename(annotation_path)
+        elif os.path.exists(annotation_path):  # type: ignore[arg-type]
+            with open(annotation_path):  # type: ignore[arg-type]
+                annotation_string = open(annotation_path).read()  # type: ignore[arg-type]
+            annotation_name = os.path.basename(annotation_path)  # type: ignore[arg-type]
         elif self.type == "classification":
             print(f"-> using {annotation_path} as classname for classification project")
             annotation_string = annotation_path

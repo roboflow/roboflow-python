@@ -2,8 +2,8 @@ import base64
 import io
 import json
 import os
-import urllib
 from typing import Optional
+from urllib import parse
 
 import requests
 from PIL import Image
@@ -101,7 +101,7 @@ class KeypointDetectionModel(InferenceModel):
             )
         else:
             # Create API URL for hosted image (slightly different)
-            self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
+            self.api_url += "&image=" + parse.quote_plus(image_path)
             # POST to the API
             resp = requests.post(self.api_url)
             img_dims = {"width": "0", "height": "0"}

@@ -1,7 +1,7 @@
 import base64
 import io
 import os
-import urllib
+from urllib import parse
 
 import cv2
 import numpy as np
@@ -25,7 +25,7 @@ def check_image_url(url):
     :param url: URL of image
     :returns: Boolean
     """
-    if urllib.parse.urlparse(url).scheme not in ("http", "https"):
+    if parse.urlparse(url).scheme not in ("http", "https"):
         return False
 
     r = requests.head(url)
@@ -40,7 +40,7 @@ def mask_image(image, encoded_mask, transparency=60):
     :param transparency: alpha transparency of masks for semantic overlays
     :returns: CV2 image / numpy.ndarray matrix
     """
-    np_data = np.fromstring(base64.b64decode(encoded_mask), np.uint8)
+    np_data = np.fromstring(base64.b64decode(encoded_mask), np.uint8)  # type: ignore[no-overload]
     mask = cv2.imdecode(np_data, cv2.IMREAD_UNCHANGED)
 
     # Fallback in case the API returns an incorrectly sized mask
