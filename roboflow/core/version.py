@@ -467,7 +467,8 @@ class Version:
                 ]
                 if model_type not in supported_hf_types:
                     raise RuntimeError(
-                        f"{model_type} not supported for this type of upload. Supported upload types are {supported_hf_types}"
+                        f"{model_type} not supported for this type of upload."
+                        f"Supported upload types are {supported_hf_types}"
                     )
             self.deploy_huggingface(model_type, model_path, filename)
             return
