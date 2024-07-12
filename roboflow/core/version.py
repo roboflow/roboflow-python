@@ -457,6 +457,18 @@ class Version:
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
 
         if model_type.startswith(("paligemma", "florence-2")):
+            if "paligemma" in model_type or "florence-2" in model_type:
+                supported_hf_types = [
+                    "florence-2-base",
+                    "florence-2-large",
+                    "paligemma-3b-pt-224",
+                    "paligemma-3b-pt-448",
+                    "paligemma-3b-pt-896",
+                ]
+                if model_type not in supported_hf_types:
+                    raise RuntimeError(
+                        f"{model_type} not supported for this type of upload. Supported upload types are {supported_hf_types}"
+                    )
             self.deploy_huggingface(model_type, model_path, filename)
             return
 
