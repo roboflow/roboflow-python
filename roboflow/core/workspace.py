@@ -391,6 +391,7 @@ class Workspace:
         upload_destination: str = "",
         conditionals: dict = {},
         use_localhost: bool = False,
+        local_server = "http://localhost:9001/",
     ) -> str:
         """perform inference on each image in directory and upload based on conditions
         @params:
@@ -400,6 +401,7 @@ class Workspace:
             upload_destination: (str) = name of the upload project
             conditionals: (dict) = dictionary of upload conditions
             use_localhost: (bool) = determines if local http format used or remote endpoint
+            local_server: (str) = local http address for inference server, use_localhost must be True for this to be used
         """  # noqa: E501 // docs
         prediction_results = []
 
@@ -427,7 +429,10 @@ class Workspace:
         )
 
         # check if inference_model references endpoint or local
-        local = "http://localhost:9001/" if use_localhost else None
+        if use_localhost:
+            local = local_server
+        else:
+            local = None
 
         inference_model = (
             self.project(inference_endpoint[0]).version(version_number=inference_endpoint[1], local=local).model
