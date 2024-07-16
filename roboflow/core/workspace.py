@@ -23,13 +23,11 @@ class Workspace:
     """
     Manage a Roboflow workspace.
     """
-
     def __init__(self, info, api_key, default_workspace, model_format):
-        if api_key in DEMO_KEYS:
-            self.__api_key = api_key
-            self.model_format = model_format
-            self.project_list = []
-        else:
+        
+        if api_key:
+            self.__api_key = api_key 
+        
             workspace_info = info["workspace"]
             self.name = workspace_info["name"]
             self.project_list = workspace_info["projects"]
@@ -38,8 +36,14 @@ class Workspace:
             self.url = workspace_info["url"]
             self.model_format = model_format
 
-            self.__api_key = api_key
+        elif DEMO_KEYS:
+            self.__api_key = DEMO_KEYS[0]
+            self.model_format = model_format
+            self.project_list = []
 
+        else:
+            raise ValueError("A valid API key must be provided.")
+                        
     def list_projects(self):
         """
         Print all projects in the workspace to the console.

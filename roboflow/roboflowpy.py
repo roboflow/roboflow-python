@@ -113,6 +113,17 @@ def get_workspace(args):
     print(json.dumps(workspace_json, indent=2))
 
 
+
+def get_workspace_project_version(args):
+    #api_key = load_roboflow_api_key(args.workspaceId)
+    rf = roboflow.Roboflow(args.api_key)
+    workspace = rf.workspace()
+    print('workspace',workspace)
+    project = workspace.project(args.project)
+    print('project',project)
+    version = project.version(args.version_number)
+    print('version',version)
+    
 def get_project(args):
     workspace_url = args.workspace or get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     api_key = load_roboflow_api_key(workspace_url)
@@ -161,6 +172,9 @@ def _argparser():
     _add_projects_parser(subparsers)
     _add_workspaces_parser(subparsers)
     _add_upload_model_parser(subparsers)
+    _add_get_workspace_project_version_parser(subparsers)
+
+    
     return parser
 
 
@@ -410,7 +424,34 @@ def _add_upload_model_parser(subparsers):
     )
     upload_model_parser.set_defaults(func=upload_model)
 
-
+def _add_get_workspace_project_version_parser(subparsers):
+    workspace_project_version_parser = subparsers.add_parser(
+        "get_workspace_info",
+        help="get workspace project version info",
+    )
+    workspace_project_version_parser.add_argument(
+        "-a",
+        dest="api_key",
+        help="api_key",
+    )
+    workspace_project_version_parser.add_argument(
+        "-w",
+        dest="workspace",
+        help="specify a workspace url or id (will use default workspace if not specified)",
+    )
+    workspace_project_version_parser.add_argument(
+        "-p",
+        dest="project",
+        help="project_id to upload the model into",
+    )
+    workspace_project_version_parser.add_argument(
+        "-v",
+        dest="version_number",
+        type=int,
+        help="version number to upload the model to",
+    )
+    workspace_project_version_parser.set_defaults(func=get_workspace_project_version)
+    
 def _add_login_parser(subparsers):
     login_parser = subparsers.add_parser("login", help="Log in to Roboflow")
     login_parser.set_defaults(func=login)

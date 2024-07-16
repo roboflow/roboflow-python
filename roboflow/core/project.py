@@ -53,10 +53,8 @@ class Project:
 
             >>> project = rf.workspace().project("PROJECT_ID")
         """
-        if api_key in DEMO_KEYS:
-            self.__api_key = api_key
-            self.model_format = model_format
-        else:
+        
+        if api_key:
             self.__api_key = api_key
             self.annotation = a_project["annotation"]
             self.classes = a_project["classes"]
@@ -75,6 +73,14 @@ class Project:
             temp = self.id.rsplit("/")
             self.__workspace = temp[0]
             self.__project_name = temp[1]
+            
+        elif DEMO_KEYS:
+            self.__api_key = DEMO_KEYS[0]
+            self.model_format = model_format
+            
+        else:
+            raise ValueError("A valid API key must be provided.")
+           
 
     def get_version_information(self):
         """
