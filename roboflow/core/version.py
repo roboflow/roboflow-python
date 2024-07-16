@@ -132,7 +132,7 @@ class Version:
                 self.model = KeypointDetectionModel(self.__api_key, self.id, version=version_without_workspace)
             else:
                 self.model = None
-                
+
         elif DEMO_KEYS:
             api_key = DEMO_KEYS[0]
             if api_key == "coco-128-sample":

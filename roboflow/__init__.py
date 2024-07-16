@@ -237,16 +237,16 @@ class Roboflow:
 
         if the_workspace is None:
             the_workspace = self.current_workspace
-            
+
         if self.api_key:  # Check if api_key was passed during __init__
             workspace_api_key = load_roboflow_api_key(the_workspace)
             api_key = workspace_api_key or self.api_key
             list_projects = rfapi.get_workspace(api_key, the_workspace)
             return Workspace(list_projects, api_key, the_workspace, self.model_format)
-        
+
         elif self.api_key in DEMO_KEYS:
             return Workspace({}, self.api_key, the_workspace, self.model_format)
-            
+
         else:
             raise ValueError("A valid API key must be provided.")
 
