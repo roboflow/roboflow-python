@@ -60,13 +60,6 @@ def check_key(api_key, model, notebook, num_retries=0):
         return "onboarding"
 
 
-def auth(api_key):
-    r = check_key(api_key)
-    w = r["workspace"]
-
-    return Roboflow(api_key, w)
-
-
 def login(workspace=None, force=False):
     os_name = os.name
 
