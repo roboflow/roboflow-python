@@ -11,9 +11,7 @@ target-version = "py38"
 line-length = 120
 
 [tool.ruff.lint]
-select = [
-    "ALL",
-]
+select = ["ALL"]
 ignore = [
     "A",
     "ANN",

@@ -3,7 +3,7 @@ import glob
 import json
 import os
 import sys
-from typing import List
+from typing import Any, List
 
 import numpy as np
 import requests
@@ -179,7 +179,7 @@ class Workspace:
         print(self.project(first_stage_model_name))
 
         # perform first inference
-        predictions = stage_one_model.predict(image)
+        predictions = stage_one_model.predict(image)  # type: ignore[attribute-error]
 
         if stage_one_project.type == "object-detection" and stage_two_project == "classification":
             # interact with each detected object from stage one inference results
@@ -199,7 +199,7 @@ class Workspace:
                 croppedImg.save("./temp.png")
 
                 # capture results of second stage inference from cropped image
-                results.append(stage_two_model.predict("./temp.png")[0])
+                results.append(stage_two_model.predict("./temp.png")[0])  # type: ignore[attribute-error]
 
             # delete the written image artifact
             try:
@@ -244,7 +244,7 @@ class Workspace:
         stage_one_model = stage_one_project.version(first_stage_model_version).model
 
         # perform first inference
-        predictions = stage_one_model.predict(image)
+        predictions = stage_one_model.predict(image)  # type: ignore[attribute-error]
 
         # interact with each detected object from stage one inference results
         if stage_one_project.type == "object-detection":
@@ -391,7 +391,7 @@ class Workspace:
         upload_destination: str = "",
         conditionals: dict = {},
         use_localhost: bool = False,
-    ) -> str:
+    ) -> Any:
         """perform inference on each image in directory and upload based on conditions
         @params:
             raw_data_location: (str) = folder of frames to be processed
@@ -470,7 +470,7 @@ class Workspace:
                     print(image2 + " --> similarity too high to --> " + image1)
                     continue  # skip this image if too similar or counter hits limit
 
-            predictions = inference_model.predict(image).json()["predictions"]
+            predictions = inference_model.predict(image).json()["predictions"]  # type: ignore[attribute-error]
             # collect all predictions to return to user at end
             prediction_results.append({"image": image, "predictions": predictions})
 

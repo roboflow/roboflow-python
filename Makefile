@@ -1,4 +1,4 @@
-.PHONY: style check_code_quality
+.PHONY: style check_code_quality publish
 
 export PYTHONPATH = .
 check_dirs := roboflow
@@ -10,6 +10,7 @@ style:
 check_code_quality:
 	ruff format $(check_dirs) --check
 	ruff check $(check_dirs)
+	mypy $(check_dirs)
 
 publish:
 	python setup.py sdist bdist_wheel

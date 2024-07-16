@@ -63,7 +63,7 @@ class ClassificationModel(InferenceModel):
             print(f"initalizing local classification model hosted at : {local}")
             self.base_url = local
 
-    def predict(self, image_path, hosted=False):
+    def predict(self, image_path, hosted=False):  # type: ignore[override]
         """
         Run inference on an image.
 

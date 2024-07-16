@@ -35,7 +35,7 @@ class InstanceSegmentationModel(InferenceModel):
         self.colors = {} if colors is None else colors
         self.preprocessing = {} if preprocessing is None else preprocessing
 
-    def predict(self, image_path, confidence=40):
+    def predict(self, image_path, confidence=40):  # type: ignore[override]
         """
         Infers detections based on image from a specified model and image path.
 

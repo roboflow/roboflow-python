@@ -766,7 +766,7 @@ class Version:
 
             # write the zip file to the desired location
             with open(location + "/roboflow.zip", "wb") as f:
-                total_length = int(response.headers.get("content-length"))
+                total_length = int(response.headers.get("content-length"))  # type: ignore[arg-type]
                 desc = None if TQDM_DISABLE else f"Downloading Dataset Version Zip in {location} to {format}:"
                 for chunk in tqdm(
                     response.iter_content(chunk_size=1024),
