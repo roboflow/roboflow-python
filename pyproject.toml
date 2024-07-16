@@ -92,11 +92,23 @@ convention = "google"
 # Preserve types, even if a file imports `from __future__ import annotations`.
 keep-runtime-typing = true
 
-[tool.pyright]
-pythonVersion = "3.8"
-exclude = ["build", ".venv", "venv*", "docs", "Tests"]
-venvPath = "."
-venv = ".venv"
-reportMissingImports = false
-reportUnboundVariable = false
-reportIncompatibleMethodOverride = false
+[tool.mypy]
+python_version = "3.8"
+exclude = ["^build/"]
+
+[[tool.mypy.overrides]]
+module = [
+    "_datetime.*",
+    "filetype.*",
+    # IPython is an optional dependency
+    "IPython.display.*",
+    # ipywidgets is an optional dependency
+    "ipywidgets.*",
+    # matplotlib typing is not available for Python 3.8
+    # remove this when we stop supporting Python 3.8
+    "matplotlib.*",
+    "requests_toolbelt.*",
+    "torch.*",
+    "ultralytics.*",
+]
+ignore_missing_imports = true

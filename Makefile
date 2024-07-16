@@ -10,7 +10,7 @@ style:
 check_code_quality:
 	ruff format $(check_dirs) --check
 	ruff check $(check_dirs)
-	pyright $(check_dirs)
+	mypy $(check_dirs)
 
 publish:
 	python setup.py sdist bdist_wheel

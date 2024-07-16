@@ -1,7 +1,7 @@
 import base64
 import io
 import os
-from urllib import parse
+import urllib
 
 import cv2
 import numpy as np
@@ -25,7 +25,7 @@ def check_image_url(url):
     :param url: URL of image
     :returns: Boolean
     """
-    if parse.urlparse(url).scheme not in ("http", "https"):
+    if urllib.parse.urlparse(url).scheme not in ("http", "https"):
         return False
 
     r = requests.head(url)

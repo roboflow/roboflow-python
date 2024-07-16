@@ -1,9 +1,8 @@
 import json
 import os
-from typing import Any
 
 
-def get_conditional_configuration_variable(key, default) -> Any:
+def get_conditional_configuration_variable(key, default):
     """Retrieves the configuration variable conditionally.
         ##1. check if variable is in environment
         ##2. check if variable is in config file
@@ -18,9 +17,9 @@ def get_conditional_configuration_variable(key, default) -> Any:
     os_name = os.name
 
     if os_name == "nt":
-        default_path = os.path.join(os.getenv("USERPROFILE", ""), "roboflow/config.json")
+        default_path = os.path.join(os.getenv("USERPROFILE"), "roboflow/config.json")
     else:
-        default_path = os.path.join(os.getenv("HOME", ""), ".config/roboflow/config.json")
+        default_path = os.path.join(os.getenv("HOME"), ".config/roboflow/config.json")
 
     # default configuration location
     conf_location = os.getenv(
@@ -35,10 +34,9 @@ def get_conditional_configuration_variable(key, default) -> Any:
     else:
         config = {}
 
-    env_value = os.getenv(key)
-    if env_value is not None:
-        return env_value
-    elif key in config:
+    if os.getenv(key) is not None:
+        return os.getenv(key)
+    elif key in config.keys():
         return config[key]
     else:
         return default

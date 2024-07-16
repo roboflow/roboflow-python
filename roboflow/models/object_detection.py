@@ -4,7 +4,7 @@ import io
 import json
 import os
 import random
-from urllib import parse
+import urllib
 
 import cv2
 import numpy as np
@@ -125,7 +125,7 @@ class ObjectDetectionModel(InferenceModel):
             format=format,
         )
 
-    def predict(
+    def predict(  # type: ignore[override]
         self,
         image_path,
         hosted=False,
@@ -234,7 +234,7 @@ class ObjectDetectionModel(InferenceModel):
                 raise ValueError("image_path must be a string or a numpy array.")
         else:
             # Create API URL for hosted image (slightly different)
-            self.api_url += "&image=" + parse.quote_plus(image_path)
+            self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
             image_dims = {"width": "0", "height": "0"}
             # POST to the API
             resp = requests.post(self.api_url)

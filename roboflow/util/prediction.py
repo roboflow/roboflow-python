@@ -490,7 +490,7 @@ class PredictionGroup:
         """  # noqa: E501 // docs
 
         colors = {} if colors is None else colors
-        prediction_list: list[Prediction] = []
+        prediction_list = []
 
         if prediction_type in [OBJECT_DETECTION_MODEL, INSTANCE_SEGMENTATION_MODEL]:
             for prediction in json_response["predictions"]:

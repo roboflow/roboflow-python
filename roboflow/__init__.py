@@ -3,6 +3,7 @@ import os
 import sys
 import time
 from getpass import getpass
+from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
@@ -59,20 +60,23 @@ def check_key(api_key, model, notebook, num_retries=0):
         return "onboarding"
 
 
+def auth(api_key):
+    r = check_key(api_key)
+    w = r["workspace"]
+
+    return Roboflow(api_key, w)
+
+
 def login(workspace=None, force=False):
     os_name = os.name
 
     if os_name == "nt":
-        default_path = os.path.join(os.getenv("USERPROFILE", ""), "roboflow/config.json")
+        default_path = str(Path.home() / "roboflow" / "config.json")
     else:
-        default_path = os.path.join(os.getenv("HOME", ""), ".config/roboflow/config.json")
+        default_path = str(Path.home() / ".config" / "roboflow" / "config.json")
 
     # default configuration location
-    conf_location = os.getenv(
-        "ROBOFLOW_CONFIG_DIR",
-        default=default_path,
-    )
-
+    conf_location = os.getenv("ROBOFLOW_CONFIG_DIR", default=default_path)
     if os.path.isfile(conf_location) and not force:
         write_line("You are already logged into Roboflow. To make a different login," "run roboflow.login(force=True).")
         return None
@@ -134,10 +138,7 @@ def initialize_roboflow(the_workspace=None):
 
     global active_workspace
 
-    conf_location = os.getenv(
-        "ROBOFLOW_CONFIG_DIR",
-        default=os.getenv("HOME", "") + "/.config/roboflow/config.json",
-    )
+    conf_location = os.getenv("ROBOFLOW_CONFIG_DIR", default=str(Path.home() / ".config" / "roboflow" / "config.json"))
 
     if not os.path.isfile(conf_location):
         raise RuntimeError("To use this method, you must first login - run roboflow.login()")
@@ -275,7 +276,7 @@ class Roboflow:
 
         dataset_info = dataset_info.json()["project"]
 
-        return Project(self.api_key or "", dataset_info)
+        return Project(self.api_key, dataset_info)
 
     def __str__(self):
         """to string function"""
