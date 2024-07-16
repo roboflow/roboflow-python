@@ -64,19 +64,7 @@ class Version:
         """
         Initialize a Version object.
         """
-        if api_key in DEMO_KEYS:
-            if api_key == "coco-128-sample":
-                self.__api_key = api_key
-                self.model_format = model_format
-                self.name = "coco-128"
-                self.version = "1"
-            else:
-                self.__api_key = api_key
-                self.model_format = model_format
-                self.name = "chess-pieces-new"
-                self.version = "23"
-                self.id = "joseph-nelson/chess-pieces-new"
-        else:
+        if api_key:
             self.__api_key = api_key
             self.name = name
             self.version = unwrap_version_id(version_id=version)
@@ -144,6 +132,20 @@ class Version:
                 self.model = KeypointDetectionModel(self.__api_key, self.id, version=version_without_workspace)
             else:
                 self.model = None
+
+        elif DEMO_KEYS:
+            api_key = DEMO_KEYS[0]
+            if api_key == "coco-128-sample":
+                self.__api_key = api_key
+                self.model_format = model_format
+                self.name = "coco-128"
+                self.version = "1"
+            else:
+                self.__api_key = api_key
+                self.model_format = model_format
+                self.name = "chess-pieces-new"
+                self.version = "23"
+                self.id = "joseph-nelson/chess-pieces-new"
 
     def __check_if_generating(self):
         # check Roboflow API to see if this version is still generating

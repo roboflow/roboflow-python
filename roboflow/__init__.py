@@ -15,7 +15,7 @@ from roboflow.core.workspace import Workspace
 from roboflow.models import CLIPModel, GazeModel  # noqa: F401
 from roboflow.util.general import write_line
 
-__version__ = "1.1.34"
+__version__ = "1.1.35"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -238,13 +238,17 @@ class Roboflow:
         if the_workspace is None:
             the_workspace = self.current_workspace
 
-        if self.api_key in DEMO_KEYS:
-            return Workspace({}, self.api_key, the_workspace, self.model_format)
-        workspace_api_key = load_roboflow_api_key(the_workspace)
-        api_key = workspace_api_key or self.api_key
+        if self.api_key:  # Check if api_key was passed during __init__
+            workspace_api_key = load_roboflow_api_key(the_workspace)
+            api_key = workspace_api_key or self.api_key
+            list_projects = rfapi.get_workspace(api_key, the_workspace)
+            return Workspace(list_projects, api_key, the_workspace, self.model_format)
 
-        list_projects = rfapi.get_workspace(api_key, the_workspace)
-        return Workspace(list_projects, api_key, the_workspace, self.model_format)
+        elif self.api_key in DEMO_KEYS:
+            return Workspace({}, self.api_key, the_workspace, self.model_format)
+
+        else:
+            raise ValueError("A valid API key must be provided.")
 
     def project(self, project_name, the_workspace=None):
         """Function that takes in the name of the project and returns the project object
