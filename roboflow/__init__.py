@@ -210,7 +210,6 @@ class Roboflow:
         self.api_key = api_key
         if self.api_key is None:
             self.api_key = load_roboflow_api_key()
-            
 
         self.model_format = model_format
         self.notebook = notebook
@@ -246,7 +245,7 @@ class Roboflow:
 
         elif self.api_key in DEMO_KEYS:
             return Workspace({}, self.api_key, the_workspace, self.model_format)
-        
+
         else:
             raise ValueError("A valid API key must be provided.")
 
