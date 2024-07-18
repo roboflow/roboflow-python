@@ -3,7 +3,7 @@ import glob
 import json
 import os
 import sys
-from typing import List
+from typing import Any, List
 
 import numpy as np
 import requests
@@ -392,7 +392,7 @@ class Workspace:
         conditionals: dict = {},
         use_localhost: bool = False,
         local_server = "http://localhost:9001/",
-    ) -> str:
+    ) -> Any:
         """perform inference on each image in directory and upload based on conditions
         @params:
             raw_data_location: (str) = folder of frames to be processed
