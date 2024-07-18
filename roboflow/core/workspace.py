@@ -395,7 +395,7 @@ class Workspace:
         upload_destination: str = "",
         conditionals: dict = {},
         use_localhost: bool = False,
-        local_server = "http://localhost:9001/",
+        local_server="http://localhost:9001/",
     ) -> Any:
         """perform inference on each image in directory and upload based on conditions
         @params:
