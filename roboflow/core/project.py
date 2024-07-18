@@ -1,13 +1,14 @@
 import datetime
 import json
+import mimetypes
 import os
 import sys
 import time
 import warnings
 from typing import Dict, List, Optional, Union
 
+import filetype
 import requests
-from PIL import Image, UnidentifiedImageError
 
 from roboflow.adapters import rfapi
 from roboflow.config import API_URL, DEMO_KEYS
@@ -15,7 +16,12 @@ from roboflow.core.version import Version
 from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
 
-ACCEPTED_IMAGE_FORMATS = ["PNG", "JPEG"]
+ACCEPTED_IMAGE_FORMATS = {
+    "image/bmp",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
 
 
 def custom_formatwarning(msg, *args, **kwargs):
@@ -47,10 +53,8 @@ class Project:
 
             >>> project = rf.workspace().project("PROJECT_ID")
         """
-        if api_key in DEMO_KEYS:
-            self.__api_key = api_key
-            self.model_format = model_format
-        else:
+
+        if api_key:
             self.__api_key = api_key
             self.annotation = a_project["annotation"]
             self.classes = a_project["classes"]
@@ -69,6 +73,13 @@ class Project:
             temp = self.id.rsplit("/")
             self.__workspace = temp[0]
             self.__project_name = temp[1]
+
+        elif DEMO_KEYS:
+            self.__api_key = DEMO_KEYS[0]
+            self.model_format = model_format
+
+        else:
+            raise ValueError("A valid API key must be provided.")
 
     def get_version_information(self):
         """
@@ -224,7 +235,7 @@ class Project:
         try:
             r_json = r.json()
         except Exception:
-            raise "Error when requesting to generate a new version for project."
+            raise RuntimeError("Error when requesting to generate a new version for project.")
 
         # if the generation succeeds, return the version that is being generated
         if r.status_code == 200:
@@ -250,7 +261,7 @@ class Project:
         speed=None,
         checkpoint=None,
         plot_in_notebook=False,
-    ) -> bool:
+    ):
         """
         Ask the Roboflow API to train a previously exported version's dataset.
 
@@ -337,7 +348,7 @@ class Project:
 
         raise RuntimeError(f"Version number {version_number} is not found.")
 
-    def check_valid_image(self, image_path: str):
+    def check_valid_image(self, image_path: str) -> bool:
         """
         Check if an image is valid. Useful before attempting to upload an image to Roboflow.
 
@@ -346,15 +357,18 @@ class Project:
 
         Returns:
             bool: whether the image is valid or not
-        """  # noqa: E501 // docs
-        try:
-            img = Image.open(image_path)
-            valid = img.format in ACCEPTED_IMAGE_FORMATS
-            img.close()
-        except UnidentifiedImageError:
+        """
+        kind = filetype.guess(image_path)
+
+        if kind is None:
             return False
 
-        return valid
+        extension_mimetype, _ = mimetypes.guess_type(image_path)
+
+        if extension_mimetype and extension_mimetype != kind.mime:
+            print(f"[{image_path}] file type ({kind.mime}) does not match filename extension.")
+
+        return kind.mime in ACCEPTED_IMAGE_FORMATS
 
     def upload(
         self,
@@ -494,7 +508,7 @@ class Project:
                     sequence_size=sequence_size,
                     **kwargs,
                 )
-                image_id = uploaded_image["id"]
+                image_id = uploaded_image["id"]  # type: ignore[index]
                 upload_retry_attempts = retry.retries
             except BaseException as e:
                 uploaded_image = {"error": e}
@@ -509,10 +523,10 @@ class Project:
                 uploaded_annotation = rfapi.save_annotation(
                     self.__api_key,
                     project_url,
-                    annotation_name,
-                    annotation_str,
+                    annotation_name,  # type: ignore[type-var]
+                    annotation_str,  # type: ignore[type-var]
                     image_id,
-                    job_name=batch_name,
+                    job_name=batch_name,  # type: ignore[type-var]
                     is_prediction=is_prediction,
                     annotation_labelmap=annotation_labelmap,
                     overwrite=annotation_overwrite,
@@ -534,10 +548,10 @@ class Project:
         if isinstance(annotation_path, dict) and annotation_path.get("rawText"):
             annotation_name = annotation_path["name"]
             annotation_string = annotation_path["rawText"]
-        elif os.path.exists(annotation_path):
-            with open(annotation_path):
-                annotation_string = open(annotation_path).read()
-            annotation_name = os.path.basename(annotation_path)
+        elif os.path.exists(annotation_path):  # type: ignore[arg-type]
+            with open(annotation_path):  # type: ignore[arg-type]
+                annotation_string = open(annotation_path).read()  # type: ignore[arg-type]
+            annotation_name = os.path.basename(annotation_path)  # type: ignore[arg-type]
         elif self.type == "classification":
             print(f"-> using {annotation_path} as classname for classification project")
             annotation_string = annotation_path

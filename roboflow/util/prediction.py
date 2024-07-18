@@ -38,7 +38,7 @@ def plot_image(image_path):
         img = Image.open(io.BytesIO(response.content))
 
     figure, axes = plt.subplots()
-    axes.imshow(img)
+    axes.imshow(img)  # type: ignore[attr-defined]
     return figure, axes
 
 
@@ -55,7 +55,7 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60, colors=Non
     # Object Detection annotation
 
     colors = {} if colors is None else colors
-
+    prediction = prediction or {}
     stroke_color = "r"
 
     if prediction["prediction_type"] == OBJECT_DETECTION_MODEL:
@@ -283,6 +283,7 @@ class PredictionGroup:
 
         :param prediction: Prediction to add to the prediction group
         """
+        prediction = prediction or {}
         # If not a Prediction object then do not allow into the prediction group
         # Also checks if prediction types are the same
         # (i.e. object detection predictions in object detection groups)

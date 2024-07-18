@@ -121,8 +121,7 @@ class InferenceModel:
         params["api_key"] = self.__api_key
 
         params.update(**kwargs)
-
-        url = f"{self.api_url}?{urllib.parse.urlencode(params)}"
+        url = f"{self.api_url}?{urllib.parse.urlencode(params)}"  # type: ignore[attr-defined]
         response = requests.post(url, **request_kwargs)
         response.raise_for_status()
 
@@ -390,7 +389,7 @@ class InferenceModel:
 
         # write the zip file to the desired location
         with open(location + "/weights.pt", "wb") as f:
-            total_length = int(response.headers.get("content-length"))
+            total_length = int(response.headers.get("content-length"))  # type: ignore[arg-type]
             for chunk in tqdm(
                 response.iter_content(chunk_size=1024),
                 desc=f"Downloading weights to {location}/weights.pt",

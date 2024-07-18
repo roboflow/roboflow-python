@@ -58,7 +58,7 @@ class KeypointDetectionModel(InferenceModel):
             print(f"initalizing local keypoint detection model hosted at : {local}")
             self.base_url = local
 
-    def predict(self, image_path, hosted=False):
+    def predict(self, image_path, hosted=False):  # type: ignore[override]
         """
         Run inference on an image.
 

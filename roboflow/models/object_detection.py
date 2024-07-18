@@ -125,7 +125,7 @@ class ObjectDetectionModel(InferenceModel):
             format=format,
         )
 
-    def predict(
+    def predict(  # type: ignore[override]
         self,
         image_path,
         hosted=False,
@@ -175,6 +175,7 @@ class ObjectDetectionModel(InferenceModel):
             self.__exception_check(image_path_check=image_path)
 
         resize = False
+        original_dimensions = None
         # If image is local image
         if not hosted:
             if isinstance(image_path, str):
@@ -219,7 +220,7 @@ class ObjectDetectionModel(InferenceModel):
                 retval, buffer = cv2.imencode(".jpg", image_path)
                 # Currently cv2.imencode does not properly return shape
                 dimensions = buffer.shape
-                img_str = base64.b64encode(buffer)
+                img_str = base64.b64encode(buffer)  # type: ignore[arg-type]
                 img_str = img_str.decode("ascii")
                 resp = requests.post(
                     self.api_url,
@@ -243,7 +244,7 @@ class ObjectDetectionModel(InferenceModel):
         if self.format == "json":
             resp_json = resp.json()
 
-            if resize:
+            if resize and original_dimensions is not None:
                 new_preds = []
                 for p in resp_json["predictions"]:
                     p["x"] = int(p["x"] * (int(original_dimensions[0]) / int(self.preprocessing["resize"]["width"])))
@@ -310,8 +311,8 @@ class ObjectDetectionModel(InferenceModel):
 
             self.colors = {} if colors is None else colors
 
-            if label in colors.keys() and label is not None:
-                color = colors[label]
+            if label in self.colors and label is not None:
+                color = self.colors[label]
                 color = color.lstrip("#")
                 color = tuple(int(color[i : i + 2], 16) for i in (0, 2, 4))
             else:
@@ -391,7 +392,7 @@ class ObjectDetectionModel(InferenceModel):
                 frame = cv2.flip(frame, 1)  # if your camera reverses your image
 
                 _, frame_upload = cv2.imencode(".jpeg", frame)
-                img_str = base64.b64encode(frame_upload)
+                img_str = base64.b64encode(frame_upload)  # type: ignore[arg-type]
                 img_str = img_str.decode("ascii")
 
                 # post frame to the Roboflow API

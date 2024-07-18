@@ -25,11 +25,9 @@ class Workspace:
     """
 
     def __init__(self, info, api_key, default_workspace, model_format):
-        if api_key in DEMO_KEYS:
+        if api_key:
             self.__api_key = api_key
-            self.model_format = model_format
-            self.project_list = []
-        else:
+
             workspace_info = info["workspace"]
             self.name = workspace_info["name"]
             self.project_list = workspace_info["projects"]
@@ -38,7 +36,13 @@ class Workspace:
             self.url = workspace_info["url"]
             self.model_format = model_format
 
-            self.__api_key = api_key
+        elif DEMO_KEYS:
+            self.__api_key = DEMO_KEYS[0]
+            self.model_format = model_format
+            self.project_list = []
+
+        else:
+            raise ValueError("A valid API key must be provided.")
 
     def list_projects(self):
         """
@@ -179,7 +183,7 @@ class Workspace:
         print(self.project(first_stage_model_name))
 
         # perform first inference
-        predictions = stage_one_model.predict(image)
+        predictions = stage_one_model.predict(image)  # type: ignore[attribute-error]
 
         if stage_one_project.type == "object-detection" and stage_two_project == "classification":
             # interact with each detected object from stage one inference results
@@ -199,7 +203,7 @@ class Workspace:
                 croppedImg.save("./temp.png")
 
                 # capture results of second stage inference from cropped image
-                results.append(stage_two_model.predict("./temp.png")[0])
+                results.append(stage_two_model.predict("./temp.png")[0])  # type: ignore[attribute-error]
 
             # delete the written image artifact
             try:
@@ -244,7 +248,7 @@ class Workspace:
         stage_one_model = stage_one_project.version(first_stage_model_version).model
 
         # perform first inference
-        predictions = stage_one_model.predict(image)
+        predictions = stage_one_model.predict(image)  # type: ignore[attribute-error]
 
         # interact with each detected object from stage one inference results
         if stage_one_project.type == "object-detection":
@@ -475,7 +479,7 @@ class Workspace:
                     print(image2 + " --> similarity too high to --> " + image1)
                     continue  # skip this image if too similar or counter hits limit
 
-            predictions = inference_model.predict(image).json()["predictions"]
+            predictions = inference_model.predict(image).json()["predictions"]  # type: ignore[attribute-error]
             # collect all predictions to return to user at end
             prediction_results.append({"image": image, "predictions": predictions})
 
