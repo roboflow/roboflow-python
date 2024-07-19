@@ -358,7 +358,7 @@ class ObjectDetectionModel(InferenceModel):
 
             import ipywidgets as widgets
             from IPython.display import Image as IPythonImage
-            from IPython.display import display  # type: ignore[]
+            from IPython.display import display
 
             display_handle = display("loading Roboflow model...", display_id=True)
 
