@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import json
 import os
@@ -6,9 +8,8 @@ import sys
 import time
 import zipfile
 from importlib import import_module
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
-import numpy as np
 import requests
 import yaml
 from dotenv import load_dotenv
@@ -28,7 +29,6 @@ from roboflow.config import (
 )
 from roboflow.core.dataset import Dataset
 from roboflow.models.classification import ClassificationModel
-from roboflow.models.inference import InferenceModel
 from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.object_detection import ObjectDetectionModel
@@ -36,6 +36,11 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import write_line
 from roboflow.util.versions import get_wrong_dependencies_versions, print_warn_for_wrong_dependencies_versions
+
+if TYPE_CHECKING:
+    import numpy as np
+
+    from roboflow.models.inference import InferenceModel
 
 load_dotenv()
 
@@ -401,6 +406,8 @@ class Version:
             loss: Union[np.ndarray, list]
 
             if "roboflow-train" in models.keys():
+                import numpy as np
+
                 # training has started
                 epochs = np.array([int(epoch["epoch"]) for epoch in models["roboflow-train"]["epochs"]])
                 mAP = np.array([float(epoch["mAP"]) for epoch in models["roboflow-train"]["epochs"]])

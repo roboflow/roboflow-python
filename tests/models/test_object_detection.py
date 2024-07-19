@@ -1,6 +1,5 @@
 import unittest
 
-import numpy as np
 import responses
 from PIL import UnidentifiedImageError
 from requests.exceptions import HTTPError
@@ -83,6 +82,8 @@ class TestObjectDetection(unittest.TestCase):
 
     @responses.activate
     def test_predict_with_a_numpy_array_request(self):
+        import numpy as np
+
         np_array = np.ones((100, 100, 1), dtype=np.uint8)
         instance = ObjectDetectionModel(self.api_key, self.version_id, version=self.version)
 
