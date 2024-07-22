@@ -75,7 +75,6 @@ exclude = [
     "tests/manual/debugme.py", # file is intentionally broken
 ]
 
-
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
@@ -91,6 +90,13 @@ convention = "google"
 [tool.ruff.lint.pyupgrade]
 # Preserve types, even if a file imports `from __future__ import annotations`.
 keep-runtime-typing = true
+
+[tool.ruff.lint.flake8-tidy-imports]
+banned-module-level-imports = [
+    "cv2",
+    "matplotlib",
+    "numpy",
+]
 
 [tool.mypy]
 python_version = "3.8"

@@ -5,9 +5,7 @@ import os
 import sys
 from typing import Any, List
 
-import numpy as np
 import requests
-from numpy import ndarray
 from PIL import Image
 
 from roboflow.adapters import rfapi
@@ -407,6 +405,8 @@ class Workspace:
             use_localhost: (bool) = determines if local http format used or remote endpoint
             local_server: (str) = local http address for inference server, use_localhost must be True for this to be used
         """  # noqa: E501 // docs
+        import numpy as np
+
         prediction_results = []
 
         # ensure that all fields of conditionals have a key:value pair
@@ -528,7 +528,9 @@ class Workspace:
 
         # return predictions with filenames if globbed images from dir,
         # otherwise return latest prediction result
-        return prediction_results if type(raw_data_location) is not ndarray else prediction_results[-1]["predictions"]
+        return (
+            prediction_results if type(raw_data_location) is not np.ndarray else prediction_results[-1]["predictions"]
+        )
 
     def __str__(self):
         projects = self.projects()

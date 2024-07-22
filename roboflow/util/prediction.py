@@ -4,12 +4,7 @@ import json
 import urllib.request
 import warnings
 
-import cv2
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
-import numpy as np
 import requests
-from matplotlib import patches
 from PIL import Image
 
 from roboflow.config import (
@@ -29,6 +24,8 @@ def plot_image(image_path):
     :param image_path: path of image to be plotted (can be hosted or local)
     :return:
     """
+    import matplotlib.pyplot as plt
+
     validate_image_path(image_path)
     try:
         img = Image.open(image_path)
@@ -52,6 +49,8 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60, colors=Non
     :param transparency: alpha transparency of masks for semantic overlays
     :return:
     """
+    from matplotlib import patches
+
     # Object Detection annotation
 
     colors = {} if colors is None else colors
@@ -88,6 +87,8 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60, colors=Non
         polygon = patches.Polygon(points, linewidth=stroke, edgecolor=stroke_color, facecolor="none")
         axes.add_patch(polygon)
     elif prediction["prediction_type"] == SEMANTIC_SEGMENTATION_MODEL:
+        import matplotlib.image as mpimg
+
         encoded_mask = prediction["segmentation_mask"]
         mask_bytes = io.BytesIO(base64.b64decode(encoded_mask))
         mask = mpimg.imread(mask_bytes, format="JPG")
@@ -121,6 +122,9 @@ class Prediction:
         return self.json_prediction
 
     def __load_image(self):
+        import cv2
+        import numpy as np
+
         if "http://" in self.image_path:
             req = urllib.request.urlopen(self.image_path)
             arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
@@ -131,6 +135,8 @@ class Prediction:
         return cv2.imread(self.image_path)
 
     def plot(self, stroke=1):
+        import matplotlib.pyplot as plt
+
         # Exception to check if image path exists
         validate_image_path(self["image_path"])
         _, axes = plot_image(self["image_path"])
@@ -146,6 +152,9 @@ class Prediction:
         :param stroke: line width to use when drawing rectangles and polygons
         :param transparency: alpha transparency of masks for semantic overlays
         """
+        import cv2
+        import numpy as np
+
         image = self.__load_image()
         stroke_color = (255, 0, 0)
 
@@ -302,6 +311,8 @@ class PredictionGroup:
         self.predictions.append(prediction)
 
     def plot(self, stroke=1):
+        import matplotlib.pyplot as plt
+
         if len(self) > 0:
             validate_image_path(self.base_image_path)
             _, axes = plot_image(self.base_image_path)
@@ -311,6 +322,9 @@ class PredictionGroup:
         plt.show()
 
     def __load_image(self):
+        import cv2
+        import numpy as np
+
         # Check if it is a hosted image and open image as needed
         if "http://" in self.base_image_path or "https://" in self.base_image_path:
             req = urllib.request.urlopen(self.base_image_path)
@@ -322,6 +336,9 @@ class PredictionGroup:
         return cv2.imread(self.base_image_path)
 
     def save(self, output_path="predictions.jpg", stroke=2):
+        import cv2
+        import numpy as np
+
         # Load image based on image path as an array
         image = self.__load_image()
         stroke_color = (255, 0, 0)

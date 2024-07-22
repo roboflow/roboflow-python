@@ -3,8 +3,6 @@ import io
 import os
 import urllib
 
-import cv2
-import numpy as np
 import requests
 import yaml
 from PIL import Image
@@ -40,6 +38,9 @@ def mask_image(image, encoded_mask, transparency=60):
     :param transparency: alpha transparency of masks for semantic overlays
     :returns: CV2 image / numpy.ndarray matrix
     """
+    import cv2
+    import numpy as np
+
     np_data = np.fromstring(base64.b64decode(encoded_mask), np.uint8)  # type: ignore[no-overload]
     mask = cv2.imdecode(np_data, cv2.IMREAD_UNCHANGED)
 
@@ -71,6 +72,8 @@ def validate_image_path(image_path):
 
 
 def file2jpeg(image_path):
+    import cv2
+
     img = cv2.imread(image_path)
     image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     pilImage = Image.fromarray(image)

@@ -6,8 +6,6 @@ import os
 import random
 import urllib
 
-import cv2
-import numpy as np
 import requests
 from PIL import Image
 
@@ -178,6 +176,9 @@ class ObjectDetectionModel(InferenceModel):
         original_dimensions = None
         # If image is local image
         if not hosted:
+            import cv2
+            import numpy as np
+
             if isinstance(image_path, str):
                 image = Image.open(image_path).convert("RGB")
                 dimensions = image.size
@@ -294,6 +295,7 @@ class ObjectDetectionModel(InferenceModel):
             stroke (int): Stroke width for bounding box
             labels (bool): Whether to show labels on bounding box
         """  # noqa: E501 // docs
+        import cv2
 
         os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
 
