@@ -815,7 +815,7 @@ class Version:
         input_file = f"{location}/roboflow.zip"
         unzip_path = shutil.which("unzip")
         if unzip_path and not UNZIP_DISABLE:
-            subprocess.check_call([unzip_path, "-qo", input_file])
+            subprocess.check_call([unzip_path, "-qo", "-d", location, input_file])
         else:
             desc = None if TQDM_DISABLE else f"Extracting Dataset Version Zip to {location} in {format}:"
             with zipfile.ZipFile(input_file, "r") as zip_ref:
