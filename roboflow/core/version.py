@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import shutil
+import subprocess
 import sys
 import time
 import zipfile
@@ -25,6 +26,7 @@ from roboflow.config import (
     TYPE_OBJECT_DETECTION,
     TYPE_SEMANTIC_SEGMENTATION,
     UNIVERSE_URL,
+    UNZIP_DISABLE,
 )
 from roboflow.core.dataset import Dataset
 from roboflow.models.classification import ClassificationModel
@@ -809,18 +811,24 @@ class Version:
         Raises:
             RuntimeError: If there is an error unzipping the file
         """  # noqa: E501 // docs
-        desc = None if TQDM_DISABLE else f"Extracting Dataset Version Zip to {location} in {format}:"
-        with zipfile.ZipFile(location + "/roboflow.zip", "r") as zip_ref:
-            for member in tqdm(
-                zip_ref.infolist(),
-                desc=desc,
-            ):
-                try:
-                    zip_ref.extract(member, location)
-                except zipfile.error:
-                    raise RuntimeError("Error unzipping download")
 
-        os.remove(location + "/roboflow.zip")
+        input_file = f"{location}/roboflow.zip"
+        unzip_path = shutil.which("unzip")
+        if unzip_path and not UNZIP_DISABLE:
+            subprocess.check_call([unzip_path, "-qo", input_file])
+        else:
+            desc = None if TQDM_DISABLE else f"Extracting Dataset Version Zip to {location} in {format}:"
+            with zipfile.ZipFile(input_file, "r") as zip_ref:
+                for member in tqdm(
+                    zip_ref.infolist(),
+                    desc=desc,
+                ):
+                    try:
+                        zip_ref.extract(member, location)
+                    except zipfile.error:
+                        raise RuntimeError("Error unzipping download")
+
+        os.remove(input_file)
 
     def __get_download_location(self):
         """
