@@ -31,7 +31,8 @@ setuptools.setup(
     extras_require={
         "desktop": ["opencv-python==4.8.0.74"],
         "dev": [
-            "git+https://github.com/python/mypy.git",
+            # mypy 1.11.0 is broken with cv2
+            "mypy<1.11.0",
             "responses",
             "ruff",
             "twine",
