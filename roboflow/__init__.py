@@ -94,7 +94,7 @@ def login(workspace=None, force=False):
 
         # make config directory if it doesn't exist
         if not os.path.exists(os.path.dirname(conf_location)):
-            os.mkdir(os.path.dirname(conf_location))
+            os.makedirs(os.path.dirname(conf_location))
 
         r_login = {"workspaces": r_login}
         # set first workspace as default workspace
