@@ -13,6 +13,7 @@ from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 
+
 def login(args):
     roboflow.login()
 
@@ -110,7 +111,7 @@ def get_workspace(args):
     api_key = load_roboflow_api_key(args.workspaceId)
     workspace_json = rfapi.get_workspace(api_key, args.workspaceId)
     print(json.dumps(workspace_json, indent=2))
-    
+
 
 def run_video_inference_api(args):
     rf = roboflow.Roboflow(args.api_key)
@@ -118,16 +119,17 @@ def run_video_inference_api(args):
     version = project.version(args.version_number)
     model = project.version(version).model
 
-    #model = VideoInferenceModel(args.api_key, project.id, version.version, project.id)  # Pass dataset_id
- # Pass model_id and version
+    # model = VideoInferenceModel(args.api_key, project.id, version.version, project.id)  # Pass dataset_id
+    # Pass model_id and version
     job_id, signed_url, expire_time = model.predict_video(
-    args.video_file,
-    fps=40,
-    prediction_type="batch-video",
+        args.video_file,
+        fps=40,
+        prediction_type="batch-video",
     )
     results = model.poll_until_video_results(job_id)
     with open("test_video.json", "w") as f:
         json.dump(results, f)
+
 
 def get_workspace_project_version(args):
     # api_key = load_roboflow_api_key(args.workspaceId)
@@ -346,12 +348,13 @@ def _add_workspaces_parser(subparsers):
     )
     workspaceget_parser.set_defaults(func=get_workspace)
 
+
 def _add_run_video_inference_api_parser(subparsers):
     run_video_inference_api_parser = subparsers.add_parser(
         "run_video_inference_api",
         help="run video inference api",
     )
-    
+
     run_video_inference_api_parser.add_argument(
         "-a",
         dest="api_key",
@@ -374,6 +377,7 @@ def _add_run_video_inference_api_parser(subparsers):
         help="path to video file",
     )
     run_video_inference_api_parser.set_defaults(func=run_video_inference_api)
+
 
 def _add_infer_parser(subparsers):
     infer_parser = subparsers.add_parser(
