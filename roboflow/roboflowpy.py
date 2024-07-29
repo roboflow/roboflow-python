@@ -381,6 +381,7 @@ def _add_run_video_inference_api_parser(subparsers):
         dest="fps",
         type=int,
         help="fps",
+        default=5,
     )
     run_video_inference_api_parser.set_defaults(func=run_video_inference_api)
 
