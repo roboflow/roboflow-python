@@ -15,7 +15,7 @@ from roboflow.core.workspace import Workspace
 from roboflow.models import CLIPModel, GazeModel  # noqa: F401
 from roboflow.util.general import write_line
 
-__version__ = "1.1.36"
+__version__ = "1.1.37"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -94,7 +94,7 @@ def login(workspace=None, force=False):
 
         # make config directory if it doesn't exist
         if not os.path.exists(os.path.dirname(conf_location)):
-            os.mkdir(os.path.dirname(conf_location))
+            os.makedirs(os.path.dirname(conf_location))
 
         r_login = {"workspaces": r_login}
         # set first workspace as default workspace
