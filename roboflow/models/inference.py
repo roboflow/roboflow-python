@@ -167,10 +167,9 @@ class InferenceModel:
         signed_url_expires = None
 
         url = urljoin(API_URL, "/video_upload_signed_url?api_key=" + self.__api_key)
-
-        # if fps > 5:
-        #    raise Exception("FPS must be less than or equal to 5.")
-
+        if fps > 120:
+            raise Exception("FPS must be less than or equal to 120.")
+       
         for model in additional_models:
             if model not in SUPPORTED_ADDITIONAL_MODELS:
                 raise Exception(f"Model {model} is not supported for video inference.")
