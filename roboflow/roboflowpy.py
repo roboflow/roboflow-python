@@ -123,7 +123,7 @@ def run_video_inference_api(args):
     # Pass model_id and version
     job_id, signed_url, expire_time = model.predict_video(
         args.video_file,
-        fps=40,
+        args.fps,
         prediction_type="batch-video",
     )
     results = model.poll_until_video_results(job_id)
@@ -375,6 +375,12 @@ def _add_run_video_inference_api_parser(subparsers):
         "-f",
         dest="video_file",
         help="path to video file",
+    )
+    run_video_inference_api_parser.add_argument(
+        "-fps",
+        dest="fps",
+        type=int,
+        help="fps",
     )
     run_video_inference_api_parser.set_defaults(func=run_video_inference_api)
 
