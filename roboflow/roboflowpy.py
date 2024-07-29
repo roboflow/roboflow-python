@@ -13,7 +13,6 @@ from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 
-
 def login(args):
     roboflow.login()
 
@@ -111,7 +110,24 @@ def get_workspace(args):
     api_key = load_roboflow_api_key(args.workspaceId)
     workspace_json = rfapi.get_workspace(api_key, args.workspaceId)
     print(json.dumps(workspace_json, indent=2))
+    
 
+def run_video_inference_api(args):
+    rf = roboflow.Roboflow(args.api_key)
+    project = rf.workspace().project(args.project)
+    version = project.version(args.version_number)
+    model = project.version(version).model
+
+    #model = VideoInferenceModel(args.api_key, project.id, version.version, project.id)  # Pass dataset_id
+ # Pass model_id and version
+    job_id, signed_url, expire_time = model.predict_video(
+    args.video_file,
+    fps=40,
+    prediction_type="batch-video",
+    )
+    results = model.poll_until_video_results(job_id)
+    with open("test_video.json", "w") as f:
+        json.dump(results, f)
 
 def get_workspace_project_version(args):
     # api_key = load_roboflow_api_key(args.workspaceId)
@@ -173,6 +189,7 @@ def _argparser():
     _add_workspaces_parser(subparsers)
     _add_upload_model_parser(subparsers)
     _add_get_workspace_project_version_parser(subparsers)
+    _add_run_video_inference_api_parser(subparsers)
 
     return parser
 
@@ -329,6 +346,34 @@ def _add_workspaces_parser(subparsers):
     )
     workspaceget_parser.set_defaults(func=get_workspace)
 
+def _add_run_video_inference_api_parser(subparsers):
+    run_video_inference_api_parser = subparsers.add_parser(
+        "run_video_inference_api",
+        help="run video inference api",
+    )
+    
+    run_video_inference_api_parser.add_argument(
+        "-a",
+        dest="api_key",
+        help="api_key",
+    )
+    run_video_inference_api_parser.add_argument(
+        "-p",
+        dest="project",
+        help="project_id to upload the image into",
+    )
+    run_video_inference_api_parser.add_argument(
+        "-v",
+        dest="version_number",
+        type=int,
+        help="version number to upload the model to",
+    )
+    run_video_inference_api_parser.add_argument(
+        "-f",
+        dest="video_file",
+        help="path to video file",
+    )
+    run_video_inference_api_parser.set_defaults(func=run_video_inference_api)
 
 def _add_infer_parser(subparsers):
     infer_parser = subparsers.add_parser(
