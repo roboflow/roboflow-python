@@ -162,16 +162,26 @@ def infer(args):
 
 
 def add_runner(args):
-    runner_json = rfapi.add_runner(args.api_key, args.security_level, args.cloud_provider, args.machine_type, args.runner_name, args.inference_version)
+    runner_json = rfapi.add_runner(
+        args.api_key,
+        args.security_level,
+        args.cloud_provider,
+        args.machine_type,
+        args.runner_name,
+        args.inference_version,
+    )
     print(json.dumps(runner_json, indent=2))
+
 
 def get_runner(args):
     runner_json = rfapi.get_runner(args.api_key, args.runner_id)
     print(json.dumps(runner_json, indent=2))
 
+
 def list_runner(args):
     runner_json = rfapi.list_runner(args.vapi_key)
     print(json.dumps(runner_json, indent=2))
+
 
 def delete_runner(args):
     runner_json = rfapi.delete_runner(args.api_key, args.runner_id)
@@ -491,17 +501,21 @@ def _add_runner_parser(subparsers):
     runner_add_parser.add_argument("api_key", help="api key")
     runner_add_parser.add_argument("security_level", help="security level (protected)", default="protected")
     runner_add_parser.add_argument("cloud_provider", help="cloud provider (gcp)", default="gcp")
-    runner_add_parser.add_argument("machine_type", help="machine type (n1-standard-4-cpu, g2-standard-8-cpu)", default="n1-standard-4-cpu")
+    runner_add_parser.add_argument(
+        "machine_type", help="machine type (n1-standard-4-cpu, g2-standard-8-cpu)", default="n1-standard-4-cpu"
+    )
     runner_add_parser.add_argument("runner_name", help="runner name")
-    runner_add_parser.add_argument("inference_version", help="inference server version (docker image tag)", default="latest")
-    
+    runner_add_parser.add_argument(
+        "inference_version", help="inference server version (docker image tag)", default="latest"
+    )
+
     runner_get_parser.set_defaults(func=get_runner)
     runner_get_parser.add_argument("api_key", help="api key")
     runner_get_parser.add_argument("runner_id", help="runner id")
-    
+
     runner_list_parser.set_defaults(func=list_runner)
     runner_list_parser.add_argument("api_key", help="api key")
-    
+
     runner_delete_parser.set_defaults(func=delete_runner)
     runner_delete_parser.add_argument("api_key", help="api key")
     runner_delete_parser.add_argument("runner_id", help="runner id")
