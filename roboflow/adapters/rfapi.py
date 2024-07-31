@@ -6,7 +6,7 @@ from typing import Optional
 import requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
-from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
+from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME, ROBOFLOW_RUNNER_URL
 from roboflow.util import image_utils
 
 
@@ -205,3 +205,42 @@ def _save_annotation_error(image_id, response):
     else:
         errmsg += f"bad response: {response.status_code}: {responsejson}"
     return UploadError(errmsg)
+
+
+def add_runner(api_key, security_level, cloud_provider, machine_type, runner_name, inference_version):
+    url = f"{ROBOFLOW_RUNNER_URL}/create"
+    response = requests.post(url, json={'api_key': api_key, 'security_level': security_level, 
+                                        'cloud_provider': cloud_provider, 'machine_type': machine_type, 
+                                        'runner_name': runner_name, 'inference_version': inference_version})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    result = response.json()
+    return result
+    
+
+def get_runner(api_key, runner_id):
+    url = f"{ROBOFLOW_RUNNER_URL}/get"
+    response = requests.get(url, json={'api_key': api_key, 'runner_id': runner_id})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    result = response.json()
+    return result
+
+
+def list_runner(api_key):
+    url = f"{ROBOFLOW_RUNNER_URL}/list"
+    response = requests.get(url, json={'api_key': api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    result = response.json()
+    return result
+
+
+def delete_runner(api_key, runner_id):
+    url = f"{ROBOFLOW_RUNNER_URL}/delete"
+    response = requests.post(url, json={'api_key': api_key, 'runner_id': runner_id})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    result = response.json()
+    return result
+
