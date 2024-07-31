@@ -216,7 +216,7 @@ def add_deployment(api_key, security_level, cloud_provider, machine_type, deploy
         raise RoboflowError(response.text)
     result = response.json()
     return result
-    
+
 
 def get_deployment(api_key, deployment_id):
     url = f"{DEDICATED_DEPLOYMENT_URL}/get"
@@ -243,4 +243,3 @@ def delete_deployment(api_key, deployment_id):
         raise RoboflowError(response.text)
     result = response.json()
     return result
-
