@@ -162,16 +162,26 @@ def infer(args):
 
 
 def add_deployment(args):
-    ret_json = rfapi.add_deployment(args.api_key, args.security_level, args.cloud_provider, args.machine_type, args.deployment_name, args.inference_version)
+    ret_json = rfapi.add_deployment(
+        args.api_key,
+        args.security_level,
+        args.cloud_provider,
+        args.machine_type,
+        args.deployment_name,
+        args.inference_version,
+    )
     print(json.dumps(ret_json, indent=2))
+
 
 def get_deployment(args):
     ret_json = rfapi.get_deployment(args.api_key, args.deployment_id)
     print(json.dumps(ret_json, indent=2))
 
+
 def list_deployment(args):
     ret_json = rfapi.list_deployment(args.api_key)
     print(json.dumps(ret_json, indent=2))
+
 
 def delete_deployment(args):
     ret_json = rfapi.delete_deployment(args.api_key, args.deployment_id)
@@ -483,7 +493,9 @@ def _add_deployment_parser(subparsers):
     )
     deployment_subparsers = deployment_parser.add_subparsers(title="deployment subcommands")
     deployment_add_parser = deployment_subparsers.add_parser("add", help="create a dedicated deployment")
-    deployment_get_parser = deployment_subparsers.add_parser("get", help="show detailed info for a dedicated deployment")
+    deployment_get_parser = deployment_subparsers.add_parser(
+        "get", help="show detailed info for a dedicated deployment"
+    )
     deployment_list_parser = deployment_subparsers.add_parser("list", help="list dedicated deployments in a workspace")
     deployment_delete_parser = deployment_subparsers.add_parser("delete", help="delete a dedicated deployment")
 
@@ -491,17 +503,23 @@ def _add_deployment_parser(subparsers):
     deployment_add_parser.add_argument("api_key", help="api key")
     deployment_add_parser.add_argument("security_level", help="security level (protected)", default="protected")
     deployment_add_parser.add_argument("cloud_provider", help="cloud provider (gcp)", default="gcp")
-    deployment_add_parser.add_argument("machine_type", help="machine type (gcp-n1-standard-4-gpu, gcp-g2-standard-8-gpu)", default="gcp-n1-standard-4-gpu")
+    deployment_add_parser.add_argument(
+        "machine_type",
+        help="machine type (gcp-n1-standard-4-gpu, gcp-g2-standard-8-gpu)",
+        default="gcp-n1-standard-4-gpu",
+    )
     deployment_add_parser.add_argument("deployment_name", help="deployment name")
-    deployment_add_parser.add_argument("inference_version", help="inference server version (docker image tag)", default="latest")
-    
+    deployment_add_parser.add_argument(
+        "inference_version", help="inference server version (docker image tag)", default="latest"
+    )
+
     deployment_get_parser.set_defaults(func=get_deployment)
     deployment_get_parser.add_argument("api_key", help="api key")
     deployment_get_parser.add_argument("deployment_id", help="deployment id")
-    
+
     deployment_list_parser.set_defaults(func=list_deployment)
     deployment_list_parser.add_argument("api_key", help="api key")
-    
+
     deployment_delete_parser.set_defaults(func=delete_deployment)
     deployment_delete_parser.add_argument("api_key", help="api key")
     deployment_delete_parser.add_argument("deployment_id", help="deployment id")
