@@ -500,7 +500,9 @@ def _add_deployment_parser(subparsers):
 
     deployment_add_parser.set_defaults(func=add_deployment)
     deployment_add_parser.add_argument("-a", dest="api_key", help="api key")
-    deployment_add_parser.add_argument("-s", dest="security_level", help="security level (protected)", default="protected")
+    deployment_add_parser.add_argument(
+        "-s", dest="security_level", help="security level (protected)", default="protected"
+    )
     deployment_add_parser.add_argument(
         "-m",
         dest="machine_type",
