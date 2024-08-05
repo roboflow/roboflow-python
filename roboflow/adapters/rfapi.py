@@ -207,14 +207,13 @@ def _save_annotation_error(image_id, response):
     return UploadError(errmsg)
 
 
-def add_deployment(api_key, security_level, cloud_provider, machine_type, deployment_name, inference_version):
+def add_deployment(api_key, security_level, machine_type, deployment_name, inference_version):
     url = f"{DEDICATED_DEPLOYMENT_URL}/add"
     response = requests.post(
         url,
         json={
             "api_key": api_key,
             "security_level": security_level,
-            "cloud_provider": cloud_provider,
             "machine_type": machine_type,
             "deployment_name": deployment_name,
             "inference_version": inference_version,

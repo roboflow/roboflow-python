@@ -165,7 +165,6 @@ def add_deployment(args):
     ret_json = rfapi.add_deployment(
         args.api_key,
         args.security_level,
-        args.cloud_provider,
         args.machine_type,
         args.deployment_name,
         args.inference_version,
@@ -500,29 +499,29 @@ def _add_deployment_parser(subparsers):
     deployment_delete_parser = deployment_subparsers.add_parser("delete", help="delete a dedicated deployment")
 
     deployment_add_parser.set_defaults(func=add_deployment)
-    deployment_add_parser.add_argument("api_key", help="api key")
-    deployment_add_parser.add_argument("security_level", help="security level (protected)", default="protected")
-    deployment_add_parser.add_argument("cloud_provider", help="cloud provider (gcp)", default="gcp")
+    deployment_add_parser.add_argument("-a", dest="api_key", help="api key")
+    deployment_add_parser.add_argument("-s", dest="security_level", help="security level (protected)", default="protected")
     deployment_add_parser.add_argument(
-        "machine_type",
-        help="machine type (gcp-n1-standard-4-gpu, gcp-g2-standard-8-gpu)",
-        default="gcp-n1-standard-4-gpu",
+        "-m",
+        dest="machine_type",
+        help="machine type (gcp-n2-cpu, gcp-t4-gpu, gcp-l4-gpu)",
+        default="gcp-n2-cpu",
     )
-    deployment_add_parser.add_argument("deployment_name", help="deployment name")
+    deployment_add_parser.add_argument("-n", dest="deployment_name", help="deployment name")
     deployment_add_parser.add_argument(
-        "inference_version", help="inference server version (docker image tag)", default="latest"
+        "-v", dest="inference_version", help="inference server version (docker image tag)", default="latest"
     )
 
     deployment_get_parser.set_defaults(func=get_deployment)
-    deployment_get_parser.add_argument("api_key", help="api key")
-    deployment_get_parser.add_argument("deployment_id", help="deployment id")
+    deployment_get_parser.add_argument("-a", dest="api_key", help="api key")
+    deployment_get_parser.add_argument("-d", dest="deployment_id", help="deployment id")
 
     deployment_list_parser.set_defaults(func=list_deployment)
-    deployment_list_parser.add_argument("api_key", help="api key")
+    deployment_list_parser.add_argument("-a", dest="api_key", help="api key")
 
     deployment_delete_parser.set_defaults(func=delete_deployment)
-    deployment_delete_parser.add_argument("api_key", help="api key")
-    deployment_delete_parser.add_argument("deployment_id", help="deployment id")
+    deployment_delete_parser.add_argument("-a", dest="api_key", help="api key")
+    deployment_delete_parser.add_argument("-d", dest="deployment_id", help="deployment id")
 
 
 def main():
