@@ -1,4 +1,5 @@
 import requests
+
 from roboflow.config import DEDICATED_DEPLOYMENT_URL
 
 
