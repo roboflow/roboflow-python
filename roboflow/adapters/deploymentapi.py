@@ -19,7 +19,7 @@ def add_deployment(api_key, security_level, machine_type, deployment_name, infer
         },
     )
     if response.status_code != 200:
-        raise DeploymentApiError(response.text)
+        raise DeploymentApiError(f"{response.status_code}: {response.text}")
     result = response.json()
     return result
 
@@ -28,7 +28,7 @@ def get_deployment(api_key, deployment_id):
     url = f"{DEDICATED_DEPLOYMENT_URL}/get"
     response = requests.get(url, json={"api_key": api_key, "deployment_id": deployment_id})
     if response.status_code != 200:
-        raise DeploymentApiError(response.text)
+        raise DeploymentApiError(f"{response.status_code}: {response.text}")
     result = response.json()
     return result
 
@@ -37,7 +37,7 @@ def list_deployment(api_key):
     url = f"{DEDICATED_DEPLOYMENT_URL}/list"
     response = requests.get(url, json={"api_key": api_key})
     if response.status_code != 200:
-        raise DeploymentApiError(response.text)
+        raise DeploymentApiError(f"{response.status_code}: {response.text}")
     result = response.json()
     return result
 
@@ -46,6 +46,6 @@ def delete_deployment(api_key, deployment_id):
     url = f"{DEDICATED_DEPLOYMENT_URL}/delete"
     response = requests.post(url, json={"api_key": api_key, "deployment_id": deployment_id})
     if response.status_code != 200:
-        raise DeploymentApiError(response.text)
+        raise DeploymentApiError(f"{response.status_code}: {response.text}")
     result = response.json()
     return result
