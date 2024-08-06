@@ -12,7 +12,7 @@ from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
-
+from roboflow import deployment
 
 def login(args):
     roboflow.login()
@@ -161,31 +161,6 @@ def infer(args):
     print(group)
 
 
-def add_deployment(args):
-    ret_json = rfapi.add_deployment(
-        args.api_key,
-        args.security_level,
-        args.machine_type,
-        args.deployment_name,
-        args.inference_version,
-    )
-    print(json.dumps(ret_json, indent=2))
-
-
-def get_deployment(args):
-    ret_json = rfapi.get_deployment(args.api_key, args.deployment_id)
-    print(json.dumps(ret_json, indent=2))
-
-
-def list_deployment(args):
-    ret_json = rfapi.list_deployment(args.api_key)
-    print(json.dumps(ret_json, indent=2))
-
-
-def delete_deployment(args):
-    ret_json = rfapi.delete_deployment(args.api_key, args.deployment_id)
-    print(json.dumps(ret_json, indent=2))
-
 
 def _argparser():
     parser = argparse.ArgumentParser(description="Welcome to the roboflow CLI: computer vision at your fingertips 🪄")
@@ -199,7 +174,7 @@ def _argparser():
     _add_workspaces_parser(subparsers)
     _add_upload_model_parser(subparsers)
     _add_get_workspace_project_version_parser(subparsers)
-    _add_deployment_parser(subparsers)
+    deployment.add_deployment_parser(subparsers)
 
     return parser
 
@@ -479,52 +454,9 @@ def _add_get_workspace_project_version_parser(subparsers):
     )
     workspace_project_version_parser.set_defaults(func=get_workspace_project_version)
 
-
 def _add_login_parser(subparsers):
     login_parser = subparsers.add_parser("login", help="Log in to Roboflow")
     login_parser.set_defaults(func=login)
-
-
-def _add_deployment_parser(subparsers):
-    deployment_parser = subparsers.add_parser(
-        "deployment",
-        help="deployment related commands.  type 'roboflow deployment' to see detailed command help",
-    )
-    deployment_subparsers = deployment_parser.add_subparsers(title="deployment subcommands")
-    deployment_add_parser = deployment_subparsers.add_parser("add", help="create a dedicated deployment")
-    deployment_get_parser = deployment_subparsers.add_parser(
-        "get", help="show detailed info for a dedicated deployment"
-    )
-    deployment_list_parser = deployment_subparsers.add_parser("list", help="list dedicated deployments in a workspace")
-    deployment_delete_parser = deployment_subparsers.add_parser("delete", help="delete a dedicated deployment")
-
-    deployment_add_parser.set_defaults(func=add_deployment)
-    deployment_add_parser.add_argument("-a", dest="api_key", help="api key")
-    deployment_add_parser.add_argument(
-        "-s", dest="security_level", help="security level (protected)", default="protected"
-    )
-    deployment_add_parser.add_argument(
-        "-m",
-        dest="machine_type",
-        help="machine type (gcp-n2-cpu, gcp-t4-gpu, gcp-l4-gpu)",
-        default="gcp-n2-cpu",
-    )
-    deployment_add_parser.add_argument("-n", dest="deployment_name", help="deployment name")
-    deployment_add_parser.add_argument(
-        "-v", dest="inference_version", help="inference server version (docker image tag)", default="latest"
-    )
-
-    deployment_get_parser.set_defaults(func=get_deployment)
-    deployment_get_parser.add_argument("-a", dest="api_key", help="api key")
-    deployment_get_parser.add_argument("-d", dest="deployment_id", help="deployment id")
-
-    deployment_list_parser.set_defaults(func=list_deployment)
-    deployment_list_parser.add_argument("-a", dest="api_key", help="api key")
-
-    deployment_delete_parser.set_defaults(func=delete_deployment)
-    deployment_delete_parser.add_argument("-a", dest="api_key", help="api key")
-    deployment_delete_parser.add_argument("-d", dest="deployment_id", help="deployment id")
-
 
 def main():
     parser = _argparser()
