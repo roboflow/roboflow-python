@@ -39,7 +39,8 @@ if __name__ == "__main__":
         # f"import {thisdir}/data/cultura-pepino-coco -w wolfodorpythontests -p yellow-auto -c 100".split()  # noqa: E501 // docs
         # f"import {thisdir}/data/cultura-pepino-yolov8 -w wolfodorpythontests -p yellow-auto -c 100".split()  # noqa: E501 // docs
         # f"import {thisdir}/data/cultura-pepino-yolov8_voc -w wolfodorpythontests -p yellow-auto -c 100".split()  # noqa: E501 // docs
-        f"import {thisdir}/data/cultura-pepino-yolov5pytorch -w wolfodorpythontests -p yellow-auto -c 100 -n papaiasso".split()  # noqa: E501 // docs
+        # f"import {thisdir}/data/cultura-pepino-yolov5pytorch -w wolfodorpythontests -p yellow-auto -c 100 -n papaiasso".split()  # noqa: E501 // docs
         # f"import {thisdir}/../datasets/mosquitos -w wolfodorpythontests -p yellow-auto -n papaiasso".split()  # noqa: E501 // docs
+        f"deployment list".split()  # noqa: E501 // docs
     )
     args.func(args)

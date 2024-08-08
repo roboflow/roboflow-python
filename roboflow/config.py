@@ -63,6 +63,10 @@ OBJECT_DETECTION_URL = get_conditional_configuration_variable("OBJECT_DETECTION_
 CLIP_FEATURIZE_URL = get_conditional_configuration_variable("CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV")
 OCR_URL = get_conditional_configuration_variable("OCR_URL", "OCR URL NOT IN ENV")
 
+DEDICATED_DEPLOYMENT_URL = get_conditional_configuration_variable(
+    "DEDICATED_DEPLOYMENT_URL", "https://ddploy.roboflow.com"
+)
+
 DEMO_KEYS = ["coco-128-sample", "chess-sample-only-api-key"]
 
 TYPE_CLASSICATION = "classification"

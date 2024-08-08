@@ -4,3 +4,4 @@ cp data/.config-prod data/.config
 export API_URL=https://api.roboflow.com
 export APP_URL=https://app.roboflow.com
 export OBJECT_DETECTION_URL=https://detect.roboflow.one
+export DEDICATED_DEPLOYMENT_URL=https://deployment.svc.roboflow.com
