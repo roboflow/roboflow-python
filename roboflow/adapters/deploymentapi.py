@@ -51,6 +51,7 @@ def delete_deployment(api_key, deployment_id):
     result = response.json()
     return result
 
+
 def list_machine_types(api_key):
     url = f"{DEDICATED_DEPLOYMENT_URL}/machine_types"
     response = requests.get(url, json={"api_key": api_key})

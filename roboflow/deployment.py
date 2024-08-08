@@ -17,7 +17,7 @@ def add_deployment_parser(subparsers):
     )
     deployment_list_parser = deployment_subparsers.add_parser("list", help="list dedicated deployments in a workspace")
     deployment_delete_parser = deployment_subparsers.add_parser("delete", help="delete a dedicated deployment")
-    
+
     deployment_machine_type_parser.set_defaults(func=list_machine_types)
     deployment_machine_type_parser.add_argument("-a", dest="api_key", help="api key")
 
@@ -32,7 +32,9 @@ def add_deployment_parser(subparsers):
         help="machine type, run `roboflow deployment machine_type` to see available options",
         default="gcp-n2-cpu",
     )
-    deployment_add_parser.add_argument("-n", dest="deployment_name", help="deployment name, must contain 3-10 lowercase characters")
+    deployment_add_parser.add_argument(
+        "-n", dest="deployment_name", help="deployment name, must contain 3-10 lowercase characters"
+    )
     deployment_add_parser.add_argument(
         "-v", dest="inference_version", help="inference server version (default: latest)", default="latest"
     )
