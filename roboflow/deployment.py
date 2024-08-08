@@ -10,12 +10,16 @@ def add_deployment_parser(subparsers):
         help="deployment related commands.  type 'roboflow deployment' to see detailed command help",
     )
     deployment_subparsers = deployment_parser.add_subparsers(title="deployment subcommands")
+    deployment_machine_type_parser = deployment_subparsers.add_parser("machine_type", help="list machine types")
     deployment_add_parser = deployment_subparsers.add_parser("add", help="create a dedicated deployment")
     deployment_get_parser = deployment_subparsers.add_parser(
         "get", help="show detailed info for a dedicated deployment"
     )
     deployment_list_parser = deployment_subparsers.add_parser("list", help="list dedicated deployments in a workspace")
     deployment_delete_parser = deployment_subparsers.add_parser("delete", help="delete a dedicated deployment")
+    
+    deployment_machine_type_parser.set_defaults(func=list_machine_types)
+    deployment_machine_type_parser.add_argument("-a", dest="api_key", help="api key")
 
     deployment_add_parser.set_defaults(func=add_deployment)
     deployment_add_parser.add_argument("-a", dest="api_key", help="api key")
@@ -25,10 +29,10 @@ def add_deployment_parser(subparsers):
     deployment_add_parser.add_argument(
         "-m",
         dest="machine_type",
-        help="machine type (gcp-n2-cpu, gcp-t4-gpu, gcp-l4-gpu)",
+        help="machine type, run `roboflow deployment machine_type` to see available options",
         default="gcp-n2-cpu",
     )
-    deployment_add_parser.add_argument("-n", dest="deployment_name", help="deployment name")
+    deployment_add_parser.add_argument("-n", dest="deployment_name", help="deployment name, must contain 3-10 lowercase characters")
     deployment_add_parser.add_argument(
         "-v", dest="inference_version", help="inference server version (default: latest)", default="latest"
     )
@@ -43,6 +47,12 @@ def add_deployment_parser(subparsers):
     deployment_delete_parser.set_defaults(func=delete_deployment)
     deployment_delete_parser.add_argument("-a", dest="api_key", help="api key")
     deployment_delete_parser.add_argument("-d", dest="deployment_id", help="deployment id")
+
+
+def list_machine_types(args):
+    api_key = args.api_key or load_roboflow_api_key(None)
+    ret_json = deploymentapi.list_machine_types(api_key)
+    print(json.dumps(ret_json, indent=2))
 
 
 def add_deployment(args):
