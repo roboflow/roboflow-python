@@ -27,9 +27,7 @@ def add_deployment_parser(subparsers):
     #     "-s", dest="security_level", help="security level (protected)", default="protected"
     # )
     deployment_add_parser.add_argument(
-        "-m",
-        dest="machine_type",
-        help="machine type, run `roboflow deployment machine_type` to see available options"
+        "-m", dest="machine_type", help="machine type, run `roboflow deployment machine_type` to see available options"
     )
     deployment_add_parser.add_argument(
         "-n", dest="deployment_name", help="deployment name, must contain 3-10 lowercase characters"
