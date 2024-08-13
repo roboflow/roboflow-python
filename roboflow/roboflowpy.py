@@ -195,7 +195,6 @@ def _argparser():
     _add_run_video_inference_api_parser(subparsers)
     deployment.add_deployment_parser(subparsers)
 
-
     return parser
 
 
