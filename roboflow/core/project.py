@@ -1,7 +1,7 @@
-import ast
 import datetime
 import json
 import os
+import re
 import sys
 import time
 import warnings
@@ -553,7 +553,11 @@ class Project:
 
     def _parse_upload_error(self, error: rfapi.UploadError) -> str:
         dict_part = str(error).split(": ", 2)[2]
-        parsed_dict: dict = ast.literal_eval(dict_part)
+        if re.search(r"'\w+':", dict_part):
+            temp_str = dict_part.replace(r"\'", "<PLACEHOLDER>")
+            temp_str = temp_str.replace("'", '"')
+            dict_part = temp_str.replace("<PLACEHOLDER>", "'")
+        parsed_dict: dict = json.loads(dict_part)
         message = parsed_dict.get("message")
         return message or str(parsed_dict)
 
