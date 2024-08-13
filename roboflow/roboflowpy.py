@@ -5,6 +5,7 @@ import re
 
 import roboflow
 from roboflow import config as roboflow_config
+from roboflow import deployment
 from roboflow.adapters import rfapi
 from roboflow.config import APP_URL, get_conditional_configuration_variable, load_roboflow_api_key
 from roboflow.models.classification import ClassificationModel
@@ -192,6 +193,8 @@ def _argparser():
     _add_upload_model_parser(subparsers)
     _add_get_workspace_project_version_parser(subparsers)
     _add_run_video_inference_api_parser(subparsers)
+    deployment.add_deployment_parser(subparsers)
+
 
     return parser
 

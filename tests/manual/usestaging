@@ -4,3 +4,4 @@ cp data/.config-staging data/.config
 export API_URL=https://api.roboflow.one
 export APP_URL=https://app.roboflow.one
 export OBJECT_DETECTION_URL=https://lambda-object-detection.staging.roboflow.com
+export DEDICATED_DEPLOYMENT_URL=https://deployment.svc.roboflow.one
