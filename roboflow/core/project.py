@@ -555,8 +555,12 @@ class Project:
         dict_part = str(error).split(": ", 2)[2]
         if re.search(r"'\w+':", dict_part):
             temp_str = dict_part.replace(r"\'", "<PLACEHOLDER>")
+            temp_str = temp_str.replace('"', r"\"")
             temp_str = temp_str.replace("'", '"')
             dict_part = temp_str.replace("<PLACEHOLDER>", "'")
+            dict_part = dict_part.replace("True", "true")
+            dict_part = dict_part.replace("False", "false")
+            dict_part = dict_part.replace("None", "null")
         parsed_dict: dict = json.loads(dict_part)
         message = parsed_dict.get("message")
         return message or str(parsed_dict)
