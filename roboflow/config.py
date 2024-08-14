@@ -64,7 +64,7 @@ CLIP_FEATURIZE_URL = get_conditional_configuration_variable("CLIP_FEATURIZE_URL"
 OCR_URL = get_conditional_configuration_variable("OCR_URL", "OCR URL NOT IN ENV")
 
 DEDICATED_DEPLOYMENT_URL = get_conditional_configuration_variable(
-    "DEDICATED_DEPLOYMENT_URL", "https://ddploy.roboflow.com"
+    "DEDICATED_DEPLOYMENT_URL", "https://roboflow.cloud"
 )
 
 DEMO_KEYS = ["coco-128-sample", "chess-sample-only-api-key"]
