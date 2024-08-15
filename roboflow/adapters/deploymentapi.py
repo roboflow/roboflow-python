@@ -7,7 +7,7 @@ class DeploymentApiError(Exception):
     pass
 
 
-def add_deployment(api_key, machine_type, deployment_name, inference_version):
+def add_deployment(api_key, machine_type, duration, delete_on_expiration, deployment_name, inference_version):
     url = f"{DEDICATED_DEPLOYMENT_URL}/add"
     response = requests.post(
         url,
@@ -15,6 +15,8 @@ def add_deployment(api_key, machine_type, deployment_name, inference_version):
             "api_key": api_key,
             # "security_level": security_level,
             "machine_type": machine_type,
+            "duration": duration,
+            "delete_on_expiration": delete_on_expiration,
             "deployment_name": deployment_name,
             "inference_version": inference_version,
         },

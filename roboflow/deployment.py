@@ -30,6 +30,14 @@ def add_deployment_parser(subparsers):
         "-m", dest="machine_type", help="machine type, run `roboflow deployment machine_type` to see available options"
     )
     deployment_add_parser.add_argument(
+        "-t", dest="duration", help="duration, how long you want to keep the deployment (unit: hour, default: 3)",
+        type=float, default=3
+    )
+    deployment_add_parser.add_argument(
+        "-e", dest="delete_on_expiration", help="delete when expired (default: True)",
+        type=bool, default=True
+    )
+    deployment_add_parser.add_argument(
         "-n", dest="deployment_name", help="deployment name, must contain 3-10 lowercase characters"
     )
     deployment_add_parser.add_argument(
@@ -60,6 +68,8 @@ def add_deployment(args):
         api_key,
         # args.security_level,
         args.machine_type,
+        args.duration,
+        args.delete_on_expiration,
         args.deployment_name,
         args.inference_version,
     )
