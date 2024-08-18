@@ -13,7 +13,7 @@ import requests
 
 from roboflow.adapters import rfapi
 from roboflow.config import API_URL, DEMO_KEYS
-from roboflow.core.exceptions import UploadImageError, AnnotationUploadError
+from roboflow.core.exceptions import AnnotationUploadError, UploadImageError
 from roboflow.core.version import Version
 from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap

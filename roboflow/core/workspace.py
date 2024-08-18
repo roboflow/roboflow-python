@@ -11,7 +11,7 @@ from PIL import Image
 from roboflow.adapters import rfapi
 from roboflow.adapters.rfapi import RoboflowError
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
-from roboflow.core.exceptions import UploadImageError, AnnotationUploadError
+from roboflow.core.exceptions import AnnotationUploadError, UploadImageError
 from roboflow.core.project import Project
 from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
@@ -334,27 +334,19 @@ class Workspace:
                 elif annotation.get("warn"):
                     msg += f" / annotations = WARN: {annotation['warn']} {annotation_time_str}"
                 else:
-                    msg += f" / annotations = ERR: Unrecognized annotation upload status"
+                    msg += " / annotations = ERR: Unrecognized annotation upload status"
 
             print(msg)
 
         def _log_img_upload_err(image_path, e):
             if isinstance(e, UploadImageError):
-                retry_attempts = (
-                    f" (with {e.retry_attempts} retries)"
-                    if e.retry_attempts > 0
-                    else ""
-                )
+                retry_attempts = f" (with {e.retry_attempts} retries)" if e.retry_attempts > 0 else ""
                 print(f"[ERR]{retry_attempts} {image_path} ({e.message})")
                 return
 
             if isinstance(e, AnnotationUploadError):
                 upload_time_str = f"[{e.image_upload_time:.1f}s]" if e.image_upload_time else ""
-                retry_attempts = (
-                    f" (with {e.image_retry_attempts} retries)"
-                    if e.image_retry_attempts > 0
-                    else ""
-                )
+                retry_attempts = f" (with {e.image_retry_attempts} retries)" if e.image_retry_attempts > 0 else ""
                 image_msg = f"[UPLOADED]{retry_attempts} {image_path} ({e.image_id}) {upload_time_str}"
                 annotation_msg = f"annotations = ERR: {e.message}"
                 print(f"{image_msg} / {annotation_msg}")
