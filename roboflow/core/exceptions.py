@@ -25,7 +25,7 @@ class AnnotationUploadError(Exception):
         message (str): A description of the error.
         image_id (Optional[str]): The ID of the image associated with the error.
         image_upload_time (Optional[datetime]): The timestamp when the image upload was attempted.
-        image_retry_attempts (Optional[int]): The number of retry attempts made for the image upload before the error occurred.
+        image_retry_attempts (Optional[int]): The number of retry attempts made for the image upload.
     """
 
     def __init__(
