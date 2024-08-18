@@ -13,7 +13,7 @@ import requests
 
 from roboflow.adapters import rfapi
 from roboflow.config import API_URL, DEMO_KEYS
-from roboflow.core.exceptions import AnnotationUploadError, UploadImageError
+from roboflow.core.exceptions import UploadAnnotationError, UploadImageError
 from roboflow.core.version import Version
 from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
@@ -539,7 +539,7 @@ class Project:
                     overwrite=annotation_overwrite,
                 )
             except rfapi.UploadError as e:
-                raise AnnotationUploadError(
+                raise UploadAnnotationError(
                     f"Error uploading annotation: {self._parse_upload_error(e)}",
                     image_id=image_id,
                     image_upload_time=upload_time,

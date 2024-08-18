@@ -2,7 +2,7 @@ import responses
 
 from roboflow import API_URL
 from roboflow.config import DEFAULT_BATCH_NAME
-from roboflow.core.exceptions import UploadImageError, AnnotationUploadError
+from roboflow.core.exceptions import UploadImageError, UploadAnnotationError
 from tests import RoboflowTest, PROJECT_NAME, ROBOFLOW_API_KEY
 
 
@@ -105,7 +105,7 @@ class TestProject(RoboflowTest):
             status=400,
         )
 
-        with self.assertRaises(AnnotationUploadError) as error:
+        with self.assertRaises(UploadAnnotationError) as error:
             self.project.upload(
                 "tests/images/rabbit.JPG",
                 annotation_path=f"tests/annotations/{image_name}",

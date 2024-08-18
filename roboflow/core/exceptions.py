@@ -17,7 +17,7 @@ class UploadImageError(Exception):
         super().__init__(self.message)
 
 
-class AnnotationUploadError(Exception):
+class UploadAnnotationError(Exception):
     """
     Exception raised for errors that occur during the annotation upload process.
 
