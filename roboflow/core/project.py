@@ -13,6 +13,7 @@ import requests
 
 from roboflow.adapters import rfapi
 from roboflow.config import API_URL, DEMO_KEYS
+from roboflow.core.exceptions import UploadImageError, AnnotationUploadError
 from roboflow.core.version import Version
 from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
@@ -512,7 +513,10 @@ class Project:
                 image_id = uploaded_image["id"]  # type: ignore[index]
                 upload_retry_attempts = retry.retries
             except rfapi.UploadError as e:
-                raise RuntimeError(f"Error uploading image: {self._parse_upload_error(e)}")
+                raise UploadImageError(
+                    f"Error uploading image: {self._parse_upload_error(e)}",
+                    retry_attempts=upload_retry_attempts,
+                )
             except BaseException as e:
                 uploaded_image = {"error": e}
             finally:
@@ -535,7 +539,12 @@ class Project:
                     overwrite=annotation_overwrite,
                 )
             except rfapi.UploadError as e:
-                raise RuntimeError(f"Error uploading annotation: {self._parse_upload_error(e)}")
+                raise AnnotationUploadError(
+                    f"Error uploading annotation: {self._parse_upload_error(e)}",
+                    image_id=image_id,
+                    image_upload_time=upload_time,
+                    image_retry_attempts=upload_retry_attempts,
+                )
             except BaseException as e:
                 uploaded_annotation = {"error": e}
             finally:

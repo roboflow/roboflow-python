@@ -11,6 +11,7 @@ from PIL import Image
 from roboflow.adapters import rfapi
 from roboflow.adapters.rfapi import RoboflowError
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
+from roboflow.core.exceptions import UploadImageError, AnnotationUploadError
 from roboflow.core.project import Project
 from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
@@ -313,7 +314,6 @@ class Workspace:
             img_success = uploadres.get("image", {}).get("success")
             img_duplicate = uploadres.get("image", {}).get("duplicate")
             annotation = uploadres.get("annotation")
-            image = uploadres.get("image")
             upload_time_str = f"[{uploadres['upload_time']:.1f}s]" if uploadres.get("upload_time") else ""
             annotation_time_str = f"[{uploadres['annotation_time']:.1f}s]" if uploadres.get("annotation_time") else ""
             retry_attempts = (
@@ -321,24 +321,46 @@ class Workspace:
                 if uploadres.get("upload_retry_attempts", 0) > 0
                 else ""
             )
+            # TODO: Will this duplicate case still occurs?
             if img_duplicate:
                 msg = f"[DUPLICATE]{retry_attempts} {image_path} ({image_id}) {upload_time_str}"
             elif img_success:
                 msg = f"[UPLOADED]{retry_attempts} {image_path} ({image_id}) {upload_time_str}"
             else:
-                msg = f"[ERR]{retry_attempts} {image_path} ({image}) {upload_time_str}"
+                msg = f"[LOG ERROR]: Unrecognized image upload status ({image_id=})"
             if annotation:
                 if annotation.get("success"):
                     msg += f" / annotations = OK {annotation_time_str}"
                 elif annotation.get("warn"):
                     msg += f" / annotations = WARN: {annotation['warn']} {annotation_time_str}"
-                elif annotation.get("error"):
-                    msg += f" / annotations = ERR: {annotation['error']} {annotation_time_str}"
+                else:
+                    msg += f" / annotations = ERR: Unrecognized annotation upload status"
+
             print(msg)
 
         def _log_img_upload_err(image_path, e):
-            msg = f"[ERR] {image_path} ({e})"
-            print(msg)
+            if isinstance(e, UploadImageError):
+                retry_attempts = (
+                    f" (with {e.retry_attempts} retries)"
+                    if e.retry_attempts > 0
+                    else ""
+                )
+                print(f"[ERR]{retry_attempts} {image_path} ({e.message})")
+                return
+
+            if isinstance(e, AnnotationUploadError):
+                upload_time_str = f"[{e.image_upload_time:.1f}s]" if e.image_upload_time else ""
+                retry_attempts = (
+                    f" (with {e.image_retry_attempts} retries)"
+                    if e.image_retry_attempts > 0
+                    else ""
+                )
+                image_msg = f"[UPLOADED]{retry_attempts} {image_path} ({e.image_id}) {upload_time_str}"
+                annotation_msg = f"annotations = ERR: {e.message}"
+                print(f"{image_msg} / {annotation_msg}")
+                return
+
+            print(f"[ERR] {image_path} ({e})")
 
         def _upload_image(imagedesc):
             image_path = f"{location}{imagedesc['file']}"
@@ -364,6 +386,8 @@ class Workspace:
                     num_retry_uploads=num_retries,
                 )
                 _log_img_upload(image_path, uploadres)
+            except (UploadImageError, AnnotationUploadError) as e:
+                _log_img_upload_err(image_path, e)
             except Exception as e:
                 _log_img_upload_err(image_path, e)
 
