@@ -3,7 +3,7 @@ import responses
 from roboflow import API_URL
 from roboflow.config import DEFAULT_BATCH_NAME
 from roboflow.core.exceptions import UploadImageError
-from tests import RoboflowTest, PROJECT_NAME, ROBOFLOW_API_KEY
+from tests import PROJECT_NAME, ROBOFLOW_API_KEY, RoboflowTest
 
 
 class TestProject(RoboflowTest):
@@ -51,7 +51,7 @@ class TestProject(RoboflowTest):
                 "message": "Image was already annotated.",
                 "type": "InvalidImageException",
                 "hint": "This image was already annotated; to overwrite the annotation, pass overwrite=true...",
-              },
+            },
             status=200,
         )
 
@@ -61,4 +61,4 @@ class TestProject(RoboflowTest):
                 annotation_path="tests/annotations/valid_annotation.json",
             )
 
-        self.assertEquals(str(error.exception), "Error uploading image: Image was already annotated.")
+        self.assertEqual(str(error.exception), "Error uploading image: Image was already annotated.")
