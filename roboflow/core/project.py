@@ -578,7 +578,10 @@ class Project:
         return annotation_name, annotation_string
 
     def _parse_upload_error(self, error: rfapi.UploadError) -> str:
-        dict_part = str(error).split(": ", 2)[2]
+        error_str = str(error)
+        start_idx = error_str.index("{")
+        end_idx = error_str.rindex("}") + 1
+        dict_part = error_str[start_idx:end_idx]
         dict_part = dict_part.replace("True", "true")
         dict_part = dict_part.replace("False", "false")
         dict_part = dict_part.replace("None", "null")
