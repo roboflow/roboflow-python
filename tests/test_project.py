@@ -2,7 +2,7 @@ import responses
 
 from roboflow import API_URL
 from roboflow.config import DEFAULT_BATCH_NAME
-from tests import RoboflowTest, PROJECT_NAME, ROBOFLOW_API_KEY
+from tests import PROJECT_NAME, ROBOFLOW_API_KEY, RoboflowTest
 
 
 class TestProject(RoboflowTest):
