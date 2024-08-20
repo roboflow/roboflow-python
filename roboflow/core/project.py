@@ -482,23 +482,28 @@ class Project:
         project_url = self.id.rsplit("/")[1]
 
         t0 = time.time()
+        upload_retry_attempts = 0
         retry = Retry(num_retry_uploads, ImageUploadError)
 
-        image = retry(
-            rfapi.upload_image,
-            self.__api_key,
-            project_url,
-            image_path,
-            hosted_image=hosted_image,
-            split=split,
-            batch_name=batch_name,
-            tag_names=tag_names,
-            sequence_number=sequence_number,
-            sequence_size=sequence_size,
-            **kwargs,
-        )
+        try:
+            image = retry(
+                rfapi.upload_image,
+                self.__api_key,
+                project_url,
+                image_path,
+                hosted_image=hosted_image,
+                split=split,
+                batch_name=batch_name,
+                tag_names=tag_names,
+                sequence_number=sequence_number,
+                sequence_size=sequence_size,
+                **kwargs,
+            )
+            upload_retry_attempts = retry.retries
+        except ImageUploadError as e:
+            e.retries = upload_retry_attempts
+            raise e
 
-        upload_retry_attempts = retry.retries
         upload_time = time.time() - t0
 
         return image, upload_time, upload_retry_attempts
@@ -508,7 +513,7 @@ class Project:
         annotation_path=None,
         annotation_labelmap=None,
         image_id=None,
-        batch_name=None,
+        job_name=None,
         is_prediction: bool = False,
         annotation_overwrite=False,
     ):
@@ -522,7 +527,7 @@ class Project:
             annotation_name,  # type: ignore[type-var]
             annotation_str,  # type: ignore[type-var]
             image_id,
-            job_name=batch_name,  # type: ignore[type-var]
+            job_name=job_name,  # type: ignore[type-var]
             is_prediction=is_prediction,
             annotation_labelmap=annotation_labelmap,
             overwrite=annotation_overwrite,
