@@ -106,7 +106,8 @@ def upload_image(
 
     if response.status_code != 200:
         if responsejson:
-            raise ImageUploadError(responsejson, status_code=response.status_code)
+            message = responsejson.get("message") or responsejson
+            raise ImageUploadError(message, status_code=response.status_code)
         else:
             raise ImageUploadError(response, status_code=response.status_code)
 
@@ -114,7 +115,8 @@ def upload_image(
         raise ImageUploadError(response, status_code=response.status_code)
 
     if not (responsejson.get("success") or responsejson.get("duplicate")):
-        raise ImageUploadError(responsejson)
+        message = responsejson.get("message") or responsejson
+        raise ImageUploadError(message)
 
     return responsejson
 
@@ -157,17 +159,18 @@ def save_annotation(
         pass
 
     if not responsejson:
-        raise AnnotationSaveError(response, status_code=response.status_code)
-
+        raise _save_annotation_error(response)
+    if response.status_code not in (200, 409):
+        raise _save_annotation_error(response)
     if response.status_code == 409:
         if "already annotated" in responsejson.get("error", {}).get("message"):
             return {"warn": "already annotated"}
-
+        else:
+            raise _save_annotation_error(response)
     if responsejson.get("error"):
-        raise AnnotationSaveError(responsejson["error"], status_code=response.status_code)
-
+        raise _save_annotation_error(response)
     if not responsejson.get("success"):
-        raise AnnotationSaveError(responsejson, status_code=response.status_code)
+        raise _save_annotation_error(response)
 
     return responsejson
 
@@ -212,3 +215,22 @@ def _local_upload_url(api_key, project_url, batch_name, tag_names, sequence_numb
         query_params.update(sequence_number=sequence_number, sequence_size=sequence_size)
 
     return _upload_url(api_key, project_url, **query_params)
+
+
+def _save_annotation_error(response):
+    responsejson = None
+    try:
+        responsejson = response.json()
+    except Exception:
+        pass
+
+    if not responsejson:
+        return AnnotationSaveError(response, status_code=response.status_code)
+
+    if responsejson.get("error"):
+        return AnnotationSaveError(responsejson['error'], status_code=response.status_code)
+
+    if responsejson.get("message"):
+        return AnnotationSaveError(responsejson['message'], status_code=response.status_code)
+
+    return AnnotationSaveError(responsejson, status_code=response.status_code)
