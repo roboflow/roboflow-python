@@ -467,6 +467,71 @@ class Project:
                     print("[ " + path + " ] was skipped.")
                     continue
 
+    def upload_image(
+        self,
+        image_path=None,
+        hosted_image=False,
+        split="train",
+        num_retry_uploads=0,
+        batch_name=None,
+        tag_names=[],
+        sequence_number=None,
+        sequence_size=None,
+        **kwargs,
+    ):
+        project_url = self.id.rsplit("/")[1]
+
+        t0 = time.time()
+        retry = Retry(num_retry_uploads, ImageUploadError)
+
+        image = retry(
+            rfapi.upload_image,
+            self.__api_key,
+            project_url,
+            image_path,
+            hosted_image=hosted_image,
+            split=split,
+            batch_name=batch_name,
+            tag_names=tag_names,
+            sequence_number=sequence_number,
+            sequence_size=sequence_size,
+            **kwargs,
+        )
+
+        upload_retry_attempts = retry.retries
+        upload_time = time.time() - t0
+
+        return image, upload_time, upload_retry_attempts
+
+    def save_annotation(
+        self,
+        annotation_path=None,
+        annotation_labelmap=None,
+        image_id=None,
+        batch_name=None,
+        is_prediction: bool = False,
+        annotation_overwrite=False,
+    ):
+        project_url = self.id.rsplit("/")[1]
+        annotation_name, annotation_str = self._annotation_params(annotation_path)
+        t0 = time.time()
+
+        annotation = rfapi.save_annotation(
+            self.__api_key,
+            project_url,
+            annotation_name,  # type: ignore[type-var]
+            annotation_str,  # type: ignore[type-var]
+            image_id,
+            job_name=batch_name,  # type: ignore[type-var]
+            is_prediction=is_prediction,
+            annotation_labelmap=annotation_labelmap,
+            overwrite=annotation_overwrite,
+        )
+
+        upload_time = time.time() - t0
+
+        return annotation, upload_time
+
     def single_upload(
         self,
         image_path=None,
@@ -484,56 +549,42 @@ class Project:
         sequence_size=None,
         **kwargs,
     ):
-        project_url = self.id.rsplit("/")[1]
+
         if image_path and image_id:
             raise Exception("You can't pass both image_id and image_path")
         if not (image_path or image_id):
             raise Exception("You need to pass image_path or image_id")
         if isinstance(annotation_labelmap, str):
             annotation_labelmap = load_labelmap(annotation_labelmap)
-        uploaded_image, uploaded_annotation = None, None
-        upload_time = None
-        upload_retry_attempts = 0
-        if image_path:
-            t0 = time.time()
-            try:
-                retry = Retry(num_retry_uploads, ImageUploadError)
-                uploaded_image = retry(
-                    rfapi.upload_image,
-                    self.__api_key,
-                    project_url,
-                    image_path,
-                    hosted_image=hosted_image,
-                    split=split,
-                    batch_name=batch_name,
-                    tag_names=tag_names,
-                    sequence_number=sequence_number,
-                    sequence_size=sequence_size,
-                    **kwargs,
-                )
-                image_id = uploaded_image["id"]  # type: ignore[index]
-                upload_retry_attempts = retry.retries
-            finally:
-                upload_time = time.time() - t0
 
-        annotation_time = None
+        uploaded_image, uploaded_annotation = None, None
+        upload_time, annotation_time = None, None
+        upload_retry_attempts = 0
+
+        if image_path:
+            uploaded_image, upload_time, upload_retry_attempts = self.upload_image(
+                image_path,
+                hosted_image,
+                split,
+                num_retry_uploads,
+                batch_name,
+                tag_names,
+                sequence_number,
+                sequence_size,
+                **kwargs,
+            )
+            image_id = uploaded_image["id"]  # type: ignore[index]
+
         if annotation_path and image_id:
-            annotation_name, annotation_str = self._annotation_params(annotation_path)
-            try:
-                t0 = time.time()
-                uploaded_annotation = rfapi.save_annotation(
-                    self.__api_key,
-                    project_url,
-                    annotation_name,  # type: ignore[type-var]
-                    annotation_str,  # type: ignore[type-var]
-                    image_id,
-                    job_name=batch_name,  # type: ignore[type-var]
-                    is_prediction=is_prediction,
-                    annotation_labelmap=annotation_labelmap,
-                    overwrite=annotation_overwrite,
-                )
-            finally:
-                annotation_time = time.time() - t0
+            uploaded_annotation, annotation_time = self.save_annotation(
+                annotation_path,
+                annotation_labelmap,
+                image_id,
+                batch_name,
+                is_prediction,
+                annotation_overwrite,
+            )
+
         return {
             "image": uploaded_image,
             "annotation": uploaded_annotation,
