@@ -14,10 +14,6 @@ class RoboflowError(Exception):
     pass
 
 
-class UploadError(RoboflowError):
-    pass
-
-
 class ImageUploadError(RoboflowError):
     def __init__(self, message, status_code=None):
         self.message = message
