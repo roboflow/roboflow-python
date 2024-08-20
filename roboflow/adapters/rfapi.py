@@ -18,6 +18,14 @@ class UploadError(RoboflowError):
     pass
 
 
+class ImageUploadError(RoboflowError):
+    def __init__(self, message, status_code=None):
+        self.message = message
+        self.status_code = status_code
+        self.retries = 0
+        super().__init__(self.message)
+
+
 def get_workspace(api_key, workspace_url):
     url = f"{API_URL}/{workspace_url}?api_key={api_key}"
     response = requests.get(url)
@@ -78,24 +86,29 @@ def upload_image(
 
     else:
         # Hosted image upload url
-
         upload_url = _hosted_upload_url(api_key, project_url, image_path, split, coalesced_batch_name, tag_names)
+
         # Get response
         response = requests.post(upload_url, timeout=(300, 300))
+
     responsejson = None
     try:
         responsejson = response.json()
     except Exception:
         pass
+
     if response.status_code != 200:
         if responsejson:
-            raise UploadError(f"Bad response: {response.status_code}: {responsejson}")
+            raise ImageUploadError(responsejson, status_code=response.status_code)
         else:
-            raise UploadError(f"Bad response: {response}")
+            raise ImageUploadError(response)
+
     if not responsejson:  # fail fast
-        raise UploadError(f"upload image {image_path} 200 OK, unexpected response: {response}")
+        raise ImageUploadError(response, status_code=response.status_code)
+
     if not (responsejson.get("success") or responsejson.get("duplicate")):
-        raise UploadError(f"Server rejected image: {responsejson}")
+        raise ImageUploadError(responsejson)
+
     return responsejson
 
 

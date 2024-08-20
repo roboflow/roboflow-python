@@ -12,6 +12,7 @@ import filetype
 import requests
 
 from roboflow.adapters import rfapi
+from roboflow.adapters.rfapi import ImageUploadError
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.exceptions import UploadAnnotationError, UploadImageError
 from roboflow.core.version import Version
@@ -496,7 +497,7 @@ class Project:
         if image_path:
             t0 = time.time()
             try:
-                retry = Retry(num_retry_uploads, Exception)
+                retry = Retry(num_retry_uploads, ImageUploadError)
                 uploaded_image = retry(
                     rfapi.upload_image,
                     self.__api_key,
@@ -512,13 +513,9 @@ class Project:
                 )
                 image_id = uploaded_image["id"]  # type: ignore[index]
                 upload_retry_attempts = retry.retries
-            except rfapi.UploadError as e:
-                raise UploadImageError(
-                    f"Error uploading image: {self._parse_upload_error(e)}",
-                    retry_attempts=upload_retry_attempts,
-                )
-            except BaseException as e:
-                uploaded_image = {"error": e}
+            except rfapi.ImageUploadError as e:
+                e.retries = upload_retry_attempts
+                raise e
             finally:
                 upload_time = time.time() - t0
 
