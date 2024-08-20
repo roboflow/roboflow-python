@@ -1,10 +1,14 @@
 from _datetime import datetime
 
+import responses
+
+from roboflow import API_URL
+from roboflow.config import DEFAULT_BATCH_NAME
 from roboflow.core.project import Project
 from roboflow.core.version import Version
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.object_detection import ObjectDetectionModel
-from tests import PROJECT_NAME, RoboflowTest, ordered
+from tests import PROJECT_NAME, RoboflowTest, ordered, ROBOFLOW_API_KEY
 
 
 class TestQueries(RoboflowTest):
@@ -40,6 +44,14 @@ class TestQueries(RoboflowTest):
 
     @ordered
     def test_project_methods(self):
+        # Upload image
+        responses.add(
+            responses.POST,
+            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}" f"&batch={DEFAULT_BATCH_NAME}",
+            json={"duplicate": True, "id": "hbALkCFdNr9rssgOUXug"},
+            status=200,
+        )
+
         version_information = self.project.get_version_information()
         print_versions = self.project.list_versions()
         list_versions = self.project.versions()
