@@ -9,12 +9,12 @@ import requests
 from PIL import Image
 
 from roboflow.adapters import rfapi
-from roboflow.adapters.rfapi import RoboflowError
+from roboflow.adapters.rfapi import RoboflowError, ImageUploadError, AnnotationSaveError
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
-from roboflow.core.exceptions import UploadAnnotationError, UploadImageError
 from roboflow.core.project import Project
 from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
+from roboflow.util.image_utils import load_labelmap
 from roboflow.util.two_stage_utils import ocr_infer
 
 
@@ -309,19 +309,22 @@ class Workspace:
 
         location = parsed_dataset["location"]
 
-        def _log_img_upload(image_path, uploadres):
-            image_id = uploadres.get("image", {}).get("id")
-            img_success = uploadres.get("image", {}).get("success")
-            img_duplicate = uploadres.get("image", {}).get("duplicate")
-            annotation = uploadres.get("annotation")
-            upload_time_str = f"[{uploadres['upload_time']:.1f}s]" if uploadres.get("upload_time") else ""
-            annotation_time_str = f"[{uploadres['annotation_time']:.1f}s]" if uploadres.get("annotation_time") else ""
-            retry_attempts = (
-                f" (with {uploadres['upload_retry_attempts']} retries)"
-                if uploadres.get("upload_retry_attempts", 0) > 0
-                else ""
-            )
-            # TODO: Will this duplicate case still occurs?
+        def _log_img_upload(
+            image_path,
+            image,
+            annotation,
+            image_upload_time,
+            image_upload_retry_attempts,
+            annotation_time
+        ):
+            image_id = image.get("id")
+            img_success = image.get("success")
+            img_duplicate = image.get("duplicate")
+
+            upload_time_str = f"[{image_upload_time:.1f}s]"
+            annotation_time_str = f"[{annotation_time:.1f}s]"
+            retry_attempts = f" (with {image_upload_retry_attempts} retries)" if image_upload_retry_attempts > 0 else ""
+
             if img_duplicate:
                 msg = f"[DUPLICATE]{retry_attempts} {image_path} ({image_id}) {upload_time_str}"
             elif img_success:
@@ -338,27 +341,24 @@ class Workspace:
 
             print(msg)
 
-        def _log_img_upload_err(image_path, e):
-            if isinstance(e, UploadImageError):
-                retry_attempts = f" (with {e.retry_attempts} retries)" if e.retry_attempts > 0 else ""
-                print(f"[ERR]{retry_attempts} {image_path} ({e.message})")
-                return
-
-            if isinstance(e, UploadAnnotationError):
-                upload_time_str = f"[{e.image_upload_time:.1f}s]" if e.image_upload_time else ""
-                retry_attempts = f" (with {e.image_retry_attempts} retries)" if e.image_retry_attempts > 0 else ""
-                image_msg = f"[UPLOADED]{retry_attempts} {image_path} ({e.image_id}) {upload_time_str}"
-                annotation_msg = f"annotations = ERR: {e.message}"
-                print(f"{image_msg} / {annotation_msg}")
-                return
-
-            print(f"[ERR] {image_path} ({e})")
-
         def _upload_image(imagedesc):
             image_path = f"{location}{imagedesc['file']}"
             split = imagedesc["split"]
-            annotation_path = None
+
+            image, upload_time, upload_retry_attempts = project.upload_image(
+                image_path=image_path,
+                split=split,
+                batch_name=batch_name,
+                sequence_number=imagedesc.get("index"),
+                sequence_size=len(images),
+            )
+
+            return image, upload_time, upload_retry_attempts
+
+        def _save_annotation(image_id, imagedesc):
             labelmap = None
+            annotation_path = None
+
             annotationdesc = imagedesc.get("annotationfile")
             if annotationdesc:
                 if annotationdesc.get("rawText"):
@@ -366,25 +366,48 @@ class Workspace:
                 else:
                     annotation_path = f"{location}{annotationdesc['file']}"
                 labelmap = annotationdesc.get("labelmap")
+
+                if isinstance(labelmap, str):
+                    labelmap = load_labelmap(labelmap)
+
+            if not annotation_path:
+                return
+
+            annotation, upload_time = project.save_annotation(
+                annotation_path=annotation_path,
+                annotation_labelmap=labelmap,
+                image_id=image_id,
+                job_name=batch_name,
+            )
+
+            return annotation, upload_time
+
+        def _upload(imagedesc):
+            image_path = f"{location}{imagedesc['file']}"
+
+            image_id = None
+            image_upload_time = None
+            image_retry_attempts = None
+
             try:
-                uploadres = project.single_upload(
-                    image_path=image_path,
-                    annotation_path=annotation_path,
-                    annotation_labelmap=labelmap,
-                    split=split,
-                    sequence_number=imagedesc.get("index"),
-                    sequence_size=len(images),
-                    batch_name=batch_name,
-                    num_retry_uploads=num_retries,
-                )
-                _log_img_upload(image_path, uploadres)
-            except (UploadImageError, UploadAnnotationError) as e:
-                _log_img_upload_err(image_path, e)
+                image, image_upload_time, image_retry_attempts = _upload_image(imagedesc)
+                image_id = image["id"]
+                annotation, annotation_time = _save_annotation(image_id, imagedesc)
+                _log_img_upload(image_path, image, annotation, image_upload_time, image_retry_attempts, annotation_time)
+            except ImageUploadError as e:
+                retry_attempts = f" (with {e.retries} retries)" if e.retries > 0 else ""
+                print(f"[ERR]{retry_attempts} {image_path} ({e.message})")
+            except AnnotationSaveError as e:
+                upload_time_str = f"[{image_upload_time:.1f}s]"
+                retry_attempts = f" (with {image_retry_attempts} retries)" if image_retry_attempts > 0 else ""
+                image_msg = f"[UPLOADED]{retry_attempts} {image_path} ({image_id}) {upload_time_str}"
+                annotation_msg = f"annotations = ERR: {e.message}"
+                print(f"{image_msg} / {annotation_msg}")
             except Exception as e:
-                _log_img_upload_err(image_path, e)
+                print(f"[ERR] {image_path} ({e})")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-            list(executor.map(_upload_image, images))
+            list(executor.map(_upload, images))
 
     def _get_or_create_project(self, project_id, license: str = "MIT", type: str = "object-detection"):
         try:
