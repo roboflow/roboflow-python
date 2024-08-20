@@ -22,7 +22,13 @@ class ImageUploadError(RoboflowError):
     def __init__(self, message, status_code=None):
         self.message = message
         self.status_code = status_code
-        self.retries = 0
+        super().__init__(self.message)
+
+
+class AnnotationSaveError(RoboflowError):
+    def __init__(self, message, status_code=None):
+        self.message = message
+        self.status_code = status_code
         super().__init__(self.message)
 
 
@@ -101,7 +107,7 @@ def upload_image(
         if responsejson:
             raise ImageUploadError(responsejson, status_code=response.status_code)
         else:
-            raise ImageUploadError(response)
+            raise ImageUploadError(response, status_code=response.status_code)
 
     if not responsejson:  # fail fast
         raise ImageUploadError(response, status_code=response.status_code)
@@ -141,24 +147,27 @@ def save_annotation(
         headers={"Content-Type": "application/json"},
         timeout=(60, 60),
     )
+
+    # Handle response
     responsejson = None
     try:
         responsejson = response.json()
     except Exception:
         pass
+
     if not responsejson:
-        raise _save_annotation_error(image_id, response)
-    if response.status_code not in (200, 409):
-        raise _save_annotation_error(image_id, response)
+        raise AnnotationSaveError(response, status_code=response.status_code)
+
     if response.status_code == 409:
         if "already annotated" in responsejson.get("error", {}).get("message"):
             return {"warn": "already annotated"}
-        else:
-            raise _save_annotation_error(image_id, response)
+
     if responsejson.get("error"):
-        raise _save_annotation_error(image_id, response)
+        raise AnnotationSaveError(responsejson['error'], status_code=response.status_code)
+
     if not responsejson.get("success"):
-        raise _save_annotation_error(image_id, response)
+        raise AnnotationSaveError(responsejson, status_code=response.status_code)
+
     return responsejson
 
 
@@ -202,19 +211,3 @@ def _local_upload_url(api_key, project_url, batch_name, tag_names, sequence_numb
         query_params.update(sequence_number=sequence_number, sequence_size=sequence_size)
 
     return _upload_url(api_key, project_url, **query_params)
-
-
-def _save_annotation_error(image_id, response):
-    errmsg = f"save annotation for {image_id} / "
-    responsejson = None
-    try:
-        responsejson = response.json()
-    except Exception:
-        pass
-    if not responsejson:
-        errmsg += f"bad response: {response.status_code}: {response}"
-    elif responsejson.get("error"):
-        errmsg += f"bad response: {response.status_code}: {responsejson['error']}"
-    else:
-        errmsg += f"bad response: {response.status_code}: {responsejson}"
-    return UploadError(errmsg)

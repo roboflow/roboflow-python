@@ -513,9 +513,6 @@ class Project:
                 )
                 image_id = uploaded_image["id"]  # type: ignore[index]
                 upload_retry_attempts = retry.retries
-            except rfapi.ImageUploadError as e:
-                e.retries = upload_retry_attempts
-                raise e
             finally:
                 upload_time = time.time() - t0
 
@@ -535,15 +532,6 @@ class Project:
                     annotation_labelmap=annotation_labelmap,
                     overwrite=annotation_overwrite,
                 )
-            except rfapi.UploadError as e:
-                raise UploadAnnotationError(
-                    f"Error uploading annotation: {self._parse_upload_error(e)}",
-                    image_id=image_id,
-                    image_upload_time=upload_time,
-                    image_retry_attempts=upload_retry_attempts,
-                )
-            except BaseException as e:
-                uploaded_annotation = {"error": e}
             finally:
                 annotation_time = time.time() - t0
         return {
@@ -573,23 +561,6 @@ class Project:
                 f"type project with invalid string. - {annotation_path}"
             )
         return annotation_name, annotation_string
-
-    def _parse_upload_error(self, error: rfapi.UploadError) -> str:
-        error_str = str(error)
-        start_idx = error_str.index("{")
-        end_idx = error_str.rindex("}") + 1
-        dict_part = error_str[start_idx:end_idx]
-        dict_part = dict_part.replace("True", "true")
-        dict_part = dict_part.replace("False", "false")
-        dict_part = dict_part.replace("None", "null")
-        if re.search(r"'\w+':", dict_part):
-            temp_str = dict_part.replace(r"\'", "<PLACEHOLDER>")
-            temp_str = temp_str.replace('"', r"\"")
-            temp_str = temp_str.replace("'", '"')
-            dict_part = temp_str.replace("<PLACEHOLDER>", "'")
-        parsed_dict: dict = json.loads(dict_part)
-        message = parsed_dict.get("message")
-        return message or str(parsed_dict)
 
     def search(
         self,
