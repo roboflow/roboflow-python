@@ -413,7 +413,7 @@ class Version:
                 mAP = np.array([float(epoch["mAP"]) for epoch in models["roboflow-train"]["epochs"]])
                 loss = np.array(
                     [
-                        sum(float(epoch[key]) for key in ['box_loss', 'class_loss', 'obj_loss'] if key in epoch)
+                        sum(float(epoch[key]) for key in ["box_loss", "class_loss", "obj_loss"] if key in epoch)
                         for epoch in models["roboflow-train"]["epochs"]
                     ]
                 )
