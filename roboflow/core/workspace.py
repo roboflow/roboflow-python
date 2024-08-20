@@ -9,7 +9,7 @@ import requests
 from PIL import Image
 
 from roboflow.adapters import rfapi
-from roboflow.adapters.rfapi import RoboflowError, ImageUploadError, AnnotationSaveError
+from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
 from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.util import folderparser
@@ -310,12 +310,7 @@ class Workspace:
         location = parsed_dataset["location"]
 
         def _log_img_upload(
-            image_path,
-            image,
-            annotation,
-            image_upload_time,
-            image_upload_retry_attempts,
-            annotation_time
+            image_path, image, annotation, image_upload_time, image_upload_retry_attempts, annotation_time
         ):
             image_id = image.get("id")
             img_success = image.get("success")

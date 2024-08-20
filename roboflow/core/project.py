@@ -2,7 +2,6 @@ import datetime
 import json
 import mimetypes
 import os
-import re
 import sys
 import time
 import warnings
@@ -14,7 +13,6 @@ import requests
 from roboflow.adapters import rfapi
 from roboflow.adapters.rfapi import ImageUploadError
 from roboflow.config import API_URL, DEMO_KEYS
-from roboflow.core.exceptions import UploadAnnotationError, UploadImageError
 from roboflow.core.version import Version
 from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
@@ -554,7 +552,6 @@ class Project:
         sequence_size=None,
         **kwargs,
     ):
-
         if image_path and image_id:
             raise Exception("You can't pass both image_id and image_path")
         if not (image_path or image_id):

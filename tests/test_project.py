@@ -2,8 +2,8 @@ import responses
 
 from roboflow import API_URL
 from roboflow.config import DEFAULT_BATCH_NAME
-from roboflow.core.exceptions import UploadImageError, UploadAnnotationError
-from tests import RoboflowTest, PROJECT_NAME, ROBOFLOW_API_KEY
+from roboflow.core.exceptions import UploadAnnotationError, UploadImageError
+from tests import PROJECT_NAME, ROBOFLOW_API_KEY, RoboflowTest
 
 
 class TestProject(RoboflowTest):
@@ -60,7 +60,7 @@ class TestProject(RoboflowTest):
                 annotation_path="tests/annotations/valid_annotation.json",
             )
 
-        self.assertEquals(str(error.exception), "Error uploading image: Invalid Image")
+        self.assertEqual(str(error.exception), "Error uploading image: Invalid Image")
 
     def test_upload_raises_upload_image_error_response_400(self):
         responses.add(
@@ -69,7 +69,7 @@ class TestProject(RoboflowTest):
             json={
                 "message": "Invalid Image",
                 "type": "InvalidImageException",
-              },
+            },
             status=400,
         )
 
@@ -79,7 +79,7 @@ class TestProject(RoboflowTest):
                 annotation_path="tests/annotations/valid_annotation.json",
             )
 
-        self.assertEquals(str(error.exception), "Error uploading image: Invalid Image")
+        self.assertEqual(str(error.exception), "Error uploading image: Invalid Image")
 
     def test_upload_raises_upload_annotation_error(self):
         image_id = "hbALkCFdNr9rssgOUXug"
@@ -111,4 +111,4 @@ class TestProject(RoboflowTest):
                 annotation_path=f"tests/annotations/{image_name}",
             )
 
-        self.assertEquals(str(error.exception), "Error uploading annotation: Image was already annotated.")
+        self.assertEqual(str(error.exception), "Error uploading annotation: Image was already annotated.")

@@ -164,7 +164,7 @@ def save_annotation(
             return {"warn": "already annotated"}
 
     if responsejson.get("error"):
-        raise AnnotationSaveError(responsejson['error'], status_code=response.status_code)
+        raise AnnotationSaveError(responsejson["error"], status_code=response.status_code)
 
     if not responsejson.get("success"):
         raise AnnotationSaveError(responsejson, status_code=response.status_code)
