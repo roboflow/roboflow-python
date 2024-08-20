@@ -35,7 +35,7 @@ class TestProject(RoboflowTest):
                 "error": {
                     "message": "Invalid image.",
                     "type": "InvalidImageException",
-                    "hint": "This image was already annotated; to overwrite the annotation, pass overwrite=true..."
+                    "hint": "This image was already annotated; to overwrite the annotation, pass overwrite=true...",
                 }
             },
             status=400,
@@ -69,7 +69,7 @@ class TestProject(RoboflowTest):
                 "error": {
                     "message": "Image was already annotated.",
                     "type": "InvalidImageException",
-                    "hint": "This image was already annotated; to overwrite the annotation, pass overwrite=true..."
+                    "hint": "This image was already annotated; to overwrite the annotation, pass overwrite=true...",
                 }
             },
             status=400,
