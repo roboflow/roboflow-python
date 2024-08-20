@@ -317,7 +317,7 @@ class Workspace:
             img_duplicate = image.get("duplicate")
 
             upload_time_str = f"[{image_upload_time:.1f}s]"
-            annotation_time_str = f"[{annotation_time:.1f}s]"
+            annotation_time_str = f"[{annotation_time:.1f}s]" if annotation_time else ""
             retry_attempts = f" (with {image_upload_retry_attempts} retries)" if image_upload_retry_attempts > 0 else ""
 
             if img_duplicate:
@@ -366,7 +366,7 @@ class Workspace:
                     labelmap = load_labelmap(labelmap)
 
             if not annotation_path:
-                return
+                return None, None
 
             annotation, upload_time = project.save_annotation(
                 annotation_path=annotation_path,

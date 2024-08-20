@@ -102,8 +102,15 @@ def upload_image(
 
     if response.status_code != 200:
         if responsejson:
-            message = responsejson.get("message") or responsejson
-            raise ImageUploadError(message, status_code=response.status_code)
+            err_msg = responsejson
+
+            if err_msg.get("error"):
+                err_msg = err_msg["error"]
+
+            if err_msg.get("message"):
+                err_msg = err_msg["message"]
+
+            raise ImageUploadError(err_msg, status_code=response.status_code)
         else:
             raise ImageUploadError(response, status_code=response.status_code)
 
@@ -224,9 +231,9 @@ def _save_annotation_error(response):
         return AnnotationSaveError(response, status_code=response.status_code)
 
     if responsejson.get("error"):
-        return AnnotationSaveError(responsejson["error"], status_code=response.status_code)
-
-    if responsejson.get("message"):
-        return AnnotationSaveError(responsejson["message"], status_code=response.status_code)
+        err_msg = responsejson["error"]
+        if err_msg.get("message"):
+            err_msg = err_msg["message"]
+        return AnnotationSaveError(err_msg, status_code=response.status_code)
 
     return AnnotationSaveError(responsejson, status_code=response.status_code)

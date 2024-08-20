@@ -27,32 +27,16 @@ class TestProject(RoboflowTest):
         for image in images_to_test:
             self.assertFalse(self.project.check_valid_image(f"tests/images/{image}"))
 
-    def test_upload_raises_upload_image_error_response_200(self):
+    def test_upload_raises_upload_image_error(self):
         responses.add(
             responses.POST,
             f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}" f"&batch={DEFAULT_BATCH_NAME}",
             json={
-                "message": "Invalid Image",
-                "type": "InvalidImageException",
-            },
-            status=200,
-        )
-
-        with self.assertRaises(ImageUploadError) as error:
-            self.project.upload(
-                "tests/images/rabbit.JPG",
-                annotation_path="tests/annotations/valid_annotation.json",
-            )
-
-        self.assertEqual(str(error.exception), "Invalid Image")
-
-    def test_upload_raises_upload_image_error_response_400(self):
-        responses.add(
-            responses.POST,
-            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}" f"&batch={DEFAULT_BATCH_NAME}",
-            json={
-                "message": "Invalid Image",
-                "type": "InvalidImageException",
+                "error": {
+                    "message": "Invalid image.",
+                    "type": "InvalidImageException",
+                    "hint": "This image was already annotated; to overwrite the annotation, pass overwrite=true..."
+                }
             },
             status=400,
         )
@@ -63,7 +47,7 @@ class TestProject(RoboflowTest):
                 annotation_path="tests/annotations/valid_annotation.json",
             )
 
-        self.assertEqual(str(error.exception), "Invalid Image")
+        self.assertEqual(str(error.exception), "Invalid image.")
 
     def test_upload_raises_upload_annotation_error(self):
         image_id = "hbALkCFdNr9rssgOUXug"
@@ -82,9 +66,11 @@ class TestProject(RoboflowTest):
             responses.POST,
             f"{API_URL}/dataset/{PROJECT_NAME}/annotate/{image_id}?api_key={ROBOFLOW_API_KEY}" f"&name={image_name}",
             json={
-                "message": "Image was already annotated.",
-                "type": "InvalidImageException",
-                "hint": "This image was already annotated; to overwrite the annotation, pass overwrite=true...",
+                "error": {
+                    "message": "Image was already annotated.",
+                    "type": "InvalidImageException",
+                    "hint": "This image was already annotated; to overwrite the annotation, pass overwrite=true..."
+                }
             },
             status=400,
         )
