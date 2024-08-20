@@ -1,7 +1,7 @@
 import responses
 
 from roboflow import API_URL
-from roboflow.adapters.rfapi import ImageUploadError, AnnotationSaveError
+from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError
 from roboflow.config import DEFAULT_BATCH_NAME
 from tests import PROJECT_NAME, ROBOFLOW_API_KEY, RoboflowTest
 

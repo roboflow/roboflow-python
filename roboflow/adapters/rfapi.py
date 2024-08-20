@@ -228,9 +228,9 @@ def _save_annotation_error(response):
         return AnnotationSaveError(response, status_code=response.status_code)
 
     if responsejson.get("error"):
-        return AnnotationSaveError(responsejson['error'], status_code=response.status_code)
+        return AnnotationSaveError(responsejson["error"], status_code=response.status_code)
 
     if responsejson.get("message"):
-        return AnnotationSaveError(responsejson['message'], status_code=response.status_code)
+        return AnnotationSaveError(responsejson["message"], status_code=response.status_code)
 
     return AnnotationSaveError(responsejson, status_code=response.status_code)
