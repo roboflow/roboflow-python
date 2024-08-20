@@ -1,0 +1,64 @@
+{
+    "info": {
+        "year": "2020",
+        "version": "1",
+        "description": "None",
+        "contributor": "Linas",
+        "url": "https://app.roboflow.ai/datasets/hard-hat-sample/1",
+        "date_created": "2000-01-01T00:00:00+00:00"
+    },
+    "licenses": [
+        {
+            "id": 1,
+            "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "name": "Public Domain"
+        }
+    ],
+    "categories": [
+        {
+            "id": 0,
+            "name": "cat",
+            "supercategory": "animals"
+        }
+    ],
+    "images": [
+        {
+            "id": 0,
+            "license": 1,
+            "file_name": "bla.JPG",
+            "height": 1024,
+            "width": 1792,
+            "date_captured": "2020-07-20T19:39:26+00:00"
+        }
+    ],
+    "annotations": [
+        {
+            "id": 0,
+            "image_id": 0,
+            "category_id": 0,
+            "bbox": [
+                45,
+                2,
+                85,
+                85
+            ],
+            "area": 7225,
+            "segmentation": [],
+            "iscrowd": 0
+        },
+        {
+            "id": 1,
+            "image_id": 0,
+            "category_id": 0,
+            "bbox": [
+                324,
+                29,
+                72,
+                81
+            ],
+            "area": 5832,
+            "segmentation": [],
+            "iscrowd": 0
+        }
+    ]
+}

@@ -14,8 +14,19 @@ class RoboflowError(Exception):
     pass
 
 
-class UploadError(RoboflowError):
-    pass
+class ImageUploadError(RoboflowError):
+    def __init__(self, message, status_code=None):
+        self.message = message
+        self.status_code = status_code
+        self.retries = 0
+        super().__init__(self.message)
+
+
+class AnnotationSaveError(RoboflowError):
+    def __init__(self, message, status_code=None):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(self.message)
 
 
 def get_workspace(api_key, workspace_url):
@@ -78,24 +89,38 @@ def upload_image(
 
     else:
         # Hosted image upload url
-
         upload_url = _hosted_upload_url(api_key, project_url, image_path, split, coalesced_batch_name, tag_names)
+
         # Get response
         response = requests.post(upload_url, timeout=(300, 300))
+
     responsejson = None
     try:
         responsejson = response.json()
     except Exception:
         pass
+
     if response.status_code != 200:
         if responsejson:
-            raise UploadError(f"Bad response: {response.status_code}: {responsejson}")
+            err_msg = responsejson
+
+            if err_msg.get("error"):
+                err_msg = err_msg["error"]
+
+            if err_msg.get("message"):
+                err_msg = err_msg["message"]
+
+            raise ImageUploadError(err_msg, status_code=response.status_code)
         else:
-            raise UploadError(f"Bad response: {response}")
+            raise ImageUploadError(str(response), status_code=response.status_code)
+
     if not responsejson:  # fail fast
-        raise UploadError(f"upload image {image_path} 200 OK, unexpected response: {response}")
+        raise ImageUploadError(str(response), status_code=response.status_code)
+
     if not (responsejson.get("success") or responsejson.get("duplicate")):
-        raise UploadError(f"Server rejected image: {responsejson}")
+        message = responsejson.get("message") or str(responsejson)
+        raise ImageUploadError(message)
+
     return responsejson
 
 
@@ -128,24 +153,28 @@ def save_annotation(
         headers={"Content-Type": "application/json"},
         timeout=(60, 60),
     )
+
+    # Handle response
     responsejson = None
     try:
         responsejson = response.json()
     except Exception:
         pass
+
     if not responsejson:
-        raise _save_annotation_error(image_id, response)
+        raise _save_annotation_error(response)
     if response.status_code not in (200, 409):
-        raise _save_annotation_error(image_id, response)
+        raise _save_annotation_error(response)
     if response.status_code == 409:
         if "already annotated" in responsejson.get("error", {}).get("message"):
             return {"warn": "already annotated"}
         else:
-            raise _save_annotation_error(image_id, response)
+            raise _save_annotation_error(response)
     if responsejson.get("error"):
-        raise _save_annotation_error(image_id, response)
+        raise _save_annotation_error(response)
     if not responsejson.get("success"):
-        raise _save_annotation_error(image_id, response)
+        raise _save_annotation_error(response)
+
     return responsejson
 
 
@@ -191,17 +220,20 @@ def _local_upload_url(api_key, project_url, batch_name, tag_names, sequence_numb
     return _upload_url(api_key, project_url, **query_params)
 
 
-def _save_annotation_error(image_id, response):
-    errmsg = f"save annotation for {image_id} / "
+def _save_annotation_error(response):
     responsejson = None
     try:
         responsejson = response.json()
     except Exception:
         pass
+
     if not responsejson:
-        errmsg += f"bad response: {response.status_code}: {response}"
-    elif responsejson.get("error"):
-        errmsg += f"bad response: {response.status_code}: {responsejson['error']}"
-    else:
-        errmsg += f"bad response: {response.status_code}: {responsejson}"
-    return UploadError(errmsg)
+        return AnnotationSaveError(response, status_code=response.status_code)
+
+    if responsejson.get("error"):
+        err_msg = responsejson["error"]
+        if err_msg.get("message"):
+            err_msg = err_msg["message"]
+        return AnnotationSaveError(err_msg, status_code=response.status_code)
+
+    return AnnotationSaveError(str(responsejson), status_code=response.status_code)

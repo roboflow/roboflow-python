@@ -210,14 +210,6 @@ class RoboflowTest(unittest.TestCase):
             status=200,
         )
 
-        # Upload image
-        responses.add(
-            responses.POST,
-            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}" f"&batch={DEFAULT_BATCH_NAME}",
-            json={"duplicate": True, "id": "hbALkCFdNr9rssgOUXug"},
-            status=200,
-        )
-
         self.connect_to_roboflow()
 
     def tearDown(self):
