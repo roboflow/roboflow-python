@@ -124,7 +124,7 @@ def get_deployment(args):
             break
 
         print(
-            f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} Waiting for deployment {args.deployment_name} to be ready...'
+            f'{datetime.now().strftime("%H:%M:%S")} Waiting for deployment {args.deployment_name} to be ready...\n'
         )
         time.sleep(30)
 
