@@ -1,4 +1,6 @@
 import json
+import time
+from datetime import datetime
 
 from roboflow.adapters import deploymentapi
 from roboflow.config import load_roboflow_api_key
@@ -19,78 +21,131 @@ def add_deployment_parser(subparsers):
     deployment_delete_parser = deployment_subparsers.add_parser("delete", help="delete a dedicated deployment")
 
     deployment_machine_type_parser.set_defaults(func=list_machine_types)
-    deployment_machine_type_parser.add_argument("-a", dest="api_key", help="api key")
+    deployment_machine_type_parser.add_argument("-a", "--api_key", help="api key")
 
     deployment_add_parser.set_defaults(func=add_deployment)
-    deployment_add_parser.add_argument("-a", dest="api_key", help="api key")
+    deployment_add_parser.add_argument("-a", "--api_key", help="api key")
+    deployment_add_parser.add_argument(
+        "deployment_name",
+        help="deployment name, must contain 5-15 lowercase characters, first character must be a letter",
+    )
     # deployment_add_parser.add_argument(
-    #     "-s", dest="security_level", help="security level (protected)", default="protected"
+    #     "-s", "--security_level", help="security level (protected)", default="protected"
     # )
     deployment_add_parser.add_argument(
-        "-m", dest="machine_type", help="machine type, run `roboflow deployment machine_type` to see available options"
+        "-m", "--machine_type", help="machine type, run `roboflow deployment machine_type` to see available options"
     )
     deployment_add_parser.add_argument(
         "-t",
-        dest="duration",
+        "--duration",
         help="duration, how long you want to keep the deployment (unit: hour, default: 3)",
         type=float,
         default=3,
     )
     deployment_add_parser.add_argument(
-        "-e", dest="delete_on_expiration", help="delete when expired (default: True)", type=bool, default=True
+        "-e", "--no_delete_on_expiration", help="keep when expired (default: False)", action="store_true"
     )
     deployment_add_parser.add_argument(
-        "-n", dest="deployment_name", help="deployment name, must contain 3-10 lowercase characters"
+        "-v",
+        "--inference_version",
+        help="inference server version (default: latest)",
+        default="latest",
     )
     deployment_add_parser.add_argument(
-        "-v", dest="inference_version", help="inference server version (default: latest)", default="latest"
+        "-w", "--wait_on_pending", help="wait if deployment is pending", action="store_true"
     )
 
     deployment_get_parser.set_defaults(func=get_deployment)
-    deployment_get_parser.add_argument("-a", dest="api_key", help="api key")
-    deployment_get_parser.add_argument("-d", dest="deployment_id", help="deployment id")
+    deployment_get_parser.add_argument("-a", "--api_key", help="api key")
+    deployment_get_parser.add_argument("deployment_name", help="deployment name")
+    deployment_get_parser.add_argument(
+        "-w", "--wait_on_pending", help="wait if deployment is pending", action="store_true"
+    )
 
     deployment_list_parser.set_defaults(func=list_deployment)
-    deployment_list_parser.add_argument("-a", dest="api_key", help="api key")
+    deployment_list_parser.add_argument("-a", "--api_key", help="api key")
 
     deployment_delete_parser.set_defaults(func=delete_deployment)
-    deployment_delete_parser.add_argument("-a", dest="api_key", help="api key")
-    deployment_delete_parser.add_argument("-d", dest="deployment_id", help="deployment id")
+    deployment_delete_parser.add_argument("-a", "--api_key", help="api key")
+    deployment_delete_parser.add_argument("deployment_name", help="deployment name")
 
 
 def list_machine_types(args):
     api_key = args.api_key or load_roboflow_api_key(None)
-    ret_json = deploymentapi.list_machine_types(api_key)
-    print(json.dumps(ret_json, indent=2))
+    if api_key is None:
+        print("Please provide an api key")
+        return
+    status_code, msg = deploymentapi.list_machine_types(api_key)
+    if status_code != 200:
+        print(f"{status_code}: {msg}")
+        return
+    print(json.dumps(msg, indent=2))
 
 
 def add_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
-    ret_json = deploymentapi.add_deployment(
+    if api_key is None:
+        print("Please provide an api key")
+        return
+    status_code, msg = deploymentapi.add_deployment(
         api_key,
         # args.security_level,
         args.machine_type,
         args.duration,
-        args.delete_on_expiration,
+        (not args.no_delete_on_expiration),
         args.deployment_name,
         args.inference_version,
     )
-    print(json.dumps(ret_json, indent=2))
+
+    if status_code != 200:
+        print(f"{status_code}: {msg}")
+        return
+    else:
+        print(f"Deployment {args.deployment_name} created successfully")
+        print(json.dumps(msg, indent=2))
+
+    if args.wait_on_pending:
+        get_deployment(args)
 
 
 def get_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
-    ret_json = deploymentapi.get_deployment(api_key, args.deployment_id)
-    print(json.dumps(ret_json, indent=2))
+    if api_key is None:
+        print("Please provide an api key")
+        return
+    while True:
+        status_code, msg = deploymentapi.get_deployment(api_key, args.deployment_name)
+        if status_code != 200:
+            print(f"{status_code}: {msg}")
+            return
+
+        if (not args.wait_on_pending) or msg["status"] != "pending":
+            print(json.dumps(msg, indent=2))
+            break
+
+        print(f'{datetime.now().strftime("%H:%M:%S")} Waiting for deployment {args.deployment_name} to be ready...\n')
+        time.sleep(30)
 
 
 def list_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
-    ret_json = deploymentapi.list_deployment(api_key)
-    print(json.dumps(ret_json, indent=2))
+    if api_key is None:
+        print("Please provide an api key")
+        return
+    status_code, msg = deploymentapi.list_deployment(api_key)
+    if status_code != 200:
+        print(f"{status_code}: {msg}")
+        return
+    print(json.dumps(msg, indent=2))
 
 
 def delete_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
-    ret_json = deploymentapi.delete_deployment(api_key, args.deployment_id)
-    print(json.dumps(ret_json, indent=2))
+    if api_key is None:
+        print("Please provide an api key")
+        return
+    status_code, msg = deploymentapi.delete_deployment(api_key, args.deployment_name)
+    if status_code != 200:
+        print(f"{status_code}: {msg}")
+        return
+    print(json.dumps(msg, indent=2))
