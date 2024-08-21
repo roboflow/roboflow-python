@@ -123,9 +123,7 @@ def get_deployment(args):
             print(json.dumps(msg, indent=2))
             break
 
-        print(
-            f'{datetime.now().strftime("%H:%M:%S")} Waiting for deployment {args.deployment_name} to be ready...\n'
-        )
+        print(f'{datetime.now().strftime("%H:%M:%S")} Waiting for deployment {args.deployment_name} to be ready...\n')
         time.sleep(30)
 
 
