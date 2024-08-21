@@ -194,8 +194,30 @@ def _argparser():
     _add_get_workspace_project_version_parser(subparsers)
     _add_run_video_inference_api_parser(subparsers)
     deployment.add_deployment_parser(subparsers)
+    _add_whoami_parser(subparsers)
+    
+    parser.add_argument("-v", "--version", help="show version info", action="store_true")
+    parser.set_defaults(func=show_version)
 
     return parser
+
+
+def show_version(args):
+    print(roboflow.__version__)
+
+
+def show_whoami(args):
+    RF_WORKSPACES = get_conditional_configuration_variable("workspaces", default={})
+    workspaces_by_url = {w["url"]: w for w in RF_WORKSPACES.values()}
+    default_workspace_url = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+    default_workspace = workspaces_by_url.get(default_workspace_url, None)
+    default_workspace['apiKey'] = '**********'
+    print(json.dumps(default_workspace, indent=2))
+
+
+def _add_whoami_parser(subparsers):
+    download_parser = subparsers.add_parser("whoami", help="show current user info")
+    download_parser.set_defaults(func=show_whoami)
 
 
 def _add_download_parser(subparsers):
