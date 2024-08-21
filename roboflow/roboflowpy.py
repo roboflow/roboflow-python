@@ -195,7 +195,7 @@ def _argparser():
     _add_run_video_inference_api_parser(subparsers)
     deployment.add_deployment_parser(subparsers)
     _add_whoami_parser(subparsers)
-    
+
     parser.add_argument("-v", "--version", help="show version info", action="store_true")
     parser.set_defaults(func=show_version)
 
@@ -211,7 +211,7 @@ def show_whoami(args):
     workspaces_by_url = {w["url"]: w for w in RF_WORKSPACES.values()}
     default_workspace_url = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     default_workspace = workspaces_by_url.get(default_workspace_url, None)
-    default_workspace['apiKey'] = '**********'
+    default_workspace["apiKey"] = "**********"
     print(json.dumps(default_workspace, indent=2))
 
 
