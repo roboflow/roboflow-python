@@ -2,6 +2,7 @@ import base64
 import copy
 import io
 import json
+import logging
 import os
 import random
 import urllib
@@ -14,6 +15,8 @@ from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 from roboflow.util.versions import print_warn_for_wrong_dependencies_versions
+
+log = logging.getLogger(__name__)
 
 
 class ObjectDetectionModel(InferenceModel):
@@ -82,7 +85,7 @@ class ObjectDetectionModel(InferenceModel):
         if local is None:
             self.base_url = OBJECT_DETECTION_URL + "/"
         else:
-            print("initalizing local object detection model hosted at :" + local)
+            log.info("initalizing local object detection model hosted at :" + local)
             self.base_url = local
 
         # If dataset slug not none, instantiate API URL

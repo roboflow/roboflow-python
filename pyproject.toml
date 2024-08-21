@@ -28,6 +28,8 @@ ignore = [
     "FIX",
     "FLY",
     "FURB",
+    "G003",
+    "G004",
     "ISC",
     "N",
     "PERF",

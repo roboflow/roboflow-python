@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import logging
 import os
 import shutil
 import sys
@@ -36,6 +37,8 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import write_line
 from roboflow.util.versions import get_wrong_dependencies_versions, print_warn_for_wrong_dependencies_versions
+
+log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     import numpy as np
@@ -212,7 +215,7 @@ class Version:
                 import_module("ultralytics")
                 print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])
             except ImportError:
-                print(
+                log.info(
                     "[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. "  # noqa: E501 // docs
                     "Roboflow `.deploy` supports only models trained with `ultralytics==8.0.196`, to intall it `pip install ultralytics==8.0.196`."  # noqa: E501 // docs
                 )
@@ -296,7 +299,7 @@ class Version:
 
         if response.status_code == 200:
             sys.stdout.write("\n")
-            print("\r" + "Version export complete for " + model_format + " format")
+            log.info("\r" + "Version export complete for " + model_format + " format")
             sys.stdout.flush()
             return True
         else:
@@ -611,14 +614,14 @@ class Version:
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model path {model_path} does not exist.")
         model_files = os.listdir(model_path)
-        print(f"Model files found in {model_path}: {model_files}")
+        log.info(f"Model files found in {model_path}: {model_files}")
 
         files_to_deploy = []
 
         # Find first .npz file in model_path
         npz_filename = next((file for file in model_files if file.endswith(".npz")), None)
         if any([file.endswith(".safetensors") for file in model_files]):
-            print(f"Found .safetensors file in model path. Deploying PyTorch {model_type} model.")
+            log.info(f"Found .safetensors file in model path. Deploying PyTorch {model_type} model.")
             necessary_files = [
                 "preprocessor_config.json",
                 "special_tokens_map.json",
@@ -627,21 +630,21 @@ class Version:
             ]
             for file in necessary_files:
                 if file not in model_files:
-                    print("Missing necessary file", file)
+                    log.info(f"Missing necessary file {file}")
                     res = input("Do you want to continue? (y/n)")
                     if res.lower() != "y":
                         exit(1)
             for file in model_files:
                 files_to_deploy.append(file)
         elif npz_filename is not None:
-            print(f"Found .npz file {npz_filename} in model path. Deploying JAX PaliGemma model.")
+            log.info(f"Found .npz file {npz_filename} in model path. Deploying JAX PaliGemma model.")
             files_to_deploy.append(npz_filename)
         else:
             raise FileNotFoundError(f"No .npz or .safetensors file found in model path {model_path}.")
 
         if len(files_to_deploy) == 0:
             raise FileNotFoundError(f"No valid files found in model path {model_path}.")
-        print(f"Zipping files for deploy: {files_to_deploy}")
+        log.info(f"Zipping files for deploy: {files_to_deploy}")
 
         import tarfile
 
@@ -649,7 +652,7 @@ class Version:
             for file in files_to_deploy:
                 tar.add(os.path.join(model_path, file), arcname=file)
 
-        print("Uploading to Roboflow... May take several minutes.")
+        log.info("Uploading to Roboflow... May take several minutes.")
         self.upload_zip(model_type, model_path, "roboflow_deploy.tar")
 
     def deploy_yolonas(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
@@ -731,7 +734,7 @@ class Version:
             else:
                 res.raise_for_status()
         except Exception as e:
-            print(f"An error occured when getting the model upload URL: {e}")
+            log.info(f"An error occured when getting the model upload URL: {e}")
             return
 
         res = requests.put(
@@ -742,23 +745,23 @@ class Version:
             res.raise_for_status()
 
             if self.public:
-                print(
+                log.info(
                     "View the status of your deployment at:"
                     f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
-                print(
+                log.info(
                     "Share your model with the world at:"
                     f" {UNIVERSE_URL}/{self.workspace}/{self.project}/"
                     f"model/{self.version}"
                 )
             else:
-                print(
+                log.info(
                     "View the status of your deployment at:"
                     f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
 
         except Exception as e:
-            print(f"An error occured when uploading the model: {e}")
+            log.info(f"An error occured when uploading the model: {e}")
 
     def __download_zip(self, link, location, format):
         """
@@ -800,7 +803,7 @@ class Version:
                         f.flush()
 
         except Exception as e:
-            print(f"Error when trying to download dataset @ {link}")
+            log.info(f"Error when trying to download dataset @ {link}")
             raise e
         sys.stdout.write("\n")
         sys.stdout.flush()

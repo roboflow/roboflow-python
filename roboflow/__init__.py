@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 import time
@@ -16,6 +17,8 @@ from roboflow.models import CLIPModel, GazeModel  # noqa: F401
 from roboflow.util.general import write_line
 
 __version__ = "1.1.40"
+
+log = logging.getLogger(__name__)
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -38,7 +41,7 @@ def check_key(api_key, model, notebook, num_retries=0):
             if response.status_code != 200:
                 # retry 5 times
                 if num_retries < 5:
-                    print("retrying...")
+                    log.info("retrying...")
                     time.sleep(1)
                     num_retries += 1
                     return check_key(api_key, model, notebook, num_retries)
@@ -48,7 +51,7 @@ def check_key(api_key, model, notebook, num_retries=0):
                 r = response.json()
                 return r
     else:  # then you're using a dummy key
-        sys.stdout.write(
+        log.info(
             "upload and label your dataset, and get an API KEY here: "
             + APP_URL
             + "/?model="

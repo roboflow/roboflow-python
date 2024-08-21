@@ -1,6 +1,7 @@
 import concurrent.futures
 import glob
 import json
+import logging
 import os
 import sys
 from typing import Any, List
@@ -16,6 +17,8 @@ from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
 from roboflow.util.image_utils import load_labelmap
 from roboflow.util.two_stage_utils import ocr_infer
+
+log = logging.getLogger(__name__)
 
 
 class Workspace:
@@ -47,7 +50,7 @@ class Workspace:
         """
         Print all projects in the workspace to the console.
         """
-        print(self.project_list)
+        log.info(self.project_list)
 
     def projects(self):
         """
@@ -179,7 +182,7 @@ class Workspace:
         stage_two_project = self.project(second_stage_model_name)
         stage_two_model = stage_two_project.version(second_stage_model_version).model
 
-        print(self.project(first_stage_model_name))
+        log.info(self.project(first_stage_model_name))
 
         # perform first inference
         predictions = stage_one_model.predict(image)  # type: ignore[attribute-error]
@@ -208,13 +211,13 @@ class Workspace:
             try:
                 os.remove("./temp.png")
             except FileNotFoundError:
-                print("no detections")
+                log.info("no detections")
 
         else:
-            print(
+            log.info(
                 "please use an object detection model for the first stage--can only"
-                " perform two stage with bounding box results",
-                "please use a classification model for the second stage",
+                " perform two stage with bounding box results"
+                "please use a classification model for the second stage"
             )
 
         return results
@@ -269,7 +272,7 @@ class Workspace:
                 # capture OCR results from cropped image
                 results.append(ocr_infer(croppedImg)["results"])
         else:
-            print("please use an object detection model--can only perform two stage with" " bounding box results")
+            log.info("please use an object detection model--can only perform two stage with" " bounding box results")
 
         return results
 
@@ -296,15 +299,15 @@ class Workspace:
             project_type (str): type of the project (only `object-detection` is supported)
         """  # noqa: E501 // docs
         if dataset_format != "NOT_USED":
-            print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
+            log.info("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
         parsed_dataset = folderparser.parsefolder(dataset_path)
         project, created = self._get_or_create_project(
             project_id=project_name, license=project_license, type=project_type
         )
         if created:
-            print(f"Created project {project.id}")
+            log.info(f"Created project {project.id}")
         else:
-            print(f"Uploading to existing project {project.id}")
+            log.info(f"Uploading to existing project {project.id}")
         images = parsed_dataset["images"]
 
         location = parsed_dataset["location"]
@@ -334,7 +337,7 @@ class Workspace:
                 else:
                     msg += " / annotations = ERR: Unrecognized annotation upload status"
 
-            print(msg)
+            log.info(msg)
 
         def _upload_image(imagedesc):
             image_path = f"{location}{imagedesc['file']}"
@@ -391,15 +394,15 @@ class Workspace:
                 _log_img_upload(image_path, image, annotation, image_upload_time, image_retry_attempts, annotation_time)
             except ImageUploadError as e:
                 retry_attempts = f" (with {e.retries} retries)" if e.retries > 0 else ""
-                print(f"[ERR]{retry_attempts} {image_path} ({e.message})")
+                log.info(f"[ERR]{retry_attempts} {image_path} ({e.message})")
             except AnnotationSaveError as e:
                 upload_time_str = f"[{image_upload_time:.1f}s]"
                 retry_attempts = f" (with {image_retry_attempts} retries)" if image_retry_attempts > 0 else ""
                 image_msg = f"[UPLOADED]{retry_attempts} {image_path} ({image_id}) {upload_time_str}"
                 annotation_msg = f"annotations = ERR: {e.message}"
-                print(f"{image_msg} / {annotation_msg}")
+                log.info(f"{image_msg} / {annotation_msg}")
             except Exception as e:
-                print(f"[ERR] {image_path} ({e})")
+                log.info(f"[ERR] {image_path} ({e})")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
             list(executor.map(_upload, images))
@@ -477,8 +480,8 @@ class Workspace:
         )
         upload_project = self.project(upload_destination)
 
-        print("inference reference point: ", inference_model)
-        print("upload destination: ", upload_project)
+        log.info(f"inference reference point: {inference_model}")
+        log.info(f"upload destination: {upload_project}")
 
         # check if raw data type is cv2 frame
         if issubclass(type(raw_data_location), np.ndarray):
@@ -491,7 +494,7 @@ class Workspace:
 
         for index, image in enumerate(globbed_files):
             try:
-                print(
+                log.info(
                     "*** Processing image [" + str(index + 1) + "/" + str(len(globbed_files)) + "] - " + image + " ***"
                 )
             except Exception:
@@ -510,7 +513,7 @@ class Workspace:
                     image1 = image
                     similarity_timeout_counter = 0
                 else:
-                    print(image2 + " --> similarity too high to --> " + image1)
+                    log.info(image2 + " --> similarity too high to --> " + image1)
                     continue  # skip this image if too similar or counter hits limit
 
             predictions = inference_model.predict(image).json()["predictions"]  # type: ignore[attribute-error]
@@ -525,12 +528,12 @@ class Workspace:
                 conditionals["required_class_count"],
                 conditionals["target_classes"],
             ):
-                print(" [X] image failed count cases")
+                log.info(" [X] image failed count cases")
                 continue
 
             # iterate through all predictions
             for i, prediction in enumerate(predictions):
-                print(i)
+                log.info(i)
 
                 # check if box size of detection fits requirements
                 if not check_box_size(
@@ -538,7 +541,7 @@ class Workspace:
                     conditionals["minimum_size_requirement"],
                     conditionals["maximum_size_requirement"],
                 ):
-                    print(" [X] prediction failed box size cases")
+                    log.info(" [X] prediction failed box size cases")
                     continue
 
                 # compare confidence of detected object to confidence thresholds
@@ -552,11 +555,11 @@ class Workspace:
                         len(conditionals["target_classes"]) > 0
                         and prediction["class"] not in conditionals["target_classes"]
                     ):
-                        print(" [X] prediction failed target_classes")
+                        log.info(" [X] prediction failed target_classes")
                         continue
 
                     # upload on success!
-                    print(" >> image uploaded!")
+                    log.info(" >> image uploaded!")
                     upload_project.upload(image, num_retry_uploads=3)
                     break
 

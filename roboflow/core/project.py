@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import mimetypes
 import os
 import sys
@@ -16,6 +17,8 @@ from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
 from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
+
+log = logging.getLogger(__name__)
 
 ACCEPTED_IMAGE_FORMATS = {
     "image/bmp",
@@ -123,7 +126,7 @@ class Project:
             >>> project.list_versions()
         """
         version_info = self.get_version_information()
-        print(version_info)
+        log.info(version_info)
 
     def versions(self):
         """
@@ -367,7 +370,7 @@ class Project:
         extension_mimetype, _ = mimetypes.guess_type(image_path)
 
         if extension_mimetype and extension_mimetype != kind.mime:
-            print(f"[{image_path}] file type ({kind.mime}) does not match filename extension.")
+            log.info(f"[{image_path}] file type ({kind.mime}) does not match filename extension.")
 
         return kind.mime in ACCEPTED_IMAGE_FORMATS
 
@@ -460,9 +463,9 @@ class Project:
                         is_prediction=is_prediction,
                         **kwargs,
                     )
-                    print("[ " + path + " ] was uploaded succesfully.")
+                    log.info("[ " + path + " ] was uploaded succesfully.")
                 else:
-                    print("[ " + path + " ] was skipped.")
+                    log.info("[ " + path + " ] was skipped.")
                     continue
 
     def upload_image(
@@ -605,7 +608,7 @@ class Project:
                 annotation_string = open(annotation_path).read()  # type: ignore[arg-type]
             annotation_name = os.path.basename(annotation_path)  # type: ignore[arg-type]
         elif self.type == "classification":
-            print(f"-> using {annotation_path} as classname for classification project")
+            log.info(f"-> using {annotation_path} as classname for classification project")
             annotation_string = annotation_path
             annotation_name = annotation_path
         else:

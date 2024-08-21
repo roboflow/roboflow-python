@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import logging
 import re
 
 import roboflow
@@ -13,6 +14,8 @@ from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
+
+log = logging.getLogger(__name__)
 
 
 def login(args):
@@ -37,10 +40,10 @@ def download(args):
     if not v:
         versions = project.versions()
         if not versions:
-            print(f"project {p} does not have any version. exiting")
+            log.info(f"project {p} does not have any version. exiting")
             exit(1)
         version = versions[-1]
-        print(f"Version not provided. Downloading last one ({version.version})")
+        log.info(f"Version not provided. Downloading last one ({version.version})")
     else:
         version = project.version(int(v))
     version.download(args.format, location=args.location, overwrite=True)
@@ -79,7 +82,7 @@ def upload_model(args):
     workspace = rf.workspace(args.workspace)
     project = workspace.project(args.project)
     version = project.version(args.version_number)
-    print(args.model_type, args.model_path, args.filename)
+    log.info(args.model_type, args.model_path, args.filename)
     version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
 
 
@@ -88,30 +91,30 @@ def list_projects(args):
     workspace = rf.workspace(args.workspace)
     projects = workspace.project_list
     for p in projects:
-        print()
-        print(p["name"])
-        print(f"  link: {APP_URL}/{p['id']}")
-        print(f"  id: {p['id']}")
-        print(f"  type: {p['type']}")
-        print(f"  versions: {p['versions']}")
-        print(f"  images: {p['images']}")
-        print(f"  classes: {p['classes'].keys()}")
+        log.info()
+        log.info(p["name"])
+        log.info(f"  link: {APP_URL}/{p['id']}")
+        log.info(f"  id: {p['id']}")
+        log.info(f"  type: {p['type']}")
+        log.info(f"  versions: {p['versions']}")
+        log.info(f"  images: {p['images']}")
+        log.info(f"  classes: {p['classes'].keys()}")
 
 
 def list_workspaces(args):
     workspaces = roboflow_config.RF_WORKSPACES.values()
     rf_workspace = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     for w in workspaces:
-        print()
-        print(f"{w['name']}{' (default workspace)' if w['url'] == rf_workspace else ''}")
-        print(f"  link: {APP_URL}/{w['url']}")
-        print(f"  id: {w['url']}")
+        log.info()
+        log.info(f"{w['name']}{' (default workspace)' if w['url'] == rf_workspace else ''}")
+        log.info(f"  link: {APP_URL}/{w['url']}")
+        log.info(f"  id: {w['url']}")
 
 
 def get_workspace(args):
     api_key = load_roboflow_api_key(args.workspaceId)
     workspace_json = rfapi.get_workspace(api_key, args.workspaceId)
-    print(json.dumps(workspace_json, indent=2))
+    log.info(json.dumps(workspace_json, indent=2))
 
 
 def run_video_inference_api(args):
@@ -136,18 +139,18 @@ def get_workspace_project_version(args):
     # api_key = load_roboflow_api_key(args.workspaceId)
     rf = roboflow.Roboflow(args.api_key)
     workspace = rf.workspace()
-    print("workspace", workspace)
+    log.info(f"workspace {workspace}")
     project = workspace.project(args.project)
-    print("project", project)
+    log.info(f"project {project}")
     version = project.version(args.version_number)
-    print("version", version)
+    log.info(f"version {version}")
 
 
 def get_project(args):
     workspace_url = args.workspace or get_conditional_configuration_variable("RF_WORKSPACE", default=None)
     api_key = load_roboflow_api_key(workspace_url)
     dataset_json = rfapi.get_project(api_key, workspace_url, args.projectId)
-    print(json.dumps(dataset_json, indent=2))
+    log.info(json.dumps(dataset_json, indent=2))
 
 
 def infer(args):
@@ -177,7 +180,7 @@ def infer(args):
     if args.overlap is not None and projectType == "object-detection":
         kwargs["overlap"] = int(args.overlap * 100)
     group = model.predict(args.file, **kwargs)
-    print(group)
+    log.info(group)
 
 
 def _argparser():

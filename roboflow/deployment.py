@@ -1,7 +1,10 @@
 import json
+import logging
 
 from roboflow.adapters import deploymentapi
 from roboflow.config import load_roboflow_api_key
+
+log = logging.getLogger(__name__)
 
 
 def add_deployment_parser(subparsers):
@@ -61,7 +64,7 @@ def add_deployment_parser(subparsers):
 def list_machine_types(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     ret_json = deploymentapi.list_machine_types(api_key)
-    print(json.dumps(ret_json, indent=2))
+    log.info(json.dumps(ret_json, indent=2))
 
 
 def add_deployment(args):
@@ -75,22 +78,22 @@ def add_deployment(args):
         args.deployment_name,
         args.inference_version,
     )
-    print(json.dumps(ret_json, indent=2))
+    log.info(json.dumps(ret_json, indent=2))
 
 
 def get_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     ret_json = deploymentapi.get_deployment(api_key, args.deployment_id)
-    print(json.dumps(ret_json, indent=2))
+    log.info(json.dumps(ret_json, indent=2))
 
 
 def list_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     ret_json = deploymentapi.list_deployment(api_key)
-    print(json.dumps(ret_json, indent=2))
+    log.info(json.dumps(ret_json, indent=2))
 
 
 def delete_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     ret_json = deploymentapi.delete_deployment(api_key, args.deployment_id)
-    print(json.dumps(ret_json, indent=2))
+    log.info(json.dumps(ret_json, indent=2))

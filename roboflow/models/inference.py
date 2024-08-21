@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import os
 import time
 import urllib
@@ -14,6 +15,8 @@ from tqdm import tqdm
 from roboflow.config import API_URL
 from roboflow.util.image_utils import validate_image_path
 from roboflow.util.prediction import PredictionGroup
+
+log = logging.getLogger(__name__)
 
 SUPPORTED_ROBOFLOW_MODELS = ["batch-video"]
 
@@ -350,10 +353,10 @@ class InferenceModel:
             job_id = self.job_id
 
         attempts = 0
-        print(f"Checking for video inference results for job {job_id} every 60s")
+        log.info(f"Checking for video inference results for job {job_id} every 60s")
         while True:
             time.sleep(60)
-            print(f"({attempts * 60}s): Checking for inference results")
+            log.info(f"({attempts * 60}s): Checking for inference results")
             response = self.poll_for_video_results()
             attempts += 1
 

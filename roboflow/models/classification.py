@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import logging
 import os
 import urllib
 from typing import Optional
@@ -12,6 +13,8 @@ from roboflow.config import CLASSIFICATION_MODEL
 from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
+
+log = logging.getLogger(__name__)
 
 
 class ClassificationModel(InferenceModel):
@@ -60,7 +63,7 @@ class ClassificationModel(InferenceModel):
         self.preprocessing = {} if preprocessing is None else preprocessing
 
         if local:
-            print(f"initalizing local classification model hosted at : {local}")
+            log.info(f"initalizing local classification model hosted at : {local}")
             self.base_url = local
 
     def predict(self, image_path, hosted=False):  # type: ignore[override]

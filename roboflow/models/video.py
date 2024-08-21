@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 from typing import Optional, Tuple
 from urllib.parse import urljoin
@@ -8,6 +9,8 @@ import requests
 
 from roboflow.config import API_URL
 from roboflow.models.inference import InferenceModel
+
+log = logging.getLogger(__name__)
 
 SUPPORTED_ROBOFLOW_MODELS = ["object-detection", "classification", "instance-segmentation", "keypoint-detection"]
 
@@ -125,7 +128,7 @@ class VideoInferenceModel(InferenceModel):
 
         signed_url = response.json()["signed_url"]
 
-        print("Uploaded video to signed url: " + signed_url)
+        log.info("Uploaded video to signed url: " + signed_url)
 
         url = urljoin(API_URL, f"/videoinfer/?api_key={self.__api_key}")
 
@@ -179,7 +182,7 @@ class VideoInferenceModel(InferenceModel):
         try:
             response = requests.get(url, headers={"Content-Type": "application/json"})
         except Exception as e:
-            print(e)
+            log.info(e)
             raise Exception("Error polling for results.")
 
         if not response.ok:
@@ -195,7 +198,7 @@ class VideoInferenceModel(InferenceModel):
             # frame_offset and model name are top-level keys
             return inference_data.json()
         elif data["success"] == 1:
-            print("Job not complete yet. Check back in a minute.")
+            log.info("Job not complete yet. Check back in a minute.")
             return {}
         else:
             raise Exception("Job failed.")
@@ -235,6 +238,6 @@ class VideoInferenceModel(InferenceModel):
             if response != {}:
                 return response
 
-            print(f"({attempts * 60}s): Checking for inference results")
+            log.info(f"({attempts * 60}s): Checking for inference results")
 
             time.sleep(60)

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 from collections import defaultdict
@@ -6,6 +7,8 @@ from collections import defaultdict
 from tqdm import tqdm
 
 from .image_utils import load_labelmap
+
+log = logging.getLogger(__name__)
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
 ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv"}
@@ -108,7 +111,7 @@ def _map_annotations_to_images_1tomany(images, annotationFiles):
         annotationsInSameDir = annotationsByDirname.get(dirname, [])
         if annotationsInSameDir:
             if len(annotationsInSameDir) > 1:
-                print(f"warning: found multiple annotation files on dir {dirname}")
+                log.info(f"warning: found multiple annotation files on dir {dirname}")
             annotationFile = annotationsInSameDir[0]
             format = annotationFile["parsedType"]
             image["annotationfile"] = _filterIndividualAnnotations(
@@ -163,7 +166,7 @@ def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotatio
     elif format == "createml":
         imgReferences = [i for i in parsed if i["image"] == image["name"]]
         if len(imgReferences) > 1:
-            print(f"warning: found multiple image entries for image {image['file']} in {annotation['file']}")
+            log.info(f"warning: found multiple image entries for image {image['file']} in {annotation['file']}")
         if imgReferences:
             imgReference = imgReferences[0]
             _annotation = {
@@ -231,8 +234,8 @@ def _map_labelmaps_to_annotations(annotations, labelmaps):
     labelmapmap = {lm["dirname"]: lm for lm in labelmaps}
     rootLabelmap = labelmapmap.get("/")
     if len(labelmapmap) < len(labelmaps):
-        print("warning: unexpectedly found multiple labelmaps per directory")
-        print([lm["file"] for lm in labelmaps])
+        log.info("warning: unexpectedly found multiple labelmaps per directory")
+        log.info([lm["file"] for lm in labelmaps])
     for ann in annotations:
         labelmap = labelmapmap.get(ann["dirname"]) or rootLabelmap
         if labelmap:

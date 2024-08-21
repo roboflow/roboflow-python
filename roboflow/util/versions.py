@@ -1,8 +1,11 @@
+import logging
 import sys
 from importlib import import_module
 from typing import List, Tuple
 
 from packaging.version import Version
+
+log = logging.getLogger(__name__)
 
 
 def get_wrong_dependencies_versions(
@@ -47,7 +50,7 @@ def print_warn_for_wrong_dependencies_versions(
 ):
     wrong_dependencies_versions = get_wrong_dependencies_versions(dependencies_versions)
     for dependency, order, version, module_version in wrong_dependencies_versions:
-        print(
+        log.info(
             f"Dependency {dependency}{order}{version} is required but found"
             f" version={module_version}, to fix: `pip install"
             f" {dependency}{order}{version}`"
