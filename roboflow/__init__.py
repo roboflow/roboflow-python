@@ -18,6 +18,7 @@ from roboflow.util.general import write_line
 
 __version__ = "1.1.40"
 
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
