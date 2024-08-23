@@ -302,7 +302,7 @@ class InferenceModel:
         if job_id is None:
             job_id = self.job_id
 
-        url = urljoin(API_URL, "/videoinfer/?api_key=" + self.__api_key + "&job_id=" + self.job_id)
+        url = urljoin(API_URL, "/videoinfer/?api_key=" + self.__api_key + "&job_id=" + job_id)
         try:
             response = requests.get(url, headers={"Content-Type": "application/json"})
         except Exception as e:
@@ -354,7 +354,7 @@ class InferenceModel:
         while True:
             time.sleep(60)
             print(f"({attempts * 60}s): Checking for inference results")
-            response = self.poll_for_video_results()
+            response = self.poll_for_video_results(job_id)
             attempts += 1
 
             if response != {}:
