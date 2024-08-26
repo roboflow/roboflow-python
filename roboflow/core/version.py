@@ -532,7 +532,7 @@ class Version:
 
         if "yolov8" in model_type or "yolov10" in model_type:
             # try except for backwards compatibility with older versions of ultralytics
-            if "-cls" in model_type:
+            if "-cls" in model_type or model_type.startswith("yolov10"):
                 nc = model["model"].yaml["nc"]
                 args = model["train_args"]
             else:
