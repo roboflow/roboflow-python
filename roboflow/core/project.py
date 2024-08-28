@@ -44,7 +44,7 @@ class Project:
 
         Args:
             api_key (str): private roboflow api key
-            a_project (str): the project id
+            a_project (dict): the project id
             model_format (str): the model format of the project
 
         Example:
@@ -67,6 +67,7 @@ class Project:
             self.public = a_project["public"]
             self.splits = a_project["splits"]
             self.type = a_project["type"]
+            self.multilabel = a_project["multilabel"]
             self.unannotated = a_project["unannotated"]
             self.updated = datetime.datetime.fromtimestamp(a_project["updated"])
             self.model_format = model_format
