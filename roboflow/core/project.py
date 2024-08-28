@@ -44,7 +44,7 @@ class Project:
 
         Args:
             api_key (str): private roboflow api key
-            a_project (dict): the project id
+            a_project (dict): the project information dictionary
             model_format (str): the model format of the project
 
         Example:
