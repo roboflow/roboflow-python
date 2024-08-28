@@ -67,7 +67,7 @@ class Project:
             self.public = a_project["public"]
             self.splits = a_project["splits"]
             self.type = a_project["type"]
-            self.multilabel = a_project["multilabel"]
+            self.multilabel = a_project.get("multilabel", False)
             self.unannotated = a_project["unannotated"]
             self.updated = datetime.datetime.fromtimestamp(a_project["updated"])
             self.model_format = model_format
