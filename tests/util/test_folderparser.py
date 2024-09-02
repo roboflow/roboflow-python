@@ -52,6 +52,28 @@ class TestFolderParser(unittest.TestCase):
         expected += "train_10308.jpeg,1058,943,japonicus/koreicus,28,187,908,815\n"
         assert testImage["annotationfile"]["rawText"] == expected
 
+    def test_paligemma_format(self):
+        folder = f"{thisdir}/../datasets/paligemma"
+        parsed = folderparser.parsefolder(folder)
+        testImagePath = "/dataset/de48275e1ff70fab78bee31e09fc896d_png.rf.01a97b1ad053aa1e6525ac0451cee8b7.jpg"
+        testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
+        assert testImage["annotationfile"]["name"] == "annotation.jsonl"
+        expected = json.dumps(
+            [
+                {
+                    "image": "de48275e1ff70fab78bee31e09fc896d_png.rf.01a97b1ad053aa1e6525ac0451cee8b7.jpg",
+                    "prefix": "Which sector had the highest ROI in 2013?",
+                    "suffix": "Retail",
+                },
+                {
+                    "image": "de48275e1ff70fab78bee31e09fc896d_png.rf.01a97b1ad053aa1e6525ac0451cee8b7.jpg",
+                    "prefix": "Which sector had the highest ROI in 2014?",
+                    "suffix": "Electronics",
+                },
+            ]
+        )
+        assert testImage["annotationfile"]["rawText"] == expected
+
 
 def _assertJsonMatchesFile(actual, filename):
     with open(filename) as file:
