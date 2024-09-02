@@ -1,5 +1,8 @@
 #!/bin/env bash
-cp data/.config-staging data/.config
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cp $SCRIPT_DIR/data/.config-staging $SCRIPT_DIR/data/.config
 export API_URL=https://localhost.roboflow.one
 export APP_URL=https://localhost.roboflow.one
+export DEDICATED_DEPLOYMENT_URL=https://staging.roboflow.cloud
+export ROBOFLOW_CONFIG_DIR=$SCRIPT_DIR/data/.config
 # need to set it in /etc/hosts to the IP of host.docker.internal!
