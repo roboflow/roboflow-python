@@ -47,7 +47,8 @@ def download(args):
 
 
 def import_dataset(args):
-    rf = roboflow.Roboflow()
+    api_key = load_roboflow_api_key(args.workspace)
+    rf = roboflow.Roboflow(api_key)
     workspace = rf.workspace(args.workspace)
     workspace.upload_dataset(
         dataset_path=args.folder,
