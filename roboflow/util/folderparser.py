@@ -184,9 +184,9 @@ def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotatio
         else:
             return None
     elif format == "jsonl":
-        imgLines = [line for line in parsed if line["image"] == image["name"]]
-        if imgLines:
-            _annotation = {"name": "annotation.jsonl", "rawText": json.dumps(imgLines)}
+        jsonlLines = [json.dumps(line) for line in parsed if line["image"] == image["name"]]
+        if jsonlLines:
+            _annotation = {"name": "annotation.jsonl", "rawText": "\n".join(jsonlLines)}
             return _annotation
     return None
 
