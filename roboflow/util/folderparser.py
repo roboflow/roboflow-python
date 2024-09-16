@@ -215,12 +215,14 @@ def _loadAnnotations(folder, annotations):
 def _read_jsonl(path):
     data = []
     with open(path) as file:
-        for line in file:
+        for linenum, line in enumerate(file, 1):
+            if not line:
+                continue
             try:
                 json_object = json.loads(line.strip())
                 data.append(json_object)
             except json.JSONDecodeError:
-                print(f"Warning: Skipping invalid JSON line in {path}")
+                print(f"Warning: Skipping invalid JSON line in {path}:{linenum}")
     return data
 
 
