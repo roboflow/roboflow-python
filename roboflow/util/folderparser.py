@@ -8,7 +8,7 @@ from tqdm import tqdm
 from .image_utils import load_labelmap
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
-ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv"}
+ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv", ".jsonl"}
 LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
 
 
@@ -107,13 +107,14 @@ def _map_annotations_to_images_1tomany(images, annotationFiles):
         dirname = image["dirname"]
         annotationsInSameDir = annotationsByDirname.get(dirname, [])
         if annotationsInSameDir:
-            if len(annotationsInSameDir) > 1:
-                print(f"warning: found multiple annotation files on dir {dirname}")
-            annotationFile = annotationsInSameDir[0]
-            format = annotationFile["parsedType"]
-            image["annotationfile"] = _filterIndividualAnnotations(
-                image, annotationFile, format, imgRefMap, annotationMap
-            )
+            for annotationFile in annotationsInSameDir:
+                format = annotationFile["parsedType"]
+                filtered_annotations = _filterIndividualAnnotations(
+                    image, annotationFile, format, imgRefMap, annotationMap
+                )
+                if filtered_annotations:
+                    image["annotationfile"] = filtered_annotations
+                    break
 
 
 def _build_image_and_annotation_maps(annotationFiles):
@@ -182,11 +183,16 @@ def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotatio
             return _annotation
         else:
             return None
+    elif format == "jsonl":
+        jsonlLines = [json.dumps(line) for line in parsed if line["image"] == image["name"]]
+        if jsonlLines:
+            _annotation = {"name": "annotation.jsonl", "rawText": "\n".join(jsonlLines)}
+            return _annotation
     return None
 
 
 def _loadAnnotations(folder, annotations):
-    valid_extensions = {".json", ".csv"}
+    valid_extensions = {".json", ".csv", ".jsonl"}
     annotations = [a for a in annotations if a["extension"] in valid_extensions]
     for ann in annotations:
         extension = ann["extension"]
@@ -197,10 +203,27 @@ def _loadAnnotations(folder, annotations):
                 if parsedType:
                     ann["parsed"] = parsed
                     ann["parsedType"] = parsedType
+        elif extension == ".jsonl":
+            ann["parsed"] = _read_jsonl(f"{folder}{ann['file']}")
+            ann["parsedType"] = "jsonl"
         elif extension == ".csv":
             ann["parsedType"] = "csv"
             ann["parsed"] = _parseAnnotationCSV(f"{folder}{ann['file']}")
     return annotations
+
+
+def _read_jsonl(path):
+    data = []
+    with open(path) as file:
+        for linenum, line in enumerate(file, 1):
+            if not line:
+                continue
+            try:
+                json_object = json.loads(line.strip())
+                data.append(json_object)
+            except json.JSONDecodeError:
+                print(f"Warning: Skipping invalid JSON line in {path}:{linenum}")
+    return data
 
 
 def _parseAnnotationCSV(filename):

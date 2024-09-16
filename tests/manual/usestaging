@@ -1,7 +1,9 @@
 #!/bin/env bash
 
-cp data/.config-staging data/.config
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cp $SCRIPT_DIR/data/.config-staging $SCRIPT_DIR/data/.config
 export API_URL=https://api.roboflow.one
 export APP_URL=https://app.roboflow.one
 export OBJECT_DETECTION_URL=https://lambda-object-detection.staging.roboflow.com
 export DEDICATED_DEPLOYMENT_URL=https://staging.roboflow.cloud
+export ROBOFLOW_CONFIG_DIR=$SCRIPT_DIR/data/.config
