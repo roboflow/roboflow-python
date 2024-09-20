@@ -31,7 +31,7 @@ setuptools.setup(
     extras_require={
         "desktop": ["opencv-python==4.8.0.74"],
         "dev": [
-            "mypy<1.11.0",
+            "mypy",
             "responses",
             "ruff",
             "twine",
