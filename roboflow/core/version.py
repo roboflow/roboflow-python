@@ -462,7 +462,17 @@ class Version:
         if model_type.startswith("yolo11"):
             model_type = model_type.replace("yolo11", "yolov11")
 
-        supported_models = ["yolov5", "yolov7-seg", "yolov8", "yolov9", "yolonas", "paligemma", "yolov10", "florence-2", "yolov11"]
+        supported_models = [
+            "yolov5",
+            "yolov7-seg",
+            "yolov8",
+            "yolov9",
+            "yolonas",
+            "paligemma",
+            "yolov10",
+            "florence-2",
+            "yolov11",
+        ]
 
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
@@ -520,7 +530,7 @@ class Version:
                     "The torch python package is required to deploy yolov5 models."
                     " Please install it with `pip install torch`"
                 )
-            
+
         elif "yolov11" in model_type:
             try:
                 import torch
@@ -531,7 +541,7 @@ class Version:
                     "The ultralytics python package is required to deploy yolov10"
                     " models. Please install it with `pip install ultralytics`"
                 )
-            
+
             print_warn_for_wrong_dependencies_versions([("ultralytics", ">=", "8.3.0")], ask_to_continue=True)
 
         model = torch.load(os.path.join(model_path, filename))
