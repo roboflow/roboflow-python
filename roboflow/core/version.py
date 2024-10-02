@@ -97,7 +97,7 @@ class Version:
             response = requests.get(f"{API_URL}/{workspace}/{project}/{self.version}?api_key={self.__api_key}")
             if response.ok:
                 version_info = response.json()["version"]
-                has_model = bool(version_info.get("models"))
+                has_model = bool(version_info.get("train", {}).get("model"))
             else:
                 has_model = False
 
