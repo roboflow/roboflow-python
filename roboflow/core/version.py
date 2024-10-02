@@ -446,7 +446,14 @@ class Version:
 
             time.sleep(5)
 
-        if not self.model:
+        response = requests.get(f"{API_URL}/{workspace}/{project}/{self.version}?api_key={self.__api_key}")
+        if response.ok:
+            version_info = response.json()["version"]
+            has_model = bool(version_info.get("models"))
+        else:
+            has_model = False
+
+        if not has_model:
             if self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
                     self.__api_key,
@@ -476,6 +483,9 @@ class Version:
                 self.model = SemanticSegmentationModel(self.__api_key, self.id)
             elif self.type == TYPE_KEYPOINT_DETECTION:
                 self.model = KeypointDetectionModel(self.__api_key, self.id, version=self.version)
+            else:
+                # Raise an exception if the model type is unsupported or unknown
+                raise ValueError(f"Unsupported model type: {self.type}")
 
         # return the model object
         assert self.model
