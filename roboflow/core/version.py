@@ -446,14 +446,7 @@ class Version:
 
             time.sleep(5)
 
-        response = requests.get(f"{API_URL}/{workspace}/{project}/{self.version}?api_key={self.__api_key}")
-        if response.ok:
-            version_info = response.json()["version"]
-            has_model = bool(version_info.get("models"))
-        else:
-            has_model = False
-
-        if not has_model:
+        if not self.model:
             if self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
                     self.__api_key,
