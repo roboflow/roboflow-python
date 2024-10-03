@@ -446,6 +446,39 @@ class Version:
 
             time.sleep(5)
 
+        if not self.model:
+            if self.type == TYPE_OBJECT_DETECTION:
+                self.model = ObjectDetectionModel(
+                    self.__api_key,
+                    self.id,
+                    self.name,
+                    self.version,
+                    colors=self.colors,
+                    preprocessing=self.preprocessing,
+                )
+            elif self.type == TYPE_CLASSICATION:
+                self.model = ClassificationModel(
+                    self.__api_key,
+                    self.id,
+                    self.name,
+                    self.version,
+                    colors=self.colors,
+                    preprocessing=self.preprocessing,
+                )
+            elif self.type == TYPE_INSTANCE_SEGMENTATION:
+                self.model = InstanceSegmentationModel(
+                    self.__api_key,
+                    self.id,
+                    colors=self.colors,
+                    preprocessing=self.preprocessing,
+                )
+            elif self.type == TYPE_SEMANTIC_SEGMENTATION:
+                self.model = SemanticSegmentationModel(self.__api_key, self.id)
+            elif self.type == TYPE_KEYPOINT_DETECTION:
+                self.model = KeypointDetectionModel(self.__api_key, self.id, version=self.version)
+            else:
+                raise ValueError(f"Unsupported model type: {self.type}")
+
         # return the model object
         assert self.model
         return self.model
