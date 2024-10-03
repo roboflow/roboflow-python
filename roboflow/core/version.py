@@ -484,7 +484,6 @@ class Version:
             elif self.type == TYPE_KEYPOINT_DETECTION:
                 self.model = KeypointDetectionModel(self.__api_key, self.id, version=self.version)
             else:
-                # Raise an exception if the model type is unsupported or unknown
                 raise ValueError(f"Unsupported model type: {self.type}")
 
         # return the model object
