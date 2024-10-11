@@ -233,7 +233,7 @@ class Version:
 
         self.__download_zip(link, location, model_format)
         self.__extract_zip(location, model_format)
-        self.__reformat_yaml(location, model_format)
+        self.__reformat_yaml(location, model_format)  # TODO: is roboflow-python a place to be munging yaml files?
 
         return Dataset(self.name, self.version, model_format, os.path.abspath(location))
 
@@ -944,7 +944,7 @@ class Version:
                 content["train"] = location + content["train"].lstrip(".")
                 content["val"] = location + content["val"].lstrip(".")
                 content["test"] = location + content["test"].lstrip(".")
-            if format in ["yolov5pytorch", "yolov7pytorch", "yolov8", "yolov9"]:
+            if format in ["yolov5pytorch", "yolov7pytorch"]:
                 content["train"] = location + content["train"].lstrip("..")
                 content["val"] = location + content["val"].lstrip("..")
             try:
