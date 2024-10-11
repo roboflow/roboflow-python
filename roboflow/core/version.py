@@ -7,7 +7,6 @@ import shutil
 import sys
 import time
 import zipfile
-from importlib import import_module
 from typing import TYPE_CHECKING, Optional, Union
 
 import requests
