@@ -7,7 +7,6 @@ import shutil
 import sys
 import time
 import zipfile
-from importlib import import_module
 from typing import TYPE_CHECKING, Optional, Union
 
 import requests
@@ -206,19 +205,6 @@ class Version:
 
         self.__wait_if_generating()
 
-        if model_format == "yolov8":
-            # if ultralytics is installed, we will assume users will want to use yolov8 and we check for the supported version  # noqa: E501 // docs
-            try:
-                import_module("ultralytics")
-                print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])
-            except ImportError:
-                print(
-                    "[WARNING] we noticed you are downloading a `yolov8` datasets but you don't have `ultralytics` installed. "  # noqa: E501 // docs
-                    "Roboflow `.deploy` supports only models trained with `ultralytics==8.0.196`, to intall it `pip install ultralytics==8.0.196`."  # noqa: E501 // docs
-                )
-                # silently fail
-                pass
-
         model_format = self.__get_format_identifier(model_format)
 
         if model_format not in self.exports:
@@ -246,7 +232,7 @@ class Version:
 
         self.__download_zip(link, location, model_format)
         self.__extract_zip(location, model_format)
-        self.__reformat_yaml(location, model_format)
+        self.__reformat_yaml(location, model_format)  # TODO: is roboflow-python a place to be munging yaml files?
 
         return Dataset(self.name, self.version, model_format, os.path.abspath(location))
 
@@ -957,7 +943,7 @@ class Version:
                 content["train"] = location + content["train"].lstrip(".")
                 content["val"] = location + content["val"].lstrip(".")
                 content["test"] = location + content["test"].lstrip(".")
-            if format in ["yolov5pytorch", "yolov7pytorch", "yolov8", "yolov9"]:
+            if format in ["yolov5pytorch", "yolov7pytorch"]:
                 content["train"] = location + content["train"].lstrip("..")
                 content["val"] = location + content["val"].lstrip("..")
             try:

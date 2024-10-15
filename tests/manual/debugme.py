@@ -18,7 +18,7 @@ if __name__ == "__main__":
     # args = parser.parse_args(f"upload {thisdir}/../datasets/chess -w wolfodorpythontests -p chess".split())   # noqa: E501 // docs
     args = parser.parse_args(
         # ["login"]
-        # "download https://universe.roboflow.com/gdit/aerial-airport".split()
+        "download -f yolov8 https://universe.roboflow.com/gdit/aerial-airport".split()
         # "project list -w wolfodorpythontests".split()
         # "project get cultura-pepino-dark".split()
         # "workspace list".split()
@@ -42,6 +42,6 @@ if __name__ == "__main__":
         # f"import {thisdir}/data/cultura-pepino-yolov5pytorch -w wolfodorpythontests -p yellow-auto -c 100 -n papaiasso".split()  # noqa: E501 // docs
         # f"import {thisdir}/../datasets/mosquitos -w wolfodorpythontests -p yellow-auto -n papaiasso".split()  # noqa: E501 // docs
         # f"deployment list".split()  # noqa: E501 // docs
-        f"import -w tonyprivate -p meh-plvrv {thisdir}/../datasets/paligemma/".split()  # noqa: E501 // docs
+        # f"import -w tonyprivate -p meh-plvrv {thisdir}/../datasets/paligemma/".split()  # noqa: E501 // docs
     )
     args.func(args)
