@@ -1,6 +1,6 @@
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from roboflow.adapters import deploymentapi
 from roboflow.config import load_roboflow_api_key
@@ -19,6 +19,7 @@ def add_deployment_parser(subparsers):
     )
     deployment_list_parser = deployment_subparsers.add_parser("list", help="list dedicated deployments in a workspace")
     deployment_delete_parser = deployment_subparsers.add_parser("delete", help="delete a dedicated deployment")
+    deployment_log_parser = deployment_subparsers.add_parser("log", help="show log info for a dedicated deployment")
 
     deployment_machine_type_parser.set_defaults(func=list_machine_types)
     deployment_machine_type_parser.add_argument("-a", "--api_key", help="api key")
@@ -68,6 +69,14 @@ def add_deployment_parser(subparsers):
     deployment_delete_parser.set_defaults(func=delete_deployment)
     deployment_delete_parser.add_argument("-a", "--api_key", help="api key")
     deployment_delete_parser.add_argument("deployment_name", help="deployment name")
+    
+    deployment_log_parser.set_defaults(func=get_deployment_log)
+    deployment_log_parser.add_argument("-a", "--api_key", help="api key")
+    deployment_log_parser.add_argument("deployment_name", help="deployment name")
+    deployment_log_parser.add_argument("-d", "--duration", help="duration of log (from now) in seconds", type=int, default=3600)
+    deployment_log_parser.add_argument(
+        "-f", "--follow", help="follow log output", action="store_true"
+    )
 
 
 def list_machine_types(args):
@@ -149,3 +158,33 @@ def delete_deployment(args):
         print(f"{status_code}: {msg}")
         return
     print(json.dumps(msg, indent=2))
+
+
+def get_deployment_log(args):
+    api_key = args.api_key or load_roboflow_api_key(None)
+    if api_key is None:
+        print("Please provide an api key")
+        return
+    
+    to_timestamp = datetime.now()
+    from_timestamp = (to_timestamp - timedelta(seconds = args.duration))
+    log_ids = set() # to avoid duplicate logs
+    while True:
+        status_code, msg = deploymentapi.get_deployment_log(api_key, args.deployment_name, from_timestamp, to_timestamp)
+        if status_code != 200:
+            print(f"{status_code}: {msg}")
+            return
+
+        for log in msg[::-1]: # logs are sorted by reversed timestamp
+            if log['insert_id'] in log_ids:
+                continue
+            log_ids.add(log['insert_id'])
+            print(f'[{datetime.fromisoformat(log["timestamp"]).strftime("%Y-%m-%d %H:%M:%S.%f")}] {log["payload"]}')
+
+        if not args.follow:
+            break
+        
+        time.sleep(10)
+        from_timestamp = to_timestamp
+        to_timestamp = datetime.now()
+
