@@ -57,8 +57,8 @@ def list_machine_types(api_key):
     return response.status_code, response.json()
 
 
-def get_deployment_log(api_key, deployment_name, from_timestamp=None, to_timestamp=None):
-    url = f"{DEDICATED_DEPLOYMENT_URL}/get_log?api_key={api_key}&deployment_name={deployment_name}"
+def get_deployment_log(api_key, deployment_name, max_entries, from_timestamp=None, to_timestamp=None):
+    url = f"{DEDICATED_DEPLOYMENT_URL}/get_log?api_key={api_key}&deployment_name={deployment_name}&max_entries={max_entries}"
     if from_timestamp is not None:
         url += f"&from_timestamp={from_timestamp.isoformat()}"
     if to_timestamp is not None:

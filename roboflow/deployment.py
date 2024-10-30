@@ -74,6 +74,7 @@ def add_deployment_parser(subparsers):
     deployment_log_parser.add_argument("-a", "--api_key", help="api key")
     deployment_log_parser.add_argument("deployment_name", help="deployment name")
     deployment_log_parser.add_argument("-d", "--duration", help="duration of log (from now) in seconds", type=int, default=3600)
+    deployment_log_parser.add_argument("-n", "--tail", help="number of lines to show from the end of the logs (<= 50)", type=int, default=10)
     deployment_log_parser.add_argument(
         "-f", "--follow", help="follow log output", action="store_true"
     )
@@ -83,11 +84,11 @@ def list_machine_types(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
         print("Please provide an api key")
-        return
+        exit(1)
     status_code, msg = deploymentapi.list_machine_types(api_key)
     if status_code != 200:
         print(f"{status_code}: {msg}")
-        return
+        exit(status_code)
     print(json.dumps(msg, indent=2))
 
 
@@ -95,7 +96,7 @@ def add_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
         print("Please provide an api key")
-        return
+        exit(1)
     status_code, msg = deploymentapi.add_deployment(
         api_key,
         # args.security_level,
@@ -108,7 +109,7 @@ def add_deployment(args):
 
     if status_code != 200:
         print(f"{status_code}: {msg}")
-        return
+        exit(status_code)
     else:
         print(f"Deployment {args.deployment_name} created successfully")
         print(json.dumps(msg, indent=2))
@@ -121,12 +122,12 @@ def get_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
         print("Please provide an api key")
-        return
+        exit(1)
     while True:
         status_code, msg = deploymentapi.get_deployment(api_key, args.deployment_name)
         if status_code != 200:
             print(f"{status_code}: {msg}")
-            return
+            exit(status_code)
 
         if (not args.wait_on_pending) or msg["status"] != "pending":
             print(json.dumps(msg, indent=2))
@@ -140,11 +141,11 @@ def list_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
         print("Please provide an api key")
-        return
+        exit(1)
     status_code, msg = deploymentapi.list_deployment(api_key)
     if status_code != 200:
         print(f"{status_code}: {msg}")
-        return
+        exit(status_code)
     print(json.dumps(msg, indent=2))
 
 
@@ -152,11 +153,11 @@ def delete_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
         print("Please provide an api key")
-        return
+        exit(1)
     status_code, msg = deploymentapi.delete_deployment(api_key, args.deployment_name)
     if status_code != 200:
         print(f"{status_code}: {msg}")
-        return
+        exit(status_code)
     print(json.dumps(msg, indent=2))
 
 
@@ -164,16 +165,16 @@ def get_deployment_log(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
         print("Please provide an api key")
-        return
+        exit(1)
     
     to_timestamp = datetime.now()
     from_timestamp = (to_timestamp - timedelta(seconds = args.duration))
     log_ids = set() # to avoid duplicate logs
     while True:
-        status_code, msg = deploymentapi.get_deployment_log(api_key, args.deployment_name, from_timestamp, to_timestamp)
+        status_code, msg = deploymentapi.get_deployment_log(api_key, args.deployment_name, args.tail, from_timestamp, to_timestamp)
         if status_code != 200:
             print(f"{status_code}: {msg}")
-            return
+            exit(status_code)
 
         for log in msg[::-1]: # logs are sorted by reversed timestamp
             if log['insert_id'] in log_ids:
