@@ -170,22 +170,23 @@ def get_deployment_log(args):
         exit(1)
 
     to_timestamp = datetime.now()
-    from_timestamp = (to_timestamp - timedelta(seconds = args.duration))
+    from_timestamp = to_timestamp - timedelta(seconds=args.duration)
     last_log_timestamp = from_timestamp
-    log_ids = set() # to avoid duplicate logs
+    log_ids = set()  # to avoid duplicate logs
     max_entries = args.tail
     while True:
         status_code, msg = deploymentapi.get_deployment_log(
-            api_key, args.deployment_name, from_timestamp, to_timestamp, max_entries)
+            api_key, args.deployment_name, from_timestamp, to_timestamp, max_entries
+        )
         if status_code != 200:
             print(f"{status_code}: {msg}")
             exit(status_code)
 
-        for log in msg[::-1]: # logs are sorted by reversed timestamp
+        for log in msg[::-1]:  # logs are sorted by reversed timestamp
             log_timestamp = datetime.fromisoformat(log["timestamp"]).replace(tzinfo=None)
-            if (log['insert_id'] in log_ids) or (log_timestamp < last_log_timestamp):
+            if (log["insert_id"] in log_ids) or (log_timestamp < last_log_timestamp):
                 continue
-            log_ids.add(log['insert_id'])
+            log_ids.add(log["insert_id"])
             last_log_timestamp = log_timestamp
             print(f'[{log_timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")}] {log["payload"]}')
 
@@ -195,5 +196,4 @@ def get_deployment_log(args):
         time.sleep(10)
         from_timestamp = last_log_timestamp
         to_timestamp = datetime.now()
-        max_entries = 300 # only set max_entries for the first request
-
+        max_entries = 300  # only set max_entries for the first request
