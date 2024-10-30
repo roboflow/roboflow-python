@@ -73,8 +73,10 @@ def add_deployment_parser(subparsers):
     deployment_log_parser.set_defaults(func=get_deployment_log)
     deployment_log_parser.add_argument("-a", "--api_key", help="api key")
     deployment_log_parser.add_argument("deployment_name", help="deployment name")
-    deployment_log_parser.add_argument("-d", "--duration", help="duration of log (from now) in seconds", type=int, default=3600)
-    deployment_log_parser.add_argument("-n", "--tail", help="number of lines to show from the end of the logs (<= 50)", type=int, default=10)
+    deployment_log_parser.add_argument(
+        "-d", "--duration", help="duration of log (from now) in seconds", type=int, default=3600)
+    deployment_log_parser.add_argument(
+        "-n", "--tail", help="number of lines to show from the end of the logs (<= 50)", type=int, default=10)
     deployment_log_parser.add_argument(
         "-f", "--follow", help="follow log output", action="store_true"
     )
