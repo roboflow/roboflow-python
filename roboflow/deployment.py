@@ -1,6 +1,6 @@
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from roboflow.adapters import deploymentapi
 from roboflow.config import load_roboflow_api_key
@@ -19,6 +19,7 @@ def add_deployment_parser(subparsers):
     )
     deployment_list_parser = deployment_subparsers.add_parser("list", help="list dedicated deployments in a workspace")
     deployment_delete_parser = deployment_subparsers.add_parser("delete", help="delete a dedicated deployment")
+    deployment_log_parser = deployment_subparsers.add_parser("log", help="show log info for a dedicated deployment")
 
     deployment_machine_type_parser.set_defaults(func=list_machine_types)
     deployment_machine_type_parser.add_argument("-a", "--api_key", help="api key")
@@ -69,16 +70,27 @@ def add_deployment_parser(subparsers):
     deployment_delete_parser.add_argument("-a", "--api_key", help="api key")
     deployment_delete_parser.add_argument("deployment_name", help="deployment name")
 
+    deployment_log_parser.set_defaults(func=get_deployment_log)
+    deployment_log_parser.add_argument("-a", "--api_key", help="api key")
+    deployment_log_parser.add_argument("deployment_name", help="deployment name")
+    deployment_log_parser.add_argument(
+        "-d", "--duration", help="duration of log (from now) in seconds", type=int, default=3600
+    )
+    deployment_log_parser.add_argument(
+        "-n", "--tail", help="number of lines to show from the end of the logs (<= 50)", type=int, default=10
+    )
+    deployment_log_parser.add_argument("-f", "--follow", help="follow log output", action="store_true")
+
 
 def list_machine_types(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
         print("Please provide an api key")
-        return
+        exit(1)
     status_code, msg = deploymentapi.list_machine_types(api_key)
     if status_code != 200:
         print(f"{status_code}: {msg}")
-        return
+        exit(status_code)
     print(json.dumps(msg, indent=2))
 
 
@@ -86,7 +98,7 @@ def add_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
         print("Please provide an api key")
-        return
+        exit(1)
     status_code, msg = deploymentapi.add_deployment(
         api_key,
         # args.security_level,
@@ -99,7 +111,7 @@ def add_deployment(args):
 
     if status_code != 200:
         print(f"{status_code}: {msg}")
-        return
+        exit(status_code)
     else:
         print(f"Deployment {args.deployment_name} created successfully")
         print(json.dumps(msg, indent=2))
@@ -112,12 +124,12 @@ def get_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
         print("Please provide an api key")
-        return
+        exit(1)
     while True:
         status_code, msg = deploymentapi.get_deployment(api_key, args.deployment_name)
         if status_code != 200:
             print(f"{status_code}: {msg}")
-            return
+            exit(status_code)
 
         if (not args.wait_on_pending) or msg["status"] != "pending":
             print(json.dumps(msg, indent=2))
@@ -131,11 +143,11 @@ def list_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
         print("Please provide an api key")
-        return
+        exit(1)
     status_code, msg = deploymentapi.list_deployment(api_key)
     if status_code != 200:
         print(f"{status_code}: {msg}")
-        return
+        exit(status_code)
     print(json.dumps(msg, indent=2))
 
 
@@ -143,9 +155,45 @@ def delete_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
         print("Please provide an api key")
-        return
+        exit(1)
     status_code, msg = deploymentapi.delete_deployment(api_key, args.deployment_name)
     if status_code != 200:
         print(f"{status_code}: {msg}")
-        return
+        exit(status_code)
     print(json.dumps(msg, indent=2))
+
+
+def get_deployment_log(args):
+    api_key = args.api_key or load_roboflow_api_key(None)
+    if api_key is None:
+        print("Please provide an api key")
+        exit(1)
+
+    to_timestamp = datetime.now()
+    from_timestamp = to_timestamp - timedelta(seconds=args.duration)
+    last_log_timestamp = from_timestamp
+    log_ids = set()  # to avoid duplicate logs
+    max_entries = args.tail
+    while True:
+        status_code, msg = deploymentapi.get_deployment_log(
+            api_key, args.deployment_name, from_timestamp, to_timestamp, max_entries
+        )
+        if status_code != 200:
+            print(f"{status_code}: {msg}")
+            exit(status_code)
+
+        for log in msg[::-1]:  # logs are sorted by reversed timestamp
+            log_timestamp = datetime.fromisoformat(log["timestamp"]).replace(tzinfo=None)
+            if (log["insert_id"] in log_ids) or (log_timestamp < last_log_timestamp):
+                continue
+            log_ids.add(log["insert_id"])
+            last_log_timestamp = log_timestamp
+            print(f'[{log_timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")}] {log["payload"]}')
+
+        if not args.follow:
+            break
+
+        time.sleep(10)
+        from_timestamp = last_log_timestamp
+        to_timestamp = datetime.now()
+        max_entries = 300  # only set max_entries for the first request
