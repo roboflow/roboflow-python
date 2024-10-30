@@ -69,17 +69,17 @@ def add_deployment_parser(subparsers):
     deployment_delete_parser.set_defaults(func=delete_deployment)
     deployment_delete_parser.add_argument("-a", "--api_key", help="api key")
     deployment_delete_parser.add_argument("deployment_name", help="deployment name")
-    
+
     deployment_log_parser.set_defaults(func=get_deployment_log)
     deployment_log_parser.add_argument("-a", "--api_key", help="api key")
     deployment_log_parser.add_argument("deployment_name", help="deployment name")
     deployment_log_parser.add_argument(
-        "-d", "--duration", help="duration of log (from now) in seconds", type=int, default=3600)
-    deployment_log_parser.add_argument(
-        "-n", "--tail", help="number of lines to show from the end of the logs (<= 50)", type=int, default=10)
-    deployment_log_parser.add_argument(
-        "-f", "--follow", help="follow log output", action="store_true"
+        "-d", "--duration", help="duration of log (from now) in seconds", type=int, default=3600
     )
+    deployment_log_parser.add_argument(
+        "-n", "--tail", help="number of lines to show from the end of the logs (<= 50)", type=int, default=10
+    )
+    deployment_log_parser.add_argument("-f", "--follow", help="follow log output", action="store_true")
 
 
 def list_machine_types(args):
@@ -168,14 +168,15 @@ def get_deployment_log(args):
     if api_key is None:
         print("Please provide an api key")
         exit(1)
-    
+
     to_timestamp = datetime.now()
     from_timestamp = (to_timestamp - timedelta(seconds = args.duration))
     last_log_timestamp = from_timestamp
     log_ids = set() # to avoid duplicate logs
     max_entries = args.tail
     while True:
-        status_code, msg = deploymentapi.get_deployment_log(api_key, args.deployment_name, from_timestamp, to_timestamp, max_entries)
+        status_code, msg = deploymentapi.get_deployment_log(
+            api_key, args.deployment_name, from_timestamp, to_timestamp, max_entries)
         if status_code != 200:
             print(f"{status_code}: {msg}")
             exit(status_code)
@@ -190,7 +191,7 @@ def get_deployment_log(args):
 
         if not args.follow:
             break
-        
+
         time.sleep(10)
         from_timestamp = last_log_timestamp
         to_timestamp = datetime.now()
