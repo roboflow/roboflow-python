@@ -60,7 +60,7 @@ class Project:
             self.annotation = a_project["annotation"]
             self.classes = a_project["classes"]
             self.colors = a_project["colors"]
-            self.created = datetime.datetime.fromtimestamp(a_project["created"])
+            self.created = datetime.datetime.fromtimestamp(a_project["created"]) if a_project["created"] else None
             self.id = a_project["id"]
             self.images = a_project["images"]
             self.name = a_project["name"]
@@ -69,7 +69,7 @@ class Project:
             self.type = a_project["type"]
             self.multilabel = a_project.get("multilabel", False)
             self.unannotated = a_project["unannotated"]
-            self.updated = datetime.datetime.fromtimestamp(a_project["updated"])
+            self.updated = datetime.datetime.fromtimestamp(a_project["updated"]) if a_project["updated"] else None
             self.model_format = model_format
 
             temp = self.id.rsplit("/")
