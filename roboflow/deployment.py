@@ -18,8 +18,11 @@ def add_deployment_parser(subparsers):
         "get", help="show detailed info for a dedicated deployment"
     )
     deployment_list_parser = deployment_subparsers.add_parser("list", help="list dedicated deployments in a workspace")
-    deployment_usage_parser = deployment_subparsers.add_parser(
-        "usage", help="get dedicated deployments usage in a workspace"
+    deployment_usage_workspace_parser = deployment_subparsers.add_parser(
+        "usage_workspace", help="get all dedicated deployments usage in a workspace"
+    )
+    deployment_usage_deployment_parser = deployment_subparsers.add_parser(
+        "usage_deployment", help="get usage of a specific dedicated deployments"
     )
     deployment_delete_parser = deployment_subparsers.add_parser("delete", help="delete a dedicated deployment")
     deployment_log_parser = deployment_subparsers.add_parser("log", help="show log info for a dedicated deployment")
@@ -69,10 +72,14 @@ def add_deployment_parser(subparsers):
     deployment_list_parser.set_defaults(func=list_deployment)
     deployment_list_parser.add_argument("-a", "--api_key", help="api key")
 
-    deployment_usage_parser.set_defaults(func=get_workspace_usage)
-    deployment_usage_parser.add_argument("-a", "--api_key", help="api key")
-    deployment_usage_parser.add_argument("target_month", help="target month (format: YYYYMM)", nargs="?")
-    deployment_usage_parser.add_argument("-d", "--details", help="get usage details", action="store_true")
+    deployment_usage_workspace_parser.set_defaults(func=get_workspace_usage)
+    deployment_usage_workspace_parser.add_argument("-a", "--api_key", help="api key")
+    deployment_usage_workspace_parser.add_argument("target_month", help="target month (format: YYYYMM)", nargs="?")
+    
+    deployment_usage_deployment_parser.set_defaults(func=get_deployment_usage)
+    deployment_usage_deployment_parser.add_argument("-a", "--api_key", help="api key")
+    deployment_usage_deployment_parser.add_argument("deployment_name", help="deployment name")
+    deployment_usage_deployment_parser.add_argument("target_month", help="target month (format: YYYYMM)", nargs="?")
 
     deployment_delete_parser.set_defaults(func=delete_deployment)
     deployment_delete_parser.add_argument("-a", "--api_key", help="api key")
@@ -164,7 +171,19 @@ def get_workspace_usage(args):
     if api_key is None:
         print("Please provide an api key")
         exit(1)
-    status_code, msg = deploymentapi.get_workspace_usage(api_key, args.target_month, args.details)
+    status_code, msg = deploymentapi.get_workspace_usage(api_key, args.target_month)
+    if status_code != 200:
+        print(f"{status_code}: {msg}")
+        exit(status_code)
+    print(json.dumps(msg, indent=2))
+
+
+def get_deployment_usage(args):
+    api_key = args.api_key or load_roboflow_api_key(None)
+    if api_key is None:
+        print("Please provide an api key")
+        exit(1)
+    status_code, msg = deploymentapi.get_deployment_usage(api_key, args.deployment_name, args.target_month)
     if status_code != 200:
         print(f"{status_code}: {msg}")
         exit(status_code)
