@@ -75,7 +75,7 @@ def add_deployment_parser(subparsers):
     deployment_usage_workspace_parser.set_defaults(func=get_workspace_usage)
     deployment_usage_workspace_parser.add_argument("-a", "--api_key", help="api key")
     deployment_usage_workspace_parser.add_argument("target_month", help="target month (format: YYYYMM)", nargs="?")
-    
+
     deployment_usage_deployment_parser.set_defaults(func=get_deployment_usage)
     deployment_usage_deployment_parser.add_argument("-a", "--api_key", help="api key")
     deployment_usage_deployment_parser.add_argument("deployment_name", help="deployment name")
