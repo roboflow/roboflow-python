@@ -5,6 +5,41 @@ from datetime import datetime, timedelta
 from roboflow.adapters import deploymentapi
 from roboflow.config import load_roboflow_api_key
 
+def is_valid_ISO8601_timestamp(ts):
+    try:
+        datetime.fromisoformat(ts)
+        return True
+    except:
+        return False
+
+def check_from_to_timestamp(from_timestamp, to_timestamp, default_timedelta):
+    if from_timestamp and not is_valid_ISO8601_timestamp(from_timestamp):
+        print("Please provide a valid from_timestamp in ISO8601 format")
+        exit(1)
+    
+    if to_timestamp and not is_valid_ISO8601_timestamp(to_timestamp):
+        print("Please provide a valid to_timestamp in ISO8601 format")
+        exit(1)
+    
+    time_now = datetime.now().replace(tzinfo=None)
+    if from_timestamp is None and to_timestamp is None:
+        from_timestamp = time_now - default_timedelta
+        to_timestamp = time_now
+    elif from_timestamp is not None and to_timestamp is None:
+        from_timestamp = datetime.fromisoformat(from_timestamp).replace(tzinfo=None)
+        to_timestamp = from_timestamp + default_timedelta
+    elif from_timestamp is None and to_timestamp is not None:
+        to_timestamp = datetime.fromisoformat(to_timestamp).replace(tzinfo=None)
+        from_timestamp = to_timestamp - default_timedelta
+    else:
+        from_timestamp = datetime.fromisoformat(from_timestamp).replace(tzinfo=None)
+        to_timestamp = datetime.fromisoformat(to_timestamp).replace(tzinfo=None)
+        if from_timestamp >= to_timestamp:
+            print("from_timestamp should be earlier than to_timestamp")
+            exit(1)
+    
+    return from_timestamp, to_timestamp
+
 
 def add_deployment_parser(subparsers):
     deployment_parser = subparsers.add_parser(
@@ -74,12 +109,14 @@ def add_deployment_parser(subparsers):
 
     deployment_usage_workspace_parser.set_defaults(func=get_workspace_usage)
     deployment_usage_workspace_parser.add_argument("-a", "--api_key", help="api key")
-    deployment_usage_workspace_parser.add_argument("target_month", help="target month (format: YYYYMM)", nargs="?")
+    deployment_usage_workspace_parser.add_argument("-f", "--from_timestamp", help="begin time stamp in ISO8601 format (YYYY-MM-DD HH:MM:SS)", default=None)
+    deployment_usage_workspace_parser.add_argument("-t", "--to_timestamp", help="end time stamp in ISO8601 format (YYYY-MM-DD HH:MM:SS)", default=None)
     
     deployment_usage_deployment_parser.set_defaults(func=get_deployment_usage)
     deployment_usage_deployment_parser.add_argument("-a", "--api_key", help="api key")
     deployment_usage_deployment_parser.add_argument("deployment_name", help="deployment name")
-    deployment_usage_deployment_parser.add_argument("target_month", help="target month (format: YYYYMM)", nargs="?")
+    deployment_usage_deployment_parser.add_argument("-f", "--from_timestamp", help="begin time stamp in ISO8601 format (YYYY-MM-DD HH:MM:SS)", default=None)
+    deployment_usage_deployment_parser.add_argument("-t", "--to_timestamp", help="end time stamp in ISO8601 format (YYYY-MM-DD HH:MM:SS)", default=None)
 
     deployment_delete_parser.set_defaults(func=delete_deployment)
     deployment_delete_parser.add_argument("-a", "--api_key", help="api key")
@@ -171,7 +208,9 @@ def get_workspace_usage(args):
     if api_key is None:
         print("Please provide an api key")
         exit(1)
-    status_code, msg = deploymentapi.get_workspace_usage(api_key, args.target_month)
+    
+    from_timestamp, to_timestamp = check_from_to_timestamp(args.from_timestamp, args.to_timestamp, timedelta(days=1))
+    status_code, msg = deploymentapi.get_workspace_usage(api_key, from_timestamp, to_timestamp)
     if status_code != 200:
         print(f"{status_code}: {msg}")
         exit(status_code)
@@ -183,7 +222,9 @@ def get_deployment_usage(args):
     if api_key is None:
         print("Please provide an api key")
         exit(1)
-    status_code, msg = deploymentapi.get_deployment_usage(api_key, args.deployment_name, args.target_month)
+    
+    from_timestamp, to_timestamp = check_from_to_timestamp(args.from_timestamp, args.to_timestamp, timedelta(days=1))
+    status_code, msg = deploymentapi.get_deployment_usage(api_key, args.deployment_name, from_timestamp, to_timestamp)
     if status_code != 200:
         print(f"{status_code}: {msg}")
         exit(status_code)

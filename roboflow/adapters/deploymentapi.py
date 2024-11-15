@@ -41,20 +41,16 @@ def list_deployment(api_key):
     return response.status_code, response.json()
 
 
-def get_workspace_usage(api_key, target_month):
-    url = f"{DEDICATED_DEPLOYMENT_URL}/usage_workspace?api_key={api_key}"
-    if target_month is not None:
-        url += f"&target_month={target_month}"
+def get_workspace_usage(api_key, from_timestamp, to_timestamp):
+    url = f"{DEDICATED_DEPLOYMENT_URL}/usage_workspace?api_key={api_key}&from_timestamp={from_timestamp.isoformat()}&to_timestamp={to_timestamp.isoformat()}"
     response = requests.get(url)
     if response.status_code != 200:
         return response.status_code, response.text
     return response.status_code, response.json()
 
 
-def get_deployment_usage(api_key, deployment_name, target_month):
-    url = f"{DEDICATED_DEPLOYMENT_URL}/usage_deployment?api_key={api_key}&deployment_name={deployment_name}"
-    if target_month is not None:
-        url += f"&target_month={target_month}"
+def get_deployment_usage(api_key, deployment_name, from_timestamp, to_timestamp):
+    url = f"{DEDICATED_DEPLOYMENT_URL}/usage_deployment?api_key={api_key}&deployment_name={deployment_name}&from_timestamp={from_timestamp.isoformat()}&to_timestamp={to_timestamp.isoformat()}"
     response = requests.get(url)
     if response.status_code != 200:
         return response.status_code, response.text
