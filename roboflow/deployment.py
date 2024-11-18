@@ -169,7 +169,7 @@ def get_deployment_log(args):
         print("Please provide an api key")
         exit(1)
 
-    to_timestamp = datetime.now().astimezone() # local timezone
+    to_timestamp = datetime.now().astimezone()  # local timezone
     from_timestamp = to_timestamp - timedelta(seconds=args.duration)
     last_log_timestamp = from_timestamp
     log_ids = set()  # to avoid duplicate logs
@@ -195,5 +195,5 @@ def get_deployment_log(args):
 
         time.sleep(10)
         from_timestamp = last_log_timestamp
-        to_timestamp = datetime.now().astimezone() # local timezone
+        to_timestamp = datetime.now().astimezone()  # local timezone
         max_entries = 300  # only set max_entries for the first request
