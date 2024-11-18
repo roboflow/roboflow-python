@@ -1,5 +1,5 @@
 import requests
-
+import urllib
 from roboflow.config import DEDICATED_DEPLOYMENT_URL
 
 
@@ -58,13 +58,14 @@ def list_machine_types(api_key):
 
 
 def get_deployment_log(api_key, deployment_name, from_timestamp=None, to_timestamp=None, max_entries=-1):
-    url = f"{DEDICATED_DEPLOYMENT_URL}/get_log?api_key={api_key}&deployment_name={deployment_name}"
+    params = {'api_key': api_key, 'deployment_name': deployment_name}
     if from_timestamp is not None:
-        url += f"&from_timestamp={from_timestamp.isoformat()}"
+        params['from_timestamp'] = from_timestamp.isoformat() # may contain + sign
     if to_timestamp is not None:
-        url += f"&to_timestamp={to_timestamp.isoformat()}"
+        params['to_timestamp'] = to_timestamp.isoformat() # may contain + sign
     if max_entries > 0:
-        url += f"&max_entries={max_entries}"
+        params['max_entries'] = max_entries
+    url = f"{DEDICATED_DEPLOYMENT_URL}/get_log?{urllib.parse.urlencode(params)}"
     response = requests.get(url)
     if response.status_code != 200:
         return response.status_code, response.text
