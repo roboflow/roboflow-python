@@ -44,7 +44,12 @@ def list_deployment(api_key):
 
 
 def get_workspace_usage(api_key, from_timestamp, to_timestamp):
-    url = f"{DEDICATED_DEPLOYMENT_URL}/usage_workspace?api_key={api_key}&from_timestamp={from_timestamp.isoformat()}&to_timestamp={to_timestamp.isoformat()}"
+    params = {"api_key": api_key}
+    if from_timestamp is not None:
+        params["from_timestamp"] = from_timestamp.isoformat()  # may contain + sign
+    if to_timestamp is not None:
+        params["to_timestamp"] = to_timestamp.isoformat()  # may contain + sign
+    url = f"{DEDICATED_DEPLOYMENT_URL}/usage_workspace?{urllib.parse.urlencode(params)}"
     response = requests.get(url)
     if response.status_code != 200:
         return response.status_code, response.text
@@ -52,7 +57,12 @@ def get_workspace_usage(api_key, from_timestamp, to_timestamp):
 
 
 def get_deployment_usage(api_key, deployment_name, from_timestamp, to_timestamp):
-    url = f"{DEDICATED_DEPLOYMENT_URL}/usage_deployment?api_key={api_key}&deployment_name={deployment_name}&from_timestamp={from_timestamp.isoformat()}&to_timestamp={to_timestamp.isoformat()}"
+    params = {"api_key": api_key, "deployment_name": deployment_name}
+    if from_timestamp is not None:
+        params["from_timestamp"] = from_timestamp.isoformat()  # may contain + sign
+    if to_timestamp is not None:
+        params["to_timestamp"] = to_timestamp.isoformat()  # may contain + sign
+    url = f"{DEDICATED_DEPLOYMENT_URL}/usage_deployment?{urllib.parse.urlencode(params)}"
     response = requests.get(url)
     if response.status_code != 200:
         return response.status_code, response.text

@@ -23,19 +23,19 @@ def check_from_to_timestamp(from_timestamp, to_timestamp, default_timedelta):
         print("Please provide a valid to_timestamp in ISO8601 format")
         exit(1)
 
-    time_now = datetime.now().replace(tzinfo=None)
+    time_now = datetime.now().astimezone()  # local timezone
     if from_timestamp is None and to_timestamp is None:
         from_timestamp = time_now - default_timedelta
         to_timestamp = time_now
     elif from_timestamp is not None and to_timestamp is None:
-        from_timestamp = datetime.fromisoformat(from_timestamp).replace(tzinfo=None)
+        from_timestamp = datetime.fromisoformat(from_timestamp).astimezone()
         to_timestamp = from_timestamp + default_timedelta
     elif from_timestamp is None and to_timestamp is not None:
-        to_timestamp = datetime.fromisoformat(to_timestamp).replace(tzinfo=None)
+        to_timestamp = datetime.fromisoformat(to_timestamp).astimezone()
         from_timestamp = to_timestamp - default_timedelta
     else:
-        from_timestamp = datetime.fromisoformat(from_timestamp).replace(tzinfo=None)
-        to_timestamp = datetime.fromisoformat(to_timestamp).replace(tzinfo=None)
+        from_timestamp = datetime.fromisoformat(from_timestamp).astimezone()
+        to_timestamp = datetime.fromisoformat(to_timestamp).astimezone()
         if from_timestamp >= to_timestamp:
             print("from_timestamp should be earlier than to_timestamp")
             exit(1)
