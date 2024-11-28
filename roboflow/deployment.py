@@ -16,11 +16,11 @@ def is_valid_ISO8601_timestamp(ts):
 
 def check_from_to_timestamp(from_timestamp, to_timestamp, default_timedelta):
     if from_timestamp and not is_valid_ISO8601_timestamp(from_timestamp):
-        print("Please provide a valid from_timestamp in ISO8601 format")
+        print("Please provide a valid from_timestamp in ISO8601 format (YYYY-MM-DD HH:MM:SS)")
         exit(1)
 
     if to_timestamp and not is_valid_ISO8601_timestamp(to_timestamp):
-        print("Please provide a valid to_timestamp in ISO8601 format")
+        print("Please provide a valid to_timestamp in ISO8601 format (YYYY-MM-DD HH:MM:SS)")
         exit(1)
 
     time_now = datetime.now().astimezone()  # local timezone
