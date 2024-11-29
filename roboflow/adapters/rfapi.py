@@ -101,7 +101,7 @@ def upload_image(
         pass
 
     if response.status_code != 200:
-        if responsejson:
+        if responsejson and isinstance(responsejson, dict):
             err_msg = responsejson
 
             if err_msg.get("error"):
