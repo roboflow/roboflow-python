@@ -1,9 +1,10 @@
+import requests
 import responses
 
 from roboflow import API_URL
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError
 from roboflow.config import DEFAULT_BATCH_NAME
-from tests import PROJECT_NAME, ROBOFLOW_API_KEY, RoboflowTest
+from tests import PROJECT_NAME, ROBOFLOW_API_KEY, WORKSPACE_NAME, RoboflowTest
 
 
 class TestProject(RoboflowTest):
@@ -82,3 +83,64 @@ class TestProject(RoboflowTest):
             )
 
         self.assertEqual(str(error.exception), "Image was already annotated.")
+
+    def test_image_success(self):
+        image_id = "test-image-id"
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/images/{image_id}?api_key={ROBOFLOW_API_KEY}"
+        mock_response = {
+            "image": {
+                "id": image_id,
+                "name": "test_image.jpg",
+                "annotation": {
+                    "key": "some-key",
+                    "width": 640,
+                    "height": 480,
+                    "boxes": [{"label": "person", "x": 100, "y": 150, "width": 50, "height": 80}],
+                },
+                "labels": ["person"],
+                "split": "train",
+                "tags": ["tag1", "tag2"],
+                "created": 1616161616,
+                "urls": {
+                    "original": "https://example.com/image.jpg",
+                    "thumb": "https://example.com/thumb.jpg",
+                    "annotation": "https://example.com/annotation.json",
+                },
+                "embedding": [0.1, 0.2, 0.3],
+            }
+        }
+
+        responses.add(responses.GET, expected_url, json=mock_response, status=200)
+
+        image_details = self.project.image(image_id)
+
+        self.assertIsInstance(image_details, dict)
+        self.assertEqual(image_details["id"], image_id)
+        self.assertEqual(image_details["name"], "test_image.jpg")
+        self.assertIn("annotation", image_details)
+        self.assertIn("labels", image_details)
+        self.assertEqual(image_details["split"], "train")
+
+    def test_image_not_found(self):
+        image_id = "nonexistent-image-id"
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/images/{image_id}?api_key={ROBOFLOW_API_KEY}"
+        mock_response = {"error": "Image not found."}
+
+        responses.add(responses.GET, expected_url, json=mock_response, status=404)
+
+        with self.assertRaises(RuntimeError) as context:
+            self.project.image(image_id)
+
+            self.assertIn("HTTP error occurred while fetching image details", str(context.exception))
+
+    def test_image_invalid_json_response(self):
+        image_id = "invalid-json-image-id"
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/images/{image_id}?api_key={ROBOFLOW_API_KEY}"
+        invalid_json = "Invalid JSON response"
+
+        responses.add(responses.GET, expected_url, body=invalid_json, status=200)
+
+        with self.assertRaises(requests.exceptions.JSONDecodeError) as context:
+            self.project.image(image_id)
+
+        self.assertIn("Expecting value", str(context.exception))
