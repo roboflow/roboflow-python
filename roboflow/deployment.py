@@ -10,7 +10,7 @@ def is_valid_ISO8601_timestamp(ts):
     try:
         datetime.fromisoformat(ts)
         return True
-    except:
+    except ValueError:
         return False
 
 
