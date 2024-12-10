@@ -488,6 +488,7 @@ class Version:
             "yolov9",
             "yolonas",
             "paligemma",
+            "paligemma2",
             "yolov10",
             "florence-2",
             "yolov11",
@@ -496,8 +497,8 @@ class Version:
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
 
-        if model_type.startswith(("paligemma", "florence-2")):
-            if "paligemma" in model_type or "florence-2" in model_type:
+        if model_type.startswith(("paligemma", "paligemma2", "florence-2")):
+            if any(model in model_type for model in ["paligemma", "paligemma2", "florence-2"]):
                 supported_hf_types = [
                     "florence-2-base",
                     "florence-2-large",
