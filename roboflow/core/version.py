@@ -506,7 +506,7 @@ class Version:
                     "paligemma-3b-pt-896",
                     "paligemma2-3b-pt-224",
                     "paligemma2-3b-pt-448",
-                    "paligemma2-3b-pt-896"
+                    "paligemma2-3b-pt-896",
                 ]
                 if model_type not in supported_hf_types:
                     raise RuntimeError(
