@@ -13,6 +13,7 @@ def is_valid_ISO8601_timestamp(ts):
     except:  # noqa: E722
         return False
 
+
 def check_from_to_timestamp(from_timestamp, to_timestamp, default_timedelta):
     if from_timestamp and not is_valid_ISO8601_timestamp(from_timestamp):
         print("Please provide a valid from_timestamp in ISO8601 format (YYYY-MM-DD HH:MM:SS)")
