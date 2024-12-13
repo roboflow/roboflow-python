@@ -488,6 +488,7 @@ class Version:
             "yolov9",
             "yolonas",
             "paligemma",
+            "paligemma2",
             "yolov10",
             "florence-2",
             "yolov11",
@@ -496,14 +497,17 @@ class Version:
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
 
-        if model_type.startswith(("paligemma", "florence-2")):
-            if "paligemma" in model_type or "florence-2" in model_type:
+        if model_type.startswith(("paligemma", "paligemma2", "florence-2")):
+            if any(model in model_type for model in ["paligemma", "paligemma2", "florence-2"]):
                 supported_hf_types = [
                     "florence-2-base",
                     "florence-2-large",
                     "paligemma-3b-pt-224",
                     "paligemma-3b-pt-448",
                     "paligemma-3b-pt-896",
+                    "paligemma2-3b-pt-224",
+                    "paligemma2-3b-pt-448",
+                    "paligemma2-3b-pt-896",
                 ]
                 if model_type not in supported_hf_types:
                     raise RuntimeError(
@@ -819,10 +823,8 @@ class Version:
         def bar_progress(current, total, width=80):
             progress_message = (
                 "Downloading Dataset Version Zip in "
-                + location
-                + " to "
-                + format
-                + ": %d%% [%d / %d] bytes" % (current / total * 100, current, total)
+                f"{location} to {format}: "
+                f"{current/total*100:.0f}% [{current} / {total}] bytes"
             )
             sys.stdout.write("\r" + progress_message)
             sys.stdout.flush()
