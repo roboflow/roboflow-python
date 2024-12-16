@@ -781,7 +781,7 @@ class Version:
                     if file in ["model_artifacts.json", filename]:
                         raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
 
-        self.upload_zip(model_type, model_path, zip_file_name)
+        return zip_file_name
 
     def _upload_zip(self, model_type: str, model_path: str, model_file_name: str):
         res = requests.get(
