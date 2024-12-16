@@ -521,6 +521,16 @@ class Version:
             self.deploy_yolonas(model_type, model_path, filename)
             return
 
+        self.deploy_yolo(model_type, model_path, filename)
+
+    def deploy_yolo(self, model_type: str, model_path: str, filename: str) -> None:
+        """Deploy YOLO model to Roboflow.
+
+        Args:
+            model_type (str): The type of YOLO model to deploy
+            model_path (str): Path to model weights
+            filename (str): Name of weights file
+        """
         if "yolov8" in model_type:
             try:
                 import torch
