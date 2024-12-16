@@ -573,7 +573,7 @@ class Workspace:
         self,
         model_type: str,
         model_path: str,
-        project_urls: list[str],
+        project_ids: list[str],
         filename: str = "weights/best.pt",
     ):
         """Uploads provided weights file to Roboflow.
@@ -581,31 +581,30 @@ class Workspace:
         Args:
             model_type (str): The type of the model to be deployed.
             model_path (str): File path to the model weights to be uploaded.
-            project_urls (list[str]): List of project URLs to deploy the model to.
+            project_ids (list[str]): List of project IDs to deploy the model to.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
 
-        if not project_urls:
-            raise ValueError("At least one project URL must be provided")
+        if not project_ids:
+            raise ValueError("At least one project ID must be provided")
 
         # Validate if provided project URLs belong to user's projects
-        user_projects = set(self.projects())
-        for project_url in project_urls:
-            project_id = project_url.split("/")[-1]
+        user_projects = set(p.id for p in self.projects())
+        for project_id in project_ids:
             if project_id not in user_projects:
-                raise ValueError(f"Project {project_url} is not accessible in this workspace")
+                raise ValueError(f"Project {project_id} is not accessible in this workspace")
 
         zip_file_name = process(model_type, model_path, filename)
 
         if zip_file_name is None:
             raise RuntimeError("Failed to process model")
 
-        self._upload_zip(model_type, model_path, project_urls, zip_file_name)
+        self._upload_zip(model_type, model_path, project_ids, zip_file_name)
 
-    def _upload_zip(self, model_type: str, model_path: str, project_urls: list[str], model_file_name: str):
+    def _upload_zip(self, model_type: str, model_path: str, project_ids: list[str], model_file_name: str):
         # TODO: Need to create this endpoint
         res = requests.post(
-            f"{API_URL}/{self.url}/uploadModel?api_key={self.__api_key}&modelType={model_type}&project_urls={','.join(project_urls)}&nocache=true"
+            f"{API_URL}/{self.url}/uploadModel?api_key={self.__api_key}&modelType={model_type}&project_ids={','.join(project_ids)}&nocache=true"
         )
         try:
             res.raise_for_status()

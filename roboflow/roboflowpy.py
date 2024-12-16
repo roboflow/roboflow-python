@@ -89,7 +89,7 @@ def upload_model(args):
         workspace.deploy_model(
             model_type=str(args.model_type),
             model_path=str(args.model_path),
-            project_urls=args.project,
+            project_ids=args.project,
             filename=str(args.filename),
         )
 
