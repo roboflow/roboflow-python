@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import zipfile
+from typing import Callable
 
 import yaml
 
@@ -13,7 +14,7 @@ def process(model_type: str, model_path: str, filename: str) -> str:
     return processor(model_type, model_path, filename)
 
 
-def _get_processor_function(model_type: str) -> callable:
+def _get_processor_function(model_type: str) -> Callable:
     if model_type.startswith("yolo11"):
         model_type = model_type.replace("yolo11", "yolov11")
 

@@ -600,12 +600,12 @@ class Workspace:
         if zip_file_name is None:
             raise RuntimeError("Failed to process model")
 
-        self._upload_zip(model_type, model_path, zip_file_name, project_urls)
+        self._upload_zip(model_type, model_path, project_urls, zip_file_name)
 
     def _upload_zip(self, model_type: str, model_path: str, project_urls: list[str], model_file_name: str):
         # TODO: Need to create this endpoint
         res = requests.post(
-            f"{API_URL}/{self.workspace}/uploadModel?api_key={self.__api_key}&modelType={model_type}&project_urls={','.join(project_urls)}&nocache=true"
+            f"{API_URL}/{self.url}/uploadModel?api_key={self.__api_key}&modelType={model_type}&project_urls={','.join(project_urls)}&nocache=true"
         )
         try:
             res.raise_for_status()
@@ -622,7 +622,7 @@ class Workspace:
             res.raise_for_status()
 
             # TODO: Need to check this URL
-            print("View the status of your deployment at:" f" {APP_URL}/{self.workspace}/models")
+            print("View the status of your deployment at:" f" {APP_URL}/{self.url}/models")
 
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
