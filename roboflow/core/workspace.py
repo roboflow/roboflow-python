@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import concurrent.futures
 import glob
 import json
@@ -10,11 +12,12 @@ from PIL import Image
 
 from roboflow.adapters import rfapi
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
-from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
+from roboflow.config import API_URL, APP_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
 from roboflow.util.image_utils import load_labelmap
+from roboflow.util.model_processor import process
 from roboflow.util.two_stage_utils import ocr_infer
 
 
@@ -565,6 +568,64 @@ class Workspace:
         return (
             prediction_results if type(raw_data_location) is not np.ndarray else prediction_results[-1]["predictions"]
         )
+
+    def deploy_model(
+        self,
+        model_type: str,
+        model_path: str,
+        project_urls: list[str],
+        filename: str = "weights/best.pt",
+    ):
+        """Uploads provided weights file to Roboflow.
+
+        Args:
+            model_type (str): The type of the model to be deployed.
+            model_path (str): File path to the model weights to be uploaded.
+            project_urls (list[str]): List of project URLs to deploy the model to.
+            filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
+        """
+
+        if not project_urls:
+            raise ValueError("At least one project URL must be provided")
+
+        # Validate if provided project URLs belong to user's projects
+        user_projects = set(self.projects())
+        for project_url in project_urls:
+            project_id = project_url.split("/")[-1]
+            if project_id not in user_projects:
+                raise ValueError(f"Project {project_url} is not accessible in this workspace")
+
+        zip_file_name = process(model_type, model_path, filename)
+
+        if zip_file_name is None:
+            raise RuntimeError("Failed to process model")
+
+        self._upload_zip(model_type, model_path, zip_file_name, project_urls)
+
+    def _upload_zip(self, model_type: str, model_path: str, project_urls: list[str], model_file_name: str):
+        # TODO: Need to create this endpoint
+        res = requests.post(
+            f"{API_URL}/{self.workspace}/uploadModel?api_key={self.__api_key}&modelType={model_type}&project_urls={','.join(project_urls)}&nocache=true"
+        )
+        try:
+            res.raise_for_status()
+        except Exception as e:
+            print(f"An error occured when getting the model upload URL: {e}")
+            return
+
+        # TODO: Need to check why we use that
+        res = requests.put(
+            res.json()["url"],
+            data=open(os.path.join(model_path, model_file_name), "rb"),
+        )
+        try:
+            res.raise_for_status()
+
+            # TODO: Need to check this URL
+            print("View the status of your deployment at:" f" {APP_URL}/{self.workspace}/models")
+
+        except Exception as e:
+            print(f"An error occured when uploading the model: {e}")
 
     def __str__(self):
         projects = self.projects()
