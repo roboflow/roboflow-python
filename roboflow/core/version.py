@@ -497,6 +497,8 @@ class Version:
         if not any(supported_model in model_type for supported_model in supported_models):
             raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
 
+        zip_file_name = None
+
         if model_type.startswith(("paligemma", "paligemma2", "florence-2")):
             if any(model in model_type for model in ["paligemma", "paligemma2", "florence-2"]):
                 supported_hf_types = [
@@ -514,23 +516,19 @@ class Version:
                         f"{model_type} not supported for this type of upload."
                         f"Supported upload types are {supported_hf_types}"
                     )
-            self.deploy_huggingface(model_type, model_path, filename)
-            return
+            zip_file_name = self.process_huggingface(model_type, model_path, filename)
 
         if "yolonas" in model_type:
-            self.deploy_yolonas(model_type, model_path, filename)
-            return
+            zip_file_name = self.process_yolonas(model_type, model_path, filename)
 
-        self.deploy_yolo(model_type, model_path, filename)
+        zip_file_name = self.process_yolo(model_type, model_path, filename)
 
-    def deploy_yolo(self, model_type: str, model_path: str, filename: str) -> None:
-        """Deploy YOLO model to Roboflow.
+        if zip_file_name is None:
+            raise RuntimeError("Failed to process model")
 
-        Args:
-            model_type (str): The type of YOLO model to deploy
-            model_path (str): Path to model weights
-            filename (str): Name of weights file
-        """
+        self.upload_zip(model_type, model_path, zip_file_name)
+
+    def process_yolo(self, model_type: str, model_path: str, filename: str) -> str:
         if "yolov8" in model_type:
             try:
                 import torch
@@ -648,7 +646,9 @@ class Version:
             "state_dict.pt",
         ]
 
-        with zipfile.ZipFile(os.path.join(model_path, "roboflow_deploy.zip"), "w") as zipMe:
+        zip_file_name = "roboflow_deploy.zip"
+
+        with zipfile.ZipFile(os.path.join(model_path, zip_file_name), "w") as zipMe:
             for file in list_files:
                 if os.path.exists(os.path.join(model_path, file)):
                     zipMe.write(
@@ -660,11 +660,11 @@ class Version:
                     if file in ["model_artifacts.json", "state_dict.pt"]:
                         raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
 
-        self.upload_zip(model_type, model_path)
+        return zip_file_name
 
-    def deploy_huggingface(
+    def process_huggingface(
         self, model_type: str, model_path: str, filename: str = "fine-tuned-paligemma-3b-pt-224.f16.npz"
-    ) -> None:
+    ) -> str:
         # Check if model_path exists
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model path {model_path} does not exist.")
@@ -703,14 +703,17 @@ class Version:
 
         import tarfile
 
-        with tarfile.open(os.path.join(model_path, "roboflow_deploy.tar"), "w") as tar:
+        tar_file_name = "roboflow_deploy.tar"
+
+        with tarfile.open(os.path.join(model_path, tar_file_name), "w") as tar:
             for file in files_to_deploy:
                 tar.add(os.path.join(model_path, file), arcname=file)
 
         print("Uploading to Roboflow... May take several minutes.")
-        self.upload_zip(model_type, model_path, "roboflow_deploy.tar")
 
-    def deploy_yolonas(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
+        return tar_file_name
+
+    def process_yolonas(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> str:
         try:
             import torch
         except ImportError:
@@ -761,7 +764,9 @@ class Version:
             "state_dict.pt",
         ]
 
-        with zipfile.ZipFile(os.path.join(model_path, "roboflow_deploy.zip"), "w") as zipMe:
+        zip_file_name = "roboflow_deploy.zip"
+
+        with zipfile.ZipFile(os.path.join(model_path, zip_file_name), "w") as zipMe:
             for file in list_files:
                 if os.path.exists(os.path.join(model_path, file)):
                     zipMe.write(
@@ -773,9 +778,9 @@ class Version:
                     if file in ["model_artifacts.json", filename]:
                         raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
 
-        self.upload_zip(model_type, model_path)
+        self.upload_zip(model_type, model_path, zip_file_name)
 
-    def upload_zip(self, model_type: str, model_path: str, model_file_name: str = "roboflow_deploy.zip"):
+    def upload_zip(self, model_type: str, model_path: str, model_file_name: str):
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}"
             f"/uploadModel?api_key={self.__api_key}&modelType={model_type}&nocache=true"
