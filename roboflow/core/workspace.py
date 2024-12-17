@@ -617,10 +617,10 @@ class Workspace:
         try:
             res.raise_for_status()
         except Exception as e:
-            print(f"An error occured when getting the model upload URL: {e}")
+            print(f"An error occured when getting the model deployment URL: {e}")
             return
 
-        # TODO: Need to check why we use that
+        # Upload the model to the signed URL
         res = requests.put(
             res.json()["url"],
             data=open(os.path.join(model_path, model_file_name), "rb"),
