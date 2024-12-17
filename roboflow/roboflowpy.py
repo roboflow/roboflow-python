@@ -90,6 +90,7 @@ def upload_model(args):
             model_type=str(args.model_type),
             model_path=str(args.model_path),
             project_ids=args.project,
+            model_name=str(args.model_name),
             filename=str(args.filename),
         )
 
@@ -509,6 +510,11 @@ def _add_upload_model_parser(subparsers):
         dest="filename",
         default="weights/best.pt",
         help="name of the model file",
+    )
+    upload_model_parser.add_argument(
+        "-n",
+        dest="model_name",
+        help="name of the model",
     )
     upload_model_parser.set_defaults(func=upload_model)
 

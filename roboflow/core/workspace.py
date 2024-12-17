@@ -574,6 +574,7 @@ class Workspace:
         model_type: str,
         model_path: str,
         project_ids: list[str],
+        model_name: str,
         filename: str = "weights/best.pt",
     ):
         """Uploads provided weights file to Roboflow.
@@ -599,12 +600,19 @@ class Workspace:
         if zip_file_name is None:
             raise RuntimeError("Failed to process model")
 
-        self._upload_zip(model_type, model_path, project_ids, zip_file_name)
+        self._upload_zip(model_type, model_path, project_ids, model_name, zip_file_name)
 
-    def _upload_zip(self, model_type: str, model_path: str, project_ids: list[str], model_file_name: str):
+    def _upload_zip(
+        self,
+        model_type: str,
+        model_path: str,
+        project_ids: list[str],
+        model_name: str,
+        model_file_name: str,
+    ):
         # TODO: Need to create this endpoint
         res = requests.post(
-            f"{API_URL}/{self.url}/uploadModel?api_key={self.__api_key}&modelType={model_type}&project_ids={','.join(project_ids)}&nocache=true"
+            f"{API_URL}/{self.url}/uploadModel?api_key={self.__api_key}&modelType={model_type}&modelName={model_name}&projectIds={','.join(project_ids)}&nocache=true"
         )
         try:
             res.raise_for_status()
