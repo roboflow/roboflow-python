@@ -610,7 +610,7 @@ class Workspace:
         model_name: str,
         model_file_name: str,
     ):
-        # TODO: Need to create this endpoint
+        # This endpoint returns a signed URL to upload the model
         res = requests.post(
             f"{API_URL}/{self.url}/uploadModel?api_key={self.__api_key}&modelType={model_type}&modelName={model_name}&projectIds={','.join(project_ids)}&nocache=true"
         )
@@ -628,8 +628,11 @@ class Workspace:
         try:
             res.raise_for_status()
 
-            # TODO: Need to check this URL
-            print("View the status of your deployment at:" f" {APP_URL}/{self.url}/models")
+            for project_id in project_ids:
+                print(
+                    f"View the status of your deployment for project {project_id} at:"
+                    f" {APP_URL}/{self.url}/{project_id}/models"
+                )
 
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
