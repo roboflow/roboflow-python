@@ -590,7 +590,7 @@ class Workspace:
             raise ValueError("At least one project ID must be provided")
 
         # Validate if provided project URLs belong to user's projects
-        user_projects = set(p.id for p in self.projects())
+        user_projects = set(project.split('/')[-1] for project in self.projects())
         for project_id in project_ids:
             if project_id not in user_projects:
                 raise ValueError(f"Project {project_id} is not accessible in this workspace")
