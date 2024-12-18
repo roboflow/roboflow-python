@@ -16,7 +16,10 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 
 
 def login(args):
-    roboflow.login()
+    if args.force:
+        roboflow.login(force=True)
+    else:
+        roboflow.login()
 
 
 def _parse_url(url):
@@ -550,6 +553,12 @@ def _add_get_workspace_project_version_parser(subparsers):
 
 def _add_login_parser(subparsers):
     login_parser = subparsers.add_parser("login", help="Log in to Roboflow")
+    login_parser.add_argument(
+        "-f",
+        dest="force",
+        help="force login",
+        action="store_true",
+    )
     login_parser.set_defaults(func=login)
 
 
