@@ -89,7 +89,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
             import torch
         except ImportError:
             raise RuntimeError(
-                "The torch python package is required to deploy yolov5 models."
+                f"The torch python package is required to deploy {model_type} models."
                 " Please install it with `pip install torch`"
             )
 
@@ -100,7 +100,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
         except ImportError:
             raise RuntimeError(
-                "The ultralytics python package is required to deploy yolov10"
+                "The ultralytics python package is required to deploy yolov11"
                 " models. Please install it with `pip install ultralytics`"
             )
 
