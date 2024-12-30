@@ -611,8 +611,8 @@ class Workspace:
         model_file_name: str,
     ):
         # This endpoint returns a signed URL to upload the model
-        res = requests.get(
-            f"{API_URL}/{self.url}/models/getDeployUrl?api_key={self.__api_key}&modelType={model_type}&modelName={model_name}&projectIds={','.join(project_ids)}&nocache=true"
+        res = requests.post(
+            f"{API_URL}/{self.url}/models/prepareUpload?api_key={self.__api_key}&modelType={model_type}&modelName={model_name}&projectIds={','.join(project_ids)}&nocache=true"
         )
         try:
             res.raise_for_status()
