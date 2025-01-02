@@ -62,7 +62,7 @@ class InferenceModel:
         Get parameters about an image (i.e. dimensions) for use in an inference request.
 
         Args:
-            image_path (str): path to the image you'd like to perform prediction on
+            image_path (Union[str, np.ndarray]): path to image or numpy array
 
         Returns:
             Tuple containing a dict of querystring params and a dict of requests kwargs
@@ -70,6 +70,18 @@ class InferenceModel:
         Raises:
             Exception: Image path is not valid
         """
+        import numpy as np
+
+        if isinstance(image_path, np.ndarray):
+            # Convert numpy array to PIL Image
+            image = Image.fromarray(image_path)
+            dimensions = image.size
+            image_dims = {"width": str(dimensions[0]), "height": str(dimensions[1])}
+            buffered = io.BytesIO()
+            image.save(buffered, quality=90, format="JPEG")
+            data = MultipartEncoder(fields={"file": ("imageToUpload", buffered.getvalue(), "image/jpeg")})
+            return {}, {"data": data, "headers": {"Content-Type": data.content_type}}, image_dims
+
         validate_image_path(image_path)
 
         hosted_image = urllib.parse.urlparse(image_path).scheme in ("http", "https")
