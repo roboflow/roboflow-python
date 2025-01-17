@@ -172,7 +172,6 @@ class ObjectDetectionModel(InferenceModel):
         else:
             self.__exception_check(image_path_check=image_path)
 
-        resize = False
         original_dimensions = None
         # If image is local image
         if not hosted:
@@ -201,7 +200,6 @@ class ObjectDetectionModel(InferenceModel):
                             )
                         )
                         dimensions = image.size
-                        resize = True
 
                 # Create buffer
                 buffered = io.BytesIO()
