@@ -179,6 +179,8 @@ class ObjectDetectionModel(InferenceModel):
             import cv2
             import numpy as np
 
+            should_resize = "resize" in self.preprocessing.keys() and "Stretch" in self.preprocessing["resize"]["format"]
+
             if isinstance(image_path, str):
                 image = Image.open(image_path).convert("RGB")
                 dimensions = image.size
@@ -186,7 +188,7 @@ class ObjectDetectionModel(InferenceModel):
 
                 # Here we resize the image to the preprocessing settings
                 # before sending it over the wire
-                if "resize" in self.preprocessing.keys():
+                if should_resize:
                     if dimensions[0] > int(self.preprocessing["resize"]["width"]) or dimensions[1] > int(
                         self.preprocessing["resize"]["height"]
                     ):
@@ -245,7 +247,7 @@ class ObjectDetectionModel(InferenceModel):
         if self.format == "json":
             resp_json = resp.json()
 
-            if resize and original_dimensions is not None:
+            if should_resize and original_dimensions is not None:
                 new_preds = []
                 for p in resp_json["predictions"]:
                     p["x"] = int(p["x"] * (int(original_dimensions[0]) / int(self.preprocessing["resize"]["width"])))
