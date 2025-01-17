@@ -249,7 +249,7 @@ def _add_upload_parser(subparsers):
     upload_parser.add_argument(
         "-w",
         dest="workspace",
-        help="specify a workspace url or id " "(will use default workspace if not specified)",
+        help="specify a workspace url or id (will use default workspace if not specified)",
     )
     upload_parser.add_argument(
         "-p",
@@ -307,7 +307,7 @@ def _add_import_parser(subparsers):
     import_parser.add_argument(
         "-w",
         dest="workspace",
-        help="specify a workspace url or id " "(will use default workspace if not specified)",
+        help="specify a workspace url or id (will use default workspace if not specified)",
     )
     import_parser.add_argument(
         "-p",

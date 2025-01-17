@@ -197,7 +197,7 @@ def get_deployment(args):
             print(json.dumps(msg, indent=2))
             break
 
-        print(f'{datetime.now().strftime("%H:%M:%S")} Waiting for deployment {args.deployment_name} to be ready...\n')
+        print(f"{datetime.now().strftime('%H:%M:%S')} Waiting for deployment {args.deployment_name} to be ready...\n")
         time.sleep(30)
 
 
@@ -278,7 +278,7 @@ def get_deployment_log(args):
                 continue
             log_ids.add(log["insert_id"])
             last_log_timestamp = log_timestamp
-            print(f'[{log_timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")}] {log["payload"]}')
+            print(f"[{log_timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')}] {log['payload']}")
 
         if not args.follow:
             break

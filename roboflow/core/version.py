@@ -495,7 +495,7 @@ class Version:
         ]
 
         if not any(supported_model in model_type for supported_model in supported_models):
-            raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
+            raise (ValueError(f"Model type {model_type} not supported. Supported models are {supported_models}"))
 
         if model_type.startswith(("paligemma", "paligemma2", "florence-2")):
             if any(model in model_type for model in ["paligemma", "paligemma2", "florence-2"]):
@@ -648,7 +648,7 @@ class Version:
                     )
                 else:
                     if file in ["model_artifacts.json", "state_dict.pt"]:
-                        raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
+                        raise (ValueError(f"File {file} not found. Please make sure to provide a valid model path."))
 
         self.upload_zip(model_type, model_path)
 
@@ -761,7 +761,7 @@ class Version:
                     )
                 else:
                     if file in ["model_artifacts.json", filename]:
-                        raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
+                        raise (ValueError(f"File {file} not found. Please make sure to provide a valid model path."))
 
         self.upload_zip(model_type, model_path)
 
@@ -791,8 +791,7 @@ class Version:
 
             if self.public:
                 print(
-                    "View the status of your deployment at:"
-                    f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
                 print(
                     "Share your model with the world at:"
@@ -801,8 +800,7 @@ class Version:
                 )
             else:
                 print(
-                    "View the status of your deployment at:"
-                    f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
 
         except Exception as e:
@@ -824,7 +822,7 @@ class Version:
             progress_message = (
                 "Downloading Dataset Version Zip in "
                 f"{location} to {format}: "
-                f"{current/total*100:.0f}% [{current} / {total}] bytes"
+                f"{current / total * 100:.0f}% [{current} / {total}] bytes"
             )
             sys.stdout.write("\r" + progress_message)
             sys.stdout.flush()
@@ -923,7 +921,7 @@ class Version:
 
         if not format:
             raise RuntimeError(
-                "You must pass a format argument to version.download() or define a" " model in your Roboflow object"
+                "You must pass a format argument to version.download() or define a model in your Roboflow object"
             )
 
         friendly_formats = {"yolov5": "yolov5pytorch", "yolov7": "yolov7pytorch"}
