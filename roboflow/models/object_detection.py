@@ -173,6 +173,7 @@ class ObjectDetectionModel(InferenceModel):
             self.__exception_check(image_path_check=image_path)
 
         original_dimensions = None
+        should_resize = False
         # If image is local image
         if not hosted:
             import cv2
