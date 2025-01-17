@@ -179,7 +179,9 @@ class ObjectDetectionModel(InferenceModel):
             import cv2
             import numpy as np
 
-            should_resize = "resize" in self.preprocessing.keys() and "Stretch" in self.preprocessing["resize"]["format"]
+            should_resize = (
+                "resize" in self.preprocessing.keys() and "Stretch" in self.preprocessing["resize"]["format"]
+            )
 
             if isinstance(image_path, str):
                 image = Image.open(image_path).convert("RGB")
