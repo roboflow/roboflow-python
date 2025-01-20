@@ -26,7 +26,6 @@ class KeypointDetectionModel(InferenceModel):
         id: str,
         name: Optional[str] = None,
         version: Optional[str] = None,
-        confidence: Optional[int] = 40,
         local: Optional[str] = None,
     ):
         """
@@ -38,7 +37,6 @@ class KeypointDetectionModel(InferenceModel):
             name (str): is the name of the project
             version (str): version number
             local (str): localhost address and port if pointing towards local inference engine
-            confidence (int): A threshold for the returned predictions on a scale of 0-100.
             colors (dict): colors to use for the image
             preprocessing (dict): preprocessing to use for the image
 
@@ -50,7 +48,6 @@ class KeypointDetectionModel(InferenceModel):
         self.__api_key = api_key
         self.id = id
         self.name = name
-        self.confidence = confidence
         self.version = version
         self.base_url = "https://detect.roboflow.com/"
 
@@ -153,7 +150,6 @@ class KeypointDetectionModel(InferenceModel):
                 self.base_url + without_workspace + "/" + str(version),
                 "?api_key=" + self.__api_key,
                 "&name=YOUR_IMAGE.jpg",
-                f"&confidence={self.confidence}",
             ]
         )
 
