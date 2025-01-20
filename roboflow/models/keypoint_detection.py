@@ -26,7 +26,7 @@ class KeypointDetectionModel(InferenceModel):
         id: str,
         name: Optional[str] = None,
         version: Optional[str] = None,
-        confidence: Optional[int] = 40,
+        confidence: Optional[int] = 10,
         local: Optional[str] = None,
     ):
         """
