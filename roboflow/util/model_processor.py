@@ -32,7 +32,7 @@ def _get_processor_function(model_type: str) -> Callable:
     ]
 
     if not any(supported_model in model_type for supported_model in supported_models):
-        raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
+        raise (ValueError(f"Model type {model_type} not supported. Supported models are {supported_models}"))
 
     if model_type.startswith(("paligemma", "paligemma2", "florence-2")):
         if any(model in model_type for model in ["paligemma", "paligemma2", "florence-2"]):
@@ -190,7 +190,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
                 )
             else:
                 if file in ["model_artifacts.json", "state_dict.pt"]:
-                    raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
+                    raise (ValueError(f"File {file} not found. Please make sure to provide a valid model path."))
 
     return zip_file_name
 
@@ -310,6 +310,6 @@ def _process_yolonas(model_type: str, model_path: str, filename: str = "weights/
                 )
             else:
                 if file in ["model_artifacts.json", filename]:
-                    raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
+                    raise (ValueError(f"File {file} not found. Please make sure to provide a valid model path."))
 
     return zip_file_name
