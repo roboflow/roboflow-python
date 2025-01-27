@@ -82,20 +82,10 @@ def upload_model(args):
     rf = roboflow.Roboflow(args.api_key)
     workspace = rf.workspace(args.workspace)
 
-    if args.version_number is not None:
-        # Deploy to specific version
-        project = workspace.project(args.project)
-        version = project.version(args.version_number)
-        version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
-    else:
-        # Deploy to multiple projects
-        workspace.deploy_model(
-            model_type=str(args.model_type),
-            model_path=str(args.model_path),
-            project_ids=args.project,
-            model_name=str(args.model_name),
-            filename=str(args.filename),
-        )
+    # Deploy to specific version
+    project = workspace.project(args.project)
+    version = project.version(args.version_number)
+    version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
 
 
 def list_projects(args):
@@ -492,11 +482,13 @@ def _add_upload_model_parser(subparsers):
     upload_model_parser.add_argument(
         "-p",
         dest="project",
-        action="append",  # Allow multiple projects
-        help="project_id to upload the model into (can be specified multiple times)",
+        help="project_id to upload the model into",
     )
     upload_model_parser.add_argument(
-        "-v", dest="version_number", type=int, help="version number to upload the model to (optional)", default=None
+        "-v",
+        dest="version_number",
+        type=int,
+        help="version number to upload the model to",
     )
     upload_model_parser.add_argument(
         "-t",
@@ -513,11 +505,6 @@ def _add_upload_model_parser(subparsers):
         dest="filename",
         default="weights/best.pt",
         help="name of the model file",
-    )
-    upload_model_parser.add_argument(
-        "-n",
-        dest="model_name",
-        help="name of the model",
     )
     upload_model_parser.set_defaults(func=upload_model)
 

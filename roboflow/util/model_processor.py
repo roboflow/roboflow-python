@@ -45,6 +45,9 @@ def _get_processor_function(model_type: str) -> Callable:
                 "paligemma2-3b-pt-224",
                 "paligemma2-3b-pt-448",
                 "paligemma2-3b-pt-896",
+                "paligemma2-3b-pt-224-peft",
+                "paligemma2-3b-pt-448-peft",
+                "paligemma2-3b-pt-896-peft",
             ]
             if model_type not in supported_hf_types:
                 raise RuntimeError(
