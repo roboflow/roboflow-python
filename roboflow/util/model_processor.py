@@ -252,8 +252,7 @@ def _process_yolonas(model_type: str, model_path: str, filename: str = "weights/
         import torch
     except ImportError:
         raise RuntimeError(
-            "The torch python package is required to deploy yolonas models."
-            " Please install it with `pip install torch`"
+            "The torch python package is required to deploy yolonas models. Please install it with `pip install torch`"
         )
 
     model = torch.load(os.path.join(model_path, filename), map_location="cpu")
