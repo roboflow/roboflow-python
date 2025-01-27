@@ -34,7 +34,7 @@ def get_wrong_dependencies_versions(
         module = import_module(dependency)
         module_version = module.__version__
         if order not in order_funcs:
-            raise ValueError(f"order={order} not supported, please use" f" `{', '.join(order_funcs.keys())}`")
+            raise ValueError(f"order={order} not supported, please use `{', '.join(order_funcs.keys())}`")
 
         is_okay = order_funcs[order](Version(module_version), Version(version))
         if not is_okay:
@@ -53,7 +53,7 @@ def print_warn_for_wrong_dependencies_versions(
             f" {dependency}{order}{version}`"
         )
         if ask_to_continue:
-            answer = input(f"Would you like to continue with the wrong version of {dependency}?" " y/n: ")
+            answer = input(f"Would you like to continue with the wrong version of {dependency}? y/n: ")
             if answer.lower() != "y":
                 sys.exit(1)
 

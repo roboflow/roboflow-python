@@ -269,7 +269,7 @@ class Workspace:
                 # capture OCR results from cropped image
                 results.append(ocr_infer(croppedImg)["results"])
         else:
-            print("please use an object detection model--can only perform two stage with" " bounding box results")
+            print("please use an object detection model--can only perform two stage with bounding box results")
 
         return results
 

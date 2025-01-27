@@ -510,8 +510,7 @@ class Version:
 
             if self.public:
                 print(
-                    "View the status of your deployment at:"
-                    f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
                 print(
                     "Share your model with the world at:"
@@ -520,8 +519,7 @@ class Version:
                 )
             else:
                 print(
-                    "View the status of your deployment at:"
-                    f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
 
         except Exception as e:
@@ -543,7 +541,7 @@ class Version:
             progress_message = (
                 "Downloading Dataset Version Zip in "
                 f"{location} to {format}: "
-                f"{current/total*100:.0f}% [{current} / {total}] bytes"
+                f"{current / total * 100:.0f}% [{current} / {total}] bytes"
             )
             sys.stdout.write("\r" + progress_message)
             sys.stdout.flush()
@@ -642,7 +640,7 @@ class Version:
 
         if not format:
             raise RuntimeError(
-                "You must pass a format argument to version.download() or define a" " model in your Roboflow object"
+                "You must pass a format argument to version.download() or define a model in your Roboflow object"
             )
 
         friendly_formats = {"yolov5": "yolov5pytorch", "yolov7": "yolov7pytorch"}

@@ -172,12 +172,16 @@ class ObjectDetectionModel(InferenceModel):
         else:
             self.__exception_check(image_path_check=image_path)
 
-        resize = False
         original_dimensions = None
+        should_resize = False
         # If image is local image
         if not hosted:
             import cv2
             import numpy as np
+
+            should_resize = (
+                "resize" in self.preprocessing.keys() and "Stretch" in self.preprocessing["resize"]["format"]
+            )
 
             if isinstance(image_path, str):
                 image = Image.open(image_path).convert("RGB")
@@ -186,7 +190,7 @@ class ObjectDetectionModel(InferenceModel):
 
                 # Here we resize the image to the preprocessing settings
                 # before sending it over the wire
-                if "resize" in self.preprocessing.keys():
+                if should_resize:
                     if dimensions[0] > int(self.preprocessing["resize"]["width"]) or dimensions[1] > int(
                         self.preprocessing["resize"]["height"]
                     ):
@@ -197,7 +201,6 @@ class ObjectDetectionModel(InferenceModel):
                             )
                         )
                         dimensions = image.size
-                        resize = True
 
                 # Create buffer
                 buffered = io.BytesIO()
@@ -245,7 +248,7 @@ class ObjectDetectionModel(InferenceModel):
         if self.format == "json":
             resp_json = resp.json()
 
-            if resize and original_dimensions is not None:
+            if should_resize and original_dimensions is not None:
                 new_preds = []
                 for p in resp_json["predictions"]:
                     p["x"] = int(p["x"] * (int(original_dimensions[0]) / int(self.preprocessing["resize"]["width"])))
