@@ -16,10 +16,7 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 
 
 def login(args):
-    if args.force:
-        roboflow.login(force=True)
-    else:
-        roboflow.login()
+    roboflow.login(force=args.force)
 
 
 def _parse_url(url):
