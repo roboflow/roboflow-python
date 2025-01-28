@@ -566,7 +566,7 @@ class Workspace:
         return (
             prediction_results if type(raw_data_location) is not np.ndarray else prediction_results[-1]["predictions"]
         )
-    
+
     def deploy_model(
         self,
         model_type: str,
