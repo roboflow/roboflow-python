@@ -16,7 +16,7 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 
 
 def login(args):
-    roboflow.login()
+    roboflow.login(force=args.force)
 
 
 def _parse_url(url):
@@ -78,9 +78,10 @@ def upload_image(args):
 def upload_model(args):
     rf = roboflow.Roboflow(args.api_key)
     workspace = rf.workspace(args.workspace)
+
+    # Deploy to specific version
     project = workspace.project(args.project)
     version = project.version(args.version_number)
-    print(args.model_type, args.model_path, args.filename)
     version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
 
 
@@ -536,6 +537,12 @@ def _add_get_workspace_project_version_parser(subparsers):
 
 def _add_login_parser(subparsers):
     login_parser = subparsers.add_parser("login", help="Log in to Roboflow")
+    login_parser.add_argument(
+        "-f",
+        dest="force",
+        help="force login",
+        action="store_true",
+    )
     login_parser.set_defaults(func=login)
 
 
