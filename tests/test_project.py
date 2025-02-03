@@ -30,7 +30,7 @@ class TestProject(RoboflowTest):
     def test_upload_raises_upload_image_error(self):
         responses.add(
             responses.POST,
-            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}" f"&batch={DEFAULT_BATCH_NAME}",
+            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}&batch={DEFAULT_BATCH_NAME}",
             json={
                 "error": {
                     "message": "Invalid image.",
@@ -56,7 +56,7 @@ class TestProject(RoboflowTest):
         # Image upload
         responses.add(
             responses.POST,
-            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}" f"&batch={DEFAULT_BATCH_NAME}",
+            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}&batch={DEFAULT_BATCH_NAME}",
             json={"success": True, "id": image_id},
             status=200,
         )
@@ -64,7 +64,7 @@ class TestProject(RoboflowTest):
         # Annotation
         responses.add(
             responses.POST,
-            f"{API_URL}/dataset/{PROJECT_NAME}/annotate/{image_id}?api_key={ROBOFLOW_API_KEY}" f"&name={image_name}",
+            f"{API_URL}/dataset/{PROJECT_NAME}/annotate/{image_id}?api_key={ROBOFLOW_API_KEY}&name={image_name}",
             json={
                 "error": {
                     "message": "Image was already annotated.",
