@@ -16,7 +16,7 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 
 
 def login(args):
-    roboflow.login()
+    roboflow.login(force=args.force)
 
 
 def _parse_url(url):
@@ -78,10 +78,21 @@ def upload_image(args):
 def upload_model(args):
     rf = roboflow.Roboflow(args.api_key)
     workspace = rf.workspace(args.workspace)
-    project = workspace.project(args.project)
-    version = project.version(args.version_number)
-    print(args.model_type, args.model_path, args.filename)
-    version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
+
+    if args.version_number is not None:
+        # Deploy to specific version
+        project = workspace.project(args.project)
+        version = project.version(args.version_number)
+        version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
+    else:
+        # Deploy to multiple projects
+        workspace.deploy_model(
+            model_type=str(args.model_type),
+            model_path=str(args.model_path),
+            project_ids=args.project,
+            model_name=str(args.model_name),
+            filename=str(args.filename),
+        )
 
 
 def list_projects(args):
@@ -249,7 +260,7 @@ def _add_upload_parser(subparsers):
     upload_parser.add_argument(
         "-w",
         dest="workspace",
-        help="specify a workspace url or id " "(will use default workspace if not specified)",
+        help="specify a workspace url or id (will use default workspace if not specified)",
     )
     upload_parser.add_argument(
         "-p",
@@ -307,7 +318,7 @@ def _add_import_parser(subparsers):
     import_parser.add_argument(
         "-w",
         dest="workspace",
-        help="specify a workspace url or id " "(will use default workspace if not specified)",
+        help="specify a workspace url or id (will use default workspace if not specified)",
     )
     import_parser.add_argument(
         "-p",
@@ -478,13 +489,15 @@ def _add_upload_model_parser(subparsers):
     upload_model_parser.add_argument(
         "-p",
         dest="project",
-        help="project_id to upload the model into",
+        action="append",  # Allow multiple projects
+        help="project_id to upload the model into (can be specified multiple times)",
     )
     upload_model_parser.add_argument(
         "-v",
         dest="version_number",
         type=int,
-        help="version number to upload the model to",
+        help="version number to upload the model to (optional)",
+        default=None,
     )
     upload_model_parser.add_argument(
         "-t",
@@ -501,6 +514,11 @@ def _add_upload_model_parser(subparsers):
         dest="filename",
         default="weights/best.pt",
         help="name of the model file",
+    )
+    upload_model_parser.add_argument(
+        "-n",
+        dest="model_name",
+        help="name of the model",
     )
     upload_model_parser.set_defaults(func=upload_model)
 
@@ -536,6 +554,12 @@ def _add_get_workspace_project_version_parser(subparsers):
 
 def _add_login_parser(subparsers):
     login_parser = subparsers.add_parser("login", help="Log in to Roboflow")
+    login_parser.add_argument(
+        "-f",
+        dest="force",
+        help="force login",
+        action="store_true",
+    )
     login_parser.set_defaults(func=login)
 
 

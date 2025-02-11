@@ -230,7 +230,7 @@ class Project:
             )
 
         r = requests.post(
-            f"{API_URL}/{self.__workspace}/{self.__project_name}/" f"generate?api_key={self.__api_key}",
+            f"{API_URL}/{self.__workspace}/{self.__project_name}/generate?api_key={self.__api_key}",
             json=settings,
         )
 
@@ -426,7 +426,7 @@ class Project:
 
             if not is_image:
                 raise RuntimeError(
-                    "The image you provided {} is not a supported file format. We" " currently support: {}.".format(
+                    "The image you provided {} is not a supported file format. We currently support: {}.".format(
                         image_path, ", ".join(ACCEPTED_IMAGE_FORMATS)
                     )
                 )

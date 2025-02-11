@@ -3,14 +3,12 @@ from __future__ import annotations
 import copy
 import json
 import os
-import shutil
 import sys
 import time
 import zipfile
 from typing import TYPE_CHECKING, Optional, Union
 
 import requests
-import yaml
 from dotenv import load_dotenv
 from tqdm import tqdm
 
@@ -34,7 +32,8 @@ from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import write_line
-from roboflow.util.versions import get_wrong_dependencies_versions, print_warn_for_wrong_dependencies_versions
+from roboflow.util.model_processor import process
+from roboflow.util.versions import get_wrong_dependencies_versions
 
 if TYPE_CHECKING:
     import numpy as np
@@ -478,290 +477,14 @@ class Version:
             model_path (str): File path to the model weights to be uploaded.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
-        if model_type.startswith("yolo11"):
-            model_type = model_type.replace("yolo11", "yolov11")
+        zip_file_name = process(model_type, model_path, filename)
 
-        supported_models = [
-            "yolov5",
-            "yolov7-seg",
-            "yolov8",
-            "yolov9",
-            "yolonas",
-            "paligemma",
-            "yolov10",
-            "florence-2",
-            "yolov11",
-        ]
+        if zip_file_name is None:
+            raise RuntimeError("Failed to process model")
 
-        if not any(supported_model in model_type for supported_model in supported_models):
-            raise (ValueError(f"Model type {model_type} not supported. Supported models are" f" {supported_models}"))
+        self._upload_zip(model_type, model_path, zip_file_name)
 
-        if model_type.startswith(("paligemma", "florence-2")):
-            if "paligemma" in model_type or "florence-2" in model_type:
-                supported_hf_types = [
-                    "florence-2-base",
-                    "florence-2-large",
-                    "paligemma-3b-pt-224",
-                    "paligemma-3b-pt-448",
-                    "paligemma-3b-pt-896",
-                ]
-                if model_type not in supported_hf_types:
-                    raise RuntimeError(
-                        f"{model_type} not supported for this type of upload."
-                        f"Supported upload types are {supported_hf_types}"
-                    )
-            self.deploy_huggingface(model_type, model_path, filename)
-            return
-
-        if "yolonas" in model_type:
-            self.deploy_yolonas(model_type, model_path, filename)
-            return
-
-        if "yolov8" in model_type:
-            try:
-                import torch
-                import ultralytics
-
-            except ImportError:
-                raise RuntimeError(
-                    "The ultralytics python package is required to deploy yolov8"
-                    " models. Please install it with `pip install ultralytics`"
-                )
-
-            print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")], ask_to_continue=True)
-
-        elif "yolov10" in model_type:
-            try:
-                import torch
-                import ultralytics
-
-            except ImportError:
-                raise RuntimeError(
-                    "The ultralytics python package is required to deploy yolov10"
-                    " models. Please install it with `pip install ultralytics`"
-                )
-
-        elif "yolov5" in model_type or "yolov7" in model_type or "yolov9" in model_type:
-            try:
-                import torch
-            except ImportError:
-                raise RuntimeError(
-                    "The torch python package is required to deploy yolov5 models."
-                    " Please install it with `pip install torch`"
-                )
-
-        elif "yolov11" in model_type:
-            try:
-                import torch
-                import ultralytics
-
-            except ImportError:
-                raise RuntimeError(
-                    "The ultralytics python package is required to deploy yolov10"
-                    " models. Please install it with `pip install ultralytics`"
-                )
-
-            print_warn_for_wrong_dependencies_versions([("ultralytics", ">=", "8.3.0")], ask_to_continue=True)
-
-        model = torch.load(os.path.join(model_path, filename))
-
-        if isinstance(model["model"].names, list):
-            class_names = model["model"].names
-        else:
-            class_names = []
-            for i, val in enumerate(model["model"].names):
-                class_names.append((val, model["model"].names[val]))
-            class_names.sort(key=lambda x: x[0])
-            class_names = [x[1] for x in class_names]
-
-        if "yolov8" in model_type or "yolov10" in model_type or "yolov11" in model_type:
-            # try except for backwards compatibility with older versions of ultralytics
-            if "-cls" in model_type or model_type.startswith("yolov10") or model_type.startswith("yolov11"):
-                nc = model["model"].yaml["nc"]
-                args = model["train_args"]
-            else:
-                nc = model["model"].nc
-                args = model["model"].args
-            try:
-                model_artifacts = {
-                    "names": class_names,
-                    "yaml": model["model"].yaml,
-                    "nc": nc,
-                    "args": {k: val for k, val in args.items() if ((k == "model") or (k == "imgsz") or (k == "batch"))},
-                    "ultralytics_version": ultralytics.__version__,
-                    "model_type": model_type,
-                }
-            except Exception:
-                model_artifacts = {
-                    "names": class_names,
-                    "yaml": model["model"].yaml,
-                    "nc": nc,
-                    "args": {
-                        k: val
-                        for k, val in args.__dict__.items()
-                        if ((k == "model") or (k == "imgsz") or (k == "batch"))
-                    },
-                    "ultralytics_version": ultralytics.__version__,
-                    "model_type": model_type,
-                }
-        elif "yolov5" in model_type or "yolov7" in model_type or "yolov9" in model_type:
-            # parse from yaml for yolov5
-
-            with open(os.path.join(model_path, "opt.yaml")) as stream:
-                opts = yaml.safe_load(stream)
-
-            model_artifacts = {
-                "names": class_names,
-                "nc": model["model"].nc,
-                "args": {
-                    "imgsz": opts["imgsz"] if "imgsz" in opts else opts["img_size"],
-                    "batch": opts["batch_size"],
-                },
-                "model_type": model_type,
-            }
-            if hasattr(model["model"], "yaml"):
-                model_artifacts["yaml"] = model["model"].yaml
-
-        with open(os.path.join(model_path, "model_artifacts.json"), "w") as fp:
-            json.dump(model_artifacts, fp)
-
-        torch.save(model["model"].state_dict(), os.path.join(model_path, "state_dict.pt"))
-
-        list_files = [
-            "results.csv",
-            "results.png",
-            "model_artifacts.json",
-            "state_dict.pt",
-        ]
-
-        with zipfile.ZipFile(os.path.join(model_path, "roboflow_deploy.zip"), "w") as zipMe:
-            for file in list_files:
-                if os.path.exists(os.path.join(model_path, file)):
-                    zipMe.write(
-                        os.path.join(model_path, file),
-                        arcname=file,
-                        compress_type=zipfile.ZIP_DEFLATED,
-                    )
-                else:
-                    if file in ["model_artifacts.json", "state_dict.pt"]:
-                        raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
-
-        self.upload_zip(model_type, model_path)
-
-    def deploy_huggingface(
-        self, model_type: str, model_path: str, filename: str = "fine-tuned-paligemma-3b-pt-224.f16.npz"
-    ) -> None:
-        # Check if model_path exists
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model path {model_path} does not exist.")
-        model_files = os.listdir(model_path)
-        print(f"Model files found in {model_path}: {model_files}")
-
-        files_to_deploy = []
-
-        # Find first .npz file in model_path
-        npz_filename = next((file for file in model_files if file.endswith(".npz")), None)
-        if any([file.endswith(".safetensors") for file in model_files]):
-            print(f"Found .safetensors file in model path. Deploying PyTorch {model_type} model.")
-            necessary_files = [
-                "preprocessor_config.json",
-                "special_tokens_map.json",
-                "tokenizer_config.json",
-                "tokenizer.json",
-            ]
-            for file in necessary_files:
-                if file not in model_files:
-                    print("Missing necessary file", file)
-                    res = input("Do you want to continue? (y/n)")
-                    if res.lower() != "y":
-                        exit(1)
-            for file in model_files:
-                files_to_deploy.append(file)
-        elif npz_filename is not None:
-            print(f"Found .npz file {npz_filename} in model path. Deploying JAX PaliGemma model.")
-            files_to_deploy.append(npz_filename)
-        else:
-            raise FileNotFoundError(f"No .npz or .safetensors file found in model path {model_path}.")
-
-        if len(files_to_deploy) == 0:
-            raise FileNotFoundError(f"No valid files found in model path {model_path}.")
-        print(f"Zipping files for deploy: {files_to_deploy}")
-
-        import tarfile
-
-        with tarfile.open(os.path.join(model_path, "roboflow_deploy.tar"), "w") as tar:
-            for file in files_to_deploy:
-                tar.add(os.path.join(model_path, file), arcname=file)
-
-        print("Uploading to Roboflow... May take several minutes.")
-        self.upload_zip(model_type, model_path, "roboflow_deploy.tar")
-
-    def deploy_yolonas(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
-        try:
-            import torch
-        except ImportError:
-            raise RuntimeError(
-                "The torch python package is required to deploy yolonas models."
-                " Please install it with `pip install torch`"
-            )
-
-        model = torch.load(os.path.join(model_path, filename), map_location="cpu")
-        class_names = model["processing_params"]["class_names"]
-
-        opt_path = os.path.join(model_path, "opt.yaml")
-        if not os.path.exists(opt_path):
-            raise RuntimeError(
-                f"You must create an opt.yaml file at {os.path.join(model_path, '')} of the format:\n"
-                f"imgsz: <resolution of model>\n"
-                f"batch_size: <batch size of inference model>\n"
-                f"architecture: <one of [yolo_nas_s, yolo_nas_m, yolo_nas_l]."
-                f"s, m, l refer to small, medium, large architecture sizes, respectively>\n"
-            )
-        with open(os.path.join(model_path, "opt.yaml")) as stream:
-            opts = yaml.safe_load(stream)
-        required_keys = ["imgsz", "batch_size", "architecture"]
-        for key in required_keys:
-            if key not in opts:
-                raise RuntimeError(f"{opt_path} lacks required key {key}. Required keys: {required_keys}")
-
-        model_artifacts = {
-            "names": class_names,
-            "nc": len(class_names),
-            "args": {
-                "imgsz": opts["imgsz"] if "imgsz" in opts else opts["img_size"],
-                "batch": opts["batch_size"],
-                "architecture": opts["architecture"],
-            },
-            "model_type": model_type,
-        }
-
-        with open(os.path.join(model_path, "model_artifacts.json"), "w") as fp:
-            json.dump(model_artifacts, fp)
-
-        shutil.copy(os.path.join(model_path, filename), os.path.join(model_path, "state_dict.pt"))
-
-        list_files = [
-            "results.json",
-            "results.png",
-            "model_artifacts.json",
-            "state_dict.pt",
-        ]
-
-        with zipfile.ZipFile(os.path.join(model_path, "roboflow_deploy.zip"), "w") as zipMe:
-            for file in list_files:
-                if os.path.exists(os.path.join(model_path, file)):
-                    zipMe.write(
-                        os.path.join(model_path, file),
-                        arcname=file,
-                        compress_type=zipfile.ZIP_DEFLATED,
-                    )
-                else:
-                    if file in ["model_artifacts.json", filename]:
-                        raise (ValueError(f"File {file} not found. Please make sure to provide a" " valid model path."))
-
-        self.upload_zip(model_type, model_path)
-
-    def upload_zip(self, model_type: str, model_path: str, model_file_name: str = "roboflow_deploy.zip"):
+    def _upload_zip(self, model_type: str, model_path: str, model_file_name: str):
         res = requests.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}"
             f"/uploadModel?api_key={self.__api_key}&modelType={model_type}&nocache=true"
@@ -787,8 +510,7 @@ class Version:
 
             if self.public:
                 print(
-                    "View the status of your deployment at:"
-                    f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
                 print(
                     "Share your model with the world at:"
@@ -797,8 +519,7 @@ class Version:
                 )
             else:
                 print(
-                    "View the status of your deployment at:"
-                    f" {APP_URL}/{self.workspace}/{self.project}/{self.version}"
+                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
                 )
 
         except Exception as e:
@@ -918,7 +639,7 @@ class Version:
 
         if not format:
             raise RuntimeError(
-                "You must pass a format argument to version.download() or define a" " model in your Roboflow object"
+                "You must pass a format argument to version.download() or define a model in your Roboflow object"
             )
 
         friendly_formats = {"yolov5": "yolov5pytorch", "yolov7": "yolov7pytorch"}

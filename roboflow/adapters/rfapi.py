@@ -179,7 +179,7 @@ def save_annotation(
 
 
 def _save_annotation_url(api_key, project_url, name, image_id, job_name, is_prediction, overwrite=False):
-    url = f"{API_URL}/dataset/{project_url}/annotate/{image_id}?api_key={api_key}" f"&name={name}"
+    url = f"{API_URL}/dataset/{project_url}/annotate/{image_id}?api_key={api_key}&name={name}"
     if job_name:
         url += f"&jobName={job_name}"
     if is_prediction:
