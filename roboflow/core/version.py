@@ -539,8 +539,7 @@ class Version:
 
         def bar_progress(current, total, width=80):
             progress_message = (
-                "Downloading Dataset Version Zip in "
-                f"{location} to {format}: "
+                f"Downloading Dataset Version Zip in {location} to {format}: "
                 f"{current / total * 100:.0f}% [{current} / {total}] bytes"
             )
             sys.stdout.write("\r" + progress_message)

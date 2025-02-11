@@ -767,3 +767,37 @@ class Project:
         json_str = {"name": self.name, "type": self.type, "workspace": self.__workspace}
 
         return json.dumps(json_str, indent=2)
+
+    def image(self, image_id: str) -> Dict:
+        """
+        Fetch the details of a specific image from the Roboflow API.
+
+        Args:
+            image_id (str): The ID of the image to fetch.
+
+        Returns:
+            Dict: A dictionary containing the image details.
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> image_details = project.image("image-id")
+        """
+        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/images/{image_id}?api_key={self.__api_key}"
+
+        data = requests.get(url).json()
+
+        if "error" in data:
+            raise RuntimeError(data["error"])
+
+        if "image" not in data:
+            print(data, image_id)
+            raise RuntimeError("Image not found")
+
+        image_details = data["image"]
+
+        return image_details
