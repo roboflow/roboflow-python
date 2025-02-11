@@ -787,7 +787,7 @@ class Project:
 
             >>> image_details = project.image("image-id")
         """
-        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/images/{image_id}" f"?api_key={self.__api_key}"
+        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/images/{image_id}?api_key={self.__api_key}"
 
         data = requests.get(url).json()
 
