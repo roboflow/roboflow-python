@@ -47,7 +47,7 @@ class TestQueries(RoboflowTest):
         # Upload image
         responses.add(
             responses.POST,
-            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}" f"&batch={DEFAULT_BATCH_NAME}",
+            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}&batch={DEFAULT_BATCH_NAME}",
             json={"duplicate": True, "id": "hbALkCFdNr9rssgOUXug"},
             status=200,
         )
