@@ -10,12 +10,6 @@ from roboflow.util.versions import print_warn_for_wrong_dependencies_versions
 
 
 def process(model_type: str, model_path: str, filename: str) -> str:
-    if model_type.startswith("yolo11"):
-        model_type = model_type.replace("yolo11", "yolov11")
-
-    if model_type.startswith("yolo12"):
-        model_type = model_type.replace("yolo12", "yolov12")
-
     processor = _get_processor_function(model_type)
     return processor(model_type, model_path, filename)
 
