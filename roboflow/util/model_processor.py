@@ -10,25 +10,29 @@ from roboflow.util.versions import print_warn_for_wrong_dependencies_versions
 
 
 def process(model_type: str, model_path: str, filename: str) -> str:
+    if model_type.startswith("yolo11"):
+        model_type = model_type.replace("yolo11", "yolov11")
+
+    if model_type.startswith("yolo12"):
+        model_type = model_type.replace("yolo12", "yolov12")
+
     processor = _get_processor_function(model_type)
     return processor(model_type, model_path, filename)
 
 
 def _get_processor_function(model_type: str) -> Callable:
-    if model_type.startswith("yolo11"):
-        model_type = model_type.replace("yolo11", "yolov11")
-
     supported_models = [
         "yolov5",
         "yolov7-seg",
         "yolov8",
         "yolov9",
+        "yolov10",
+        "yolov11",
+        "yolov12",
         "yolonas",
         "paligemma",
         "paligemma2",
-        "yolov10",
         "florence-2",
-        "yolov11",
     ]
 
     if not any(supported_model in model_type for supported_model in supported_models):
@@ -109,6 +113,18 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
         print_warn_for_wrong_dependencies_versions([("ultralytics", ">=", "8.3.0")], ask_to_continue=True)
 
+    elif "yolov12" in model_type:
+        try:
+            import torch
+            import ultralytics
+        except ImportError:
+            raise RuntimeError(
+                "The ultralytics python package is required to deploy yolov12"
+                " models. Please install it with `pip install ultralytics`"
+            )
+
+        print_warn_for_wrong_dependencies_versions([("ultralytics", ">=", "8.3.78")], ask_to_continue=True)
+
     model = torch.load(os.path.join(model_path, filename))
 
     if isinstance(model["model"].names, list):
@@ -120,9 +136,9 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
         class_names.sort(key=lambda x: x[0])
         class_names = [x[1] for x in class_names]
 
-    if "yolov8" in model_type or "yolov10" in model_type or "yolov11" in model_type:
+    if "yolov8" in model_type or "yolov10" in model_type or "yolov11" in model_type or "yolov12" in model_type:
         # try except for backwards compatibility with older versions of ultralytics
-        if "-cls" in model_type or model_type.startswith("yolov10") or model_type.startswith("yolov11"):
+        if "-cls" in model_type or model_type.startswith("yolov10") or model_type.startswith("yolov11") or model_type.startswith("yolov12"):
             nc = model["model"].yaml["nc"]
             args = model["train_args"]
         else:
