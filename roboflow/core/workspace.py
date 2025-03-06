@@ -21,6 +21,7 @@ from roboflow.util.model_processor import process
 from roboflow.util.two_stage_utils import ocr_infer
 from roboflow.util.versions import normalize_yolo_model_type
 
+
 class Workspace:
     """
     Manage a Roboflow workspace.
