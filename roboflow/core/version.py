@@ -33,7 +33,7 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import write_line
 from roboflow.util.model_processor import process
-from roboflow.util.versions import get_wrong_dependencies_versions
+from roboflow.util.versions import get_wrong_dependencies_versions, normalize_yolo_model_type
 
 if TYPE_CHECKING:
     import numpy as np
@@ -477,6 +477,7 @@ class Version:
             model_path (str): File path to the model weights to be uploaded.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
+        model_type = normalize_yolo_model_type(model_type)
         zip_file_name = process(model_type, model_path, filename)
 
         if zip_file_name is None:

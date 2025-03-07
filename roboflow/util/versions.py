@@ -89,3 +89,9 @@ def warn_for_wrong_dependencies_versions(dependencies_versions: List[Tuple[str, 
         return _wrapper
 
     return _inner
+
+
+def normalize_yolo_model_type(model_type: str) -> str:
+    model_type = model_type.replace("yolo11", "yolov11")
+    model_type = model_type.replace("yolo12", "yolov12")
+    return model_type
