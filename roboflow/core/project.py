@@ -11,7 +11,7 @@ import filetype
 import requests
 
 from roboflow.adapters import rfapi
-from roboflow.adapters.rfapi import ImageUploadError
+from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
 from roboflow.util.general import Retry
@@ -515,26 +515,34 @@ class Project:
         job_name=None,
         is_prediction: bool = False,
         annotation_overwrite=False,
+        num_retry_uploads=0,
     ):
         project_url = self.id.rsplit("/")[1]
         annotation_name, annotation_str = self._annotation_params(annotation_path)
         t0 = time.time()
+        upload_retry_attempts = 0
+        retry = Retry(num_retry_uploads, AnnotationSaveError)
 
-        annotation = rfapi.save_annotation(
-            self.__api_key,
-            project_url,
-            annotation_name,  # type: ignore[type-var]
-            annotation_str,  # type: ignore[type-var]
-            image_id,
-            job_name=job_name,  # type: ignore[type-var]
-            is_prediction=is_prediction,
-            annotation_labelmap=annotation_labelmap,
-            overwrite=annotation_overwrite,
-        )
+        try:
+            annotation = rfapi.save_annotation(
+                self.__api_key,
+                project_url,
+                annotation_name,  # type: ignore[type-var]
+                annotation_str,  # type: ignore[type-var]
+                image_id,
+                job_name=job_name,  # type: ignore[type-var]
+                is_prediction=is_prediction,
+                annotation_labelmap=annotation_labelmap,
+                overwrite=annotation_overwrite,
+            )
+            upload_retry_attempts = retry.retries
+        except AnnotationSaveError as e:
+            e.retries = upload_retry_attempts
+            raise
 
         upload_time = time.time() - t0
 
-        return annotation, upload_time
+        return annotation, upload_time, upload_retry_attempts
 
     def single_upload(
         self,
@@ -563,6 +571,7 @@ class Project:
         uploaded_image, uploaded_annotation = None, None
         upload_time, annotation_time = None, None
         upload_retry_attempts = 0
+        annotation_upload_retry_attempts = 0
 
         if image_path:
             uploaded_image, upload_time, upload_retry_attempts = self.upload_image(
@@ -579,13 +588,14 @@ class Project:
             image_id = uploaded_image["id"]  # type: ignore[index]
 
         if annotation_path and image_id:
-            uploaded_annotation, annotation_time = self.save_annotation(
+            uploaded_annotation, annotation_time, annotation_upload_retry_attempts = self.save_annotation(
                 annotation_path,
                 annotation_labelmap,
                 image_id,
                 batch_name,
                 is_prediction,
                 annotation_overwrite,
+                num_retry_uploads=num_retry_uploads,
             )
 
         return {
@@ -594,6 +604,7 @@ class Project:
             "upload_time": upload_time,
             "annotation_time": annotation_time,
             "upload_retry_attempts": upload_retry_attempts,
+            "annotation_upload_retry_attempts": annotation_upload_retry_attempts,
         }
 
     def _annotation_params(self, annotation_path):
