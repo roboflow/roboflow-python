@@ -27,6 +27,7 @@ class AnnotationSaveError(RoboflowError):
     def __init__(self, message, status_code=None):
         self.message = message
         self.status_code = status_code
+        self.retries = 0
         super().__init__(self.message)
 
 
