@@ -812,14 +812,9 @@ class Project:
         image_details = data["image"]
 
         return image_details
-        
+
     def create_annotation_job(
-        self,
-        name: str,
-        batch_id: str,
-        num_images: int,
-        labeler_email: str,
-        reviewer_email: str
+        self, name: str, batch_id: str, num_images: int, labeler_email: str, reviewer_email: str
     ) -> Dict:
         """
         Create a new annotation job in the project.
@@ -850,21 +845,17 @@ class Project:
             ... )
         """
         url = f"{API_URL}/{self.__workspace}/{self.__project_name}/jobs?api_key={self.__api_key}"
-        
+
         payload = {
             "name": name,
             "batch": batch_id,
             "num_images": num_images,
             "labelerEmail": labeler_email,
-            "reviewerEmail": reviewer_email
+            "reviewerEmail": reviewer_email,
         }
-        
-        response = requests.post(
-            url,
-            headers={"Content-Type": "application/json"},
-            json=payload
-        )
-        
+
+        response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload)
+
         if response.status_code != 200:
             try:
                 error_data = response.json()
@@ -873,5 +864,5 @@ class Project:
                 raise RuntimeError(response.text)
             except ValueError:
                 raise RuntimeError(f"Failed to create annotation job: {response.text}")
-        
+
         return response.json()

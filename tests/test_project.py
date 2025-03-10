@@ -145,14 +145,14 @@ class TestProject(RoboflowTest):
             self.project.image(image_id)
 
         self.assertIn("Expecting value", str(context.exception))
-        
+
     def test_create_annotation_job_success(self):
         job_name = "Test Job"
         batch_id = "test-batch-123"
         num_images = 10
         labeler_email = "labeler@example.com"
         reviewer_email = "reviewer@example.com"
-        
+
         expected_response = {
             "success": True,
             "job": {
@@ -163,68 +163,63 @@ class TestProject(RoboflowTest):
                 "labeler": labeler_email,
                 "reviewer": reviewer_email,
                 "status": "created",
-                "created": 1616161616
-            }
+                "created": 1616161616,
+            },
         }
-        
+
         expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/jobs?api_key={ROBOFLOW_API_KEY}"
-        
+
         responses.add(
             responses.POST,
             expected_url,
             json=expected_response,
             status=200,
             match=[
-                json_params_matcher({
-                    "name": job_name,
-                    "batch": batch_id,
-                    "num_images": num_images,
-                    "labelerEmail": labeler_email,
-                    "reviewerEmail": reviewer_email
-                })
-            ]
+                json_params_matcher(
+                    {
+                        "name": job_name,
+                        "batch": batch_id,
+                        "num_images": num_images,
+                        "labelerEmail": labeler_email,
+                        "reviewerEmail": reviewer_email,
+                    }
+                )
+            ],
         )
-        
+
         result = self.project.create_annotation_job(
             name=job_name,
             batch_id=batch_id,
             num_images=num_images,
             labeler_email=labeler_email,
-            reviewer_email=reviewer_email
+            reviewer_email=reviewer_email,
         )
-        
+
         self.assertEqual(result, expected_response)
         self.assertTrue(result["success"])
         self.assertEqual(result["job"]["id"], "job-123")
         self.assertEqual(result["job"]["name"], job_name)
-        
+
     def test_create_annotation_job_error(self):
         job_name = "Test Job"
         batch_id = "invalid-batch"
         num_images = 10
         labeler_email = "labeler@example.com"
         reviewer_email = "reviewer@example.com"
-        
-        error_response = {
-            "error": "Batch not found"
-        }
-        
+
+        error_response = {"error": "Batch not found"}
+
         expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/jobs?api_key={ROBOFLOW_API_KEY}"
-        
-        responses.add(
-            responses.POST,
-            expected_url,
-            json=error_response,
-            status=404
-        )
-        
+
+        responses.add(responses.POST, expected_url, json=error_response, status=404)
+
         with self.assertRaises(RuntimeError) as context:
             self.project.create_annotation_job(
                 name=job_name,
                 batch_id=batch_id,
                 num_images=num_images,
                 labeler_email=labeler_email,
-                reviewer_email=reviewer_email
+                reviewer_email=reviewer_email,
             )
-        
+
         self.assertEqual(str(context.exception), "Batch not found")
