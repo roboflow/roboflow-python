@@ -4,6 +4,7 @@ import urllib
 from typing import Optional
 
 import requests
+from requests.exceptions import RequestException
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
@@ -85,14 +86,21 @@ def upload_image(
                 "file": ("imageToUpload", imgjpeg, "image/jpeg"),
             }
         )
-        response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
+
+        try:        
+            response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
+        except RequestException as e:
+            raise ImageUploadError(str(e)) from e
 
     else:
         # Hosted image upload url
         upload_url = _hosted_upload_url(api_key, project_url, image_path, split, coalesced_batch_name, tag_names)
 
-        # Get response
-        response = requests.post(upload_url, timeout=(300, 300))
+        try:
+            # Get response
+            response = requests.post(upload_url, timeout=(300, 300))
+        except RequestException as e:
+            raise ImageUploadError(str(e)) from e
 
     responsejson = None
     try:
@@ -147,12 +155,15 @@ def save_annotation(
         api_key, project_url, annotation_name, image_id, job_name, is_prediction, overwrite
     )
 
-    response = requests.post(
-        upload_url,
-        data=json.dumps({"annotationFile": annotation_string, "labelmap": annotation_labelmap}),
-        headers={"Content-Type": "application/json"},
-        timeout=(60, 60),
-    )
+    try:
+        response = requests.post(
+            upload_url,
+            data=json.dumps({"annotationFile": annotation_string, "labelmap": annotation_labelmap}),
+            headers={"Content-Type": "application/json"},
+            timeout=(60, 60),
+        )
+    except RequestException as e:
+        raise AnnotationSaveError(str(e)) from e
 
     # Handle response
     responsejson = None

@@ -11,7 +11,7 @@ import filetype
 import requests
 
 from roboflow.adapters import rfapi
-from roboflow.adapters.rfapi import ImageUploadError
+from roboflow.adapters.rfapi import ImageUploadError, AnnotationSaveError
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
 from roboflow.util.general import Retry
@@ -521,7 +521,7 @@ class Project:
         annotation_name, annotation_str = self._annotation_params(annotation_path)
         t0 = time.time()
         upload_retry_attempts = 0
-        retry = Retry(num_retry_uploads, ImageUploadError)
+        retry = Retry(num_retry_uploads, AnnotationSaveError)
 
         try:
             annotation = rfapi.save_annotation(
@@ -536,7 +536,7 @@ class Project:
                 overwrite=annotation_overwrite,
             )
             upload_retry_attempts = retry.retries
-        except ImageUploadError as e:
+        except AnnotationSaveError as e:
             e.retries = upload_retry_attempts
             raise
 
