@@ -87,7 +87,7 @@ def upload_image(
             }
         )
 
-        try:        
+        try:
             response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
         except RequestException as e:
             raise ImageUploadError(str(e)) from e

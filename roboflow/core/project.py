@@ -11,7 +11,7 @@ import filetype
 import requests
 
 from roboflow.adapters import rfapi
-from roboflow.adapters.rfapi import ImageUploadError, AnnotationSaveError
+from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
 from roboflow.util.general import Retry
