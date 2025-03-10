@@ -205,7 +205,6 @@ class Roboflow:
         self.api_key = api_key
         if self.api_key is None:
             self.api_key = load_roboflow_api_key()
-        print("API_KEY", self.api_key)
         self.model_format = model_format
         self.notebook = notebook
         self.onboarding = False
