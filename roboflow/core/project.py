@@ -595,7 +595,7 @@ class Project:
                 batch_name,
                 is_prediction,
                 annotation_overwrite,
-                num_retry_uploads=num_retry_uploads
+                num_retry_uploads=num_retry_uploads,
             )
 
         return {
