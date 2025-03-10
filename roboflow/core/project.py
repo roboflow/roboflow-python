@@ -812,3 +812,66 @@ class Project:
         image_details = data["image"]
 
         return image_details
+        
+    def create_annotation_job(
+        self,
+        name: str,
+        batch_id: str,
+        num_images: int,
+        labeler_email: str,
+        reviewer_email: str
+    ) -> Dict:
+        """
+        Create a new annotation job in the project.
+
+        Args:
+            name (str): The name of the annotation job
+            batch_id (str): The ID of the batch that contains the images to annotate
+            num_images (int): The number of images to include in the job
+            labeler_email (str): The email of the user who will label the images
+            reviewer_email (str): The email of the user who will review the annotations
+
+        Returns:
+            Dict: A dictionary containing the created job details
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> job = project.create_annotation_job(
+            ...     name="Job created by API",
+            ...     batch_id="batch123",
+            ...     num_images=10,
+            ...     labeler_email="user@example.com",
+            ...     reviewer_email="reviewer@example.com"
+            ... )
+        """
+        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/jobs?api_key={self.__api_key}"
+        
+        payload = {
+            "name": name,
+            "batch": batch_id,
+            "num_images": num_images,
+            "labelerEmail": labeler_email,
+            "reviewerEmail": reviewer_email
+        }
+        
+        response = requests.post(
+            url,
+            headers={"Content-Type": "application/json"},
+            json=payload
+        )
+        
+        if response.status_code != 200:
+            try:
+                error_data = response.json()
+                if "error" in error_data:
+                    raise RuntimeError(error_data["error"])
+                raise RuntimeError(response.text)
+            except ValueError:
+                raise RuntimeError(f"Failed to create annotation job: {response.text}")
+        
+        return response.json()
