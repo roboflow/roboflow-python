@@ -15,7 +15,7 @@ from roboflow.core.workspace import Workspace
 from roboflow.models import CLIPModel, GazeModel  # noqa: F401
 from roboflow.util.general import write_line
 
-__version__ = "1.1.54"
+__version__ = "1.1.55"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -205,7 +205,7 @@ class Roboflow:
         self.api_key = api_key
         if self.api_key is None:
             self.api_key = load_roboflow_api_key()
-
+        print("API_KEY", self.api_key)
         self.model_format = model_format
         self.notebook = notebook
         self.onboarding = False
