@@ -372,7 +372,7 @@ class Workspace:
             if not annotation_path:
                 return None, None
 
-            annotation, upload_time = project.save_annotation(
+            annotation, upload_time, _retry_attempts = project.save_annotation(
                 annotation_path=annotation_path,
                 annotation_labelmap=labelmap,
                 image_id=image_id,
