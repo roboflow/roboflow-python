@@ -19,6 +19,7 @@ from roboflow.util.active_learning_utils import check_box_size, clip_encode, cou
 from roboflow.util.image_utils import load_labelmap
 from roboflow.util.model_processor import process
 from roboflow.util.two_stage_utils import ocr_infer
+from roboflow.util.versions import normalize_yolo_model_type
 
 
 class Workspace:
@@ -596,6 +597,7 @@ class Workspace:
             if project_id not in user_projects:
                 raise ValueError(f"Project {project_id} is not accessible in this workspace")
 
+        model_type = normalize_yolo_model_type(model_type)
         zip_file_name = process(model_type, model_path, filename)
 
         if zip_file_name is None:
