@@ -350,6 +350,7 @@ class Workspace:
                 batch_name=batch_name,
                 sequence_number=imagedesc.get("index"),
                 sequence_size=len(images),
+                num_retry_uploads=num_retries,
             )
 
             return image, upload_time, upload_retry_attempts
@@ -372,11 +373,12 @@ class Workspace:
             if not annotation_path:
                 return None, None
 
-            annotation, upload_time = project.save_annotation(
+            annotation, upload_time, _retry_attempts = project.save_annotation(
                 annotation_path=annotation_path,
                 annotation_labelmap=labelmap,
                 image_id=image_id,
                 job_name=batch_name,
+                num_retry_uploads=num_retries,
             )
 
             return annotation, upload_time

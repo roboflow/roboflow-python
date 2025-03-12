@@ -81,7 +81,8 @@ def upload_model(args):
 
     if args.version_number is not None:
         # Deploy to specific version
-        project = workspace.project(args.project)
+        project_id = args.project[0] if isinstance(args.project, list) else args.project
+        project = workspace.project(project_id)
         version = project.version(args.version_number)
         version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
     else:
