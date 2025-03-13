@@ -3,7 +3,6 @@ import io
 import os
 import urllib
 
-import pillow_heif
 import requests
 import yaml
 from PIL import Image
