@@ -3,10 +3,10 @@ import io
 import os
 import urllib
 
+import pillow_heif
 import requests
 import yaml
 from PIL import Image
-import pillow_heif
 
 pillow_heif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
 pillow_heif.register_avif_opener()  # Register for AVIF
