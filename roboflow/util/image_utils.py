@@ -11,7 +11,7 @@ import yaml
 from PIL import Image
 
 pillow_heif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
-pillow_heif.register_avif_opener()  # Register for AVIF
+pillow_heif.register_avif_opener(thumbnails=False)  # Register for AVIF
 
 
 def check_image_path(image_path):
