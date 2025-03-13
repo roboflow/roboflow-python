@@ -16,6 +16,7 @@ class TestProject(RoboflowTest):
             "hand-rabbit.PNG",
             "woodland-rabbit.png",
             "file_example_TIFF_1MB.tiff",
+            "sky-rabbit.heic",
         ]
 
         for image in images_to_test:
@@ -24,7 +25,6 @@ class TestProject(RoboflowTest):
     def test_check_valid_image_with_unaccepted_formats(self):
         images_to_test = [
             "sky-rabbit.gif",
-            "sky-rabbit.heic",
         ]
 
         for image in images_to_test:
