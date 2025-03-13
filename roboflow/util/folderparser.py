@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from .image_utils import load_labelmap
 
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".avif", ".heic"}
 ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv", ".jsonl"}
 LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
 
