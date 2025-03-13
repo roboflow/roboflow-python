@@ -23,7 +23,6 @@ ACCEPTED_IMAGE_FORMATS = {
     "image/png",
     "image/webp",
     "image/tiff",
-    "image/tif",
     "image/avif",
     "image/heic",
 }
