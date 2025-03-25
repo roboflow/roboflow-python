@@ -454,3 +454,82 @@ class TestProject(RoboflowTest):
             finally:
                 for mock in mocks.values():
                     mock.stop()
+        
+    def test_get_batches_success(self):
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/batches?api_key={ROBOFLOW_API_KEY}"
+        mock_response = {
+            "batches": [
+                {
+                    "id": "batch-1",
+                    "name": "Batch 1",
+                    "created": 1616161616,
+                    "images": 10,
+                },
+                {
+                    "id": "batch-2",
+                    "name": "Batch 2",
+                    "created": 1616161617,
+                    "images": 5,
+                }
+            ]
+        }
+
+        responses.add(responses.GET, expected_url, json=mock_response, status=200)
+
+        batches = self.project.get_batches()
+
+        self.assertIsInstance(batches, dict)
+        self.assertIn("batches", batches)
+        self.assertEqual(len(batches["batches"]), 2)
+        self.assertEqual(batches["batches"][0]["id"], "batch-1")
+        self.assertEqual(batches["batches"][1]["id"], "batch-2")
+
+    def test_get_batches_error(self):
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/batches?api_key={ROBOFLOW_API_KEY}"
+        error_response = {"error": "Cannot retrieve batches"}
+
+        responses.add(responses.GET, expected_url, json=error_response, status=404)
+
+        with self.assertRaises(RuntimeError) as context:
+            self.project.get_batches()
+
+        self.assertEqual(str(context.exception), "Cannot retrieve batches")
+
+    def test_get_batch_success(self):
+        batch_id = "batch-123"
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/batches/{batch_id}?api_key={ROBOFLOW_API_KEY}"
+        mock_response = {
+            "batch": {
+                "id": batch_id,
+                "name": "My Test Batch",
+                "created": 1616161616,
+                "images": 25,
+                "metadata": {
+                    "source": "API Upload",
+                    "type": "test"
+                }
+            }
+        }
+
+        responses.add(responses.GET, expected_url, json=mock_response, status=200)
+
+        batch = self.project.get_batch(batch_id)
+
+        self.assertIsInstance(batch, dict)
+        self.assertIn("batch", batch)
+        self.assertEqual(batch["batch"]["id"], batch_id)
+        self.assertEqual(batch["batch"]["name"], "My Test Batch")
+        self.assertEqual(batch["batch"]["images"], 25)
+        self.assertIn("metadata", batch["batch"])
+
+    def test_get_batch_error(self):
+        batch_id = "nonexistent-batch"
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/batches/{batch_id}?api_key={ROBOFLOW_API_KEY}"
+        error_response = {"error": "Batch not found"}
+
+        responses.add(responses.GET, expected_url, json=error_response, status=404)
+
+        with self.assertRaises(RuntimeError) as context:
+            self.project.get_batch(batch_id)
+
+        self.assertEqual(str(context.exception), "Batch not found")

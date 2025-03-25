@@ -869,3 +869,68 @@ class Project:
                 raise RuntimeError(f"Failed to create annotation job: {response.text}")
 
         return response.json()
+
+    def get_batches(self) -> Dict:
+        """
+        Get a list of all batches in the project.
+
+        Returns:
+            Dict: A dictionary containing the list of batches
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> batches = project.get_batches()
+        """
+        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/batches?api_key={self.__api_key}"
+
+        response = requests.get(url)
+
+        if response.status_code != 200:
+            try:
+                error_data = response.json()
+                if "error" in error_data:
+                    raise RuntimeError(error_data["error"])
+                raise RuntimeError(response.text)
+            except ValueError:
+                raise RuntimeError(f"Failed to get batches: {response.text}")
+
+        return response.json()
+
+    def get_batch(self, batch_id: str) -> Dict:
+        """
+        Get information for a specific batch in the project.
+
+        Args:
+            batch_id (str): The ID of the batch to retrieve
+
+        Returns:
+            Dict: A dictionary containing the batch details
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> batch = project.get_batch("batch123")
+        """
+        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/batches/{batch_id}?api_key={self.__api_key}"
+
+        response = requests.get(url)
+
+        if response.status_code != 200:
+            try:
+                error_data = response.json()
+                if "error" in error_data:
+                    raise RuntimeError(error_data["error"])
+                raise RuntimeError(response.text)
+            except ValueError:
+                raise RuntimeError(f"Failed to get batch {batch_id}: {response.text}")
+
+        return response.json()
