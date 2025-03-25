@@ -1,14 +1,82 @@
 import requests
 import responses
 from responses.matchers import json_params_matcher
+from unittest.mock import patch
 
 from roboflow import API_URL
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError
 from roboflow.config import DEFAULT_BATCH_NAME
-from tests import PROJECT_NAME, ROBOFLOW_API_KEY, WORKSPACE_NAME, RoboflowTest
+from tests import PROJECT_NAME, ROBOFLOW_API_KEY, WORKSPACE_NAME, RoboflowTest, ordered
 
 
 class TestProject(RoboflowTest):
+    def _create_test_dataset(self, images=None):
+        """
+        Create a test dataset with specified images or a default image
+        
+        Args:
+            images: List of image dictionaries. If None, a default image will be used.
+            
+        Returns:
+            Dictionary representing a parsed dataset
+        """
+        if images is None:
+            images = [
+                {
+                    "file": "image1.jpg",
+                    "split": "train",
+                    "annotationfile": {
+                        "file": "image1.xml"
+                    }
+                }
+            ]
+            
+        return {
+            "location": "/test/location/",
+            "images": images
+        }
+    
+    def _setup_upload_dataset_mocks(self, test_dataset=None, image_return=None, annotation_return=None, 
+                                    project_created=False, save_annotation_side_effect=None, 
+                                    upload_image_side_effect=None):
+        """
+        Set up common mocks for upload_dataset tests
+        
+        Args:
+            test_dataset: The dataset to return from parsefolder. If None, creates a default dataset
+            image_return: Return value for upload_image. Default is successful upload
+            annotation_return: Return value for save_annotation. Default is successful annotation
+            project_created: Whether to simulate a newly created project
+            save_annotation_side_effect: Side effect function for save_annotation
+            upload_image_side_effect: Side effect function for upload_image
+            
+        Returns:
+            Dictionary of mock objects with start and stop methods
+        """
+        if test_dataset is None:
+            test_dataset = self._create_test_dataset()
+            
+        if image_return is None:
+            image_return = ({"id": "test-id", "success": True}, 0.1, 0)
+            
+        if annotation_return is None:
+            annotation_return = ({"success": True}, 0.1, 0)
+            
+        # Create the mock objects
+        mocks = {
+            'parser': patch('roboflow.core.workspace.folderparser.parsefolder', return_value=test_dataset),
+            'upload': patch('roboflow.core.workspace.Project.upload_image', 
+                          side_effect=upload_image_side_effect) if upload_image_side_effect 
+                          else patch('roboflow.core.workspace.Project.upload_image', return_value=image_return),
+            'save_annotation': patch('roboflow.core.workspace.Project.save_annotation', 
+                                   side_effect=save_annotation_side_effect) if save_annotation_side_effect
+                                   else patch('roboflow.core.workspace.Project.save_annotation', return_value=annotation_return),
+            'get_project': patch('roboflow.core.workspace.Workspace._get_or_create_project', 
+                               return_value=(self.project, project_created))
+        }
+        
+        return mocks
+        
     def test_check_valid_image_with_accepted_formats(self):
         images_to_test = [
             "rabbit.JPG",
@@ -224,3 +292,186 @@ class TestProject(RoboflowTest):
             )
 
         self.assertEqual(str(context.exception), "Batch not found")
+        
+    @ordered
+    @responses.activate
+    def test_project_upload_dataset(self):
+        """Test upload_dataset functionality with various scenarios"""
+        test_scenarios = [
+            {
+                "name": "string_annotationdesc",
+                "dataset": [{
+                    "file": "test_image.jpg", 
+                    "split": "train",
+                    "annotationfile": "string_annotation.txt"
+                }],
+                "params": {"num_workers": 1},
+                "assertions": {}
+            },
+            {
+                "name": "success_basic",
+                "dataset": [
+                    {"file": "image1.jpg", "split": "train", "annotationfile": {"file": "image1.xml"}},
+                    {"file": "image2.jpg", "split": "valid", "annotationfile": {"file": "image2.xml"}}
+                ],
+                "params": {},
+                "assertions": {
+                    "parser": [("/test/dataset",)],
+                    "upload": {"count": 2},
+                    "save_annotation": {"count": 2}
+                },
+                "image_return": ({"id": "test-id-1", "success": True}, 0.1, 0)
+            },
+            {
+                "name": "custom_parameters",
+                "dataset": None,
+                "params": {
+                    "num_workers": 2,
+                    "project_license": "CC BY 4.0",
+                    "project_type": "classification",
+                    "batch_name": "test-batch",
+                    "num_retries": 3
+                },
+                "assertions": {
+                    "upload": {"count": 1, "kwargs": {"batch_name": "test-batch", "num_retry_uploads": 3}}
+                }
+            },
+            {
+                "name": "project_creation",
+                "dataset": None,
+                "params": {"project_name": "new-project"},
+                "assertions": {},
+                "project_created": True
+            },
+            {
+                "name": "with_labelmap",
+                "dataset": [{
+                    "file": "image1.jpg",
+                    "split": "train",
+                    "annotationfile": {
+                        "file": "image1.xml",
+                        "labelmap": "path/to/labelmap.json"
+                    }
+                }],
+                "params": {},
+                "assertions": {
+                    "save_annotation": {"count": 1},
+                    "load_labelmap": {"count": 1}
+                },
+                "extra_mocks": [
+                    ("load_labelmap", "roboflow.core.workspace.load_labelmap", {"return_value": {"old_label": "new_label"}})
+                ]
+            },
+            {
+                "name": "concurrent_uploads",
+                "dataset": [{"file": f"image{i}.jpg", "split": "train"} for i in range(10)],
+                "params": {"num_workers": 5},
+                "assertions": {
+                    "thread_pool": {"count": 1, "kwargs": {"max_workers": 5}}
+                },
+                "extra_mocks": [
+                    ("thread_pool", "concurrent.futures.ThreadPoolExecutor", {})
+                ]
+            },
+            {
+                "name": "empty_dataset",
+                "dataset": [],
+                "params": {},
+                "assertions": {
+                    "upload": {"count": 0}
+                }
+            },
+            {
+                "name": "raw_text_annotation",
+                "dataset": [{
+                    "file": "image1.jpg",
+                    "split": "train",
+                    "annotationfile": {
+                        "rawText": "annotation content here",
+                        "format": "json"
+                    }
+                }],
+                "params": {},
+                "assertions": {
+                    "save_annotation": {"count": 1}
+                }
+            }
+        ]
+        
+        error_cases = [
+            {
+                "name": "image_upload_error",
+                "side_effect": {
+                    "upload_image_side_effect": lambda *args, **kwargs: 
+                        (_ for _ in ()).throw(ImageUploadError("Failed to upload image"))
+                },
+                "params": {"num_workers": 1}
+            },
+            {
+                "name": "annotation_upload_error",
+                "side_effect": {
+                    "save_annotation_side_effect": lambda *args, **kwargs: 
+                        (_ for _ in ()).throw(AnnotationSaveError("Failed to save annotation"))
+                },
+                "params": {"num_workers": 1}
+            }
+        ]
+                
+        for scenario in test_scenarios:
+            test_dataset = self._create_test_dataset(scenario.get("dataset")) if scenario.get("dataset") is not None else None
+            
+            extra_mocks = {}
+            if "extra_mocks" in scenario:
+                for mock_name, target, config in scenario.get("extra_mocks", []):
+                    extra_mocks[mock_name] = patch(target, **config)
+            
+            mocks = self._setup_upload_dataset_mocks(
+                test_dataset=test_dataset,
+                image_return=scenario.get("image_return"),
+                project_created=scenario.get("project_created", False)
+            )
+            
+            mock_objects = {}
+            for name, mock in mocks.items():
+                mock_objects[name] = mock.start()
+            
+            for name, mock in extra_mocks.items():
+                mock_objects[name] = mock.start()
+            
+            try:
+                params = {"dataset_path": "/test/dataset", "project_name": PROJECT_NAME}
+                params.update(scenario.get("params", {}))
+                
+                self.workspace.upload_dataset(**params)
+                
+                for mock_name, assertion in scenario.get("assertions", {}).items():
+                    if isinstance(assertion, list):
+                        mock_obj = mock_objects.get(mock_name)
+                        call_args_list = [args for args, _ in mock_obj.call_args_list]
+                        for expected_args in assertion:
+                            self.assertIn(expected_args, call_args_list)
+                    elif isinstance(assertion, dict):
+                        mock_obj = mock_objects.get(mock_name)
+                        if "count" in assertion:
+                            self.assertEqual(mock_obj.call_count, assertion["count"])
+                        if "kwargs" in assertion and mock_obj.call_count > 0:
+                            _, kwargs = mock_obj.call_args
+                            for key, value in assertion["kwargs"].items():
+                                self.assertEqual(kwargs.get(key), value)
+            finally:
+                for mock in list(mocks.values()) + list(extra_mocks.values()):
+                    mock.stop()
+        
+        for case in error_cases:
+            mocks = self._setup_upload_dataset_mocks(**case.get("side_effect", {}))
+            
+            for mock in mocks.values():
+                mock.start()
+            
+            try:
+                params = {"dataset_path": "/test/dataset", "project_name": PROJECT_NAME}
+                params.update(case.get("params", {}))
+                self.workspace.upload_dataset(**params)
+            finally:
+                for mock in mocks.values():
+                    mock.stop()
