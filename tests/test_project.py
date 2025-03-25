@@ -460,17 +460,25 @@ class TestProject(RoboflowTest):
         mock_response = {
             "batches": [
                 {
-                    "id": "batch-1",
-                    "name": "Batch 1",
-                    "created": 1616161616,
-                    "images": 10,
+                    "name": "Uploaded on 11/22/22 at 1:39 pm",
+                    "numJobs": 2,
+                    "images": 115,
+                    "uploaded": {
+                        "_seconds": 1669146024,
+                        "_nanoseconds": 818000000
+                    },
+                    "id": "batch-1"
                 },
                 {
-                    "id": "batch-2",
-                    "name": "Batch 2",
-                    "created": 1616161617,
-                    "images": 5,
-                },
+                    "numJobs": 0,
+                    "images": 11,
+                    "uploaded": {
+                        "_seconds": 1669236873,
+                        "_nanoseconds": 47000000
+                    },
+                    "name": "Upload via API",
+                    "id": "batch-2"
+                }
             ]
         }
 
@@ -482,7 +490,11 @@ class TestProject(RoboflowTest):
         self.assertIn("batches", batches)
         self.assertEqual(len(batches["batches"]), 2)
         self.assertEqual(batches["batches"][0]["id"], "batch-1")
+        self.assertEqual(batches["batches"][0]["name"], "Uploaded on 11/22/22 at 1:39 pm")
+        self.assertEqual(batches["batches"][0]["images"], 115)
+        self.assertEqual(batches["batches"][0]["numJobs"], 2)
         self.assertEqual(batches["batches"][1]["id"], "batch-2")
+        self.assertEqual(batches["batches"][1]["name"], "Upload via API")
 
     def test_get_batches_error(self):
         expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/batches?api_key={ROBOFLOW_API_KEY}"
@@ -500,11 +512,14 @@ class TestProject(RoboflowTest):
         expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/batches/{batch_id}?api_key={ROBOFLOW_API_KEY}"
         mock_response = {
             "batch": {
-                "id": batch_id,
-                "name": "My Test Batch",
-                "created": 1616161616,
-                "images": 25,
-                "metadata": {"source": "API Upload", "type": "test"},
+                "name": "Uploaded on 11/22/22 at 1:39 pm",
+                "numJobs": 2,
+                "images": 115,
+                "uploaded": {
+                    "_seconds": 1669146024,
+                    "_nanoseconds": 818000000
+                },
+                "id": batch_id
             }
         }
 
@@ -515,9 +530,10 @@ class TestProject(RoboflowTest):
         self.assertIsInstance(batch, dict)
         self.assertIn("batch", batch)
         self.assertEqual(batch["batch"]["id"], batch_id)
-        self.assertEqual(batch["batch"]["name"], "My Test Batch")
-        self.assertEqual(batch["batch"]["images"], 25)
-        self.assertIn("metadata", batch["batch"])
+        self.assertEqual(batch["batch"]["name"], "Uploaded on 11/22/22 at 1:39 pm")
+        self.assertEqual(batch["batch"]["images"], 115)
+        self.assertEqual(batch["batch"]["numJobs"], 2)
+        self.assertIn("uploaded", batch["batch"])
 
     def test_get_batch_error(self):
         batch_id = "nonexistent-batch"
