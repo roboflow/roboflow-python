@@ -454,7 +454,7 @@ class TestProject(RoboflowTest):
             finally:
                 for mock in mocks.values():
                     mock.stop()
-        
+
     def test_get_batches_success(self):
         expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/batches?api_key={ROBOFLOW_API_KEY}"
         mock_response = {
@@ -470,7 +470,7 @@ class TestProject(RoboflowTest):
                     "name": "Batch 2",
                     "created": 1616161617,
                     "images": 5,
-                }
+                },
             ]
         }
 
@@ -504,10 +504,7 @@ class TestProject(RoboflowTest):
                 "name": "My Test Batch",
                 "created": 1616161616,
                 "images": 25,
-                "metadata": {
-                    "source": "API Upload",
-                    "type": "test"
-                }
+                "metadata": {"source": "API Upload", "type": "test"},
             }
         }
 
