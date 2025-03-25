@@ -360,7 +360,7 @@ class Workspace:
             annotation_path = None
 
             annotationdesc = imagedesc.get("annotationfile")
-            if annotationdesc:
+            if isinstance(annotationdesc, dict):
                 if annotationdesc.get("rawText"):
                     annotation_path = annotationdesc
                 else:
@@ -369,8 +369,7 @@ class Workspace:
 
                 if isinstance(labelmap, str):
                     labelmap = load_labelmap(labelmap)
-
-            if not annotation_path:
+            else:
                 return None, None
 
             annotation, upload_time, _retry_attempts = project.save_annotation(
