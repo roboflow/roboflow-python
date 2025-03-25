@@ -463,22 +463,16 @@ class TestProject(RoboflowTest):
                     "name": "Uploaded on 11/22/22 at 1:39 pm",
                     "numJobs": 2,
                     "images": 115,
-                    "uploaded": {
-                        "_seconds": 1669146024,
-                        "_nanoseconds": 818000000
-                    },
-                    "id": "batch-1"
+                    "uploaded": {"_seconds": 1669146024, "_nanoseconds": 818000000},
+                    "id": "batch-1",
                 },
                 {
                     "numJobs": 0,
                     "images": 11,
-                    "uploaded": {
-                        "_seconds": 1669236873,
-                        "_nanoseconds": 47000000
-                    },
+                    "uploaded": {"_seconds": 1669236873, "_nanoseconds": 47000000},
                     "name": "Upload via API",
-                    "id": "batch-2"
-                }
+                    "id": "batch-2",
+                },
             ]
         }
 
@@ -515,11 +509,8 @@ class TestProject(RoboflowTest):
                 "name": "Uploaded on 11/22/22 at 1:39 pm",
                 "numJobs": 2,
                 "images": 115,
-                "uploaded": {
-                    "_seconds": 1669146024,
-                    "_nanoseconds": 818000000
-                },
-                "id": batch_id
+                "uploaded": {"_seconds": 1669146024, "_nanoseconds": 818000000},
+                "id": batch_id,
             }
         }
 
