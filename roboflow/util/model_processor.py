@@ -27,6 +27,7 @@ def _get_processor_function(model_type: str) -> Callable:
         "paligemma",
         "paligemma2",
         "florence-2",
+        "rfdetr",
     ]
 
     if not any(supported_model in model_type for supported_model in supported_models):
@@ -59,6 +60,9 @@ def _get_processor_function(model_type: str) -> Callable:
 
     if "yolov12" in model_type:
         return _process_yolov12
+
+    if "rfdetr" in model_type:
+        return _process_rfdetr
 
     return _process_yolo
 
@@ -210,6 +214,36 @@ def _process_yolov12(model_type: str, model_path: str, filename: str) -> str:
         raise FileNotFoundError(f"Model path {model_path} does not exist.")
 
     # Find any .pt file in model path
+    model_files = os.listdir(model_path)
+    pt_file = next((f for f in model_files if f.endswith(".pt")), None)
+
+    if pt_file is None:
+        raise RuntimeError("No .pt model file found in the provided path")
+
+    # Copy the .pt file to weights.pt if not already named weights.pt
+    if pt_file != "weights.pt":
+        shutil.copy(os.path.join(model_path, pt_file), os.path.join(model_path, "weights.pt"))
+
+    required_files = ["weights.pt"]
+
+    optional_files = ["results.csv", "results.png", "model_artifacts.json"]
+
+    zip_file_name = "roboflow_deploy.zip"
+    with zipfile.ZipFile(os.path.join(model_path, zip_file_name), "w") as zipMe:
+        for file in required_files:
+            zipMe.write(os.path.join(model_path, file), arcname=file, compress_type=zipfile.ZIP_DEFLATED)
+
+        for file in optional_files:
+            if os.path.exists(os.path.join(model_path, file)):
+                zipMe.write(os.path.join(model_path, file), arcname=file, compress_type=zipfile.ZIP_DEFLATED)
+
+    return zip_file_name
+
+
+def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model path {model_path} does not exist.")
+
     model_files = os.listdir(model_path)
     pt_file = next((f for f in model_files if f.endswith(".pt")), None)
 
