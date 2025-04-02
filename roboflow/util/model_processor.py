@@ -108,6 +108,16 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
         print_warn_for_wrong_dependencies_versions([("ultralytics", ">=", "8.3.0")], ask_to_continue=True)
 
     elif "yolov12" in model_type:
+        try:
+            import torch
+            import ultralytics
+
+        except ImportError:
+            raise RuntimeError(
+                "The ultralytics python package is required to deploy yolov12"
+                " models. Please install it with `pip install ultralytics`"
+            )
+        
         print(
             "Note: Model must be trained using ultralytics from https://github.com/sunsmarterjie/yolov12 "
             "or through the Roboflow platform"
