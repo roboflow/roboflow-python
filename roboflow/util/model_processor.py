@@ -123,7 +123,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
             "or through the Roboflow platform"
         )
 
-    model = torch.load(os.path.join(model_path, filename))
+    model = torch.load(os.path.join(model_path, filename), map_location="cpu", weights_only=False)
 
     model_instance = model["model"] if "model" in model and model["model"] is not None else model["ema"]
 
