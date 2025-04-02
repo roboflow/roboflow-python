@@ -107,7 +107,6 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
         print_warn_for_wrong_dependencies_versions([("ultralytics", ">=", "8.3.0")], ask_to_continue=True)
 
-    
     elif "yolov12" in model_type:
         print(
             "Note: Model must be trained using ultralytics from https://github.com/sunsmarterjie/yolov12 "
