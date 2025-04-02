@@ -117,7 +117,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
                 "The ultralytics python package is required to deploy yolov12"
                 " models. Please install it with `pip install ultralytics`"
             )
-        
+
         print(
             "Note: Model must be trained using ultralytics from https://github.com/sunsmarterjie/yolov12 "
             "or through the Roboflow platform"
