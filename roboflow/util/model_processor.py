@@ -57,9 +57,6 @@ def _get_processor_function(model_type: str) -> Callable:
     if "yolonas" in model_type:
         return _process_yolonas
 
-    if "yolov12" in model_type:
-        return _process_yolov12
-
     return _process_yolo
 
 
@@ -110,29 +107,38 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
         print_warn_for_wrong_dependencies_versions([("ultralytics", ">=", "8.3.0")], ask_to_continue=True)
 
+    
+    elif "yolov12" in model_type:
+        print(
+            "Note: Model must be trained using ultralytics from https://github.com/sunsmarterjie/yolov12 "
+            "or through the Roboflow platform"
+        )
+
     model = torch.load(os.path.join(model_path, filename))
 
-    if isinstance(model["model"].names, list):
-        class_names = model["model"].names
+    model_instance = model["model"] if "model" in model and model["model"] is not None else model["ema"]
+
+    if isinstance(model_instance.names, list):
+        class_names = model_instance.names
     else:
         class_names = []
-        for i, val in enumerate(model["model"].names):
-            class_names.append((val, model["model"].names[val]))
+        for i, val in enumerate(model_instance.names):
+            class_names.append((val, model_instance.names[val]))
         class_names.sort(key=lambda x: x[0])
         class_names = [x[1] for x in class_names]
 
     if "yolov8" in model_type or "yolov10" in model_type or "yolov11" in model_type:
         # try except for backwards compatibility with older versions of ultralytics
         if "-cls" in model_type or model_type.startswith("yolov10") or model_type.startswith("yolov11"):
-            nc = model["model"].yaml["nc"]
+            nc = model_instance.yaml["nc"]
             args = model["train_args"]
         else:
-            nc = model["model"].nc
-            args = model["model"].args
+            nc = model_instance.nc
+            args = model_instance.args
         try:
             model_artifacts = {
                 "names": class_names,
-                "yaml": model["model"].yaml,
+                "yaml": model_instance.yaml,
                 "nc": nc,
                 "args": {k: val for k, val in args.items() if ((k == "model") or (k == "imgsz") or (k == "batch"))},
                 "ultralytics_version": ultralytics.__version__,
@@ -141,7 +147,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
         except Exception:
             model_artifacts = {
                 "names": class_names,
-                "yaml": model["model"].yaml,
+                "yaml": model_instance.yaml,
                 "nc": nc,
                 "args": {
                     k: val for k, val in args.__dict__.items() if ((k == "model") or (k == "imgsz") or (k == "batch"))
@@ -157,20 +163,20 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
         model_artifacts = {
             "names": class_names,
-            "nc": model["model"].nc,
+            "nc": model_instance.nc,
             "args": {
                 "imgsz": opts["imgsz"] if "imgsz" in opts else opts["img_size"],
                 "batch": opts["batch_size"],
             },
             "model_type": model_type,
         }
-        if hasattr(model["model"], "yaml"):
-            model_artifacts["yaml"] = model["model"].yaml
+        if hasattr(model_instance, "yaml"):
+            model_artifacts["yaml"] = model_instance.yaml
 
     with open(os.path.join(model_path, "model_artifacts.json"), "w") as fp:
         json.dump(model_artifacts, fp)
 
-    torch.save(model["model"].state_dict(), os.path.join(model_path, "state_dict.pt"))
+    torch.save(model_instance.state_dict(), os.path.join(model_path, "state_dict.pt"))
 
     list_files = [
         "results.csv",
@@ -192,46 +198,6 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
             else:
                 if file in ["model_artifacts.json", "state_dict.pt"]:
                     raise (ValueError(f"File {file} not found. Please make sure to provide a valid model path."))
-
-    return zip_file_name
-
-
-def _process_yolov12(model_type: str, model_path: str, filename: str) -> str:
-    # For YOLOv12, since it uses a special Ultralytics version,
-    # state dict extraction and model artifacts are handled during model conversion
-
-    print(
-        "Note: Model must be trained using ultralytics from https://github.com/sunsmarterjie/yolov12 "
-        "or through the Roboflow platform"
-    )
-
-    # Check if model_path exists
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Model path {model_path} does not exist.")
-
-    # Find any .pt file in model path
-    model_files = os.listdir(model_path)
-    pt_file = next((f for f in model_files if f.endswith(".pt")), None)
-
-    if pt_file is None:
-        raise RuntimeError("No .pt model file found in the provided path")
-
-    # Copy the .pt file to weights.pt if not already named weights.pt
-    if pt_file != "weights.pt":
-        shutil.copy(os.path.join(model_path, pt_file), os.path.join(model_path, "weights.pt"))
-
-    required_files = ["weights.pt"]
-
-    optional_files = ["results.csv", "results.png", "model_artifacts.json"]
-
-    zip_file_name = "roboflow_deploy.zip"
-    with zipfile.ZipFile(os.path.join(model_path, zip_file_name), "w") as zipMe:
-        for file in required_files:
-            zipMe.write(os.path.join(model_path, file), arcname=file, compress_type=zipfile.ZIP_DEFLATED)
-
-        for file in optional_files:
-            if os.path.exists(os.path.join(model_path, file)):
-                zipMe.write(os.path.join(model_path, file), arcname=file, compress_type=zipfile.ZIP_DEFLATED)
 
     return zip_file_name
 
