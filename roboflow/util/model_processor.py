@@ -27,6 +27,7 @@ def _get_processor_function(model_type: str) -> Callable:
         "paligemma",
         "paligemma2",
         "florence-2",
+        "rfdetr",
     ]
 
     if not any(supported_model in model_type for supported_model in supported_models):
@@ -59,6 +60,9 @@ def _get_processor_function(model_type: str) -> Callable:
 
     if "yolov12" in model_type:
         return _process_yolov12
+
+    if "rfdetr" in model_type:
+        return _process_rfdetr
 
     return _process_yolo
 
@@ -234,6 +238,59 @@ def _process_yolov12(model_type: str, model_path: str, filename: str) -> str:
                 zipMe.write(os.path.join(model_path, file), arcname=file, compress_type=zipfile.ZIP_DEFLATED)
 
     return zip_file_name
+
+
+def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model path {model_path} does not exist.")
+
+    model_files = os.listdir(model_path)
+    pt_file = next((f for f in model_files if f.endswith(".pt")), None)
+
+    if pt_file is None:
+        raise RuntimeError("No .pt model file found in the provided path")
+
+    class_names = get_classnames_txt_for_rfdetr(model_path, pt_file)
+
+    # Copy the .pt file to weights.pt if not already named weights.pt
+    if pt_file != "weights.pt":
+        shutil.copy(os.path.join(model_path, pt_file), os.path.join(model_path, "weights.pt"))
+
+    required_files = ["weights.pt"]
+
+    optional_files = ["results.csv", "results.png", "model_artifacts.json"]
+
+    zip_file_name = "roboflow_deploy.zip"
+    with zipfile.ZipFile(os.path.join(model_path, zip_file_name), "w") as zipMe:
+        for file in required_files:
+            zipMe.write(os.path.join(model_path, file), arcname=file, compress_type=zipfile.ZIP_DEFLATED)
+
+        for file in optional_files:
+            if os.path.exists(os.path.join(model_path, file)):
+                zipMe.write(os.path.join(model_path, file), arcname=file, compress_type=zipfile.ZIP_DEFLATED)
+
+    return zip_file_name
+
+
+def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str) -> list[str]:
+    class_names_path = os.path.join(model_path, "class_names.txt")
+    if os.path.exists(class_names_path):
+        return class_names_path
+
+    model = torch.load(os.path.join(model_path, pt_file), map_location="cpu", weights_only=False)
+    args = vars(model["args"])
+    if "class_names" in args:
+        with open(class_names_path, "w") as f:
+            for class_name in args["class_names"]:
+                f.write(class_name + "\n")
+        return class_names_path
+
+    raise FileNotFoundError(
+        f"No class_names.txt file found in model path {model_path}.\n"
+        f"This should only happen on rfdetr models trained before version 1.1.0.\n"
+        f"Please re-train your model with the latest version of the rfdetr library, or\n"
+        f"please create a class_names.txt file in the model path with the class names in new lines in the order of the classes in the model.\n"
+    )
 
 
 def _process_huggingface(
