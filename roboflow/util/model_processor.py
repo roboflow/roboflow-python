@@ -250,10 +250,8 @@ def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
     if pt_file is None:
         raise RuntimeError("No .pt model file found in the provided path")
 
-
     class_names = get_classnames_txt_for_rfdetr(model_path, pt_file)
 
-        
     # Copy the .pt file to weights.pt if not already named weights.pt
     if pt_file != "weights.pt":
         shutil.copy(os.path.join(model_path, pt_file), os.path.join(model_path, "weights.pt"))
@@ -273,11 +271,12 @@ def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
 
     return zip_file_name
 
+
 def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str) -> list[str]:
     class_names_path = os.path.join(model_path, "class_names.txt")
     if os.path.exists(class_names_path):
         return class_names_path
-    
+
     model = torch.load(os.path.join(model_path, pt_file), map_location="cpu", weights_only=False)
     args = vars(model["args"])
     if "class_names" in args:
