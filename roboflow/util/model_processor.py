@@ -123,7 +123,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
             "or through the Roboflow platform"
         )
 
-    model = torch.load(os.path.join(model_path, filename), map_location="cpu", weights_only=False)
+    model = torch.load(os.path.join(model_path, filename), weights_only=False)
 
     model_instance = model["model"] if "model" in model and model["model"] is not None else model["ema"]
 
@@ -138,7 +138,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
     if "yolov8" in model_type or "yolov10" in model_type or "yolov11" in model_type or "yolov12" in model_type:
         # try except for backwards compatibility with older versions of ultralytics
-        if "-cls" in model_type or model_type.startswith("yolov10") or model_type.startswith("yolov11"):
+        if "-cls" in model_type or model_type.startswith("yolov10") or model_type.startswith("yolov11") or model_type.startswith("yolov12"):
             nc = model_instance.yaml["nc"]
             args = model["train_args"]
         else:
