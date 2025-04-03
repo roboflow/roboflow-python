@@ -83,7 +83,7 @@ def add_deployment_parser(subparsers):
         required=True
     )
     deployment_add_parser.add_argument(
-        "-e", "--creator_email", help="your email address", required=True
+        "-e", "--creator_email", help="your email address (must be added to the workspace)", required=True
     )
     deployment_add_parser.add_argument(
         "-t",
