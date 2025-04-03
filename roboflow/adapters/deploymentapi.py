@@ -9,7 +9,9 @@ class DeploymentApiError(Exception):
     pass
 
 
-def add_deployment(api_key, creator_email, machine_type, duration, delete_on_expiration, deployment_name, inference_version):
+def add_deployment(
+    api_key, creator_email, machine_type, duration, delete_on_expiration, deployment_name, inference_version
+):
     url = f"{DEDICATED_DEPLOYMENT_URL}/add"
     params = {
         "api_key": api_key,

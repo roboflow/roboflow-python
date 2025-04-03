@@ -79,8 +79,10 @@ def add_deployment_parser(subparsers):
     #     "-s", "--security_level", help="security level (protected)", default="protected"
     # )
     deployment_add_parser.add_argument(
-        "-m", "--machine_type", help="machine type, run `roboflow deployment machine_type` to see available options",
-        required=True
+        "-m",
+        "--machine_type",
+        help="machine type, run `roboflow deployment machine_type` to see available options",
+        required=True,
     )
     deployment_add_parser.add_argument(
         "-e", "--creator_email", help="your email address (must be added to the workspace)", required=True
@@ -133,11 +135,11 @@ def add_deployment_parser(subparsers):
     deployment_usage_deployment_parser.add_argument(
         "-t", "--to_timestamp", help="end time stamp in ISO8601 format (YYYY-MM-DD HH:MM:SS)", default=None
     )
-    
+
     deployment_pause_parser.set_defaults(func=pause_deployment)
     deployment_pause_parser.add_argument("-a", "--api_key", help="api key")
     deployment_pause_parser.add_argument("deployment_name", help="deployment name")
-    
+
     deployment_resume_parser.set_defaults(func=resume_deployment)
     deployment_resume_parser.add_argument("-a", "--api_key", help="api key")
     deployment_resume_parser.add_argument("deployment_name", help="deployment name")
