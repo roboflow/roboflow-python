@@ -115,13 +115,17 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
         except ImportError:
             raise RuntimeError(
                 "The ultralytics python package is required to deploy yolov12"
-                " models. Please install it with `pip install ultralytics`"
+                " models. Please install it from `https://github.com/sunsmarterjie/yolov12`"
             )
 
         print(
-            "Note: Model must be trained using ultralytics from https://github.com/sunsmarterjie/yolov12 "
-            "or through the Roboflow platform"
+            "\n!!! ATTENTION !!!\n"
+            "Model must be trained and uploaded using ultralytics from https://github.com/sunsmarterjie/yolov12\n"
+            "or through the Roboflow platform\n"
+            "!!! ATTENTION !!!\n"
         )
+
+        print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.3.63")], ask_to_continue=True)
 
     model = torch.load(os.path.join(model_path, filename), weights_only=False)
 
