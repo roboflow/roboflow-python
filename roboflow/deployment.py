@@ -61,6 +61,8 @@ def add_deployment_parser(subparsers):
     deployment_usage_deployment_parser = deployment_subparsers.add_parser(
         "usage_deployment", help="get usage of a specific dedicated deployments"
     )
+    deployment_pause_parser = deployment_subparsers.add_parser("pause", help="pause a dedicated deployment")
+    deployment_resume_parser = deployment_subparsers.add_parser("resume", help="resume a dedicated deployment")
     deployment_delete_parser = deployment_subparsers.add_parser("delete", help="delete a dedicated deployment")
     deployment_log_parser = deployment_subparsers.add_parser("log", help="show log info for a dedicated deployment")
 
@@ -77,7 +79,13 @@ def add_deployment_parser(subparsers):
     #     "-s", "--security_level", help="security level (protected)", default="protected"
     # )
     deployment_add_parser.add_argument(
-        "-m", "--machine_type", help="machine type, run `roboflow deployment machine_type` to see available options"
+        "-m",
+        "--machine_type",
+        help="machine type, run `roboflow deployment machine_type` to see available options",
+        required=True,
+    )
+    deployment_add_parser.add_argument(
+        "-e", "--creator_email", help="your email address (must be added to the workspace)", required=True
     )
     deployment_add_parser.add_argument(
         "-t",
@@ -87,7 +95,7 @@ def add_deployment_parser(subparsers):
         default=3,
     )
     deployment_add_parser.add_argument(
-        "-e", "--no_delete_on_expiration", help="keep when expired (default: False)", action="store_true"
+        "-nodel", "--no_delete_on_expiration", help="keep when expired (default: False)", action="store_true"
     )
     deployment_add_parser.add_argument(
         "-v",
@@ -128,6 +136,14 @@ def add_deployment_parser(subparsers):
         "-t", "--to_timestamp", help="end time stamp in ISO8601 format (YYYY-MM-DD HH:MM:SS)", default=None
     )
 
+    deployment_pause_parser.set_defaults(func=pause_deployment)
+    deployment_pause_parser.add_argument("-a", "--api_key", help="api key")
+    deployment_pause_parser.add_argument("deployment_name", help="deployment name")
+
+    deployment_resume_parser.set_defaults(func=resume_deployment)
+    deployment_resume_parser.add_argument("-a", "--api_key", help="api key")
+    deployment_resume_parser.add_argument("deployment_name", help="deployment name")
+
     deployment_delete_parser.set_defaults(func=delete_deployment)
     deployment_delete_parser.add_argument("-a", "--api_key", help="api key")
     deployment_delete_parser.add_argument("deployment_name", help="deployment name")
@@ -163,6 +179,7 @@ def add_deployment(args):
         exit(1)
     status_code, msg = deploymentapi.add_deployment(
         api_key,
+        args.creator_email,
         # args.security_level,
         args.machine_type,
         args.duration,
@@ -235,6 +252,30 @@ def get_deployment_usage(args):
 
     from_timestamp, to_timestamp = check_from_to_timestamp(args.from_timestamp, args.to_timestamp, timedelta(days=1))
     status_code, msg = deploymentapi.get_deployment_usage(api_key, args.deployment_name, from_timestamp, to_timestamp)
+    if status_code != 200:
+        print(f"{status_code}: {msg}")
+        exit(status_code)
+    print(json.dumps(msg, indent=2))
+
+
+def pause_deployment(args):
+    api_key = args.api_key or load_roboflow_api_key(None)
+    if api_key is None:
+        print("Please provide an api key")
+        exit(1)
+    status_code, msg = deploymentapi.pause_deployment(api_key, args.deployment_name)
+    if status_code != 200:
+        print(f"{status_code}: {msg}")
+        exit(status_code)
+    print(json.dumps(msg, indent=2))
+
+
+def resume_deployment(args):
+    api_key = args.api_key or load_roboflow_api_key(None)
+    if api_key is None:
+        print("Please provide an api key")
+        exit(1)
+    status_code, msg = deploymentapi.resume_deployment(api_key, args.deployment_name)
     if status_code != 200:
         print(f"{status_code}: {msg}")
         exit(status_code)
