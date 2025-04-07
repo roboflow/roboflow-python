@@ -114,7 +114,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
         print_warn_for_wrong_dependencies_versions([("ultralytics", ">=", "8.3.0")], ask_to_continue=True)
 
-    model = torch.load(os.path.join(model_path, filename))
+    model = torch.load(os.path.join(model_path, filename), map_location="cpu")
 
     if isinstance(model["model"].names, list):
         class_names = model["model"].names
@@ -241,14 +241,18 @@ def _process_yolov12(model_type: str, model_path: str, filename: str) -> str:
 
 
 def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
+    _supported_types = ["rfdetr-base", "rfdetr-large"]
+    if model_type not in _supported_types:
+        raise ValueError(f"Model type {model_type} not supported. Supported types are {_supported_types}")
+
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model path {model_path} does not exist.")
 
     model_files = os.listdir(model_path)
-    pt_file = next((f for f in model_files if f.endswith(".pt")), None)
+    pt_file = next((f for f in model_files if f.endswith(".pt") or f.endswith(".pth")), None)
 
     if pt_file is None:
-        raise RuntimeError("No .pt model file found in the provided path")
+        raise RuntimeError("No .pt or .pth model file found in the provided path")
 
     class_names = get_classnames_txt_for_rfdetr(model_path, pt_file)
 
@@ -258,7 +262,7 @@ def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
 
     required_files = ["weights.pt"]
 
-    optional_files = ["results.csv", "results.png", "model_artifacts.json"]
+    optional_files = ["results.csv", "results.png", "model_artifacts.json", "class_names.txt"]
 
     zip_file_name = "roboflow_deploy.zip"
     with zipfile.ZipFile(os.path.join(model_path, zip_file_name), "w") as zipMe:
@@ -272,10 +276,12 @@ def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
     return zip_file_name
 
 
-def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str) -> list[str]:
+def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str):
     class_names_path = os.path.join(model_path, "class_names.txt")
     if os.path.exists(class_names_path):
         return class_names_path
+
+    import torch
 
     model = torch.load(os.path.join(model_path, pt_file), map_location="cpu", weights_only=False)
     args = vars(model["args"])
