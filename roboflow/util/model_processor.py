@@ -286,7 +286,7 @@ def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str):
 
 
 def maybe_prepend_dummy_class(class_name_file: str):
-    with open(class_name_file, "r") as f:
+    with open(class_name_file) as f:
         class_names = f.readlines()
 
     dummy_class = "background_class83422\n"
