@@ -238,7 +238,7 @@ def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
     if pt_file is None:
         raise RuntimeError("No .pt or .pth model file found in the provided path")
 
-    class_names = get_classnames_txt_for_rfdetr(model_path, pt_file)
+    get_classnames_txt_for_rfdetr(model_path, pt_file)
 
     # Copy the .pt file to weights.pt if not already named weights.pt
     if pt_file != "weights.pt":
