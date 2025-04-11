@@ -281,7 +281,8 @@ def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str):
         f"No class_names.txt file found in model path {model_path}.\n"
         f"This should only happen on rfdetr models trained before version 1.1.0.\n"
         f"Please re-train your model with the latest version of the rfdetr library, or\n"
-        f"please create a class_names.txt file in the model path with the class names in new lines in the order of the classes in the model.\n"
+        f"please create a class_names.txt file in the model path with the class names\n"
+        f"in new lines in the order of the classes in the model.\n"
     )
 
 
