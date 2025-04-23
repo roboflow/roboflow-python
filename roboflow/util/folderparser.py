@@ -53,7 +53,7 @@ def _list_files(folder):
         for file in files:
             file_path = os.path.join(root, file)
             rel = os.path.relpath(file_path, folder)
-            filedescriptors.append(_describe_file(f"/{rel}"))
+            filedescriptors.append(_describe_file(f"{os.sep}{rel}"))
     filedescriptors = sorted(
         filedescriptors,
         key=lambda x: _alphanumkey(x["file"]),
@@ -70,7 +70,7 @@ def _describe_file(f):
     name = os.path.basename(f)
     dirname = os.path.dirname(f)
     fullkey, extension = os.path.splitext(f)
-    fullkey2 = fullkey.replace("/labels", "").replace("/images", "")
+    fullkey2 = fullkey.replace(f"{os.sep}labels", "").replace(f"{os.sep}images", "")
     key = os.path.splitext(name)[0]
     return {
         "file": f,
