@@ -59,7 +59,7 @@ class TestDownload(unittest.TestCase):
         self.assertEqual(dataset.name, self.version.name)
         self.assertEqual(dataset.version, self.version.version)
         self.assertEqual(dataset.model_format, "coco")
-        self.assertEqual(dataset.location, "/my-spot")
+        self.assertEqual(dataset.location, os.path.abspath("/my-spot"))
 
 
 class TestExport(unittest.TestCase):
