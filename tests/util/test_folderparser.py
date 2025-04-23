@@ -1,10 +1,15 @@
 import json
+import os
 import unittest
-from os.path import abspath, dirname
 
 from roboflow.util import folderparser
 
-thisdir = dirname(abspath(__file__))
+thisdir = os.path.dirname(os.path.abspath(__file__))
+
+
+def _find_test_image(image, images):
+    image = image.replace("/", os.sep)
+    return next(i for i in images if i["file"] == image)
 
 
 class TestFolderParser(unittest.TestCase):
@@ -18,7 +23,7 @@ class TestFolderParser(unittest.TestCase):
         parsed = folderparser.parsefolder(sharksfolder)
         testImagePath = "/train/sharks_mp4-20_jpg.rf.90ba2e8e9ca0613f71359efb7ed48b26.jpg"
         print("PARSED", parsed["images"])
-        testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
+        testImage = _find_test_image(testImagePath, parsed["images"])
         assert len(json.loads(testImage["annotationfile"]["rawText"])["annotations"]) == 5
 
     def test_parse_sharks_createml(self):
@@ -26,7 +31,7 @@ class TestFolderParser(unittest.TestCase):
         parsed = folderparser.parsefolder(sharksfolder)
         print("PARSED", parsed["images"])
         testImagePath = "/train/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.jpg"
-        testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
+        testImage = _find_test_image(testImagePath, parsed["images"])
         imgParsedAnnotations = json.loads(testImage["annotationfile"]["rawText"])
         assert len(imgParsedAnnotations) == 1
         imgReference = imgParsedAnnotations[0]
@@ -36,7 +41,7 @@ class TestFolderParser(unittest.TestCase):
         def test(sharksfolder):
             parsed = folderparser.parsefolder(sharksfolder)
             testImagePath = "/train/images/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.jpg"
-            testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
+            testImage = _find_test_image(testImagePath, parsed["images"])
             expectAnnotationFile = "/train/labels/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.txt"
             assert testImage["annotationfile"]["file"] == expectAnnotationFile
             assert testImage["annotationfile"]["labelmap"] == {0: "fish", 1: "primary", 2: "shark"}
@@ -48,7 +53,7 @@ class TestFolderParser(unittest.TestCase):
         folder = f"{thisdir}/../datasets/mosquitos"
         parsed = folderparser.parsefolder(folder)
         testImagePath = "/train_10308.jpeg"
-        testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
+        testImage = _find_test_image(testImagePath, parsed["images"])
         assert testImage["annotationfile"]["name"] == "annotation.csv"
         expected = "img_fName,img_w,img_h,class_label,bbx_xtl,bbx_ytl,bbx_xbr,bbx_ybr\n"
         expected += "train_10308.jpeg,1058,943,japonicus/koreicus,28,187,908,815\n"
@@ -58,7 +63,7 @@ class TestFolderParser(unittest.TestCase):
         folder = f"{thisdir}/../datasets/paligemma"
         parsed = folderparser.parsefolder(folder)
         testImagePath = "/dataset/de48275e1ff70fab78bee31e09fc896d_png.rf.01a97b1ad053aa1e6525ac0451cee8b7.jpg"
-        testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
+        testImage = _find_test_image(testImagePath, parsed["images"])
         assert testImage["annotationfile"]["name"] == "annotation.jsonl"
         expected = (
             '{"image": "de48275e1ff70fab78bee31e09fc896d_png.rf.01a97b1ad053aa1e6525ac0451cee8b7.jpg",'
