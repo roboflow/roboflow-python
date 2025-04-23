@@ -7,9 +7,12 @@ from roboflow.util import folderparser
 thisdir = os.path.dirname(os.path.abspath(__file__))
 
 
+def patch_sep(filename):
+    return filename.replace("/", os.sep)
+
+
 def _find_test_image(image, images):
-    image = image.replace("/", os.sep)
-    return next(i for i in images if i["file"] == image)
+    return next(i for i in images if i["file"] == patch_sep(image))
 
 
 class TestFolderParser(unittest.TestCase):
@@ -22,14 +25,12 @@ class TestFolderParser(unittest.TestCase):
         sharksfolder = f"{thisdir}/../datasets/sharks-tiny-coco"
         parsed = folderparser.parsefolder(sharksfolder)
         testImagePath = "/train/sharks_mp4-20_jpg.rf.90ba2e8e9ca0613f71359efb7ed48b26.jpg"
-        print("PARSED", parsed["images"])
         testImage = _find_test_image(testImagePath, parsed["images"])
         assert len(json.loads(testImage["annotationfile"]["rawText"])["annotations"]) == 5
 
     def test_parse_sharks_createml(self):
         sharksfolder = f"{thisdir}/../datasets/sharks-tiny-createml"
         parsed = folderparser.parsefolder(sharksfolder)
-        print("PARSED", parsed["images"])
         testImagePath = "/train/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.jpg"
         testImage = _find_test_image(testImagePath, parsed["images"])
         imgParsedAnnotations = json.loads(testImage["annotationfile"]["rawText"])
@@ -43,7 +44,7 @@ class TestFolderParser(unittest.TestCase):
             testImagePath = "/train/images/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.jpg"
             testImage = _find_test_image(testImagePath, parsed["images"])
             expectAnnotationFile = "/train/labels/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.txt"
-            assert testImage["annotationfile"]["file"] == expectAnnotationFile
+            assert testImage["annotationfile"]["file"] == patch_sep(expectAnnotationFile)
             assert testImage["annotationfile"]["labelmap"] == {0: "fish", 1: "primary", 2: "shark"}
 
         test(f"{thisdir}/../datasets/sharks-tiny-yolov9")
