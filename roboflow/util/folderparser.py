@@ -132,16 +132,16 @@ def _build_image_and_annotation_maps(annotationFiles):
         )
         if parsedType == "coco":
             for imageRef in parsed["images"]:
-                imgRefMap[os.path.join(filename, imageRef['file_name'])] = imageRef
+                imgRefMap[os.path.join(filename, imageRef["file_name"])] = imageRef
             for annotation in parsed["annotations"]:
-                annotationMap[os.path.join(dirname, annotation['image_id'])].append(annotation)
+                annotationMap[os.path.join(dirname, annotation["image_id"])].append(annotation)
     return imgRefMap, annotationMap
 
 
 def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotationMap):
     parsed = annotation["parsed"]
     if format == "coco":
-        imgReference = imgRefMap.get(os.path.join(annotation['file'], image['name']))
+        imgReference = imgRefMap.get(os.path.join(annotation["file"], image["name"]))
         if imgReference:
             # workaround to make Annotations.js correctly identify this as coco in the backend
             fake_annotation = {
@@ -153,9 +153,7 @@ def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotatio
                 "iscrowd": 0,
             }
             _annotation = {"name": "annotation.coco.json"}
-            annotations_for_image = annotationMap.get(
-                os.path.join(image['dirname'], imgReference['id']), []
-            )
+            annotations_for_image = annotationMap.get(os.path.join(image["dirname"], imgReference["id"]), [])
             _annotation["rawText"] = json.dumps(
                 {
                     "info": parsed["info"],
