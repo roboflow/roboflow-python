@@ -17,6 +17,7 @@ def process(model_type: str, model_path: str, filename: str) -> str:
 def _get_processor_function(model_type: str) -> Callable:
     supported_models = [
         "yolov5",
+        "yolov7",
         "yolov7-seg",
         "yolov8",
         "yolov9",
