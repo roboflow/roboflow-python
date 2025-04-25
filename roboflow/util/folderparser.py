@@ -15,7 +15,7 @@ LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
 def _patch_sep(filename):
     """
     Replace Windows style slashes to keep filenames consistent.
-    
+
     Roboflow depend on it server side.
     """
     return filename.replace("\\", "/")
