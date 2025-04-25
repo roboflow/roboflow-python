@@ -278,6 +278,7 @@ def _load_labelmaps(folder, labelmaps):
         except Exception:
             # raise Exception(f"failed to load labelmap {labelmap['file']}")
             pass
+        print("LABEL MAP", folder, labelmap)
     return [lm for lm in labelmaps if lm.get("labelmap")]
 
 
