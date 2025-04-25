@@ -74,7 +74,8 @@ def _add_indices(files):
 
 def _describe_file(f):
     f = _patch_sep(f)
-    dirname, name = f.rsplit("/", 1)
+    name = f.split("/")[-1]
+    dirname = os.path.dirname(f)
     fullkey, extension = os.path.splitext(f)
     fullkey2 = fullkey.replace("/labels", "").replace("/images", "")
     key = os.path.splitext(name)[0]
