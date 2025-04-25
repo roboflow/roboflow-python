@@ -49,7 +49,7 @@ class KeypointDetectionModel(InferenceModel):
         self.id = id
         self.name = name
         self.version = version
-        self.base_url = "https://detect.roboflow.com/"
+        self.base_url = "https://serverless.roboflow.com/"
 
         if self.name is not None and version is not None:
             self.__generate_url()
