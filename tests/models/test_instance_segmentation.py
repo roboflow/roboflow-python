@@ -46,7 +46,7 @@ class TestInstanceSegmentation(unittest.TestCase):
     dataset_id = "test-123"
     version = "23"
 
-    api_url = f"https://outline.roboflow.com/{dataset_id}/{version}"
+    api_url = f"https://serverless.roboflow.com/{dataset_id}/{version}"
 
     _default_params = {
         "api_key": api_key,
