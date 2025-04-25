@@ -36,7 +36,6 @@ class TestFolderParser(unittest.TestCase):
             testImagePath = "/train/images/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.jpg"
             testImage = [i for i in parsed["images"] if i["file"] == testImagePath][0]
             expectAnnotationFile = "/train/labels/sharks_mp4-20_jpg.rf.5359121123e86e016401ea2731e47949.txt"
-            print("AAA", testImagePath, testImage)
             assert testImage["annotationfile"]["file"] == expectAnnotationFile
             assert testImage["annotationfile"]["labelmap"] == {0: "fish", 1: "primary", 2: "shark"}
 

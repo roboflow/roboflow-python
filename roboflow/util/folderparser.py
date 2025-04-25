@@ -61,7 +61,6 @@ def _list_files(folder):
         for file in files:
             file_path = os.path.join(root, file)
             rel = os.path.relpath(file_path, folder)
-            print("FILENAME", file_path, rel)
             filedescriptors.append(_describe_file(f"/{rel}"))
     filedescriptors = sorted(filedescriptors, key=lambda x: _alphanumkey(x["file"]))
     return filedescriptors
@@ -279,7 +278,6 @@ def _load_labelmaps(folder, labelmaps):
         except Exception:
             # raise Exception(f"failed to load labelmap {labelmap['file']}")
             pass
-        print("LABEL MAP", folder, labelmap)
     return [lm for lm in labelmaps if lm.get("labelmap")]
 
 
