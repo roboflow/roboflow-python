@@ -12,10 +12,17 @@ ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv", ".jsonl"}
 LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
 
 
+def _patch_sep(filename):
+    """
+    Replace Windows style slashes to keep filenames consistent.
+    
+    Roboflow depend on it server side.
+    """
+    return filename.replace("\\", "/")
+
+
 def parsefolder(folder):
-    folder = folder.strip()
-    if folder.endswith("/"):
-        folder = folder[:-1]
+    folder = _patch_sep(folder).strip().rstrip("/")
     if not os.path.exists(folder):
         raise Exception(f"folder does not exist. {folder}")
     files = _list_files(folder)
@@ -53,7 +60,9 @@ def _list_files(folder):
     for root, dirs, files in os.walk(folder):
         for file in files:
             file_path = os.path.join(root, file)
-            filedescriptors.append(_describe_file(file_path.split(folder)[1]))
+            rel = os.path.relpath(file_path, folder)
+            print("FILENAME", file_path, rel)
+            filedescriptors.append(_describe_file(f"/{rel}"))
     filedescriptors = sorted(filedescriptors, key=lambda x: _alphanumkey(x["file"]))
     return filedescriptors
 
@@ -64,8 +73,8 @@ def _add_indices(files):
 
 
 def _describe_file(f):
-    name = f.split("/")[-1]
-    dirname = os.path.dirname(f)
+    f = _patch_sep(f)
+    dirname, name = f.rsplit("/", 1)
     fullkey, extension = os.path.splitext(f)
     fullkey2 = fullkey.replace("/labels", "").replace("/images", "")
     key = os.path.splitext(name)[0]
