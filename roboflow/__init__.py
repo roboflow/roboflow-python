@@ -15,7 +15,7 @@ from roboflow.core.workspace import Workspace
 from roboflow.models import CLIPModel, GazeModel  # noqa: F401
 from roboflow.util.general import write_line
 
-__version__ = "1.1.61"
+__version__ = "1.1.62"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
