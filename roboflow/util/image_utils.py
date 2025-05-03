@@ -1,11 +1,17 @@
+# Standard library imports
 import base64
 import io
 import os
 import urllib
 
+# Third-party imports
+import pillow_heif  # type: ignore[import-untyped]
 import requests
 import yaml
 from PIL import Image
+
+pillow_heif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
+pillow_heif.register_avif_opener(thumbnails=False)  # Register for AVIF
 
 
 def check_image_path(image_path):
@@ -74,9 +80,18 @@ def validate_image_path(image_path):
 def file2jpeg(image_path):
     import cv2
 
+    # OpenCV will handle standard formats efficiently
     img = cv2.imread(image_path)
-    image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    pilImage = Image.fromarray(image)
+    if img is not None:
+        # Convert BGR to RGB for PIL
+        image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        pilImage = Image.fromarray(image)
+    else:
+        # If OpenCV fails, the format might be HEIC/AVIF which are handled by PIL
+        pilImage = Image.open(image_path)
+        if pilImage.mode != "RGB":
+            pilImage = pilImage.convert("RGB")
+
     buffered = io.BytesIO()
     pilImage.save(buffered, quality=100, format="JPEG")
     return buffered.getvalue()

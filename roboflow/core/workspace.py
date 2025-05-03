@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import concurrent.futures
 import glob
 import json
@@ -10,12 +12,14 @@ from PIL import Image
 
 from roboflow.adapters import rfapi
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
-from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
+from roboflow.config import API_URL, APP_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
 from roboflow.util.image_utils import load_labelmap
+from roboflow.util.model_processor import process
 from roboflow.util.two_stage_utils import ocr_infer
+from roboflow.util.versions import normalize_yolo_model_type
 
 
 class Workspace:
@@ -346,6 +350,7 @@ class Workspace:
                 batch_name=batch_name,
                 sequence_number=imagedesc.get("index"),
                 sequence_size=len(images),
+                num_retry_uploads=num_retries,
             )
 
             return image, upload_time, upload_retry_attempts
@@ -355,7 +360,7 @@ class Workspace:
             annotation_path = None
 
             annotationdesc = imagedesc.get("annotationfile")
-            if annotationdesc:
+            if isinstance(annotationdesc, dict):
                 if annotationdesc.get("rawText"):
                     annotation_path = annotationdesc
                 else:
@@ -364,15 +369,15 @@ class Workspace:
 
                 if isinstance(labelmap, str):
                     labelmap = load_labelmap(labelmap)
-
-            if not annotation_path:
+            else:
                 return None, None
 
-            annotation, upload_time = project.save_annotation(
+            annotation, upload_time, _retry_attempts = project.save_annotation(
                 annotation_path=annotation_path,
                 annotation_labelmap=labelmap,
                 image_id=image_id,
                 job_name=batch_name,
+                num_retry_uploads=num_retries,
             )
 
             return annotation, upload_time
@@ -565,6 +570,74 @@ class Workspace:
         return (
             prediction_results if type(raw_data_location) is not np.ndarray else prediction_results[-1]["predictions"]
         )
+
+    def deploy_model(
+        self,
+        model_type: str,
+        model_path: str,
+        project_ids: list[str],
+        model_name: str,
+        filename: str = "weights/best.pt",
+    ):
+        """Uploads provided weights file to Roboflow.
+        Args:
+            model_type (str): The type of the model to be deployed.
+            model_path (str): File path to the model weights to be uploaded.
+            project_ids (list[str]): List of project IDs to deploy the model to.
+            filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
+        """
+
+        if not project_ids:
+            raise ValueError("At least one project ID must be provided")
+
+        # Validate if provided project URLs belong to user's projects
+        user_projects = set(project.split("/")[-1] for project in self.projects())
+        for project_id in project_ids:
+            if project_id not in user_projects:
+                raise ValueError(f"Project {project_id} is not accessible in this workspace")
+
+        model_type = normalize_yolo_model_type(model_type)
+        zip_file_name = process(model_type, model_path, filename)
+
+        if zip_file_name is None:
+            raise RuntimeError("Failed to process model")
+
+        self._upload_zip(model_type, model_path, project_ids, model_name, zip_file_name)
+
+    def _upload_zip(
+        self,
+        model_type: str,
+        model_path: str,
+        project_ids: list[str],
+        model_name: str,
+        model_file_name: str,
+    ):
+        # This endpoint returns a signed URL to upload the model
+        res = requests.post(
+            f"{API_URL}/{self.url}/models/prepareUpload?api_key={self.__api_key}&modelType={model_type}&modelName={model_name}&projectIds={','.join(project_ids)}&nocache=true"
+        )
+        try:
+            res.raise_for_status()
+        except Exception as e:
+            print(f"An error occured when getting the model deployment URL: {e}")
+            return
+
+        # Upload the model to the signed URL
+        res = requests.put(
+            res.json()["url"],
+            data=open(os.path.join(model_path, model_file_name), "rb"),
+        )
+        try:
+            res.raise_for_status()
+
+            for project_id in project_ids:
+                print(
+                    f"View the status of your deployment for project {project_id} at:"
+                    f" {APP_URL}/{self.url}/{project_id}/models"
+                )
+
+        except Exception as e:
+            print(f"An error occured when uploading the model: {e}")
 
     def __str__(self):
         projects = self.projects()

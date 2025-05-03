@@ -15,7 +15,7 @@ from roboflow.core.workspace import Workspace
 from roboflow.models import CLIPModel, GazeModel  # noqa: F401
 from roboflow.util.general import write_line
 
-__version__ = "1.1.51"
+__version__ = "1.1.63"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -131,17 +131,12 @@ def initialize_roboflow(the_workspace=None):
 
     global active_workspace
 
-    conf_location = os.getenv("ROBOFLOW_CONFIG_DIR", default=str(Path.home() / ".config" / "roboflow" / "config.json"))
-
-    if not os.path.isfile(conf_location):
-        raise RuntimeError("To use this method, you must first login - run roboflow.login()")
+    if the_workspace is None:
+        active_workspace = Roboflow().workspace()
     else:
-        if the_workspace is None:
-            active_workspace = Roboflow().workspace()
-        else:
-            active_workspace = Roboflow().workspace(the_workspace)
+        active_workspace = Roboflow().workspace(the_workspace)
 
-        return active_workspace
+    return active_workspace
 
 
 def load_model(model_url):
