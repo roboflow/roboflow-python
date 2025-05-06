@@ -760,10 +760,10 @@ class Project:
 
             >>>     print(result)
         """  # noqa: E501 // docs
-        
+
         if fields is None:
             fields = ["id", "created"]
-        
+
         while True:
             data = self.search(
                 like_image=like_image,
