@@ -619,7 +619,13 @@ class Workspace:
         try:
             res.raise_for_status()
         except Exception as e:
-            print(f"An error occured when getting the model deployment URL: {e}")
+            error_message = str(e)
+            status_code = str(res.status_code)
+            
+            print("\n\033[91m❌ ERROR\033[0m: Failed to get model deployment URL")
+            print("\033[93mDetails\033[0m:", error_message)
+            print("\033[93mStatus\033[0m:", status_code)
+            print(f"\033[93mResponse\033[0m:\n{res.text}\n")
             return
 
         # Upload the model to the signed URL
