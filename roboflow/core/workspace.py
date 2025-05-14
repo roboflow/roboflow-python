@@ -621,7 +621,7 @@ class Workspace:
         except Exception as e:
             error_message = str(e)
             status_code = str(res.status_code)
-            
+
             print("\n\033[91m❌ ERROR\033[0m: Failed to get model deployment URL")
             print("\033[93mDetails\033[0m:", error_message)
             print("\033[93mStatus\033[0m:", status_code)
