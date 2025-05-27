@@ -1,7 +1,7 @@
 FROM python:3.10
 RUN apt-get update && apt-get install -y make curl libgl1-mesa-glx && rm -rf /var/lib/apt/lists/*
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:${PATH}" 
+ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /roboflow-python
 COPY .devcontainer/bashrc_ext /root/bashrc_ext
