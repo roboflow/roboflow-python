@@ -1,9 +1,17 @@
-FROM python:3.8
-RUN apt-get update && apt-get install -y make libgl1-mesa-glx && rm -rf /var/lib/apt/lists/*
+FROM python:3.10
+RUN apt-get update && apt-get install -y make curl libgl1-mesa-glx && rm -rf /var/lib/apt/lists/*
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
 WORKDIR /roboflow-python
 COPY .devcontainer/bashrc_ext /root/bashrc_ext
 RUN echo "source /root/bashrc_ext" >> ~/.bashrc
-COPY ./setup.py ./pyproject.toml ./README.md ./requirements.txt ./
+
+COPY ./requirements.txt ./
+RUN uv pip install --system -r requirements.txt
+
+COPY ./setup.py ./pyproject.toml ./README.md ./
 COPY roboflow/__init__.py ./roboflow/__init__.py
-RUN pip install -e ".[dev]"
+RUN uv pip install --system -e ".[dev]"
+
 COPY . .
