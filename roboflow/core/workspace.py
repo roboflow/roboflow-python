@@ -369,7 +369,19 @@ class Workspace:
 
                 if isinstance(labelmap, str):
                     labelmap = load_labelmap(labelmap)
-            else:
+            elif project.type == "classification":
+                # Infer class name from parent folder for classification projects
+                # imagedesc['dirname'] is like '/dogs' or 'subfolder/dogs' relative to dataset root.
+                # We want the immediate parent folder name.
+                potential_class_name = os.path.basename(imagedesc["dirname"].strip("/"))
+                if potential_class_name and potential_class_name != ".":  # Ensure it's a valid dir name
+                    annotation_path = potential_class_name
+                # If potential_class_name is empty or '.', annotation_path remains None,
+                # meaning this image (e.g. in dataset root for classification) won't get a class label.
+
+            # If annotation_path is still None at this point (e.g., not classification and no annofile,
+            # or classification image in root, or other unhandled cases), then no annotation will be saved.
+            if annotation_path is None:
                 return None, None
 
             annotation, upload_time, _retry_attempts = project.save_annotation(
