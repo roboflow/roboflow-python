@@ -301,10 +301,11 @@ class Workspace:
         """  # noqa: E501 // docs
         if dataset_format != "NOT_USED":
             print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
-        parsed_dataset = folderparser.parsefolder(dataset_path)
         project, created = self._get_or_create_project(
             project_id=project_name, license=project_license, type=project_type
         )
+        is_classification = project.type == "classification"
+        parsed_dataset = folderparser.parsefolder(dataset_path, is_classification=is_classification)
         if created:
             print(f"Created project {project.id}")
         else:
@@ -361,26 +362,18 @@ class Workspace:
 
             annotationdesc = imagedesc.get("annotationfile")
             if isinstance(annotationdesc, dict):
-                if annotationdesc.get("rawText"):
+                if annotationdesc.get("type") == "classification_folder":
+                    annotation_path = annotationdesc.get("classification_label")
+                elif annotationdesc.get("rawText"):
                     annotation_path = annotationdesc
-                else:
+                elif annotationdesc.get("file"):
                     annotation_path = f"{location}{annotationdesc['file']}"
-                labelmap = annotationdesc.get("labelmap")
+                    labelmap = annotationdesc.get("labelmap")
 
                 if isinstance(labelmap, str):
                     labelmap = load_labelmap(labelmap)
-            elif project.type == "classification":
-                # Infer class name from parent folder for classification projects
-                # imagedesc['dirname'] is like '/dogs' or 'subfolder/dogs' relative to dataset root.
-                # We want the immediate parent folder name.
-                potential_class_name = os.path.basename(imagedesc["dirname"].strip("/"))
-                if potential_class_name and potential_class_name != ".":  # Ensure it's a valid dir name
-                    annotation_path = potential_class_name
-                # If potential_class_name is empty or '.', annotation_path remains None,
-                # meaning this image (e.g. in dataset root for classification) won't get a class label.
 
-            # If annotation_path is still None at this point (e.g., not classification and no annofile,
-            # or classification image in root, or other unhandled cases), then no annotation will be saved.
+            # If annotation_path is still None at this point, then no annotation will be saved.
             if annotation_path is None:
                 return None, None
 

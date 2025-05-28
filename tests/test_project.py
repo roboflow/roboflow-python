@@ -1,4 +1,5 @@
 from unittest.mock import patch
+import os
 
 import requests
 import responses
@@ -454,3 +455,83 @@ class TestProject(RoboflowTest):
             finally:
                 for mock in mocks.values():
                     mock.stop()
+
+    def test_classification_dataset_upload(self):
+        from roboflow.util import folderparser
+
+        classification_folder = "tests/datasets/corrosion-singlelabel-classification"
+        # Parse with classification flag to get inferred annotations
+        parsed_dataset = folderparser.parsefolder(classification_folder, is_classification=True)
+        
+        # Create a mock project with classification type
+        self.project.type = "classification"
+        annotation_calls = []
+
+        def capture_annotation_calls(annotation_path, **kwargs):
+            annotation_calls.append({"annotation_path": annotation_path, "image_id": kwargs.get("image_id")})
+            return ({"success": True}, 0.1, 0)
+
+        mocks = {
+            "parser": patch("roboflow.core.workspace.folderparser.parsefolder", return_value=parsed_dataset),
+            "upload": patch(
+                "roboflow.core.workspace.Project.upload_image",
+                return_value=({"id": "test-id", "success": True}, 0.1, 0),
+            ),
+            "save_annotation": patch(
+                "roboflow.core.workspace.Project.save_annotation", side_effect=capture_annotation_calls
+            ),
+            "get_project": patch(
+                "roboflow.core.workspace.Workspace._get_or_create_project", return_value=(self.project, False)
+            ),
+        }
+        mock_objects = {}
+        for name, mock in mocks.items():
+            mock_objects[name] = mock.start()
+        try:
+            self.workspace.upload_dataset(dataset_path=classification_folder, project_name=PROJECT_NAME, num_workers=1)
+            self.assertEqual(mock_objects["upload"].call_count, 10)
+            self.assertEqual(len(annotation_calls), 10)
+
+            corrosion_count = sum(1 for call in annotation_calls if call["annotation_path"] == "Corrosion")
+            no_corrosion_count = sum(1 for call in annotation_calls if call["annotation_path"] == "no-corrosion")
+            self.assertEqual(corrosion_count, 5)
+            self.assertEqual(no_corrosion_count, 5)
+
+            for call in annotation_calls:
+                self.assertIn(call["annotation_path"], ["Corrosion", "no-corrosion"])
+        finally:
+            for mock in mocks.values():
+                mock.stop()
+
+    def test_classification_edge_cases(self):
+        edge_case_dataset = [
+            # These should not get annotations
+            {"file": "root_img.jpg", "split": "train", "dirname": "/"},
+            {"file": "dot_img.jpg", "split": "train", "dirname": "/."},
+            # These should get annotations from folder structure
+            {"file": "nested.jpg", "split": "train", "dirname": "/train/defects/rust/severe", 
+             "annotationfile": {"type": "classification_folder", "classification_label": "severe"}},
+            {"file": "normal.jpg", "split": "train", "dirname": "/train/good",
+             "annotationfile": {"type": "classification_folder", "classification_label": "good"}},
+        ]
+        self.project.type = "classification"
+        annotation_calls = []
+
+        def capture_annotation_calls(annotation_path, **kwargs):
+            annotation_calls.append(annotation_path)
+            return ({"success": True}, 0.1, 0)
+
+        test_dataset = self._create_test_dataset(edge_case_dataset)
+        mocks = self._setup_upload_dataset_mocks(
+            test_dataset=test_dataset, save_annotation_side_effect=capture_annotation_calls
+        )
+        for mock in mocks.values():
+            mock.start()
+        try:
+            self.workspace.upload_dataset(dataset_path="/test/dataset", project_name=PROJECT_NAME, num_workers=1)
+            self.assertEqual(len(annotation_calls), 2)
+            self.assertIn("severe", annotation_calls)
+            self.assertIn("good", annotation_calls)
+        finally:
+            for mock in mocks.values():
+                mock.stop()

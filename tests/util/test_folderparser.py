@@ -1,7 +1,6 @@
 import json
 import unittest
 from os.path import abspath, dirname
-
 from roboflow.util import folderparser
 
 thisdir = dirname(abspath(__file__))
@@ -65,6 +64,26 @@ class TestFolderParser(unittest.TestCase):
             ' "prefix": "Which sector had the highest ROI in 2014?", "suffix": "Electronics"}'
         )
         assert testImage["annotationfile"]["rawText"] == expected
+
+    def test_parse_classification_folder_structure(self):
+        classification_folder = f"{thisdir}/../datasets/corrosion-singlelabel-classification"
+        parsed = folderparser.parsefolder(classification_folder, is_classification=False)
+        for img in parsed["images"]:
+            self.assertIsNone(img.get("annotationfile"))
+
+        parsed_classification = folderparser.parsefolder(classification_folder, is_classification=True)
+        corrosion_images = [i for i in parsed_classification["images"] if "Corrosion" in i["dirname"]]
+        self.assertTrue(len(corrosion_images) > 0)
+        for img in corrosion_images:
+            self.assertIsNotNone(img.get("annotationfile"))
+            self.assertEqual(img["annotationfile"]["type"], "classification_folder")
+            self.assertEqual(img["annotationfile"]["classification_label"], "Corrosion")
+        no_corrosion_images = [i for i in parsed_classification["images"] if "no-corrosion" in i["dirname"]]
+        self.assertTrue(len(no_corrosion_images) > 0)
+        for img in no_corrosion_images:
+            self.assertIsNotNone(img.get("annotationfile"))
+            self.assertEqual(img["annotationfile"]["type"], "classification_folder")
+            self.assertEqual(img["annotationfile"]["classification_label"], "no-corrosion")
 
 
 def _assertJsonMatchesFile(actual, filename):
