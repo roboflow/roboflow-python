@@ -1,5 +1,4 @@
 from unittest.mock import patch
-import os
 
 import requests
 import responses
@@ -462,7 +461,7 @@ class TestProject(RoboflowTest):
         classification_folder = "tests/datasets/corrosion-singlelabel-classification"
         # Parse with classification flag to get inferred annotations
         parsed_dataset = folderparser.parsefolder(classification_folder, is_classification=True)
-        
+
         # Create a mock project with classification type
         self.project.type = "classification"
         annotation_calls = []
@@ -509,10 +508,18 @@ class TestProject(RoboflowTest):
             {"file": "root_img.jpg", "split": "train", "dirname": "/"},
             {"file": "dot_img.jpg", "split": "train", "dirname": "/."},
             # These should get annotations from folder structure
-            {"file": "nested.jpg", "split": "train", "dirname": "/train/defects/rust/severe", 
-             "annotationfile": {"type": "classification_folder", "classification_label": "severe"}},
-            {"file": "normal.jpg", "split": "train", "dirname": "/train/good",
-             "annotationfile": {"type": "classification_folder", "classification_label": "good"}},
+            {
+                "file": "nested.jpg",
+                "split": "train",
+                "dirname": "/train/defects/rust/severe",
+                "annotationfile": {"type": "classification_folder", "classification_label": "severe"},
+            },
+            {
+                "file": "normal.jpg",
+                "split": "train",
+                "dirname": "/train/good",
+                "annotationfile": {"type": "classification_folder", "classification_label": "good"},
+            },
         ]
         self.project.type = "classification"
         annotation_calls = []
