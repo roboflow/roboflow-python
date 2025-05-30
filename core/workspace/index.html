@@ -1707,7 +1707,12 @@
 <span class="normal">649</span>
 <span class="normal">650</span>
 <span class="normal">651</span>
-<span class="normal">652</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
+<span class="normal">652</span>
+<span class="normal">653</span>
+<span class="normal">654</span>
+<span class="normal">655</span>
+<span class="normal">656</span>
+<span class="normal">657</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Manage a Roboflow workspace.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1986,10 +1991,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
         <span class="k">if</span> <span class="n">dataset_format</span> <span class="o">!=</span> <span class="s2">&quot;NOT_USED&quot;</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: parameter &#39;dataset_format&#39; is deprecated and will be removed in a future release&quot;</span><span class="p">)</span>
-        <span class="n">parsed_dataset</span> <span class="o">=</span> <span class="n">folderparser</span><span class="o">.</span><span class="n">parsefolder</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">)</span>
         <span class="n">project</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_or_create_project</span><span class="p">(</span>
             <span class="n">project_id</span><span class="o">=</span><span class="n">project_name</span><span class="p">,</span> <span class="n">license</span><span class="o">=</span><span class="n">project_license</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">project_type</span>
         <span class="p">)</span>
+        <span class="n">is_classification</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;classification&quot;</span>
+        <span class="n">parsed_dataset</span> <span class="o">=</span> <span class="n">folderparser</span><span class="o">.</span><span class="n">parsefolder</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">,</span> <span class="n">is_classification</span><span class="o">=</span><span class="n">is_classification</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">created</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created project </span><span class="si">{</span><span class="n">project</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -2046,15 +2052,19 @@
 
             <span class="n">annotationdesc</span> <span class="o">=</span> <span class="n">imagedesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;annotationfile&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">annotationdesc</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rawText&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;classification_folder&quot;</span><span class="p">:</span>
+                    <span class="n">annotation_path</span> <span class="o">=</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;classification_label&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rawText&quot;</span><span class="p">):</span>
                     <span class="n">annotation_path</span> <span class="o">=</span> <span class="n">annotationdesc</span>
-                <span class="k">else</span><span class="p">:</span>
+                <span class="k">elif</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">):</span>
                     <span class="n">annotation_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">location</span><span class="si">}{</span><span class="n">annotationdesc</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="n">labelmap</span> <span class="o">=</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;labelmap&quot;</span><span class="p">)</span>
+                    <span class="n">labelmap</span> <span class="o">=</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;labelmap&quot;</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">labelmap</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                     <span class="n">labelmap</span> <span class="o">=</span> <span class="n">load_labelmap</span><span class="p">(</span><span class="n">labelmap</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># If annotation_path is still None at this point, then no annotation will be saved.</span>
+            <span class="k">if</span> <span class="n">annotation_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
 
             <span class="n">annotation</span><span class="p">,</span> <span class="n">upload_time</span><span class="p">,</span> <span class="n">_retry_attempts</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">save_annotation</span><span class="p">(</span>
@@ -2373,12 +2383,7 @@
 
             <details class="quote">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">427</span>
-<span class="normal">428</span>
-<span class="normal">429</span>
-<span class="normal">430</span>
-<span class="normal">431</span>
-<span class="normal">432</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">432</span>
 <span class="normal">433</span>
 <span class="normal">434</span>
 <span class="normal">435</span>
@@ -2518,7 +2523,12 @@
 <span class="normal">569</span>
 <span class="normal">570</span>
 <span class="normal">571</span>
-<span class="normal">572</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">active_learning</span><span class="p">(</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">active_learning</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">raw_data_location</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">raw_data_extension</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
@@ -3017,12 +3027,7 @@ Args:
 
             <details class="quote">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">574</span>
-<span class="normal">575</span>
-<span class="normal">576</span>
-<span class="normal">577</span>
-<span class="normal">578</span>
-<span class="normal">579</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">579</span>
 <span class="normal">580</span>
 <span class="normal">581</span>
 <span class="normal">582</span>
@@ -3048,7 +3053,12 @@ Args:
 <span class="normal">602</span>
 <span class="normal">603</span>
 <span class="normal">604</span>
-<span class="normal">605</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">deploy_model</span><span class="p">(</span>
+<span class="normal">605</span>
+<span class="normal">606</span>
+<span class="normal">607</span>
+<span class="normal">608</span>
+<span class="normal">609</span>
+<span class="normal">610</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">deploy_model</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -4054,7 +4064,12 @@ Args:
 <span class="normal">407</span>
 <span class="normal">408</span>
 <span class="normal">409</span>
-<span class="normal">410</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">upload_dataset</span><span class="p">(</span>
+<span class="normal">410</span>
+<span class="normal">411</span>
+<span class="normal">412</span>
+<span class="normal">413</span>
+<span class="normal">414</span>
+<span class="normal">415</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">upload_dataset</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">dataset_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">project_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -4078,10 +4093,11 @@ Args:
 <span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
     <span class="k">if</span> <span class="n">dataset_format</span> <span class="o">!=</span> <span class="s2">&quot;NOT_USED&quot;</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: parameter &#39;dataset_format&#39; is deprecated and will be removed in a future release&quot;</span><span class="p">)</span>
-    <span class="n">parsed_dataset</span> <span class="o">=</span> <span class="n">folderparser</span><span class="o">.</span><span class="n">parsefolder</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">)</span>
     <span class="n">project</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_or_create_project</span><span class="p">(</span>
         <span class="n">project_id</span><span class="o">=</span><span class="n">project_name</span><span class="p">,</span> <span class="n">license</span><span class="o">=</span><span class="n">project_license</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">project_type</span>
     <span class="p">)</span>
+    <span class="n">is_classification</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;classification&quot;</span>
+    <span class="n">parsed_dataset</span> <span class="o">=</span> <span class="n">folderparser</span><span class="o">.</span><span class="n">parsefolder</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">,</span> <span class="n">is_classification</span><span class="o">=</span><span class="n">is_classification</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">created</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created project </span><span class="si">{</span><span class="n">project</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -4138,15 +4154,19 @@ Args:
 
         <span class="n">annotationdesc</span> <span class="o">=</span> <span class="n">imagedesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;annotationfile&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">annotationdesc</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rawText&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;classification_folder&quot;</span><span class="p">:</span>
+                <span class="n">annotation_path</span> <span class="o">=</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;classification_label&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rawText&quot;</span><span class="p">):</span>
                 <span class="n">annotation_path</span> <span class="o">=</span> <span class="n">annotationdesc</span>
-            <span class="k">else</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">):</span>
                 <span class="n">annotation_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">location</span><span class="si">}{</span><span class="n">annotationdesc</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="n">labelmap</span> <span class="o">=</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;labelmap&quot;</span><span class="p">)</span>
+                <span class="n">labelmap</span> <span class="o">=</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;labelmap&quot;</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">labelmap</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                 <span class="n">labelmap</span> <span class="o">=</span> <span class="n">load_labelmap</span><span class="p">(</span><span class="n">labelmap</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
+
+        <span class="c1"># If annotation_path is still None at this point, then no annotation will be saved.</span>
+        <span class="k">if</span> <span class="n">annotation_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
 
         <span class="n">annotation</span><span class="p">,</span> <span class="n">upload_time</span><span class="p">,</span> <span class="n">_retry_attempts</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">save_annotation</span><span class="p">(</span>
