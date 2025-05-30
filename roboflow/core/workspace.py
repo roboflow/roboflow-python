@@ -301,10 +301,11 @@ class Workspace:
         """  # noqa: E501 // docs
         if dataset_format != "NOT_USED":
             print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
-        parsed_dataset = folderparser.parsefolder(dataset_path)
         project, created = self._get_or_create_project(
             project_id=project_name, license=project_license, type=project_type
         )
+        is_classification = project.type == "classification"
+        parsed_dataset = folderparser.parsefolder(dataset_path, is_classification=is_classification)
         if created:
             print(f"Created project {project.id}")
         else:
@@ -361,15 +362,19 @@ class Workspace:
 
             annotationdesc = imagedesc.get("annotationfile")
             if isinstance(annotationdesc, dict):
-                if annotationdesc.get("rawText"):
+                if annotationdesc.get("type") == "classification_folder":
+                    annotation_path = annotationdesc.get("classification_label")
+                elif annotationdesc.get("rawText"):
                     annotation_path = annotationdesc
-                else:
+                elif annotationdesc.get("file"):
                     annotation_path = f"{location}{annotationdesc['file']}"
-                labelmap = annotationdesc.get("labelmap")
+                    labelmap = annotationdesc.get("labelmap")
 
                 if isinstance(labelmap, str):
                     labelmap = load_labelmap(labelmap)
-            else:
+
+            # If annotation_path is still None at this point, then no annotation will be saved.
+            if annotation_path is None:
                 return None, None
 
             annotation, upload_time, _retry_attempts = project.save_annotation(
