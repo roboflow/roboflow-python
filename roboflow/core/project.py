@@ -256,13 +256,7 @@ class Project:
 
     def train(
         self,
-        new_version_settings={
-            "preprocessing": {
-                "auto-orient": True,
-                "resize": {"width": 640, "height": 640, "format": "Stretch to"},
-            },
-            "augmentation": {},
-        },
+        new_version_settings=None,
         speed=None,
         checkpoint=None,
         plot_in_notebook=False,
@@ -293,6 +287,15 @@ class Project:
 
             >>> version.train()
         """  # noqa: E501 // docs
+
+        if new_version_settings is None:
+            new_version_settings = {
+                "preprocessing": {
+                    "auto-orient": True,
+                    "resize": {"width": 640, "height": 640, "format": "Stretch to"},
+                },
+                "augmentation": {},
+            }
 
         new_version = self.generate_version(settings=new_version_settings)
         new_version = self.version(new_version)
@@ -557,13 +560,15 @@ class Project:
         split="train",
         num_retry_uploads=0,
         batch_name=None,
-        tag_names=[],
+        tag_names=None,
         is_prediction: bool = False,
         annotation_overwrite=False,
         sequence_number=None,
         sequence_size=None,
         **kwargs,
     ):
+        if tag_names is None:
+            tag_names = []
         if image_path and image_id:
             raise Exception("You can't pass both image_id and image_path")
         if not (image_path or image_id):
@@ -641,7 +646,7 @@ class Project:
         in_dataset: Optional[str] = None,
         batch: bool = False,
         batch_id: Optional[str] = None,
-        fields: list = ["id", "created", "name", "labels"],
+        fields: Optional[list] = None,
     ):
         """
         Search for images in a project.
@@ -671,6 +676,9 @@ class Project:
             >>> results = project.search(query="cat", limit=10)
         """  # noqa: E501 // docs
         payload: Dict[str, Union[str, int, List[str]]] = {}
+
+        if fields is None:
+            fields = ["id", "created", "name", "labels"]
 
         if like_image is not None:
             payload["like_image"] = like_image
@@ -719,7 +727,7 @@ class Project:
         in_dataset: Optional[str] = None,
         batch: bool = False,
         batch_id: Optional[str] = None,
-        fields: list = ["id", "created"],
+        fields: Optional[list] = None,
     ):
         """
         Create a paginated list of search results for use in searching the images in a project.
@@ -752,6 +760,10 @@ class Project:
 
             >>>     print(result)
         """  # noqa: E501 // docs
+
+        if fields is None:
+            fields = ["id", "created"]
+
         while True:
             data = self.search(
                 like_image=like_image,
