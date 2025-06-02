@@ -17,6 +17,7 @@ def process(model_type: str, model_path: str, filename: str) -> str:
 def _get_processor_function(model_type: str) -> Callable:
     supported_models = [
         "yolov5",
+        "yolov7",
         "yolov7-seg",
         "yolov8",
         "yolov9",
@@ -27,6 +28,7 @@ def _get_processor_function(model_type: str) -> Callable:
         "paligemma",
         "paligemma2",
         "florence-2",
+        "rfdetr",
     ]
 
     if not any(supported_model in model_type for supported_model in supported_models):
@@ -57,8 +59,8 @@ def _get_processor_function(model_type: str) -> Callable:
     if "yolonas" in model_type:
         return _process_yolonas
 
-    if "yolov12" in model_type:
-        return _process_yolov12
+    if "rfdetr" in model_type:
+        return _process_rfdetr
 
     return _process_yolo
 
@@ -110,29 +112,56 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
         print_warn_for_wrong_dependencies_versions([("ultralytics", ">=", "8.3.0")], ask_to_continue=True)
 
-    model = torch.load(os.path.join(model_path, filename))
+    elif "yolov12" in model_type:
+        try:
+            import torch
+            import ultralytics
 
-    if isinstance(model["model"].names, list):
-        class_names = model["model"].names
+        except ImportError:
+            raise RuntimeError(
+                "The ultralytics python package is required to deploy yolov12"
+                " models. Please install it from `https://github.com/sunsmarterjie/yolov12`"
+            )
+
+        print(
+            "\n!!! ATTENTION !!!\n"
+            "Model must be trained and uploaded using ultralytics from https://github.com/sunsmarterjie/yolov12\n"
+            "or through the Roboflow platform\n"
+            "!!! ATTENTION !!!\n"
+        )
+
+        print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.3.63")], ask_to_continue=True)
+
+    model = torch.load(os.path.join(model_path, filename), weights_only=False)
+
+    model_instance = model["model"] if "model" in model and model["model"] is not None else model["ema"]
+
+    if isinstance(model_instance.names, list):
+        class_names = model_instance.names
     else:
         class_names = []
-        for i, val in enumerate(model["model"].names):
-            class_names.append((val, model["model"].names[val]))
+        for i, val in enumerate(model_instance.names):
+            class_names.append((val, model_instance.names[val]))
         class_names.sort(key=lambda x: x[0])
         class_names = [x[1] for x in class_names]
 
-    if "yolov8" in model_type or "yolov10" in model_type or "yolov11" in model_type:
+    if "yolov8" in model_type or "yolov10" in model_type or "yolov11" in model_type or "yolov12" in model_type:
         # try except for backwards compatibility with older versions of ultralytics
-        if "-cls" in model_type or model_type.startswith("yolov10") or model_type.startswith("yolov11"):
-            nc = model["model"].yaml["nc"]
+        if (
+            "-cls" in model_type
+            or model_type.startswith("yolov10")
+            or model_type.startswith("yolov11")
+            or model_type.startswith("yolov12")
+        ):
+            nc = model_instance.yaml["nc"]
             args = model["train_args"]
         else:
-            nc = model["model"].nc
-            args = model["model"].args
+            nc = model_instance.nc
+            args = model_instance.args
         try:
             model_artifacts = {
                 "names": class_names,
-                "yaml": model["model"].yaml,
+                "yaml": model_instance.yaml,
                 "nc": nc,
                 "args": {k: val for k, val in args.items() if ((k == "model") or (k == "imgsz") or (k == "batch"))},
                 "ultralytics_version": ultralytics.__version__,
@@ -141,7 +170,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
         except Exception:
             model_artifacts = {
                 "names": class_names,
-                "yaml": model["model"].yaml,
+                "yaml": model_instance.yaml,
                 "nc": nc,
                 "args": {
                     k: val for k, val in args.__dict__.items() if ((k == "model") or (k == "imgsz") or (k == "batch"))
@@ -157,20 +186,20 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
         model_artifacts = {
             "names": class_names,
-            "nc": model["model"].nc,
+            "nc": model_instance.nc,
             "args": {
                 "imgsz": opts["imgsz"] if "imgsz" in opts else opts["img_size"],
                 "batch": opts["batch_size"],
             },
             "model_type": model_type,
         }
-        if hasattr(model["model"], "yaml"):
-            model_artifacts["yaml"] = model["model"].yaml
+        if hasattr(model_instance, "yaml"):
+            model_artifacts["yaml"] = model_instance.yaml
 
     with open(os.path.join(model_path, "model_artifacts.json"), "w") as fp:
         json.dump(model_artifacts, fp)
 
-    torch.save(model["model"].state_dict(), os.path.join(model_path, "state_dict.pt"))
+    torch.save(model_instance.state_dict(), os.path.join(model_path, "state_dict.pt"))
 
     list_files = [
         "results.csv",
@@ -196,25 +225,21 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
     return zip_file_name
 
 
-def _process_yolov12(model_type: str, model_path: str, filename: str) -> str:
-    # For YOLOv12, since it uses a special Ultralytics version,
-    # state dict extraction and model artifacts are handled during model conversion
+def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
+    _supported_types = ["rfdetr-base", "rfdetr-large"]
+    if model_type not in _supported_types:
+        raise ValueError(f"Model type {model_type} not supported. Supported types are {_supported_types}")
 
-    print(
-        "Note: Model must be trained using ultralytics from https://github.com/sunsmarterjie/yolov12 "
-        "or through the Roboflow platform"
-    )
-
-    # Check if model_path exists
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model path {model_path} does not exist.")
 
-    # Find any .pt file in model path
     model_files = os.listdir(model_path)
-    pt_file = next((f for f in model_files if f.endswith(".pt")), None)
+    pt_file = next((f for f in model_files if f.endswith(".pt") or f.endswith(".pth")), None)
 
     if pt_file is None:
-        raise RuntimeError("No .pt model file found in the provided path")
+        raise RuntimeError("No .pt or .pth model file found in the provided path")
+
+    get_classnames_txt_for_rfdetr(model_path, pt_file)
 
     # Copy the .pt file to weights.pt if not already named weights.pt
     if pt_file != "weights.pt":
@@ -222,7 +247,7 @@ def _process_yolov12(model_type: str, model_path: str, filename: str) -> str:
 
     required_files = ["weights.pt"]
 
-    optional_files = ["results.csv", "results.png", "model_artifacts.json"]
+    optional_files = ["results.csv", "results.png", "model_artifacts.json", "class_names.txt"]
 
     zip_file_name = "roboflow_deploy.zip"
     with zipfile.ZipFile(os.path.join(model_path, zip_file_name), "w") as zipMe:
@@ -234,6 +259,43 @@ def _process_yolov12(model_type: str, model_path: str, filename: str) -> str:
                 zipMe.write(os.path.join(model_path, file), arcname=file, compress_type=zipfile.ZIP_DEFLATED)
 
     return zip_file_name
+
+
+def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str):
+    class_names_path = os.path.join(model_path, "class_names.txt")
+    if os.path.exists(class_names_path):
+        maybe_prepend_dummy_class(class_names_path)
+        return class_names_path
+
+    import torch
+
+    model = torch.load(os.path.join(model_path, pt_file), map_location="cpu", weights_only=False)
+    args = vars(model["args"])
+    if "class_names" in args:
+        with open(class_names_path, "w") as f:
+            for class_name in args["class_names"]:
+                f.write(class_name + "\n")
+        maybe_prepend_dummy_class(class_names_path)
+        return class_names_path
+
+    raise FileNotFoundError(
+        f"No class_names.txt file found in model path {model_path}.\n"
+        f"This should only happen on rfdetr models trained before version 1.1.0.\n"
+        f"Please re-train your model with the latest version of the rfdetr library, or\n"
+        f"please create a class_names.txt file in the model path with the class names\n"
+        f"in new lines in the order of the classes in the model.\n"
+    )
+
+
+def maybe_prepend_dummy_class(class_name_file: str):
+    with open(class_name_file) as f:
+        class_names = f.readlines()
+
+    dummy_class = "background_class83422\n"
+    if dummy_class not in class_names:
+        class_names.insert(0, dummy_class)
+        with open(class_name_file, "w") as f:
+            f.writelines(class_names)
 
 
 def _process_huggingface(
