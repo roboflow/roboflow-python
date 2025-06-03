@@ -1,7 +1,7 @@
 import json
 import os
 import urllib
-from typing import Optional
+from typing import List, Optional
 
 import requests
 from requests.exceptions import RequestException
@@ -56,7 +56,7 @@ def upload_image(
     hosted_image: bool = False,
     split: str = "train",
     batch_name: str = DEFAULT_BATCH_NAME,
-    tag_names: list = [],
+    tag_names: Optional[List[str]] = None,
     sequence_number: Optional[int] = None,
     sequence_size: Optional[int] = None,
     **kwargs,
@@ -71,6 +71,8 @@ def upload_image(
     """
 
     coalesced_batch_name = batch_name or DEFAULT_BATCH_NAME
+    if tag_names is None:
+        tag_names = []
 
     # If image is not a hosted image
     if not hosted_image:
