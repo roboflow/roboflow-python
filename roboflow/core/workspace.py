@@ -5,7 +5,7 @@ import glob
 import json
 import os
 import sys
-from typing import Any, List
+from typing import Any, Dict, List, Optional
 
 import requests
 from PIL import Image
@@ -301,10 +301,11 @@ class Workspace:
         """  # noqa: E501 // docs
         if dataset_format != "NOT_USED":
             print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
-        parsed_dataset = folderparser.parsefolder(dataset_path)
         project, created = self._get_or_create_project(
             project_id=project_name, license=project_license, type=project_type
         )
+        is_classification = project.type == "classification"
+        parsed_dataset = folderparser.parsefolder(dataset_path, is_classification=is_classification)
         if created:
             print(f"Created project {project.id}")
         else:
@@ -361,15 +362,19 @@ class Workspace:
 
             annotationdesc = imagedesc.get("annotationfile")
             if isinstance(annotationdesc, dict):
-                if annotationdesc.get("rawText"):
+                if annotationdesc.get("type") == "classification_folder":
+                    annotation_path = annotationdesc.get("classification_label")
+                elif annotationdesc.get("rawText"):
                     annotation_path = annotationdesc
-                else:
+                elif annotationdesc.get("file"):
                     annotation_path = f"{location}{annotationdesc['file']}"
-                labelmap = annotationdesc.get("labelmap")
+                    labelmap = annotationdesc.get("labelmap")
 
                 if isinstance(labelmap, str):
                     labelmap = load_labelmap(labelmap)
-            else:
+
+            # If annotation_path is still None at this point, then no annotation will be saved.
+            if annotation_path is None:
                 return None, None
 
             annotation, upload_time, _retry_attempts = project.save_annotation(
@@ -428,9 +433,9 @@ class Workspace:
         self,
         raw_data_location: str = "",
         raw_data_extension: str = "",
-        inference_endpoint: list = [],
+        inference_endpoint: Optional[List[str]] = None,
         upload_destination: str = "",
-        conditionals: dict = {},
+        conditionals: Optional[Dict] = None,
         use_localhost: bool = False,
         local_server="http://localhost:9001/",
     ) -> Any:
@@ -444,6 +449,11 @@ class Workspace:
             use_localhost: (bool) = determines if local http format used or remote endpoint
             local_server: (str) = local http address for inference server, use_localhost must be True for this to be used
         """  # noqa: E501 // docs
+        if inference_endpoint is None:
+            inference_endpoint = []
+        if conditionals is None:
+            conditionals = {}
+
         import numpy as np
 
         prediction_results = []
@@ -619,7 +629,13 @@ class Workspace:
         try:
             res.raise_for_status()
         except Exception as e:
-            print(f"An error occured when getting the model deployment URL: {e}")
+            error_message = str(e)
+            status_code = str(res.status_code)
+
+            print("\n\033[91m❌ ERROR\033[0m: Failed to get model deployment URL")
+            print("\033[93mDetails\033[0m:", error_message)
+            print("\033[93mStatus\033[0m:", status_code)
+            print(f"\033[93mResponse\033[0m:\n{res.text}\n")
             return
 
         # Upload the model to the signed URL
