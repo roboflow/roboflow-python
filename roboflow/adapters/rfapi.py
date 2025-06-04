@@ -1,9 +1,10 @@
 import json
 import os
 import urllib
-from typing import Optional
+from typing import List, Optional
 
 import requests
+from requests.exceptions import RequestException
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
@@ -26,6 +27,7 @@ class AnnotationSaveError(RoboflowError):
     def __init__(self, message, status_code=None):
         self.message = message
         self.status_code = status_code
+        self.retries = 0
         super().__init__(self.message)
 
 
@@ -54,7 +56,7 @@ def upload_image(
     hosted_image: bool = False,
     split: str = "train",
     batch_name: str = DEFAULT_BATCH_NAME,
-    tag_names: list = [],
+    tag_names: Optional[List[str]] = None,
     sequence_number: Optional[int] = None,
     sequence_size: Optional[int] = None,
     **kwargs,
@@ -69,6 +71,8 @@ def upload_image(
     """
 
     coalesced_batch_name = batch_name or DEFAULT_BATCH_NAME
+    if tag_names is None:
+        tag_names = []
 
     # If image is not a hosted image
     if not hosted_image:
@@ -85,14 +89,21 @@ def upload_image(
                 "file": ("imageToUpload", imgjpeg, "image/jpeg"),
             }
         )
-        response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
+
+        try:
+            response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
+        except RequestException as e:
+            raise ImageUploadError(str(e)) from e
 
     else:
         # Hosted image upload url
         upload_url = _hosted_upload_url(api_key, project_url, image_path, split, coalesced_batch_name, tag_names)
 
-        # Get response
-        response = requests.post(upload_url, timeout=(300, 300))
+        try:
+            # Get response
+            response = requests.post(upload_url, timeout=(300, 300))
+        except RequestException as e:
+            raise ImageUploadError(str(e)) from e
 
     responsejson = None
     try:
@@ -101,7 +112,7 @@ def upload_image(
         pass
 
     if response.status_code != 200:
-        if responsejson:
+        if responsejson and isinstance(responsejson, dict):
             err_msg = responsejson
 
             if err_msg.get("error"):
@@ -147,12 +158,15 @@ def save_annotation(
         api_key, project_url, annotation_name, image_id, job_name, is_prediction, overwrite
     )
 
-    response = requests.post(
-        upload_url,
-        data=json.dumps({"annotationFile": annotation_string, "labelmap": annotation_labelmap}),
-        headers={"Content-Type": "application/json"},
-        timeout=(60, 60),
-    )
+    try:
+        response = requests.post(
+            upload_url,
+            data=json.dumps({"annotationFile": annotation_string, "labelmap": annotation_labelmap}),
+            headers={"Content-Type": "application/json"},
+            timeout=(60, 60),
+        )
+    except RequestException as e:
+        raise AnnotationSaveError(str(e)) from e
 
     # Handle response
     responsejson = None
@@ -179,7 +193,7 @@ def save_annotation(
 
 
 def _save_annotation_url(api_key, project_url, name, image_id, job_name, is_prediction, overwrite=False):
-    url = f"{API_URL}/dataset/{project_url}/annotate/{image_id}?api_key={api_key}" f"&name={name}"
+    url = f"{API_URL}/dataset/{project_url}/annotate/{image_id}?api_key={api_key}&name={name}"
     if job_name:
         url += f"&jobName={job_name}"
     if is_prediction:

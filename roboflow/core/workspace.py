@@ -1,21 +1,25 @@
+from __future__ import annotations
+
 import concurrent.futures
 import glob
 import json
 import os
 import sys
-from typing import Any, List
+from typing import Any, Dict, List, Optional
 
 import requests
 from PIL import Image
 
 from roboflow.adapters import rfapi
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
-from roboflow.config import API_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
+from roboflow.config import API_URL, APP_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
 from roboflow.util.image_utils import load_labelmap
+from roboflow.util.model_processor import process
 from roboflow.util.two_stage_utils import ocr_infer
+from roboflow.util.versions import normalize_yolo_model_type
 
 
 class Workspace:
@@ -269,7 +273,7 @@ class Workspace:
                 # capture OCR results from cropped image
                 results.append(ocr_infer(croppedImg)["results"])
         else:
-            print("please use an object detection model--can only perform two stage with" " bounding box results")
+            print("please use an object detection model--can only perform two stage with bounding box results")
 
         return results
 
@@ -297,10 +301,11 @@ class Workspace:
         """  # noqa: E501 // docs
         if dataset_format != "NOT_USED":
             print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
-        parsed_dataset = folderparser.parsefolder(dataset_path)
         project, created = self._get_or_create_project(
             project_id=project_name, license=project_license, type=project_type
         )
+        is_classification = project.type == "classification"
+        parsed_dataset = folderparser.parsefolder(dataset_path, is_classification=is_classification)
         if created:
             print(f"Created project {project.id}")
         else:
@@ -346,6 +351,7 @@ class Workspace:
                 batch_name=batch_name,
                 sequence_number=imagedesc.get("index"),
                 sequence_size=len(images),
+                num_retry_uploads=num_retries,
             )
 
             return image, upload_time, upload_retry_attempts
@@ -355,24 +361,28 @@ class Workspace:
             annotation_path = None
 
             annotationdesc = imagedesc.get("annotationfile")
-            if annotationdesc:
-                if annotationdesc.get("rawText"):
+            if isinstance(annotationdesc, dict):
+                if annotationdesc.get("type") == "classification_folder":
+                    annotation_path = annotationdesc.get("classification_label")
+                elif annotationdesc.get("rawText"):
                     annotation_path = annotationdesc
-                else:
+                elif annotationdesc.get("file"):
                     annotation_path = f"{location}{annotationdesc['file']}"
-                labelmap = annotationdesc.get("labelmap")
+                    labelmap = annotationdesc.get("labelmap")
 
                 if isinstance(labelmap, str):
                     labelmap = load_labelmap(labelmap)
 
-            if not annotation_path:
+            # If annotation_path is still None at this point, then no annotation will be saved.
+            if annotation_path is None:
                 return None, None
 
-            annotation, upload_time = project.save_annotation(
+            annotation, upload_time, _retry_attempts = project.save_annotation(
                 annotation_path=annotation_path,
                 annotation_labelmap=labelmap,
                 image_id=image_id,
                 job_name=batch_name,
+                num_retry_uploads=num_retries,
             )
 
             return annotation, upload_time
@@ -423,9 +433,9 @@ class Workspace:
         self,
         raw_data_location: str = "",
         raw_data_extension: str = "",
-        inference_endpoint: list = [],
+        inference_endpoint: Optional[List[str]] = None,
         upload_destination: str = "",
-        conditionals: dict = {},
+        conditionals: Optional[Dict] = None,
         use_localhost: bool = False,
         local_server="http://localhost:9001/",
     ) -> Any:
@@ -439,6 +449,11 @@ class Workspace:
             use_localhost: (bool) = determines if local http format used or remote endpoint
             local_server: (str) = local http address for inference server, use_localhost must be True for this to be used
         """  # noqa: E501 // docs
+        if inference_endpoint is None:
+            inference_endpoint = []
+        if conditionals is None:
+            conditionals = {}
+
         import numpy as np
 
         prediction_results = []
@@ -565,6 +580,80 @@ class Workspace:
         return (
             prediction_results if type(raw_data_location) is not np.ndarray else prediction_results[-1]["predictions"]
         )
+
+    def deploy_model(
+        self,
+        model_type: str,
+        model_path: str,
+        project_ids: list[str],
+        model_name: str,
+        filename: str = "weights/best.pt",
+    ):
+        """Uploads provided weights file to Roboflow.
+        Args:
+            model_type (str): The type of the model to be deployed.
+            model_path (str): File path to the model weights to be uploaded.
+            project_ids (list[str]): List of project IDs to deploy the model to.
+            filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
+        """
+
+        if not project_ids:
+            raise ValueError("At least one project ID must be provided")
+
+        # Validate if provided project URLs belong to user's projects
+        user_projects = set(project.split("/")[-1] for project in self.projects())
+        for project_id in project_ids:
+            if project_id not in user_projects:
+                raise ValueError(f"Project {project_id} is not accessible in this workspace")
+
+        model_type = normalize_yolo_model_type(model_type)
+        zip_file_name = process(model_type, model_path, filename)
+
+        if zip_file_name is None:
+            raise RuntimeError("Failed to process model")
+
+        self._upload_zip(model_type, model_path, project_ids, model_name, zip_file_name)
+
+    def _upload_zip(
+        self,
+        model_type: str,
+        model_path: str,
+        project_ids: list[str],
+        model_name: str,
+        model_file_name: str,
+    ):
+        # This endpoint returns a signed URL to upload the model
+        res = requests.post(
+            f"{API_URL}/{self.url}/models/prepareUpload?api_key={self.__api_key}&modelType={model_type}&modelName={model_name}&projectIds={','.join(project_ids)}&nocache=true"
+        )
+        try:
+            res.raise_for_status()
+        except Exception as e:
+            error_message = str(e)
+            status_code = str(res.status_code)
+
+            print("\n\033[91m❌ ERROR\033[0m: Failed to get model deployment URL")
+            print("\033[93mDetails\033[0m:", error_message)
+            print("\033[93mStatus\033[0m:", status_code)
+            print(f"\033[93mResponse\033[0m:\n{res.text}\n")
+            return
+
+        # Upload the model to the signed URL
+        res = requests.put(
+            res.json()["url"],
+            data=open(os.path.join(model_path, model_file_name), "rb"),
+        )
+        try:
+            res.raise_for_status()
+
+            for project_id in project_ids:
+                print(
+                    f"View the status of your deployment for project {project_id} at:"
+                    f" {APP_URL}/{self.url}/{project_id}/models"
+                )
+
+        except Exception as e:
+            print(f"An error occured when uploading the model: {e}")
 
     def __str__(self):
         projects = self.projects()

@@ -11,7 +11,7 @@ import filetype
 import requests
 
 from roboflow.adapters import rfapi
-from roboflow.adapters.rfapi import ImageUploadError
+from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
 from roboflow.util.general import Retry
@@ -22,6 +22,9 @@ ACCEPTED_IMAGE_FORMATS = {
     "image/jpeg",
     "image/png",
     "image/webp",
+    "image/tiff",
+    "image/avif",
+    "image/heic",
 }
 
 
@@ -230,7 +233,7 @@ class Project:
             )
 
         r = requests.post(
-            f"{API_URL}/{self.__workspace}/{self.__project_name}/" f"generate?api_key={self.__api_key}",
+            f"{API_URL}/{self.__workspace}/{self.__project_name}/generate?api_key={self.__api_key}",
             json=settings,
         )
 
@@ -253,13 +256,7 @@ class Project:
 
     def train(
         self,
-        new_version_settings={
-            "preprocessing": {
-                "auto-orient": True,
-                "resize": {"width": 640, "height": 640, "format": "Stretch to"},
-            },
-            "augmentation": {},
-        },
+        new_version_settings: Optional[Dict] = None,
         speed=None,
         checkpoint=None,
         plot_in_notebook=False,
@@ -290,6 +287,15 @@ class Project:
 
             >>> version.train()
         """  # noqa: E501 // docs
+
+        if new_version_settings is None:
+            new_version_settings = {
+                "preprocessing": {
+                    "auto-orient": True,
+                    "resize": {"width": 640, "height": 640, "format": "Stretch to"},
+                },
+                "augmentation": {},
+            }
 
         new_version = self.generate_version(settings=new_version_settings)
         new_version = self.version(new_version)
@@ -381,7 +387,7 @@ class Project:
         split: str = "train",
         num_retry_uploads: int = 0,
         batch_name: Optional[str] = None,
-        tag_names: list = [],
+        tag_names: Optional[List[str]] = None,
         is_prediction: bool = False,
         **kwargs,
     ):
@@ -410,6 +416,9 @@ class Project:
             >>> project.upload(image_path="YOUR_IMAGE.jpg")
         """  # noqa: E501 // docs
 
+        if tag_names is None:
+            tag_names = []
+
         is_hosted = image_path.startswith("http://") or image_path.startswith("https://")
 
         is_file = os.path.isfile(image_path) or is_hosted
@@ -426,7 +435,7 @@ class Project:
 
             if not is_image:
                 raise RuntimeError(
-                    "The image you provided {} is not a supported file format. We" " currently support: {}.".format(
+                    "The image you provided {} is not a supported file format. We currently support: {}.".format(
                         image_path, ", ".join(ACCEPTED_IMAGE_FORMATS)
                     )
                 )
@@ -473,12 +482,15 @@ class Project:
         split="train",
         num_retry_uploads=0,
         batch_name=None,
-        tag_names=[],
+        tag_names: Optional[List[str]] = None,
         sequence_number=None,
         sequence_size=None,
         **kwargs,
     ):
         project_url = self.id.rsplit("/")[1]
+
+        if tag_names is None:
+            tag_names = []
 
         t0 = time.time()
         upload_retry_attempts = 0
@@ -515,26 +527,34 @@ class Project:
         job_name=None,
         is_prediction: bool = False,
         annotation_overwrite=False,
+        num_retry_uploads=0,
     ):
         project_url = self.id.rsplit("/")[1]
         annotation_name, annotation_str = self._annotation_params(annotation_path)
         t0 = time.time()
+        upload_retry_attempts = 0
+        retry = Retry(num_retry_uploads, AnnotationSaveError)
 
-        annotation = rfapi.save_annotation(
-            self.__api_key,
-            project_url,
-            annotation_name,  # type: ignore[type-var]
-            annotation_str,  # type: ignore[type-var]
-            image_id,
-            job_name=job_name,  # type: ignore[type-var]
-            is_prediction=is_prediction,
-            annotation_labelmap=annotation_labelmap,
-            overwrite=annotation_overwrite,
-        )
+        try:
+            annotation = rfapi.save_annotation(
+                self.__api_key,
+                project_url,
+                annotation_name,  # type: ignore[type-var]
+                annotation_str,  # type: ignore[type-var]
+                image_id,
+                job_name=job_name,  # type: ignore[type-var]
+                is_prediction=is_prediction,
+                annotation_labelmap=annotation_labelmap,
+                overwrite=annotation_overwrite,
+            )
+            upload_retry_attempts = retry.retries
+        except AnnotationSaveError as e:
+            e.retries = upload_retry_attempts
+            raise
 
         upload_time = time.time() - t0
 
-        return annotation, upload_time
+        return annotation, upload_time, upload_retry_attempts
 
     def single_upload(
         self,
@@ -546,13 +566,15 @@ class Project:
         split="train",
         num_retry_uploads=0,
         batch_name=None,
-        tag_names=[],
+        tag_names: Optional[List[str]] = None,
         is_prediction: bool = False,
         annotation_overwrite=False,
         sequence_number=None,
         sequence_size=None,
         **kwargs,
     ):
+        if tag_names is None:
+            tag_names = []
         if image_path and image_id:
             raise Exception("You can't pass both image_id and image_path")
         if not (image_path or image_id):
@@ -563,6 +585,7 @@ class Project:
         uploaded_image, uploaded_annotation = None, None
         upload_time, annotation_time = None, None
         upload_retry_attempts = 0
+        annotation_upload_retry_attempts = 0
 
         if image_path:
             uploaded_image, upload_time, upload_retry_attempts = self.upload_image(
@@ -579,13 +602,14 @@ class Project:
             image_id = uploaded_image["id"]  # type: ignore[index]
 
         if annotation_path and image_id:
-            uploaded_annotation, annotation_time = self.save_annotation(
+            uploaded_annotation, annotation_time, annotation_upload_retry_attempts = self.save_annotation(
                 annotation_path,
                 annotation_labelmap,
                 image_id,
                 batch_name,
                 is_prediction,
                 annotation_overwrite,
+                num_retry_uploads=num_retry_uploads,
             )
 
         return {
@@ -594,6 +618,7 @@ class Project:
             "upload_time": upload_time,
             "annotation_time": annotation_time,
             "upload_retry_attempts": upload_retry_attempts,
+            "annotation_upload_retry_attempts": annotation_upload_retry_attempts,
         }
 
     def _annotation_params(self, annotation_path):
@@ -627,7 +652,7 @@ class Project:
         in_dataset: Optional[str] = None,
         batch: bool = False,
         batch_id: Optional[str] = None,
-        fields: list = ["id", "created", "name", "labels"],
+        fields: Optional[List[str]] = None,
     ):
         """
         Search for images in a project.
@@ -656,6 +681,9 @@ class Project:
 
             >>> results = project.search(query="cat", limit=10)
         """  # noqa: E501 // docs
+        if fields is None:
+            fields = ["id", "created", "name", "labels"]
+
         payload: Dict[str, Union[str, int, List[str]]] = {}
 
         if like_image is not None:
@@ -705,7 +733,7 @@ class Project:
         in_dataset: Optional[str] = None,
         batch: bool = False,
         batch_id: Optional[str] = None,
-        fields: list = ["id", "created"],
+        fields: Optional[List[str]] = None,
     ):
         """
         Create a paginated list of search results for use in searching the images in a project.
@@ -738,6 +766,9 @@ class Project:
 
             >>>     print(result)
         """  # noqa: E501 // docs
+        if fields is None:
+            fields = ["id", "created"]
+
         while True:
             data = self.search(
                 like_image=like_image,
@@ -767,3 +798,91 @@ class Project:
         json_str = {"name": self.name, "type": self.type, "workspace": self.__workspace}
 
         return json.dumps(json_str, indent=2)
+
+    def image(self, image_id: str) -> Dict:
+        """
+        Fetch the details of a specific image from the Roboflow API.
+
+        Args:
+            image_id (str): The ID of the image to fetch.
+
+        Returns:
+            Dict: A dictionary containing the image details.
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> image_details = project.image("image-id")
+        """
+        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/images/{image_id}?api_key={self.__api_key}"
+
+        data = requests.get(url).json()
+
+        if "error" in data:
+            raise RuntimeError(data["error"])
+
+        if "image" not in data:
+            print(data, image_id)
+            raise RuntimeError("Image not found")
+
+        image_details = data["image"]
+
+        return image_details
+
+    def create_annotation_job(
+        self, name: str, batch_id: str, num_images: int, labeler_email: str, reviewer_email: str
+    ) -> Dict:
+        """
+        Create a new annotation job in the project.
+
+        Args:
+            name (str): The name of the annotation job
+            batch_id (str): The ID of the batch that contains the images to annotate
+            num_images (int): The number of images to include in the job
+            labeler_email (str): The email of the user who will label the images
+            reviewer_email (str): The email of the user who will review the annotations
+
+        Returns:
+            Dict: A dictionary containing the created job details
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> job = project.create_annotation_job(
+            ...     name="Job created by API",
+            ...     batch_id="batch123",
+            ...     num_images=10,
+            ...     labeler_email="user@example.com",
+            ...     reviewer_email="reviewer@example.com"
+            ... )
+        """
+        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/jobs?api_key={self.__api_key}"
+
+        payload = {
+            "name": name,
+            "batch": batch_id,
+            "num_images": num_images,
+            "labelerEmail": labeler_email,
+            "reviewerEmail": reviewer_email,
+        }
+
+        response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload)
+
+        if response.status_code != 200:
+            try:
+                error_data = response.json()
+                if "error" in error_data:
+                    raise RuntimeError(error_data["error"])
+                raise RuntimeError(response.text)
+            except ValueError:
+                raise RuntimeError(f"Failed to create annotation job: {response.text}")
+
+        return response.json()

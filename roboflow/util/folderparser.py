@@ -7,15 +7,22 @@ from tqdm import tqdm
 
 from .image_utils import load_labelmap
 
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".avif", ".heic"}
 ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv", ".jsonl"}
 LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
 
 
-def parsefolder(folder):
-    folder = folder.strip()
-    if folder.endswith("/"):
-        folder = folder[:-1]
+def _patch_sep(filename):
+    """
+    Replace Windows style slashes to keep filenames consistent.
+
+    Roboflow depend on it server side.
+    """
+    return filename.replace("\\", "/")
+
+
+def parsefolder(folder, is_classification=False):
+    folder = _patch_sep(folder).strip().rstrip("/")
     if not os.path.exists(folder):
         raise Exception(f"folder does not exist. {folder}")
     files = _list_files(folder)
@@ -29,6 +36,8 @@ def parsefolder(folder):
     if not _map_annotations_to_images_1to1(images, annotations):
         annotations = _loadAnnotations(folder, annotations)
         _map_annotations_to_images_1tomany(images, annotations)
+    if is_classification:
+        _infer_classification_labels_from_folders(images)
     return {
         "location": folder,
         "images": images,
@@ -53,7 +62,8 @@ def _list_files(folder):
     for root, dirs, files in os.walk(folder):
         for file in files:
             file_path = os.path.join(root, file)
-            filedescriptors.append(_describe_file(file_path.split(folder)[1]))
+            rel = os.path.relpath(file_path, folder)
+            filedescriptors.append(_describe_file(f"/{rel}"))
     filedescriptors = sorted(filedescriptors, key=lambda x: _alphanumkey(x["file"]))
     return filedescriptors
 
@@ -64,6 +74,7 @@ def _add_indices(files):
 
 
 def _describe_file(f):
+    f = _patch_sep(f)
     name = f.split("/")[-1]
     dirname = os.path.dirname(f)
     fullkey, extension = os.path.splitext(f)
@@ -290,3 +301,16 @@ def _list_map(my_list, key):
     for i in my_list:
         d.setdefault(i[key], []).append(i)
     return d
+
+
+def _infer_classification_labels_from_folders(images):
+    for image in images:
+        if image.get("annotationfile"):
+            continue
+        dirname = image.get("dirname", "").strip("/")
+        if not dirname or dirname == ".":
+            # Skip images in root directory or invalid paths
+            continue
+        class_name = os.path.basename(dirname)
+        if class_name and class_name != ".":
+            image["annotationfile"] = {"classification_label": class_name, "type": "classification_folder"}

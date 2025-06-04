@@ -15,7 +15,7 @@ from roboflow.core.workspace import Workspace
 from roboflow.models import CLIPModel, GazeModel  # noqa: F401
 from roboflow.util.general import write_line
 
-__version__ = "1.1.50"
+__version__ = "1.1.65"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -43,7 +43,7 @@ def check_key(api_key, model, notebook, num_retries=0):
                     num_retries += 1
                     return check_key(api_key, model, notebook, num_retries)
                 else:
-                    raise RuntimeError("There was an error validating the api key with Roboflow" " server.")
+                    raise RuntimeError("There was an error validating the api key with Roboflow server.")
             else:
                 r = response.json()
                 return r
@@ -71,7 +71,7 @@ def login(workspace=None, force=False):
     # default configuration location
     conf_location = os.getenv("ROBOFLOW_CONFIG_DIR", default=default_path)
     if os.path.isfile(conf_location) and not force:
-        write_line("You are already logged into Roboflow. To make a different login," "run roboflow.login(force=True).")
+        write_line("You are already logged into Roboflow. To make a different login,run roboflow.login(force=True).")
         return None
         # we could eventually return the workspace object here
         # return Roboflow().workspace()
@@ -131,17 +131,12 @@ def initialize_roboflow(the_workspace=None):
 
     global active_workspace
 
-    conf_location = os.getenv("ROBOFLOW_CONFIG_DIR", default=str(Path.home() / ".config" / "roboflow" / "config.json"))
-
-    if not os.path.isfile(conf_location):
-        raise RuntimeError("To use this method, you must first login - run roboflow.login()")
+    if the_workspace is None:
+        active_workspace = Roboflow().workspace()
     else:
-        if the_workspace is None:
-            active_workspace = Roboflow().workspace()
-        else:
-            active_workspace = Roboflow().workspace(the_workspace)
+        active_workspace = Roboflow().workspace(the_workspace)
 
-        return active_workspace
+    return active_workspace
 
 
 def load_model(model_url):

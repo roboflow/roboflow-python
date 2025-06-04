@@ -3,7 +3,7 @@ import json
 import os
 import time
 import urllib
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from urllib.parse import urljoin
 
 import requests
@@ -149,7 +149,7 @@ class InferenceModel:
         self,
         video_path: str,
         fps: int = 5,
-        additional_models: list = [],
+        additional_models: Optional[List[str]] = None,
         prediction_type: str = "batch-video",
     ) -> Tuple[str, str, Optional[str]]:
         """
@@ -181,6 +181,9 @@ class InferenceModel:
         url = urljoin(API_URL, "/video_upload_signed_url?api_key=" + self.__api_key)
         if fps > 120:
             raise Exception("FPS must be less than or equal to 120.")
+
+        if additional_models is None:
+            additional_models = []
 
         for model in additional_models:
             if model not in SUPPORTED_ADDITIONAL_MODELS:
