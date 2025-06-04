@@ -5,7 +5,7 @@ import glob
 import json
 import os
 import sys
-from typing import Any, List
+from typing import Any, Dict, List, Optional
 
 import requests
 from PIL import Image
@@ -433,9 +433,9 @@ class Workspace:
         self,
         raw_data_location: str = "",
         raw_data_extension: str = "",
-        inference_endpoint: list = [],
+        inference_endpoint: Optional[List[str]] = None,
         upload_destination: str = "",
-        conditionals: dict = {},
+        conditionals: Optional[Dict] = None,
         use_localhost: bool = False,
         local_server="http://localhost:9001/",
     ) -> Any:
@@ -449,6 +449,11 @@ class Workspace:
             use_localhost: (bool) = determines if local http format used or remote endpoint
             local_server: (str) = local http address for inference server, use_localhost must be True for this to be used
         """  # noqa: E501 // docs
+        if inference_endpoint is None:
+            inference_endpoint = []
+        if conditionals is None:
+            conditionals = {}
+
         import numpy as np
 
         prediction_results = []
