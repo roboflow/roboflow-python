@@ -153,7 +153,7 @@ class KeypointDetectionModel(InferenceModel):
                 self.base_url + without_workspace + "/" + str(version),
                 "?api_key=" + self.__api_key,
                 "&name=YOUR_IMAGE.jpg",
-                f"&confidence={self.confidence}",
+                "&confidence=" + str(self.confidence),
             ]
         )
 
