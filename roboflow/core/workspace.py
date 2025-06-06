@@ -364,6 +364,8 @@ class Workspace:
             if isinstance(annotationdesc, dict):
                 if annotationdesc.get("type") == "classification_folder":
                     annotation_path = annotationdesc.get("classification_label")
+                elif annotationdesc.get("type") == "classification_multilabel":
+                    annotation_path = json.dumps(annotationdesc.get("labels", []))
                 elif annotationdesc.get("rawText"):
                     annotation_path = annotationdesc
                 elif annotationdesc.get("file"):
