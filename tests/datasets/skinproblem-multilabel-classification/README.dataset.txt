@@ -3,4 +3,3 @@ https://universe.roboflow.com/parin-kittipongdaja-vwmn3/skin-problem-multilabel
 
 Provided by a Roboflow user
 License: CC BY 4.0
-
