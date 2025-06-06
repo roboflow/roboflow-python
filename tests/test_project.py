@@ -1,5 +1,5 @@
-from unittest.mock import patch
 import json
+from unittest.mock import patch
 
 import requests
 import responses
