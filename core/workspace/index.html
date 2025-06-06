@@ -1712,7 +1712,14 @@
 <span class="normal">654</span>
 <span class="normal">655</span>
 <span class="normal">656</span>
-<span class="normal">657</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
+<span class="normal">657</span>
+<span class="normal">658</span>
+<span class="normal">659</span>
+<span class="normal">660</span>
+<span class="normal">661</span>
+<span class="normal">662</span>
+<span class="normal">663</span>
+<span class="normal">664</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Manage a Roboflow workspace.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2054,6 +2061,8 @@
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">annotationdesc</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;classification_folder&quot;</span><span class="p">:</span>
                     <span class="n">annotation_path</span> <span class="o">=</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;classification_label&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;classification_multilabel&quot;</span><span class="p">:</span>
+                    <span class="n">annotation_path</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;labels&quot;</span><span class="p">,</span> <span class="p">[]))</span>
                 <span class="k">elif</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rawText&quot;</span><span class="p">):</span>
                     <span class="n">annotation_path</span> <span class="o">=</span> <span class="n">annotationdesc</span>
                 <span class="k">elif</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">):</span>
@@ -2123,9 +2132,9 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">raw_data_location</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
         <span class="n">raw_data_extension</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="n">inference_endpoint</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">inference_endpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">upload_destination</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="n">conditionals</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span>
+        <span class="n">conditionals</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">use_localhost</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">local_server</span><span class="o">=</span><span class="s2">&quot;http://localhost:9001/&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
@@ -2139,6 +2148,11 @@
 <span class="sd">            use_localhost: (bool) = determines if local http format used or remote endpoint</span>
 <span class="sd">            local_server: (str) = local http address for inference server, use_localhost must be True for this to be used</span>
 <span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+        <span class="k">if</span> <span class="n">inference_endpoint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">inference_endpoint</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">conditionals</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">conditionals</span> <span class="o">=</span> <span class="p">{}</span>
+
         <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
         <span class="n">prediction_results</span> <span class="o">=</span> <span class="p">[]</span>
@@ -2364,7 +2378,7 @@
 
 
 <h3 id="roboflow.core.workspace.Workspace.active_learning" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">active_learning</span><span class="p">(</span><span class="n">raw_data_location</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">raw_data_extension</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">inference_endpoint</span><span class="o">=</span><span class="p">[],</span> <span class="n">upload_destination</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">conditionals</span><span class="o">=</span><span class="p">{},</span> <span class="n">use_localhost</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">local_server</span><span class="o">=</span><span class="s1">&#39;http://localhost:9001/&#39;</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">active_learning</span><span class="p">(</span><span class="n">raw_data_location</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">raw_data_extension</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">inference_endpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">upload_destination</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">conditionals</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_localhost</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">local_server</span><span class="o">=</span><span class="s1">&#39;http://localhost:9001/&#39;</span><span class="p">)</span></code>
 
 <a href="#roboflow.core.workspace.Workspace.active_learning" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -2383,9 +2397,7 @@
 
             <details class="quote">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">432</span>
-<span class="normal">433</span>
-<span class="normal">434</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">434</span>
 <span class="normal">435</span>
 <span class="normal">436</span>
 <span class="normal">437</span>
@@ -2528,13 +2540,20 @@
 <span class="normal">574</span>
 <span class="normal">575</span>
 <span class="normal">576</span>
-<span class="normal">577</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">active_learning</span><span class="p">(</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span>
+<span class="normal">583</span>
+<span class="normal">584</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">active_learning</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">raw_data_location</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">raw_data_extension</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="n">inference_endpoint</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[],</span>
+    <span class="n">inference_endpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">upload_destination</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="n">conditionals</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span>
+    <span class="n">conditionals</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">use_localhost</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">local_server</span><span class="o">=</span><span class="s2">&quot;http://localhost:9001/&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
@@ -2548,6 +2567,11 @@
 <span class="sd">        use_localhost: (bool) = determines if local http format used or remote endpoint</span>
 <span class="sd">        local_server: (str) = local http address for inference server, use_localhost must be True for this to be used</span>
 <span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+    <span class="k">if</span> <span class="n">inference_endpoint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">inference_endpoint</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">conditionals</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conditionals</span> <span class="o">=</span> <span class="p">{}</span>
+
     <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
     <span class="n">prediction_results</span> <span class="o">=</span> <span class="p">[]</span>
@@ -3027,14 +3051,7 @@ Args:
 
             <details class="quote">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">579</span>
-<span class="normal">580</span>
-<span class="normal">581</span>
-<span class="normal">582</span>
-<span class="normal">583</span>
-<span class="normal">584</span>
-<span class="normal">585</span>
-<span class="normal">586</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">586</span>
 <span class="normal">587</span>
 <span class="normal">588</span>
 <span class="normal">589</span>
@@ -3058,7 +3075,14 @@ Args:
 <span class="normal">607</span>
 <span class="normal">608</span>
 <span class="normal">609</span>
-<span class="normal">610</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">deploy_model</span><span class="p">(</span>
+<span class="normal">610</span>
+<span class="normal">611</span>
+<span class="normal">612</span>
+<span class="normal">613</span>
+<span class="normal">614</span>
+<span class="normal">615</span>
+<span class="normal">616</span>
+<span class="normal">617</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">deploy_model</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -4069,7 +4093,9 @@ Args:
 <span class="normal">412</span>
 <span class="normal">413</span>
 <span class="normal">414</span>
-<span class="normal">415</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">upload_dataset</span><span class="p">(</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">upload_dataset</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">dataset_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">project_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -4156,6 +4182,8 @@ Args:
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">annotationdesc</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;classification_folder&quot;</span><span class="p">:</span>
                 <span class="n">annotation_path</span> <span class="o">=</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;classification_label&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;classification_multilabel&quot;</span><span class="p">:</span>
+                <span class="n">annotation_path</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;labels&quot;</span><span class="p">,</span> <span class="p">[]))</span>
             <span class="k">elif</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rawText&quot;</span><span class="p">):</span>
                 <span class="n">annotation_path</span> <span class="o">=</span> <span class="n">annotationdesc</span>
             <span class="k">elif</span> <span class="n">annotationdesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">):</span>
