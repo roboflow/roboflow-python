@@ -86,6 +86,15 @@ class TestFolderParser(unittest.TestCase):
             self.assertEqual(img["annotationfile"]["type"], "classification_folder")
             self.assertEqual(img["annotationfile"]["classification_label"], "no-corrosion")
 
+    def test_parse_multilabel_classification_csv(self):
+        folder = f"{thisdir}/../datasets/multilabel-classification"
+        parsed = folderparser.parsefolder(folder, is_classification=True)
+        images = {img["name"]: img for img in parsed["images"]}
+        img1 = images.get("img1.jpg")
+        self.assertIsNotNone(img1)
+        self.assertEqual(img1["annotationfile"]["type"], "classification_multilabel")
+        self.assertEqual(set(img1["annotationfile"]["labels"]), {"rust"})
+
 
 def _assertJsonMatchesFile(actual, filename):
     with open(filename) as file:

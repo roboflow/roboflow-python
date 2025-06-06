@@ -194,6 +194,13 @@ def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotatio
             return _annotation
         else:
             return None
+    elif format == "multilabel_csv":
+        rows = [r for r in parsed["rows"] if r["file_name"] == image["name"]]
+        if rows:
+            labels = rows[0]["labels"]
+            return {"type": "classification_multilabel", "labels": labels}
+        else:
+            return None
     elif format == "jsonl":
         jsonlLines = [json.dumps(line) for line in parsed if line["image"] == image["name"]]
         if jsonlLines:
@@ -218,8 +225,9 @@ def _loadAnnotations(folder, annotations):
             ann["parsed"] = _read_jsonl(f"{folder}{ann['file']}")
             ann["parsedType"] = "jsonl"
         elif extension == ".csv":
-            ann["parsedType"] = "csv"
-            ann["parsed"] = _parseAnnotationCSV(f"{folder}{ann['file']}")
+            parsed = _parseAnnotationCSV(f"{folder}{ann['file']}")
+            ann["parsed"] = parsed
+            ann["parsedType"] = parsed.get("type", "csv")
     return annotations
 
 
@@ -241,10 +249,20 @@ def _parseAnnotationCSV(filename):
     # TODO: use a proper CSV library?
     with open(filename) as f:
         lines = f.readlines()
-    headers = lines[0]
+    headers = [h.strip() for h in lines[0].split(",")]
+    # Multi-label classification csv typically named _classes.csv
+    if os.path.basename(filename) == "_classes.csv":
+        parsed_lines = []
+        for line in lines[1:]:
+            parts = [p.strip() for p in line.split(",")]
+            file_name = parts[0]
+            labels = [headers[i] for i, v in enumerate(parts[1:], start=1) if v == "1"]
+            parsed_lines.append({"file_name": file_name, "labels": labels})
+        return {"type": "multilabel_csv", "rows": parsed_lines, "headers": headers}
+    header_line = lines[0]
     lines = [{"file_name": ld.split(",")[0].strip(), "line": ld} for ld in lines[1:]]
     return {
-        "headers": headers,
+        "headers": header_line,
         "lines": lines,
     }
 
