@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 import requests
@@ -622,6 +623,46 @@ class TestProject(RoboflowTest):
             self.assertEqual(len(annotation_calls), 2)
             self.assertIn("severe", annotation_calls)
             self.assertIn("good", annotation_calls)
+        finally:
+            for mock in mocks.values():
+                mock.stop()
+
+    def test_multilabel_classification_dataset_upload(self):
+        from roboflow.util import folderparser
+
+        multilabel_folder = "tests/datasets/skinproblem-multilabel-classification"
+        parsed_dataset = folderparser.parsefolder(multilabel_folder, is_classification=True)
+
+        self.project.type = "classification"
+        self.project.multilabel = True
+        annotation_calls = []
+
+        def capture_annotation_calls(annotation_path, **kwargs):
+            annotation_calls.append(annotation_path)
+            return ({"success": True}, 0.1, 0)
+
+        mocks = {
+            "parser": patch("roboflow.core.workspace.folderparser.parsefolder", return_value=parsed_dataset),
+            "upload": patch(
+                "roboflow.core.workspace.Project.upload_image",
+                return_value=({"id": "test-id", "success": True}, 0.1, 0),
+            ),
+            "save_annotation": patch(
+                "roboflow.core.workspace.Project.save_annotation", side_effect=capture_annotation_calls
+            ),
+            "get_project": patch(
+                "roboflow.core.workspace.Workspace._get_or_create_project", return_value=(self.project, False)
+            ),
+        }
+        for mock in mocks.values():
+            mock.start()
+        try:
+            self.workspace.upload_dataset(dataset_path=multilabel_folder, project_name=PROJECT_NAME, num_workers=1)
+            self.assertEqual(len(annotation_calls), len(parsed_dataset["images"]))
+            for call in annotation_calls:
+                labels = json.loads(call)
+                self.assertIsInstance(labels, list)
+                self.assertGreater(len(labels), 0)
         finally:
             for mock in mocks.values():
                 mock.stop()
