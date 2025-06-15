@@ -795,32 +795,39 @@ class Project:
             query_str: Optional[str] = "",
             page_size: int = 100,
             fields: Optional[List[str]] = None,
+            continuation_token: Optional[str] = None
     ):
         """
         Query images in a project using a semantic search query string.
 
         Args:
-            query_str (str): Search query string, e.g. 'filename:"example.jpg"' or 'project:foo night'.
-            page_size (int): Number of results to return per page (default: 100).
-            fields (list): Fields to return in results
-                (default: ["tags", "width", "height", "filename", "aspectRatio", "split"]).
+            query_str (str, optional): Search query string, e.g. 'filename:"example.jpg"' or 'project:foo night'.
+            page_size (int, optional): Number of results to return per page (default is 100).
+            fields (list, optional): Fields to return in results.
+                Defaults to ["tags", "width", "height", "filename", "aspectRatio", "split"].
+            continuation_token (str, optional): Token to continue fetching next results.
 
         Returns:
-            A list of images that match the query criteria.
+            tuple: A tuple containing:
+                - list: A list of images that match the query criteria.
+                - str or None: A continuation token if more results are available.
 
         Example:
-            >>> results = project.query(query_str='project:example', page_size=10)
+            >>> results, token = project.query(query_str='project:example', page_size=10)
         """
         if fields is None:
             fields = ["tags", "width", "height", "filename", "aspectRatio", "split"]
 
         payload: Dict[str, Union[str, int, List[str]]] = {}
 
-        if query_str:
+        if query_str is not None:
             payload["query"] = query_str
 
-        if page_size:
+        if page_size is not None:
             payload["pageSize"] = page_size
+
+        if continuation_token is not None:
+            payload["continuationToken"] = continuation_token
 
         payload["fields"] = fields
 
@@ -829,7 +836,47 @@ class Project:
             json=payload,
         )
 
-        return data.json().get("results", [])
+        return data.json().get("results", []), data.json()["continuationToken"]
+
+    def query_all(
+            self,
+            query_str: Optional[str] = "",
+            page_size: int = 100,
+            fields: Optional[List[str]] = None,
+    ):
+        """
+        Create a paginated list of semantic search results for images in a project.
+
+        Args:
+            query_str (str): Search query string, e.g. 'filename:"example.jpg"' or 'project:foo night'.
+            page_size (int): Number of results to return per page (default: 100).
+            fields (list): Fields to return in results 
+                (default: ["tags", "width", "height", "filename", "aspectRatio", "split"]).
+
+        Returns:
+            Generator that yields pages of images that match the query criteria.
+
+        Example:
+            >>> results = project.query_all(query_str="filename:image.png")
+            >>> for result in results:
+            >>>     print(result)
+        """  # noqa: E501 // docs
+
+        continuation_token = None
+
+        while True:
+            data, continuation_token_temp = self.query(
+                query_str=query_str,
+                page_size=page_size,
+                fields=fields,
+                continuation_token=continuation_token
+            )
+
+            yield data
+            continuation_token = continuation_token_temp
+
+            if len(data) < page_size:
+                break
 
     def __str__(self):
         """
