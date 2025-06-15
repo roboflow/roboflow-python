@@ -790,6 +790,47 @@ class Project:
 
             offset += limit
 
+    def query(
+            self,
+            query_str: Optional[str] = "",
+            page_size: int = 100,
+            fields: Optional[List[str]] = None,
+    ):
+        """
+        Query images in a project using a semantic search query string.
+
+        Args:
+            query_str (str): Search query string, e.g. 'filename:"example.jpg"' or 'project:foo night'.
+            page_size (int): Number of results to return per page (default: 100).
+            fields (list): Fields to return in results
+                (default: ["tags", "width", "height", "filename", "aspectRatio", "split"]).
+
+        Returns:
+            A list of images that match the query criteria.
+
+        Example:
+            >>> results = project.query(query_str='project:example', page_size=10)
+        """
+        if fields is None:
+            fields = ["tags", "width", "height", "filename", "aspectRatio", "split"]
+
+        payload: Dict[str, Union[str, int, List[str]]] = {}
+
+        if query_str:
+            payload["query"] = query_str
+
+        if page_size:
+            payload["pageSize"] = page_size
+
+        payload["fields"] = fields
+
+        data = requests.post(
+            f"{API_URL}/{self.__workspace}/search/v1?api_key={self.__api_key}",
+            json=payload,
+        )
+
+        return data.json().get("results", [])
+
     def __str__(self):
         """
         Show a string representation of a Project object.
