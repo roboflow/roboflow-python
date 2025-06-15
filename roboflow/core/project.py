@@ -791,11 +791,11 @@ class Project:
             offset += limit
 
     def query(
-            self,
-            query_str: Optional[str] = "",
-            page_size: int = 100,
-            fields: Optional[List[str]] = None,
-            continuation_token: Optional[str] = None
+        self,
+        query_str: Optional[str] = "",
+        page_size: int = 100,
+        fields: Optional[List[str]] = None,
+        continuation_token: Optional[str] = None,
     ):
         """
         Query images in a project using a semantic search query string.
@@ -839,10 +839,10 @@ class Project:
         return data.json().get("results", []), data.json()["continuationToken"]
 
     def query_all(
-            self,
-            query_str: Optional[str] = "",
-            page_size: int = 100,
-            fields: Optional[List[str]] = None,
+        self,
+        query_str: Optional[str] = "",
+        page_size: int = 100,
+        fields: Optional[List[str]] = None,
     ):
         """
         Create a paginated list of semantic search results for images in a project.
@@ -850,7 +850,7 @@ class Project:
         Args:
             query_str (str): Search query string, e.g. 'filename:"example.jpg"' or 'project:foo night'.
             page_size (int): Number of results to return per page (default: 100).
-            fields (list): Fields to return in results 
+            fields (list): Fields to return in results
                 (default: ["tags", "width", "height", "filename", "aspectRatio", "split"]).
 
         Returns:
@@ -866,10 +866,7 @@ class Project:
 
         while True:
             data, continuation_token_temp = self.query(
-                query_str=query_str,
-                page_size=page_size,
-                fields=fields,
-                continuation_token=continuation_token
+                query_str=query_str, page_size=page_size, fields=fields, continuation_token=continuation_token
             )
 
             yield data
