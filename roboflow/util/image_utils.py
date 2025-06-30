@@ -5,12 +5,14 @@ import os
 import urllib
 
 # Third-party imports
+import pillow_avif  # type: ignore[import-untyped]
 import pillow_heif  # type: ignore[import-untyped]
 import requests
 import yaml
 from PIL import Image
 
 pillow_heif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
+pillow_avif = pillow_avif  # Reference pillow_avif to not remove import by accident
 
 
 def check_image_path(image_path):
