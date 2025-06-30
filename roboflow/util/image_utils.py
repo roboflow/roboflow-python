@@ -4,6 +4,8 @@ import io
 import os
 import urllib
 
+import pillow_avif  # type: ignore[import-untyped]
+
 # Third-party imports
 import pillow_heif  # type: ignore[import-untyped]
 import requests
@@ -11,7 +13,7 @@ import yaml
 from PIL import Image
 
 pillow_heif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
-pillow_heif.register_avif_opener(thumbnails=False)  # Register for AVIF
+pillow_avif.register_avif_opener()  # Register for AVIF
 
 
 def check_image_path(image_path):
