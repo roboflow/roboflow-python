@@ -85,6 +85,7 @@ class TestProject(RoboflowTest):
             "woodland-rabbit.png",
             "file_example_TIFF_1MB.tiff",
             "sky-rabbit.heic",
+            "whatsnew.avif",
         ]
 
         for image in images_to_test:

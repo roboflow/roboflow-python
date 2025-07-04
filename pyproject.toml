@@ -32,6 +32,7 @@ ignore = [
     "N",
     "PERF",
     "PIE",
+    "PLC0415",  # `import` should be at the top-level of a file
     "PLR",
     "PLW",
     "PT",
