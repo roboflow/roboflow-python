@@ -26,7 +26,7 @@ class KeypointDetectionModel(InferenceModel):
         id: str,
         name: Optional[str] = None,
         version: Optional[str] = None,
-        confidence: Optional[int] = 10,
+        confidence: Optional[int] = 40,
         local: Optional[str] = None,
     ):
         """
@@ -61,7 +61,7 @@ class KeypointDetectionModel(InferenceModel):
             print(f"initalizing local keypoint detection model hosted at : {local}")
             self.base_url = local
 
-    def predict(self, image_path, hosted=False):  # type: ignore[override]
+    def predict(self, image_path, hosted=False, confidence=40):  # type: ignore[override]
         """
         Run inference on an image.
 
@@ -83,7 +83,7 @@ class KeypointDetectionModel(InferenceModel):
 
             >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
-        self.__generate_url()
+        self.__generate_url(confidence=confidence)
         self.__exception_check(image_path_check=image_path)
         # If image is local image
         if not hosted:
@@ -133,7 +133,7 @@ class KeypointDetectionModel(InferenceModel):
         self.version = version
         self.__generate_url()
 
-    def __generate_url(self):
+    def __generate_url(self, confidence=None):
         """
         Generate a Roboflow API URL on which to run inference.
 
@@ -147,6 +147,9 @@ class KeypointDetectionModel(InferenceModel):
         version = self.version
         if not version and len(splitted) > 2:
             version = splitted[2]
+
+        if confidence is not None:
+            self.confidence = confidence
 
         self.api_url = "".join(
             [
@@ -179,6 +182,7 @@ class KeypointDetectionModel(InferenceModel):
         json_value = {
             "name": self.name,
             "version": self.version,
+            "confidence": self.confidence,
             "base_url": self.base_url,
         }
 
