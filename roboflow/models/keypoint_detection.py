@@ -61,7 +61,7 @@ class KeypointDetectionModel(InferenceModel):
             print(f"initalizing local keypoint detection model hosted at : {local}")
             self.base_url = local
 
-    def predict(self, image_path, hosted=False, confidence=40):  # type: ignore[override]
+    def predict(self, image_path, hosted=False, confidence=None):  # type: ignore[override]
         """
         Run inference on an image.
 
@@ -83,6 +83,9 @@ class KeypointDetectionModel(InferenceModel):
 
             >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
+        if confidence is not None:
+            self.confidence = confidence
+
         self.__generate_url(confidence=confidence)
         self.__exception_check(image_path_check=image_path)
         # If image is local image
