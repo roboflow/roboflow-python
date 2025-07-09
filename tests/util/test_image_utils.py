@@ -1,11 +1,10 @@
+import os
+import tempfile
 import unittest
 
 import responses
 
-from roboflow.util.image_utils import check_image_path, check_image_url
-from roboflow.util.image_utils import load_labelmap
-import tempfile
-import os
+from roboflow.util.image_utils import check_image_path, check_image_url, load_labelmap
 
 
 class TestCheckImagePath(unittest.TestCase):
