@@ -103,7 +103,10 @@ def load_labelmap(f):
         with open(f) as file:
             data = yaml.safe_load(file)
             if "names" in data:
-                return {i: name for i, name in enumerate(data["names"])}
+                names = data["names"]
+                if isinstance(names, dict):
+                    return {int(i): name for i, name in names.items()}
+                return {i: name for i, name in enumerate(names)}
     else:
         with open(f) as file:
             lines = [line for line in file.readlines() if line.strip()]

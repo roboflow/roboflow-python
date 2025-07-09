@@ -3,6 +3,9 @@ import unittest
 import responses
 
 from roboflow.util.image_utils import check_image_path, check_image_url
+from roboflow.util.image_utils import load_labelmap
+import tempfile
+import os
 
 
 class TestCheckImagePath(unittest.TestCase):
@@ -33,3 +36,17 @@ class TestCheckImageURL(unittest.TestCase):
         url = "https://example.com/notfound.png"
         responses.add(responses.HEAD, url, status=404)
         self.assertFalse(check_image_url(url))
+
+
+class TestLoadLabelmap(unittest.TestCase):
+    def test_yaml_dict_names(self):
+        with tempfile.NamedTemporaryFile("w+", suffix=".yaml", delete=False) as tmp:
+            tmp.write("names:\n  0: abc\n  1: def\n")
+            tmp.flush()
+            result = load_labelmap(tmp.name)
+        os.unlink(tmp.name)
+        self.assertEqual(result, {0: "abc", 1: "def"})
+
+    def test_yaml_list_names(self):
+        result = load_labelmap("tests/datasets/sharks-tiny-yolov9/data.yaml")
+        self.assertEqual(result, {0: "fish", 1: "primary", 2: "shark"})
