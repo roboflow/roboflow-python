@@ -6,7 +6,9 @@ matplotlib
 numpy>=1.18.5
 opencv-python-headless==4.10.0.84
 Pillow>=7.1.2
-pillow-heif>=0.18.0
+# https://github.com/roboflow/roboflow-python/issues/390
+pillow-heif<2
+pillow-avif-plugin<2
 python-dateutil
 python-dotenv
 requests
