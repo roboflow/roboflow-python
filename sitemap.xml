@@ -2,42 +2,42 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://roboflow.github.io/roboflow-python/</loc>
-         <lastmod>2025-07-09</lastmod>
+         <lastmod>2025-07-23</lastmod>
     </url>
     <url>
          <loc>https://roboflow.github.io/roboflow-python/core/dataset/</loc>
-         <lastmod>2025-07-09</lastmod>
+         <lastmod>2025-07-23</lastmod>
     </url>
     <url>
          <loc>https://roboflow.github.io/roboflow-python/core/model/</loc>
-         <lastmod>2025-07-09</lastmod>
+         <lastmod>2025-07-23</lastmod>
     </url>
     <url>
          <loc>https://roboflow.github.io/roboflow-python/core/project/</loc>
-         <lastmod>2025-07-09</lastmod>
+         <lastmod>2025-07-23</lastmod>
     </url>
     <url>
          <loc>https://roboflow.github.io/roboflow-python/core/version/</loc>
-         <lastmod>2025-07-09</lastmod>
+         <lastmod>2025-07-23</lastmod>
     </url>
     <url>
          <loc>https://roboflow.github.io/roboflow-python/core/workspace/</loc>
-         <lastmod>2025-07-09</lastmod>
+         <lastmod>2025-07-23</lastmod>
     </url>
     <url>
          <loc>https://roboflow.github.io/roboflow-python/models/classification/</loc>
-         <lastmod>2025-07-09</lastmod>
+         <lastmod>2025-07-23</lastmod>
     </url>
     <url>
          <loc>https://roboflow.github.io/roboflow-python/models/instance-segmentation/</loc>
-         <lastmod>2025-07-09</lastmod>
+         <lastmod>2025-07-23</lastmod>
     </url>
     <url>
          <loc>https://roboflow.github.io/roboflow-python/models/object-detection/</loc>
-         <lastmod>2025-07-09</lastmod>
+         <lastmod>2025-07-23</lastmod>
     </url>
     <url>
          <loc>https://roboflow.github.io/roboflow-python/models/semantic-segmentation/</loc>
-         <lastmod>2025-07-09</lastmod>
+         <lastmod>2025-07-23</lastmod>
     </url>
 </urlset>
