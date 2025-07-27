@@ -112,9 +112,7 @@ module = [
     "IPython.display.*",
     # ipywidgets is an optional dependency
     "ipywidgets.*",
-    # matplotlib typing is not available for Python 3.8
-    # remove this when we stop supporting Python 3.8
-    "matplotlib.*",
+    "pi_heif.*",
     "requests_toolbelt.*",
     "torch.*",
     "ultralytics.*",
