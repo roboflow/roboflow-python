@@ -112,7 +112,6 @@ module = [
     "IPython.display.*",
     # ipywidgets is an optional dependency
     "ipywidgets.*",
-    "pi_heif.*",
     "requests_toolbelt.*",
     "torch.*",
     "ultralytics.*",
