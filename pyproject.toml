@@ -45,6 +45,7 @@ ignore = [
     "T",
     "TD",
     "TRY",
+    "UP",
 ]
 
 # Exclude a variety of commonly ignored directories.
