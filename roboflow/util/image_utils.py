@@ -4,9 +4,9 @@ import io
 import os
 import urllib
 
-import piheif  # type: ignore[import-untyped]
 
 # Third-party imports
+import pi_heif  # type: ignore[import-untyped]
 import pillow_avif  # type: ignore[import-untyped]
 import requests
 import yaml
