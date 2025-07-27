@@ -4,13 +4,15 @@ import io
 import os
 import urllib
 
+
 # Third-party imports
+import pi_heif  # type: ignore[import-untyped]
 import pillow_avif  # type: ignore[import-untyped]
 import requests
 import yaml
 from PIL import Image
 
-piheif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
+pi_heif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
 pillow_avif = pillow_avif  # Reference pillow_avif to not remove import by accident
 
 
