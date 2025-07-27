@@ -4,7 +4,6 @@ import io
 import os
 import urllib
 
-
 # Third-party imports
 import pi_heif  # type: ignore[import-untyped]
 import pillow_avif  # type: ignore[import-untyped]
