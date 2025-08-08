@@ -44,7 +44,7 @@ class TestKeypointDetection(unittest.TestCase):
 
         responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE, status=200)
 
-        result = instance.predict("/roboflow-python/tests/images/MM2A_46_R_T.png")
+        result = instance.predict("tests/images/MM2A_46_R_T.png")
 
         self.assertIsInstance(result, PredictionGroup)
         self.assertEqual(len(result.predictions), 1)
