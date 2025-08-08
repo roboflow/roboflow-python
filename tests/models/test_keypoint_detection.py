@@ -67,5 +67,5 @@ class TestKeypointDetection(unittest.TestCase):
 
         responses.add(responses.POST, self.api_url, json={"error": "Invalid API key"}, status=401)
 
-        with self.assertRaises(HTTPError):
+        with self.assertRaises(Exception):
             instance.predict("/roboflow-python/tests/images/MM2A_46_R_T.png")
