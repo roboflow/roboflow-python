@@ -51,7 +51,7 @@ def run_cli():
 
 def run_api_train():
     rf = Roboflow()
-    project = rf.workspace("model-evaluation-workspace").project("donut-2-lcfx0")
+    project = rf.workspace("model-evaluation-workspace").project("penguin-finder")
     # version_number = project.generate_version(
     #     settings={
     #         "augmentation": {
@@ -63,12 +63,13 @@ def run_api_train():
     #         },
     #     }
     # )
-    version_number = "4"
+    version_number = "18"
     print(version_number)
     version = project.version(version_number)
     model = version.train(
         speed="fast",  # Options: "fast" (default) or "accurate" (paid feature)
         checkpoint=None,  # Use a specific checkpoint to continue training
+        modelType="rfdetr-nano",
     )
     print(model)
 
