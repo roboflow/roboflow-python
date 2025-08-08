@@ -19,6 +19,15 @@ def login(args):
     roboflow.login(force=args.force)
 
 
+def train(args):
+    rf = roboflow.Roboflow()
+    workspace = rf.workspace(args.workspace) if args.workspace else rf.workspace()
+    project = workspace.project(args.project)
+    version = project.version(args.version_number)
+    model = version.train(modelType=args.modelType, checkpoint=args.checkpoint)
+    print(model)
+
+
 def _parse_url(url):
     regex = r"(?:https?://)?(?:universe|app)\.roboflow\.(?:com|one)/([^/]+)/([^/]+)(?:/dataset)?(?:/(\d+))?|([^/]+)/([^/]+)(?:/(\d+))?"  # noqa: E501
     match = re.match(regex, url)
@@ -198,6 +207,7 @@ def _argparser():
     subparsers = parser.add_subparsers(title="subcommands")
     _add_login_parser(subparsers)
     _add_download_parser(subparsers)
+    _add_train_parser(subparsers)
     _add_upload_parser(subparsers)
     _add_import_parser(subparsers)
     _add_infer_parser(subparsers)
@@ -308,6 +318,37 @@ def _add_upload_parser(subparsers):
         action="store_true",
     )
     upload_parser.set_defaults(func=upload_image)
+
+
+def _add_train_parser(subparsers):
+    train_parser = subparsers.add_parser("train", help="Train a model for a dataset version")
+    train_parser.add_argument(
+        "-w",
+        dest="workspace",
+        help="specify a workspace url or id (will use default workspace if not specified)",
+    )
+    train_parser.add_argument(
+        "-p",
+        dest="project",
+        help="project_id to train the model for",
+    )
+    train_parser.add_argument(
+        "-v",
+        dest="version_number",
+        type=int,
+        help="version number to train",
+    )
+    train_parser.add_argument(
+        "-t",
+        dest="modelType",
+        help="type of the model to train (e.g., rfdetr-nano, yolov8n)",
+    )
+    train_parser.add_argument(
+        "--checkpoint",
+        dest="checkpoint",
+        help="checkpoint to resume training from",
+    )
+    train_parser.set_defaults(func=train)
 
 
 def _add_import_parser(subparsers):
