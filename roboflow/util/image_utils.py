@@ -5,13 +5,13 @@ import os
 import urllib
 
 # Third-party imports
+import pi_heif  # type: ignore[import-untyped]
 import pillow_avif  # type: ignore[import-untyped]
-import pillow_heif  # type: ignore[import-untyped]
 import requests
 import yaml
 from PIL import Image
 
-pillow_heif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
+pi_heif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
 pillow_avif = pillow_avif  # Reference pillow_avif to not remove import by accident
 
 
@@ -102,8 +102,11 @@ def load_labelmap(f):
     if f.lower().endswith(".yaml") or f.lower().endswith(".yml"):
         with open(f) as file:
             data = yaml.safe_load(file)
-            if "names" in data:
-                return {i: name for i, name in enumerate(data["names"])}
+            names = data.get("names", [])
+            if isinstance(names, dict):
+                return {int(k): v for k, v in names.items()}
+            else:
+                return {i: name for i, name in enumerate(names)}
     else:
         with open(f) as file:
             lines = [line for line in file.readlines() if line.strip()]
