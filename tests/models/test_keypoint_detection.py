@@ -5,7 +5,6 @@ from pathlib import Path
 
 import responses
 from dotenv import load_dotenv
-from requests.exceptions import HTTPError
 
 from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.util.prediction import PredictionGroup
