@@ -51,7 +51,7 @@ def run_cli():
 
 def run_api_train():
     rf = Roboflow()
-    project = rf.workspace("meh3").project("mosquitobao")
+    project = rf.workspace("model-evaluation-workspace").project("donut-2-lcfx0")
     # version_number = project.generate_version(
     #     settings={
     #         "augmentation": {
@@ -63,7 +63,7 @@ def run_api_train():
     #         },
     #     }
     # )
-    version_number = "61"
+    version_number = "4"
     print(version_number)
     version = project.version(version_number)
     model = version.train(
