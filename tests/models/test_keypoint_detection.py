@@ -13,7 +13,7 @@ from roboflow.util.prediction import PredictionGroup
 load_dotenv(Path("../../.env"))
 
 
-with open(Path("../annotations/keypoint-detection-annotations/MM2A_46_R_T_predictions.json")) as f:
+with open(Path("tests/annotations/keypoint-detection-annotations/MM2A_46_R_T_predictions.json")) as f:
     MOCK_RESPONSE = json.load(f)
 
 
