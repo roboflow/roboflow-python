@@ -18,7 +18,7 @@ with open(Path("tests/annotations/keypoint-detection-annotations/MM2A_46_R_T_pre
 
 
 class TestKeypointDetection(unittest.TestCase):
-    api_key = os.getenv("ROBOFLOW_API_KEY")
+    api_key = os.getenv("ROBOFLOW_API_KEY", "test-api-key")
     workspace = os.getenv("WORKSPACE_ID")
     dataset_id = os.getenv("PROJECT_NAME")
     version = "1"
