@@ -21,10 +21,10 @@ def login(args):
 
 def train(args):
     rf = roboflow.Roboflow()
-    workspace = rf.workspace(args.workspace) if args.workspace else rf.workspace()
+    workspace = rf.workspace(args.workspace)  # handles None internally
     project = workspace.project(args.project)
     version = project.version(args.version_number)
-    model = version.train(modelType=args.modelType, checkpoint=args.checkpoint)
+    model = version.train(model_type=args.model_type, checkpoint=args.checkpoint)
     print(model)
 
 
@@ -340,7 +340,7 @@ def _add_train_parser(subparsers):
     )
     train_parser.add_argument(
         "-t",
-        dest="modelType",
+        dest="model_type",
         help="type of the model to train (e.g., rfdetr-nano, yolov8n)",
     )
     train_parser.add_argument(
