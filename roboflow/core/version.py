@@ -329,7 +329,7 @@ class Version:
         url = f"{API_URL}/{workspace}/{project}/{self.version}/train"
 
         data = {}
-        # Keep existing order to avoid unnecessary diffs; append new field without reordering
+
         if speed:
             data["speed"] = speed
 
