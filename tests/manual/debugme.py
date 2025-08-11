@@ -52,18 +52,18 @@ def run_cli():
 def run_api_train():
     rf = Roboflow()
     project = rf.workspace("meh3").project("mosquitobao")
-    # version_number = project.generate_version(
-    #     settings={
-    #         "augmentation": {
-    #             "bbblur": {"pixels": 1.5},
-    #             "image": {"versions": 2},
-    #         },
-    #         "preprocessing": {
-    #             "auto-orient": True,
-    #         },
-    #     }
-    # )
-    version_number = "61"
+    version_number = project.generate_version(
+        settings={
+            "augmentation": {
+                "bbblur": {"pixels": 1.5},
+                "image": {"versions": 2},
+            },
+            "preprocessing": {
+                "auto-orient": True,
+            },
+        }
+    )
+    # version_number = "61"
     print(version_number)
     version = project.version(version_number)
     model = version.train(
