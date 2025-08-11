@@ -1,7 +1,7 @@
 import unittest
 from importlib import import_module
 
-from roboflow.util.versions import get_wrong_dependencies_versions, get_model_format
+from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions
 
 
 class TestVersions(unittest.TestCase):
