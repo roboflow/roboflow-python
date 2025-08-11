@@ -667,3 +667,107 @@ class TestProject(RoboflowTest):
         finally:
             for mock in mocks.values():
                 mock.stop()
+
+    def test_search_with_annotation_job_params(self):
+        """Test that annotation_job and annotation_job_id parameters are properly included in search requests"""
+        # Test 1: Search with annotation_job=True
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/search?api_key={ROBOFLOW_API_KEY}"
+        mock_response = {
+            "results": [
+                {"id": "image1", "name": "test1.jpg", "created": 1616161616, "labels": ["person"]},
+                {"id": "image2", "name": "test2.jpg", "created": 1616161617, "labels": ["car"]},
+            ]
+        }
+
+        responses.add(
+            responses.POST,
+            expected_url,
+            json=mock_response,
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "offset": 0,
+                        "limit": 100,
+                        "batch": False,
+                        "annotation_job": True,
+                        "fields": ["id", "created", "name", "labels"],
+                    }
+                )
+            ],
+        )
+
+        results = self.project.search(annotation_job=True)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0]["id"], "image1")
+
+        # Test 2: Search with annotation_job_id
+        test_job_id = "job_123456"
+        responses.add(
+            responses.POST,
+            expected_url,
+            json=mock_response,
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "offset": 0,
+                        "limit": 100,
+                        "batch": False,
+                        "annotation_job_id": test_job_id,
+                        "fields": ["id", "created", "name", "labels"],
+                    }
+                )
+            ],
+        )
+
+        results = self.project.search(annotation_job_id=test_job_id)
+        self.assertEqual(len(results), 2)
+
+        # Test 3: Search with both parameters
+        responses.add(
+            responses.POST,
+            expected_url,
+            json=mock_response,
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "offset": 0,
+                        "limit": 50,
+                        "batch": False,
+                        "annotation_job": False,
+                        "annotation_job_id": test_job_id,
+                        "prompt": "dog",
+                        "fields": ["id", "created", "name", "labels"],
+                    }
+                )
+            ],
+        )
+
+        results = self.project.search(prompt="dog", annotation_job=False, annotation_job_id=test_job_id, limit=50)
+        self.assertEqual(len(results), 2)
+
+        # Test 4: Verify parameters are not included when None
+        responses.add(
+            responses.POST,
+            expected_url,
+            json=mock_response,
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "offset": 0,
+                        "limit": 100,
+                        "batch": False,
+                        "fields": ["id", "created", "name", "labels"],
+                        # annotation_job and annotation_job_id should NOT be in the payload
+                    }
+                )
+            ],
+        )
+
+        # This should pass because json_params_matcher only checks that the
+        # specified keys match, it doesn't fail if additional keys are missing
+        results = self.project.search()
+        self.assertEqual(len(results), 2)
