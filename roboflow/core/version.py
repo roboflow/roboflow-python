@@ -290,12 +290,13 @@ class Version:
             except json.JSONDecodeError:
                 response.raise_for_status()
 
-    def train(self, speed=None, checkpoint=None, plot_in_notebook=False) -> InferenceModel:
+    def train(self, speed=None, model_type=None, checkpoint=None, plot_in_notebook=False) -> InferenceModel:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
 
         Args:
             speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
+            model_type: The type of model to train. Default depends on kind of project. It takes precedence over speed. You can check the list of model ids by sending an invalid parameter in this argument.
             checkpoint: A string representing the checkpoint to use while training
             plot: Whether to plot the training results. Default is `False`.
 
@@ -328,11 +329,16 @@ class Version:
         url = f"{API_URL}/{workspace}/{project}/{self.version}/train"
 
         data = {}
+
         if speed:
             data["speed"] = speed
 
         if checkpoint:
             data["checkpoint"] = checkpoint
+
+        if model_type:
+            # API expects camelCase key
+            data["modelType"] = model_type
 
         write_line("Reaching out to Roboflow to start training...")
 
