@@ -652,9 +652,10 @@ class Project:
         in_dataset: Optional[str] = None,
         batch: bool = False,
         batch_id: Optional[str] = None,
+        fields: Optional[List[str]] = None,
+        *,
         annotation_job: Optional[bool] = None,
         annotation_job_id: Optional[str] = None,
-        fields: Optional[List[str]] = None,
     ):
         """
         Search for images in a project.
@@ -743,9 +744,10 @@ class Project:
         in_dataset: Optional[str] = None,
         batch: bool = False,
         batch_id: Optional[str] = None,
+        fields: Optional[List[str]] = None,
+        *,
         annotation_job: Optional[bool] = None,
         annotation_job_id: Optional[str] = None,
-        fields: Optional[List[str]] = None,
     ):
         """
         Create a paginated list of search results for use in searching the images in a project.
