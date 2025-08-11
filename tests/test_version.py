@@ -2,7 +2,6 @@ import os
 import unittest
 from unittest.mock import patch
 
-import requests
 import responses
 
 from roboflow.adapters import rfapi
