@@ -6,12 +6,13 @@ import os
 import sys
 import time
 import zipfile
-from typing import TYPE_CHECKING, Optional, Union
+from typing import Optional, TYPE_CHECKING, Union
 
-import requests
 from dotenv import load_dotenv
+import requests
 from tqdm import tqdm
 
+from roboflow.adapters import rfapi
 from roboflow.config import (
     API_URL,
     APP_URL,
@@ -34,7 +35,6 @@ from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import write_line
 from roboflow.util.model_processor import process
 from roboflow.util.versions import get_wrong_dependencies_versions, normalize_yolo_model_type
-from roboflow.adapters import rfapi
 
 if TYPE_CHECKING:
     import numpy as np
