@@ -1,7 +1,7 @@
 import unittest
 from importlib import import_module
 
-from roboflow.util.versions import get_wrong_dependencies_versions
+from roboflow.util.versions import get_wrong_dependencies_versions, get_model_format
 
 
 class TestVersions(unittest.TestCase):
@@ -23,3 +23,21 @@ class TestVersions(unittest.TestCase):
             wrong_dependencies_versions = get_wrong_dependencies_versions([test])
             is_correct_dep = len(wrong_dependencies_versions) == 0
             self.assertEqual(is_correct_dep, expected_result)
+
+
+class TestGetModelFormat(unittest.TestCase):
+    def test_get_model_format_with_various_ids(self):
+        cases = [
+            ("yolov5v2s", "yolov5pytorch"),
+            ("yolov11n", "yolov5pytorch"),
+            ("rf-detr-nas-parent", "coco"),
+            ("rfdetr-nano", "coco"),
+            ("vit-base-patch16-224-in21k", "folder"),
+            ("resnet14", "folder"),
+            ("resenet38", "yolov5pytorch"),
+            ("invlid-type", "yolov5pytorch"),
+        ]
+
+        for model_type, expected_format in cases:
+            with self.subTest(model_type=model_type):
+                self.assertEqual(get_model_format(model_type), expected_format)
