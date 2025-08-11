@@ -235,7 +235,7 @@ class Version:
 
         return Dataset(self.name, self.version, model_format, os.path.abspath(location))
 
-    def export(self, model_format=None) -> str:
+    def export(self, model_format=None) -> str | None:
         """
         Ask the Roboflow API to generate a version's dataset in a given format so that it can be downloaded via the `download()` method.
 
@@ -289,6 +289,7 @@ class Version:
                 raise RuntimeError(response.json())
             except json.JSONDecodeError:
                 response.raise_for_status()
+            return None
 
     def train(self, speed=None, model_type=None, checkpoint=None, plot_in_notebook=False) -> InferenceModel:
         """
