@@ -6,10 +6,10 @@ import os
 import sys
 import time
 import zipfile
-from typing import Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
-from dotenv import load_dotenv
 import requests
+from dotenv import load_dotenv
 from tqdm import tqdm
 
 from roboflow.adapters import rfapi
