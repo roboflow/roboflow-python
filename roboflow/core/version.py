@@ -244,7 +244,7 @@ class Version:
 
         return Dataset(self.name, self.version, model_format, os.path.abspath(location))
 
-    def export(self, model_format=None) -> str | None:
+    def export(self, model_format=None) -> bool | None:
         """
         Ask the Roboflow API to generate a version's dataset in a given format so that it can be downloaded via the `download()` method.
 
@@ -254,7 +254,7 @@ class Version:
             model_format (str): A format to use for downloading
 
         Returns:
-            The URL of the exported dataset.
+            True if the export was successful, RuntimeError if the export failed
 
         Raises:
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
@@ -325,7 +325,6 @@ class Version:
         payload_model_type = model_type if model_type else None
 
         write_line("Reaching out to Roboflow to start training...")
-        print(data)
 
         rfapi.start_version_training(
             api_key=self.__api_key,
