@@ -317,7 +317,8 @@ class Version:
         self.__wait_if_generating()
 
         train_model_format = get_model_format(model_type)
-        self.export(train_model_format)
+        if train_model_format not in self.exports:
+            self.export(train_model_format)
 
         workspace, project, *_ = self.id.rsplit("/")
 
