@@ -5,6 +5,7 @@ thisdir = os.path.dirname(os.path.abspath(__file__))
 os.environ["ROBOFLOW_CONFIG_DIR"] = f"{thisdir}/data/.config"
 
 from roboflow.roboflowpy import _argparser  # noqa: E402
+from roboflow import Roboflow
 
 # import requests
 # requests.urllib3.disable_warnings()
@@ -12,7 +13,8 @@ from roboflow.roboflowpy import _argparser  # noqa: E402
 rootdir = os.path.abspath(f"{thisdir}/../..")
 sys.path.append(rootdir)
 
-if __name__ == "__main__":
+
+def run_cli():
     parser = _argparser()
     # args = parser.parse_args(["login"])
     # args = parser.parse_args(f"upload {thisdir}/../datasets/chess -w wolfodorpythontests -p chess".split())   # noqa: E501 // docs
@@ -45,3 +47,32 @@ if __name__ == "__main__":
         # f"import -w tonyprivate -p meh-plvrv {thisdir}/../datasets/paligemma/".split()  # noqa: E501 // docs
     )
     args.func(args)
+
+
+def run_api_train():
+    rf = Roboflow()
+    project = rf.workspace("meh3").project("mosquitobao")
+    version_number = project.generate_version(
+        settings={
+            "augmentation": {
+                "bbblur": {"pixels": 1.5},
+                "image": {"versions": 2},
+            },
+            "preprocessing": {
+                "auto-orient": True,
+            },
+        }
+    )
+    # version_number = "61"
+    print(version_number)
+    version = project.version(version_number)
+    model = version.train(
+        speed="fast",  # Options: "fast" (default) or "accurate" (paid feature)
+        checkpoint=None,  # Use a specific checkpoint to continue training
+    )
+    print(model)
+
+
+if __name__ == "__main__":
+    # run_cli()
+    run_api_train()

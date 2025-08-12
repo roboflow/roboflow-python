@@ -12,6 +12,7 @@ import requests
 from dotenv import load_dotenv
 from tqdm import tqdm
 
+from roboflow.adapters import rfapi
 from roboflow.config import (
     API_URL,
     APP_URL,
@@ -33,7 +34,7 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import write_line
 from roboflow.util.model_processor import process
-from roboflow.util.versions import get_wrong_dependencies_versions, normalize_yolo_model_type
+from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions, normalize_yolo_model_type
 
 if TYPE_CHECKING:
     import numpy as np
@@ -92,11 +93,11 @@ class Version:
 
             version_without_workspace = os.path.basename(str(version))
 
-            response = requests.get(f"{API_URL}/{workspace}/{project}/{self.version}?api_key={self.__api_key}")
-            if response.ok:
-                version_info = response.json()["version"]
+            try:
+                version_response = rfapi.get_version(self.__api_key, workspace, project, self.version)
+                version_info = version_response.get("version", {})
                 has_model = bool(version_info.get("train", {}).get("model"))
-            else:
+            except rfapi.RoboflowError:
                 has_model = False
 
             if not has_model:
@@ -152,16 +153,17 @@ class Version:
 
     def __check_if_generating(self):
         # check Roboflow API to see if this version is still generating
-
-        url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
-        response = requests.get(url, params={"api_key": self.__api_key})
-        response.raise_for_status()
-        if response.json()["version"]["progress"] is None:
-            progress = 0.0
-        else:
-            progress = float(response.json()["version"]["progress"])
-
-        return response.json()["version"]["generating"], progress
+        versiondict = rfapi.get_version(
+            api_key=self.__api_key,
+            workspace_url=self.workspace,
+            project_url=self.project,
+            version=self.version,
+            nocache=True,
+        )
+        version_obj = versiondict.get("version", {})
+        progress = 0.0 if version_obj.get("progress") is None else float(version_obj.get("progress"))
+        generating = bool(version_obj.get("generating") or version_obj.get("images", 0) == 0)
+        return generating, progress
 
     def __wait_if_generating(self, recurse=False):
         # checks if a given version is still in the progress of generating
@@ -219,15 +221,22 @@ class Version:
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
         else:
-            url = self.__get_download_url(model_format)
-            response = requests.get(url, params={"api_key": self.__api_key})
-            if response.status_code == 200:
-                link = response.json()["export"]["link"]
-            else:
-                try:
-                    raise RuntimeError(response.json())
-                except json.JSONDecodeError:
-                    response.raise_for_status()
+            workspace, project, *_ = self.id.rsplit("/")
+            try:
+                export_info = rfapi.get_version_export(
+                    api_key=self.__api_key,
+                    workspace_url=workspace,
+                    project_url=project,
+                    version=self.version,
+                    format=model_format,
+                )
+            except rfapi.RoboflowError as e:
+                raise RuntimeError(str(e))
+
+            if "ready" in export_info and export_info.get("ready") is False:
+                raise RuntimeError(export_info)
+
+            link = export_info["export"]["link"]
 
         self.__download_zip(link, location, model_format)
         self.__extract_zip(location, model_format)
@@ -235,7 +244,7 @@ class Version:
 
         return Dataset(self.name, self.version, model_format, os.path.abspath(location))
 
-    def export(self, model_format=None):
+    def export(self, model_format=None) -> bool | None:
         """
         Ask the Roboflow API to generate a version's dataset in a given format so that it can be downloaded via the `download()` method.
 
@@ -245,7 +254,7 @@ class Version:
             model_format (str): A format to use for downloading
 
         Returns:
-            True
+            True if the export was successful, RuntimeError if the export failed
 
         Raises:
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
@@ -256,39 +265,36 @@ class Version:
 
         self.__wait_if_generating()
 
-        url = self.__get_download_url(model_format)
-        response = requests.get(url, params={"api_key": self.__api_key})
-        if not response.ok:
-            try:
-                raise RuntimeError(response.json())
-            except json.JSONDecodeError:
-                response.raise_for_status()
-
-        # the rest api returns 202 if the export is still in progress
-        if response.status_code == 202:
-            status_code_check = 202
-            while status_code_check == 202:
-                time.sleep(1)
-                response = requests.get(url, params={"api_key": self.__api_key})
-                status_code_check = response.status_code
-                if status_code_check == 202:
-                    progress = response.json()["progress"]
-                    progress_message = (
-                        "Exporting format " + model_format + " in progress : " + str(round(progress * 100, 2)) + "%"
-                    )
-                    sys.stdout.write("\r" + progress_message)
-                    sys.stdout.flush()
-
-        if response.status_code == 200:
+        workspace, project, *_ = self.id.rsplit("/")
+        export_info = rfapi.get_version_export(
+            api_key=self.__api_key,
+            workspace_url=workspace,
+            project_url=project,
+            version=self.version,
+            format=model_format,
+        )
+        while "ready" in export_info and export_info.get("ready") is False:
+            progress = export_info.get("progress", 0.0)
+            progress_message = (
+                "Exporting format " + model_format + " in progress : " + str(round(progress * 100, 2)) + "%"
+            )
+            sys.stdout.write("\r" + progress_message)
+            sys.stdout.flush()
+            time.sleep(1)
+            export_info = rfapi.get_version_export(
+                api_key=self.__api_key,
+                workspace_url=workspace,
+                project_url=project,
+                version=self.version,
+                format=model_format,
+            )
+        if "export" in export_info:
             sys.stdout.write("\n")
             print("\r" + "Version export complete for " + model_format + " format")
             sys.stdout.flush()
             return True
         else:
-            try:
-                raise RuntimeError(response.json())
-            except json.JSONDecodeError:
-                response.raise_for_status()
+            raise RuntimeError(f"Unexpected export {export_info}")
 
     def train(self, speed=None, model_type=None, checkpoint=None, plot_in_notebook=False) -> InferenceModel:
         """
@@ -310,44 +316,27 @@ class Version:
 
         self.__wait_if_generating()
 
-        train_model_format = "yolov5pytorch"
-
-        if self.type == TYPE_CLASSICATION:
-            train_model_format = "folder"
-
-        if self.type == TYPE_INSTANCE_SEGMENTATION:
-            train_model_format = "yolov5pytorch"
-
-        if self.type == TYPE_SEMANTIC_SEGMENTATION:
-            train_model_format = "png-mask-semantic"
-
-        # if classification
+        train_model_format = get_model_format(model_type)
         if train_model_format not in self.exports:
             self.export(train_model_format)
 
         workspace, project, *_ = self.id.rsplit("/")
-        url = f"{API_URL}/{workspace}/{project}/{self.version}/train"
 
-        data = {}
-
-        if speed:
-            data["speed"] = speed
-
-        if checkpoint:
-            data["checkpoint"] = checkpoint
-
-        if model_type:
-            # API expects camelCase key
-            data["modelType"] = model_type
+        payload_speed = speed if speed else None
+        payload_checkpoint = checkpoint if checkpoint else None
+        payload_model_type = model_type if model_type else None
 
         write_line("Reaching out to Roboflow to start training...")
 
-        response = requests.post(url, json=data, params={"api_key": self.__api_key})
-        if not response.ok:
-            try:
-                raise RuntimeError(response.json())
-            except json.JSONDecodeError:
-                response.raise_for_status()
+        rfapi.start_version_training(
+            api_key=self.__api_key,
+            workspace_url=workspace,
+            project_url=project,
+            version=self.version,
+            speed=payload_speed,
+            checkpoint=payload_checkpoint,
+            model_type=payload_model_type,
+        )
 
         status = "training"
 
@@ -374,10 +363,14 @@ class Version:
         num_machine_spin_dots = []
 
         while status == "training" or status == "running":
-            url = f"{API_URL}/{self.workspace}/{self.project}/{self.version}?nocache=true"
-            response = requests.get(url, params={"api_key": self.__api_key})
-            response.raise_for_status()
-            version = response.json()["version"]
+            version_response = rfapi.get_version(
+                api_key=self.__api_key,
+                workspace_url=self.workspace,
+                project_url=self.project,
+                version=self.version,
+                nocache=True,
+            )
+            version = version_response.get("version", {})
             if "models" in version.keys():
                 models = version["models"]
             else:

@@ -95,3 +95,40 @@ def normalize_yolo_model_type(model_type: str) -> str:
     model_type = model_type.replace("yolo11", "yolov11")
     model_type = model_type.replace("yolo12", "yolov12")
     return model_type
+
+
+def get_model_format(model_type: str) -> str:
+    """
+    Get the model format for a given model type.
+    Args:
+        model_type (str): The model type to get the format for.
+
+    Returns:
+        str: The model format.
+
+    Example:
+        >>> get_model_format("yolov5v6n")
+        "yolov5pytorch"
+        >>> get_model_format("rfdetr-nano")
+        "coco"
+        >>> get_model_format("yolov11n")
+        "yolov5pytorch"
+    """
+    # Prefixes extrated from modelRegistry.js in roboflow.
+    model_formats = {
+        "yolo": "yolov5pytorch",
+        "pali": "jsonl",
+        "flor": "jsonl",
+        "qwen": "jsonl",
+        "smol": "jsonl",
+        "vit-b": "folder",
+        "resn": "folder",
+        "rfdetr": "coco",
+        "rf-detr": "coco",
+        "deep": "png-mask-semantic",
+    }
+
+    for prefix, format in model_formats.items():
+        if prefix in model_type:
+            return format
+    return "yolov5pytorch"
