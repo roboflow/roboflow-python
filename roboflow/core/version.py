@@ -34,7 +34,7 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import write_line
 from roboflow.util.model_processor import process
-from roboflow.util.versions import get_wrong_dependencies_versions, normalize_yolo_model_type
+from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions, normalize_yolo_model_type
 
 if TYPE_CHECKING:
     import numpy as np
@@ -244,7 +244,7 @@ class Version:
 
         return Dataset(self.name, self.version, model_format, os.path.abspath(location))
 
-    def export(self, model_format=None):
+    def export(self, model_format=None) -> bool | None:
         """
         Ask the Roboflow API to generate a version's dataset in a given format so that it can be downloaded via the `download()` method.
 
@@ -254,7 +254,7 @@ class Version:
             model_format (str): A format to use for downloading
 
         Returns:
-            True
+            True if the export was successful, RuntimeError if the export failed
 
         Raises:
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
@@ -316,18 +316,7 @@ class Version:
 
         self.__wait_if_generating()
 
-        train_model_format = "yolov5pytorch"
-
-        if self.type == TYPE_CLASSICATION:
-            train_model_format = "folder"
-
-        if self.type == TYPE_INSTANCE_SEGMENTATION:
-            train_model_format = "yolov5pytorch"
-
-        if self.type == TYPE_SEMANTIC_SEGMENTATION:
-            train_model_format = "png-mask-semantic"
-
-        # if classification
+        train_model_format = get_model_format(model_type)
         if train_model_format not in self.exports:
             self.export(train_model_format)
 
