@@ -3,6 +3,7 @@
     "dockerComposeFile": "./docker-compose.yaml",
     "service": "devcontainer-roboflow-python",
     "workspaceFolder": "/roboflow-python",
+    "initializeCommand": "sh -lc 'mkdir -p .devcontainer/certs; if command -v mkcert >/dev/null 2>&1; then CAROOT=\"$(mkcert -CAROOT)\"; if [ -f \"$CAROOT/rootCA.pem\" ]; then cp \"$CAROOT/rootCA.pem\" .devcontainer/certs/mkcert-rootCA.crt; else echo \"[devcontainer] mkcert CA not found at $CAROOT/rootCA.pem; skipping\"; fi; else echo \"[devcontainer] mkcert not installed; skipping CA copy\"; fi'",
     "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
     "customizations": {
         "vscode": {
