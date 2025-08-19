@@ -14,7 +14,9 @@ with open("README.md") as fh:
     long_description = fh.read()
 
 with open("requirements.txt") as fh:
-    install_requires = fh.read().split("\n")
+    install_requires = [
+        line.strip() for line in fh.read().split("\n") if line.strip() and not line.strip().startswith("#")
+    ]
 
 setuptools.setup(
     name="roboflow",
@@ -29,7 +31,10 @@ setuptools.setup(
     packages=find_packages(exclude=("tests",)),
     # create optional [desktop]
     extras_require={
-        "desktop": ["opencv-python==4.8.0.74"],
+        # Keep OpenCV mandatory in desktop extra across versions
+        "desktop": [
+            "opencv-python>=4.10.0.84",
+        ],
         "dev": [
             "mypy",
             "responses",
@@ -49,6 +54,11 @@ setuptools.setup(
     },
     classifiers=[
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],

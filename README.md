@@ -50,6 +50,25 @@ For desktop features, use:
 pip install "roboflow[desktop]"
 ```
 
+### Compatibility notes
+
+- OpenCV is required. This package uses `opencv-python(-headless)>=4.10.0.84`.
+- NumPy selection depends on Python version:
+  - Python 3.8–3.9: `numpy>=1.26,<2`.
+  - Python 3.10+: `numpy>=2`.
+
+If you installed an incompatible NumPy previously, reinstall with one of the following:
+
+```bash
+# Python 3.8–3.9
+pip install --upgrade --force-reinstall "numpy>=1.26,<2" "opencv-python-headless>=4.10.0.84"
+
+# Python 3.10+
+pip install --upgrade "numpy>=2" "opencv-python-headless>=4.10.0.84"
+```
+
+If you use the `desktop` extra, it will install `opencv-python>=4.10.0.84`.
+
 
 <details>
   <summary>Install from source</summary>

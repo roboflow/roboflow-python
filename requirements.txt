@@ -3,8 +3,13 @@ idna==3.7
 cycler
 kiwisolver>=1.3.1
 matplotlib
-numpy>=1.18.5
-opencv-python-headless==4.10.0.84
+# NumPy and OpenCV compatibility:
+# - For Python < 3.10, stick to NumPy 1.26.x (NumPy 2.x does not provide wheels)
+# - For Python >= 3.10, allow NumPy 2.x
+# - Keep OpenCV mandatory and allow latest compatible wheels
+numpy>=1.26,<2; python_version < "3.10"
+numpy>=2; python_version >= "3.10"
+opencv-python-headless>=4.10.0.84
 Pillow>=7.1.2
 # https://github.com/roboflow/roboflow-python/issues/390
 pi-heif<2
