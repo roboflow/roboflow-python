@@ -1,11 +1,19 @@
 FROM python:3.10
-RUN apt-get update && apt-get install -y make curl libgl1-mesa-glx && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y make curl libgl1-mesa-glx ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
+
 
 WORKDIR /roboflow-python
 COPY .devcontainer/bashrc_ext /root/bashrc_ext
 RUN echo "source /root/bashrc_ext" >> ~/.bashrc
+
+# Trust any custom CAs provided in build context (e.g., mkcert)
+COPY .devcontainer/certs/ /usr/local/share/ca-certificates/
+RUN update-ca-certificates || true
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+
 
 COPY ./requirements.txt ./
 RUN uv pip install --system -r requirements.txt
