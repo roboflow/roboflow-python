@@ -103,7 +103,7 @@ class Workspace:
         Args:
             project_name (str): name of the project
             project_type (str): type of the project
-            project_license (str): license of the project (set to `private` for private projects, only available for paid customers)
+            project_license (str): license of the project (set to `Private` for private projects, only available for paid customers)
             annotation (str): annotation of the project
 
         Returns:
