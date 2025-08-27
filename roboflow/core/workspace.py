@@ -123,7 +123,7 @@ class Workspace:
         if "error" in r.json().keys():
             raise RuntimeError(r.json()["error"])
 
-        return self.project(r.json()["id"].split("/")[-1])
+        return Project(self.__api_key, r.json(), self.model_format)
 
     def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> List[dict]:
         """
