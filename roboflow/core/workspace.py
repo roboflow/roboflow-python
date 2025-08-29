@@ -103,7 +103,7 @@ class Workspace:
         Args:
             project_name (str): name of the project
             project_type (str): type of the project
-            project_license (str): license of the project (set to `private` for private projects, only available for paid customers)
+            project_license (str): license of the project (set to `Private` for private projects, only available for paid customers)
             annotation (str): annotation of the project
 
         Returns:
@@ -123,7 +123,7 @@ class Workspace:
         if "error" in r.json().keys():
             raise RuntimeError(r.json()["error"])
 
-        return self.project(r.json()["id"].split("/")[-1])
+        return Project(self.__api_key, r.json(), self.model_format)
 
     def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> List[dict]:
         """
