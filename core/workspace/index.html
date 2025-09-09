@@ -22,7 +22,7 @@
       
       
       <link rel="icon" href="https://media.roboflow.com/roboflow_logomark_white.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.18">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.19">
     
     
       
@@ -1719,7 +1719,12 @@
 <span class="normal">661</span>
 <span class="normal">662</span>
 <span class="normal">663</span>
-<span class="normal">664</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
+<span class="normal">664</span>
+<span class="normal">665</span>
+<span class="normal">666</span>
+<span class="normal">667</span>
+<span class="normal">668</span>
+<span class="normal">669</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Manage a Roboflow workspace.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1984,6 +1989,7 @@
         <span class="n">project_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;object-detection&quot;</span><span class="p">,</span>
         <span class="n">batch_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">num_retries</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">is_prediction</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Upload a dataset to Roboflow.</span>
@@ -1995,6 +2001,9 @@
 <span class="sd">            dataset_format (str): format of the dataset (`voc`, `yolov8`, `yolov5`)</span>
 <span class="sd">            project_license (str): license of the project (set to `private` for private projects, only available for paid customers)</span>
 <span class="sd">            project_type (str): type of the project (only `object-detection` is supported)</span>
+<span class="sd">            batch_name (str, optional): name of the batch to upload the images to. Defaults to an automatically generated value.</span>
+<span class="sd">            num_retries (int, optional): number of times to retry uploading an image if the upload fails. Defaults to 0.</span>
+<span class="sd">            is_prediction (bool, optional): whether the annotations provided in the dataset are predictions and not ground truth. Defaults to False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
         <span class="k">if</span> <span class="n">dataset_format</span> <span class="o">!=</span> <span class="s2">&quot;NOT_USED&quot;</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: parameter &#39;dataset_format&#39; is deprecated and will be removed in a future release&quot;</span><span class="p">)</span>
@@ -2049,6 +2058,7 @@
                 <span class="n">sequence_number</span><span class="o">=</span><span class="n">imagedesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">),</span>
                 <span class="n">sequence_size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">),</span>
                 <span class="n">num_retry_uploads</span><span class="o">=</span><span class="n">num_retries</span><span class="p">,</span>
+                <span class="n">is_prediction</span><span class="o">=</span><span class="n">is_prediction</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">upload_time</span><span class="p">,</span> <span class="n">upload_retry_attempts</span>
@@ -2397,12 +2407,7 @@
 
             <details class="quote">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">434</span>
-<span class="normal">435</span>
-<span class="normal">436</span>
-<span class="normal">437</span>
-<span class="normal">438</span>
-<span class="normal">439</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">439</span>
 <span class="normal">440</span>
 <span class="normal">441</span>
 <span class="normal">442</span>
@@ -2547,7 +2552,12 @@
 <span class="normal">581</span>
 <span class="normal">582</span>
 <span class="normal">583</span>
-<span class="normal">584</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">active_learning</span><span class="p">(</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span>
+<span class="normal">589</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">active_learning</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">raw_data_location</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="n">raw_data_extension</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
@@ -3051,12 +3061,7 @@ Args:
 
             <details class="quote">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">586</span>
-<span class="normal">587</span>
-<span class="normal">588</span>
-<span class="normal">589</span>
-<span class="normal">590</span>
-<span class="normal">591</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">591</span>
 <span class="normal">592</span>
 <span class="normal">593</span>
 <span class="normal">594</span>
@@ -3082,7 +3087,12 @@ Args:
 <span class="normal">614</span>
 <span class="normal">615</span>
 <span class="normal">616</span>
-<span class="normal">617</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">deploy_model</span><span class="p">(</span>
+<span class="normal">617</span>
+<span class="normal">618</span>
+<span class="normal">619</span>
+<span class="normal">620</span>
+<span class="normal">621</span>
+<span class="normal">622</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">deploy_model</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -3848,7 +3858,7 @@ Args:
 
 
 <h3 id="roboflow.core.workspace.Workspace.upload_dataset" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">upload_dataset</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">,</span> <span class="n">project_name</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">dataset_format</span><span class="o">=</span><span class="s1">&#39;NOT_USED&#39;</span><span class="p">,</span> <span class="n">project_license</span><span class="o">=</span><span class="s1">&#39;MIT&#39;</span><span class="p">,</span> <span class="n">project_type</span><span class="o">=</span><span class="s1">&#39;object-detection&#39;</span><span class="p">,</span> <span class="n">batch_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_retries</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">upload_dataset</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">,</span> <span class="n">project_name</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">dataset_format</span><span class="o">=</span><span class="s1">&#39;NOT_USED&#39;</span><span class="p">,</span> <span class="n">project_license</span><span class="o">=</span><span class="s1">&#39;MIT&#39;</span><span class="p">,</span> <span class="n">project_type</span><span class="o">=</span><span class="s1">&#39;object-detection&#39;</span><span class="p">,</span> <span class="n">batch_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_retries</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">is_prediction</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
 <a href="#roboflow.core.workspace.Workspace.upload_dataset" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -3951,6 +3961,48 @@ Args:
             </td>
             <td>
                   <code>&#39;object-detection&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>batch_name</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>name of the batch to upload the images to. Defaults to an automatically generated value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>num_retries</code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>number of times to retry uploading an image if the upload fails. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>is_prediction</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>whether the annotations provided in the dataset are predictions and not ground truth. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
             </td>
           </tr>
       </tbody>
@@ -4095,7 +4147,12 @@ Args:
 <span class="normal">414</span>
 <span class="normal">415</span>
 <span class="normal">416</span>
-<span class="normal">417</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">upload_dataset</span><span class="p">(</span>
+<span class="normal">417</span>
+<span class="normal">418</span>
+<span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">upload_dataset</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">dataset_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">project_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -4105,6 +4162,7 @@ Args:
     <span class="n">project_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;object-detection&quot;</span><span class="p">,</span>
     <span class="n">batch_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">num_retries</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">is_prediction</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Upload a dataset to Roboflow.</span>
@@ -4116,6 +4174,9 @@ Args:
 <span class="sd">        dataset_format (str): format of the dataset (`voc`, `yolov8`, `yolov5`)</span>
 <span class="sd">        project_license (str): license of the project (set to `private` for private projects, only available for paid customers)</span>
 <span class="sd">        project_type (str): type of the project (only `object-detection` is supported)</span>
+<span class="sd">        batch_name (str, optional): name of the batch to upload the images to. Defaults to an automatically generated value.</span>
+<span class="sd">        num_retries (int, optional): number of times to retry uploading an image if the upload fails. Defaults to 0.</span>
+<span class="sd">        is_prediction (bool, optional): whether the annotations provided in the dataset are predictions and not ground truth. Defaults to False.</span>
 <span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
     <span class="k">if</span> <span class="n">dataset_format</span> <span class="o">!=</span> <span class="s2">&quot;NOT_USED&quot;</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: parameter &#39;dataset_format&#39; is deprecated and will be removed in a future release&quot;</span><span class="p">)</span>
@@ -4170,6 +4231,7 @@ Args:
             <span class="n">sequence_number</span><span class="o">=</span><span class="n">imagedesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">),</span>
             <span class="n">sequence_size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">),</span>
             <span class="n">num_retry_uploads</span><span class="o">=</span><span class="n">num_retries</span><span class="p">,</span>
+            <span class="n">is_prediction</span><span class="o">=</span><span class="n">is_prediction</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">upload_time</span><span class="p">,</span> <span class="n">upload_retry_attempts</span>
