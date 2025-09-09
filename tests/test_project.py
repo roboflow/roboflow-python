@@ -373,6 +373,50 @@ class TestProject(RoboflowTest):
                 "params": {},
                 "assertions": {"save_annotation": {"count": 1}},
             },
+            {
+                "name": "with_predictions_flag_true",
+                "dataset": [
+                    {"file": "pred1.jpg", "split": "train", "annotationfile": {"file": "pred1.xml"}},
+                    {"file": "pred2.jpg", "split": "valid", "annotationfile": {"file": "pred2.xml"}},
+                ],
+                "params": {"are_predictions": True},
+                "assertions": {
+                    "upload": {"count": 2, "kwargs": {"is_prediction": True}},
+                    "save_annotation": {"count": 2},
+                },
+            },
+            {
+                "name": "with_predictions_flag_false",
+                "dataset": [
+                    {"file": "gt1.jpg", "split": "train", "annotationfile": {"file": "gt1.xml"}},
+                ],
+                "params": {"are_predictions": False},
+                "assertions": {
+                    "upload": {"count": 1, "kwargs": {"is_prediction": False}},
+                    "save_annotation": {"count": 1},
+                },
+            },
+            {
+                "name": "predictions_with_batch",
+                "dataset": [
+                    {"file": "batch_pred.jpg", "split": "train", "annotationfile": {"file": "batch_pred.xml"}},
+                ],
+                "params": {
+                    "are_predictions": True,
+                    "batch_name": "prediction-batch",
+                    "num_retries": 2,
+                },
+                "assertions": {
+                    "upload": {
+                        "count": 1,
+                        "kwargs": {
+                            "is_prediction": True,
+                            "batch_name": "prediction-batch",
+                            "num_retry_uploads": 2,
+                        },
+                    },
+                },
+            },
         ]
 
         error_cases = [
