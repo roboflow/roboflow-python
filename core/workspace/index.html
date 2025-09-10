@@ -2058,7 +2058,6 @@
                 <span class="n">sequence_number</span><span class="o">=</span><span class="n">imagedesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">),</span>
                 <span class="n">sequence_size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">),</span>
                 <span class="n">num_retry_uploads</span><span class="o">=</span><span class="n">num_retries</span><span class="p">,</span>
-                <span class="n">is_prediction</span><span class="o">=</span><span class="n">is_prediction</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">upload_time</span><span class="p">,</span> <span class="n">upload_retry_attempts</span>
@@ -2092,6 +2091,7 @@
                 <span class="n">image_id</span><span class="o">=</span><span class="n">image_id</span><span class="p">,</span>
                 <span class="n">job_name</span><span class="o">=</span><span class="n">batch_name</span><span class="p">,</span>
                 <span class="n">num_retry_uploads</span><span class="o">=</span><span class="n">num_retries</span><span class="p">,</span>
+                <span class="n">is_prediction</span><span class="o">=</span><span class="n">is_prediction</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="k">return</span> <span class="n">annotation</span><span class="p">,</span> <span class="n">upload_time</span>
@@ -4231,7 +4231,6 @@ Args:
             <span class="n">sequence_number</span><span class="o">=</span><span class="n">imagedesc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">),</span>
             <span class="n">sequence_size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">),</span>
             <span class="n">num_retry_uploads</span><span class="o">=</span><span class="n">num_retries</span><span class="p">,</span>
-            <span class="n">is_prediction</span><span class="o">=</span><span class="n">is_prediction</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">upload_time</span><span class="p">,</span> <span class="n">upload_retry_attempts</span>
@@ -4265,6 +4264,7 @@ Args:
             <span class="n">image_id</span><span class="o">=</span><span class="n">image_id</span><span class="p">,</span>
             <span class="n">job_name</span><span class="o">=</span><span class="n">batch_name</span><span class="p">,</span>
             <span class="n">num_retry_uploads</span><span class="o">=</span><span class="n">num_retries</span><span class="p">,</span>
+            <span class="n">is_prediction</span><span class="o">=</span><span class="n">is_prediction</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">annotation</span><span class="p">,</span> <span class="n">upload_time</span>
