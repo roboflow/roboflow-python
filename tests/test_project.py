@@ -373,6 +373,57 @@ class TestProject(RoboflowTest):
                 "params": {},
                 "assertions": {"save_annotation": {"count": 1}},
             },
+            {
+                "name": "with_predictions_flag_true",
+                "dataset": [
+                    {"file": "pred1.jpg", "split": "train", "annotationfile": {"file": "pred1.xml"}},
+                    {"file": "pred2.jpg", "split": "valid", "annotationfile": {"file": "pred2.xml"}},
+                ],
+                "params": {"is_prediction": True},
+                "assertions": {
+                    "upload": {"count": 2},
+                    "save_annotation": {"count": 2, "kwargs": {"is_prediction": True}},
+                },
+            },
+            {
+                "name": "with_predictions_flag_false",
+                "dataset": [
+                    {"file": "gt1.jpg", "split": "train", "annotationfile": {"file": "gt1.xml"}},
+                ],
+                "params": {"is_prediction": False},
+                "assertions": {
+                    "upload": {"count": 1},
+                    "save_annotation": {"count": 1, "kwargs": {"is_prediction": False}},
+                },
+            },
+            {
+                "name": "predictions_with_batch",
+                "dataset": [
+                    {"file": "batch_pred.jpg", "split": "train", "annotationfile": {"file": "batch_pred.xml"}},
+                ],
+                "params": {
+                    "is_prediction": True,
+                    "batch_name": "prediction-batch",
+                    "num_retries": 2,
+                },
+                "assertions": {
+                    "upload": {
+                        "count": 1,
+                        "kwargs": {
+                            "batch_name": "prediction-batch",
+                            "num_retry_uploads": 2,
+                        },
+                    },
+                    "save_annotation": {
+                        "count": 1,
+                        "kwargs": {
+                            "is_prediction": True,
+                            "job_name": "prediction-batch",
+                            "num_retry_uploads": 2,
+                        },
+                    },
+                },
+            },
         ]
 
         error_cases = [
