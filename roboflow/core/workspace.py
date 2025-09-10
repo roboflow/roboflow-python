@@ -356,7 +356,6 @@ class Workspace:
                 sequence_number=imagedesc.get("index"),
                 sequence_size=len(images),
                 num_retry_uploads=num_retries,
-                is_prediction=is_prediction,
             )
 
             return image, upload_time, upload_retry_attempts
@@ -390,6 +389,7 @@ class Workspace:
                 image_id=image_id,
                 job_name=batch_name,
                 num_retry_uploads=num_retries,
+                is_prediction=is_prediction,
             )
 
             return annotation, upload_time
