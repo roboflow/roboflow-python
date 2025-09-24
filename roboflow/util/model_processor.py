@@ -17,6 +17,7 @@ def process(model_type: str, model_path: str, filename: str) -> str:
 def _get_processor_function(model_type: str) -> Callable:
     supported_models = [
         "yolov5",
+        "yolov7",
         "yolov7-seg",
         "yolov8",
         "yolov9",
@@ -225,7 +226,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
 
 def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
-    _supported_types = ["rfdetr-base", "rfdetr-large"]
+    _supported_types = ["rfdetr-base", "rfdetr-large", "rfdetr-nano", "rfdetr-small", "rfdetr-medium"]
     if model_type not in _supported_types:
         raise ValueError(f"Model type {model_type} not supported. Supported types are {_supported_types}")
 

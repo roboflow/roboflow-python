@@ -2,7 +2,7 @@ import unittest
 
 import responses
 
-from roboflow.util.image_utils import check_image_path, check_image_url
+from roboflow.util.image_utils import check_image_path, check_image_url, load_labelmap
 
 
 class TestCheckImagePath(unittest.TestCase):
@@ -33,3 +33,9 @@ class TestCheckImageURL(unittest.TestCase):
         url = "https://example.com/notfound.png"
         responses.add(responses.HEAD, url, status=404)
         self.assertFalse(check_image_url(url))
+
+
+class TestLoadLabelmap(unittest.TestCase):
+    def test_yaml_dict_names(self):
+        labelmap = load_labelmap("tests/annotations/dict_names.yaml")
+        self.assertEqual(labelmap, {0: "cat", 1: "dog", 2: "fish"})

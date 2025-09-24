@@ -7,7 +7,7 @@ target = ["test", "roboflow"]
 tests = ["B201", "B301"]
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py39"
 line-length = 120
 
 [tool.ruff.lint]
@@ -32,6 +32,7 @@ ignore = [
     "N",
     "PERF",
     "PIE",
+    "PLC0415",  # `import` should be at the top-level of a file
     "PLR",
     "PLW",
     "PT",
@@ -44,6 +45,7 @@ ignore = [
     "T",
     "TD",
     "TRY",
+    "UP",
 ]
 
 # Exclude a variety of commonly ignored directories.
@@ -99,7 +101,7 @@ banned-module-level-imports = [
 ]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 exclude = ["^build/"]
 
 [[tool.mypy.overrides]]
@@ -110,9 +112,6 @@ module = [
     "IPython.display.*",
     # ipywidgets is an optional dependency
     "ipywidgets.*",
-    # matplotlib typing is not available for Python 3.8
-    # remove this when we stop supporting Python 3.8
-    "matplotlib.*",
     "requests_toolbelt.*",
     "torch.*",
     "ultralytics.*",

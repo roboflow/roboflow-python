@@ -5,6 +5,8 @@ services:
       context: ..
       dockerfile: Dockerfile.dev
     image: devcontainer-roboflow-python
+    extra_hosts:
+      - "localhost.roboflow.one:host-gateway"
     volumes:
       - ..:/roboflow-python
     command: sleep infinity

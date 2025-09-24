@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 import requests
@@ -84,6 +85,7 @@ class TestProject(RoboflowTest):
             "woodland-rabbit.png",
             "file_example_TIFF_1MB.tiff",
             "sky-rabbit.heic",
+            "whatsnew.avif",
         ]
 
         for image in images_to_test:
@@ -371,6 +373,57 @@ class TestProject(RoboflowTest):
                 "params": {},
                 "assertions": {"save_annotation": {"count": 1}},
             },
+            {
+                "name": "with_predictions_flag_true",
+                "dataset": [
+                    {"file": "pred1.jpg", "split": "train", "annotationfile": {"file": "pred1.xml"}},
+                    {"file": "pred2.jpg", "split": "valid", "annotationfile": {"file": "pred2.xml"}},
+                ],
+                "params": {"is_prediction": True},
+                "assertions": {
+                    "upload": {"count": 2},
+                    "save_annotation": {"count": 2, "kwargs": {"is_prediction": True}},
+                },
+            },
+            {
+                "name": "with_predictions_flag_false",
+                "dataset": [
+                    {"file": "gt1.jpg", "split": "train", "annotationfile": {"file": "gt1.xml"}},
+                ],
+                "params": {"is_prediction": False},
+                "assertions": {
+                    "upload": {"count": 1},
+                    "save_annotation": {"count": 1, "kwargs": {"is_prediction": False}},
+                },
+            },
+            {
+                "name": "predictions_with_batch",
+                "dataset": [
+                    {"file": "batch_pred.jpg", "split": "train", "annotationfile": {"file": "batch_pred.xml"}},
+                ],
+                "params": {
+                    "is_prediction": True,
+                    "batch_name": "prediction-batch",
+                    "num_retries": 2,
+                },
+                "assertions": {
+                    "upload": {
+                        "count": 1,
+                        "kwargs": {
+                            "batch_name": "prediction-batch",
+                            "num_retry_uploads": 2,
+                        },
+                    },
+                    "save_annotation": {
+                        "count": 1,
+                        "kwargs": {
+                            "is_prediction": True,
+                            "job_name": "prediction-batch",
+                            "num_retry_uploads": 2,
+                        },
+                    },
+                },
+            },
         ]
 
         error_cases = [
@@ -454,3 +507,318 @@ class TestProject(RoboflowTest):
             finally:
                 for mock in mocks.values():
                     mock.stop()
+
+    def test_get_batches_success(self):
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/batches?api_key={ROBOFLOW_API_KEY}"
+        mock_response = {
+            "batches": [
+                {
+                    "name": "Uploaded on 11/22/22 at 1:39 pm",
+                    "numJobs": 2,
+                    "images": 115,
+                    "uploaded": {"_seconds": 1669146024, "_nanoseconds": 818000000},
+                    "id": "batch-1",
+                },
+                {
+                    "numJobs": 0,
+                    "images": 11,
+                    "uploaded": {"_seconds": 1669236873, "_nanoseconds": 47000000},
+                    "name": "Upload via API",
+                    "id": "batch-2",
+                },
+            ]
+        }
+
+        responses.add(responses.GET, expected_url, json=mock_response, status=200)
+
+        batches = self.project.get_batches()
+
+        self.assertIsInstance(batches, dict)
+        self.assertIn("batches", batches)
+        self.assertEqual(len(batches["batches"]), 2)
+        self.assertEqual(batches["batches"][0]["id"], "batch-1")
+        self.assertEqual(batches["batches"][0]["name"], "Uploaded on 11/22/22 at 1:39 pm")
+        self.assertEqual(batches["batches"][0]["images"], 115)
+        self.assertEqual(batches["batches"][0]["numJobs"], 2)
+        self.assertEqual(batches["batches"][1]["id"], "batch-2")
+        self.assertEqual(batches["batches"][1]["name"], "Upload via API")
+
+    def test_get_batches_error(self):
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/batches?api_key={ROBOFLOW_API_KEY}"
+        error_response = {"error": "Cannot retrieve batches"}
+
+        responses.add(responses.GET, expected_url, json=error_response, status=404)
+
+        with self.assertRaises(RuntimeError) as context:
+            self.project.get_batches()
+
+        self.assertEqual(str(context.exception), "Cannot retrieve batches")
+
+    def test_get_batch_success(self):
+        batch_id = "batch-123"
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/batches/{batch_id}?api_key={ROBOFLOW_API_KEY}"
+        mock_response = {
+            "batch": {
+                "name": "Uploaded on 11/22/22 at 1:39 pm",
+                "numJobs": 2,
+                "images": 115,
+                "uploaded": {"_seconds": 1669146024, "_nanoseconds": 818000000},
+                "id": batch_id,
+            }
+        }
+
+        responses.add(responses.GET, expected_url, json=mock_response, status=200)
+
+        batch = self.project.get_batch(batch_id)
+
+        self.assertIsInstance(batch, dict)
+        self.assertIn("batch", batch)
+        self.assertEqual(batch["batch"]["id"], batch_id)
+        self.assertEqual(batch["batch"]["name"], "Uploaded on 11/22/22 at 1:39 pm")
+        self.assertEqual(batch["batch"]["images"], 115)
+        self.assertEqual(batch["batch"]["numJobs"], 2)
+        self.assertIn("uploaded", batch["batch"])
+
+    def test_get_batch_error(self):
+        batch_id = "nonexistent-batch"
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/batches/{batch_id}?api_key={ROBOFLOW_API_KEY}"
+        error_response = {"error": "Batch not found"}
+
+        responses.add(responses.GET, expected_url, json=error_response, status=404)
+
+        with self.assertRaises(RuntimeError) as context:
+            self.project.get_batch(batch_id)
+
+        self.assertEqual(str(context.exception), "Batch not found")
+
+    def test_classification_dataset_upload(self):
+        from roboflow.util import folderparser
+
+        classification_folder = "tests/datasets/corrosion-singlelabel-classification"
+        # Parse with classification flag to get inferred annotations
+        parsed_dataset = folderparser.parsefolder(classification_folder, is_classification=True)
+
+        # Create a mock project with classification type
+        self.project.type = "classification"
+        annotation_calls = []
+
+        def capture_annotation_calls(annotation_path, **kwargs):
+            annotation_calls.append({"annotation_path": annotation_path, "image_id": kwargs.get("image_id")})
+            return ({"success": True}, 0.1, 0)
+
+        mocks = {
+            "parser": patch("roboflow.core.workspace.folderparser.parsefolder", return_value=parsed_dataset),
+            "upload": patch(
+                "roboflow.core.workspace.Project.upload_image",
+                return_value=({"id": "test-id", "success": True}, 0.1, 0),
+            ),
+            "save_annotation": patch(
+                "roboflow.core.workspace.Project.save_annotation", side_effect=capture_annotation_calls
+            ),
+            "get_project": patch(
+                "roboflow.core.workspace.Workspace._get_or_create_project", return_value=(self.project, False)
+            ),
+        }
+        mock_objects = {}
+        for name, mock in mocks.items():
+            mock_objects[name] = mock.start()
+        try:
+            self.workspace.upload_dataset(dataset_path=classification_folder, project_name=PROJECT_NAME, num_workers=1)
+            self.assertEqual(mock_objects["upload"].call_count, 10)
+            self.assertEqual(len(annotation_calls), 10)
+
+            corrosion_count = sum(1 for call in annotation_calls if call["annotation_path"] == "Corrosion")
+            no_corrosion_count = sum(1 for call in annotation_calls if call["annotation_path"] == "no-corrosion")
+            self.assertEqual(corrosion_count, 5)
+            self.assertEqual(no_corrosion_count, 5)
+
+            for call in annotation_calls:
+                self.assertIn(call["annotation_path"], ["Corrosion", "no-corrosion"])
+        finally:
+            for mock in mocks.values():
+                mock.stop()
+
+    def test_classification_edge_cases(self):
+        edge_case_dataset = [
+            # These should not get annotations
+            {"file": "root_img.jpg", "split": "train", "dirname": "/"},
+            {"file": "dot_img.jpg", "split": "train", "dirname": "/."},
+            # These should get annotations from folder structure
+            {
+                "file": "nested.jpg",
+                "split": "train",
+                "dirname": "/train/defects/rust/severe",
+                "annotationfile": {"type": "classification_folder", "classification_label": "severe"},
+            },
+            {
+                "file": "normal.jpg",
+                "split": "train",
+                "dirname": "/train/good",
+                "annotationfile": {"type": "classification_folder", "classification_label": "good"},
+            },
+        ]
+        self.project.type = "classification"
+        annotation_calls = []
+
+        def capture_annotation_calls(annotation_path, **kwargs):
+            annotation_calls.append(annotation_path)
+            return ({"success": True}, 0.1, 0)
+
+        test_dataset = self._create_test_dataset(edge_case_dataset)
+        mocks = self._setup_upload_dataset_mocks(
+            test_dataset=test_dataset, save_annotation_side_effect=capture_annotation_calls
+        )
+        for mock in mocks.values():
+            mock.start()
+        try:
+            self.workspace.upload_dataset(dataset_path="/test/dataset", project_name=PROJECT_NAME, num_workers=1)
+            self.assertEqual(len(annotation_calls), 2)
+            self.assertIn("severe", annotation_calls)
+            self.assertIn("good", annotation_calls)
+        finally:
+            for mock in mocks.values():
+                mock.stop()
+
+    def test_multilabel_classification_dataset_upload(self):
+        from roboflow.util import folderparser
+
+        multilabel_folder = "tests/datasets/skinproblem-multilabel-classification"
+        parsed_dataset = folderparser.parsefolder(multilabel_folder, is_classification=True)
+
+        self.project.type = "classification"
+        self.project.multilabel = True
+        annotation_calls = []
+
+        def capture_annotation_calls(annotation_path, **kwargs):
+            annotation_calls.append(annotation_path)
+            return ({"success": True}, 0.1, 0)
+
+        mocks = {
+            "parser": patch("roboflow.core.workspace.folderparser.parsefolder", return_value=parsed_dataset),
+            "upload": patch(
+                "roboflow.core.workspace.Project.upload_image",
+                return_value=({"id": "test-id", "success": True}, 0.1, 0),
+            ),
+            "save_annotation": patch(
+                "roboflow.core.workspace.Project.save_annotation", side_effect=capture_annotation_calls
+            ),
+            "get_project": patch(
+                "roboflow.core.workspace.Workspace._get_or_create_project", return_value=(self.project, False)
+            ),
+        }
+        for mock in mocks.values():
+            mock.start()
+        try:
+            self.workspace.upload_dataset(dataset_path=multilabel_folder, project_name=PROJECT_NAME, num_workers=1)
+            self.assertEqual(len(annotation_calls), len(parsed_dataset["images"]))
+            for call in annotation_calls:
+                labels = json.loads(call)
+                self.assertIsInstance(labels, list)
+                self.assertGreater(len(labels), 0)
+        finally:
+            for mock in mocks.values():
+                mock.stop()
+
+    def test_search_with_annotation_job_params(self):
+        """Test that annotation_job and annotation_job_id parameters are properly included in search requests"""
+        # Test 1: Search with annotation_job=True
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/search?api_key={ROBOFLOW_API_KEY}"
+        mock_response = {
+            "results": [
+                {"id": "image1", "name": "test1.jpg", "created": 1616161616, "labels": ["person"]},
+                {"id": "image2", "name": "test2.jpg", "created": 1616161617, "labels": ["car"]},
+            ]
+        }
+
+        responses.add(
+            responses.POST,
+            expected_url,
+            json=mock_response,
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "offset": 0,
+                        "limit": 100,
+                        "batch": False,
+                        "annotation_job": True,
+                        "fields": ["id", "created", "name", "labels"],
+                    }
+                )
+            ],
+        )
+
+        results = self.project.search(annotation_job=True)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0]["id"], "image1")
+
+        # Test 2: Search with annotation_job_id
+        test_job_id = "job_123456"
+        responses.add(
+            responses.POST,
+            expected_url,
+            json=mock_response,
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "offset": 0,
+                        "limit": 100,
+                        "batch": False,
+                        "annotation_job_id": test_job_id,
+                        "fields": ["id", "created", "name", "labels"],
+                    }
+                )
+            ],
+        )
+
+        results = self.project.search(annotation_job_id=test_job_id)
+        self.assertEqual(len(results), 2)
+
+        # Test 3: Search with both parameters
+        responses.add(
+            responses.POST,
+            expected_url,
+            json=mock_response,
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "offset": 0,
+                        "limit": 50,
+                        "batch": False,
+                        "annotation_job": False,
+                        "annotation_job_id": test_job_id,
+                        "prompt": "dog",
+                        "fields": ["id", "created", "name", "labels"],
+                    }
+                )
+            ],
+        )
+
+        results = self.project.search(prompt="dog", annotation_job=False, annotation_job_id=test_job_id, limit=50)
+        self.assertEqual(len(results), 2)
+
+        # Test 4: Verify parameters are not included when None
+        responses.add(
+            responses.POST,
+            expected_url,
+            json=mock_response,
+            status=200,
+            match=[
+                json_params_matcher(
+                    {
+                        "offset": 0,
+                        "limit": 100,
+                        "batch": False,
+                        "fields": ["id", "created", "name", "labels"],
+                        # annotation_job and annotation_job_id should NOT be in the payload
+                    }
+                )
+            ],
+        )
+
+        # This should pass because json_params_matcher only checks that the
+        # specified keys match, it doesn't fail if additional keys are missing
+        results = self.project.search()
+        self.assertEqual(len(results), 2)

@@ -142,3 +142,23 @@ class TestInstanceSegmentation(unittest.TestCase):
 
         with self.assertRaises(HTTPError):
             instance.predict(image_path)
+
+    @responses.activate
+    def test_predict_with_numpy_array(self):
+        # Create a simple numpy array image
+        import numpy as np
+
+        image_array = np.zeros((100, 100, 3), dtype=np.uint8)  # Create a black image
+        image_array[30:70, 30:70] = 255  # Add a white square
+
+        instance = InstanceSegmentationModel(self.api_key, self.version_id)
+
+        responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
+        group = instance.predict(image_array)
+        self.assertIsInstance(group, PredictionGroup)
+
+        request = responses.calls[0].request
+        self.assertEqual(request.method, "POST")
+        self.assertRegex(request.url, rf"^{self.api_url}")
+        self.assertDictEqual(request.params, self._default_params)
+        self.assertIsNotNone(request.body)

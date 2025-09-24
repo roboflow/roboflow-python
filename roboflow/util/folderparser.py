@@ -12,10 +12,17 @@ ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv", ".jsonl"}
 LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
 
 
-def parsefolder(folder):
-    folder = folder.strip()
-    if folder.endswith("/"):
-        folder = folder[:-1]
+def _patch_sep(filename):
+    """
+    Replace Windows style slashes to keep filenames consistent.
+
+    Roboflow depend on it server side.
+    """
+    return filename.replace("\\", "/")
+
+
+def parsefolder(folder, is_classification=False):
+    folder = _patch_sep(folder).strip().rstrip("/")
     if not os.path.exists(folder):
         raise Exception(f"folder does not exist. {folder}")
     files = _list_files(folder)
@@ -29,6 +36,8 @@ def parsefolder(folder):
     if not _map_annotations_to_images_1to1(images, annotations):
         annotations = _loadAnnotations(folder, annotations)
         _map_annotations_to_images_1tomany(images, annotations)
+    if is_classification:
+        _infer_classification_labels_from_folders(images)
     return {
         "location": folder,
         "images": images,
@@ -53,7 +62,8 @@ def _list_files(folder):
     for root, dirs, files in os.walk(folder):
         for file in files:
             file_path = os.path.join(root, file)
-            filedescriptors.append(_describe_file(file_path.split(folder)[1]))
+            rel = os.path.relpath(file_path, folder)
+            filedescriptors.append(_describe_file(f"/{rel}"))
     filedescriptors = sorted(filedescriptors, key=lambda x: _alphanumkey(x["file"]))
     return filedescriptors
 
@@ -64,6 +74,7 @@ def _add_indices(files):
 
 
 def _describe_file(f):
+    f = _patch_sep(f)
     name = f.split("/")[-1]
     dirname = os.path.dirname(f)
     fullkey, extension = os.path.splitext(f)
@@ -183,6 +194,13 @@ def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotatio
             return _annotation
         else:
             return None
+    elif format == "multilabel_csv":
+        rows = [r for r in parsed["rows"] if r["file_name"] == image["name"]]
+        if rows:
+            labels = rows[0]["labels"]
+            return {"type": "classification_multilabel", "labels": labels}
+        else:
+            return None
     elif format == "jsonl":
         jsonlLines = [json.dumps(line) for line in parsed if line["image"] == image["name"]]
         if jsonlLines:
@@ -207,8 +225,9 @@ def _loadAnnotations(folder, annotations):
             ann["parsed"] = _read_jsonl(f"{folder}{ann['file']}")
             ann["parsedType"] = "jsonl"
         elif extension == ".csv":
-            ann["parsedType"] = "csv"
-            ann["parsed"] = _parseAnnotationCSV(f"{folder}{ann['file']}")
+            parsed = _parseAnnotationCSV(f"{folder}{ann['file']}")
+            ann["parsed"] = parsed
+            ann["parsedType"] = parsed.get("type", "csv")
     return annotations
 
 
@@ -230,10 +249,20 @@ def _parseAnnotationCSV(filename):
     # TODO: use a proper CSV library?
     with open(filename) as f:
         lines = f.readlines()
-    headers = lines[0]
+    headers = [h.strip() for h in lines[0].split(",")]
+    # Multi-label classification csv typically named _classes.csv
+    if os.path.basename(filename) == "_classes.csv":
+        parsed_lines = []
+        for line in lines[1:]:
+            parts = [p.strip() for p in line.split(",")]
+            file_name = parts[0]
+            labels = [headers[i] for i, v in enumerate(parts[1:], start=1) if v == "1"]
+            parsed_lines.append({"file_name": file_name, "labels": labels})
+        return {"type": "multilabel_csv", "rows": parsed_lines, "headers": headers}
+    header_line = lines[0]
     lines = [{"file_name": ld.split(",")[0].strip(), "line": ld} for ld in lines[1:]]
     return {
-        "headers": headers,
+        "headers": header_line,
         "lines": lines,
     }
 
@@ -290,3 +319,16 @@ def _list_map(my_list, key):
     for i in my_list:
         d.setdefault(i[key], []).append(i)
     return d
+
+
+def _infer_classification_labels_from_folders(images):
+    for image in images:
+        if image.get("annotationfile"):
+            continue
+        dirname = image.get("dirname", "").strip("/")
+        if not dirname or dirname == ".":
+            # Skip images in root directory or invalid paths
+            continue
+        class_name = os.path.basename(dirname)
+        if class_name and class_name != ".":
+            image["annotationfile"] = {"classification_label": class_name, "type": "classification_folder"}

@@ -66,6 +66,35 @@ class TestFolderParser(unittest.TestCase):
         )
         assert testImage["annotationfile"]["rawText"] == expected
 
+    def test_parse_classification_folder_structure(self):
+        classification_folder = f"{thisdir}/../datasets/corrosion-singlelabel-classification"
+        parsed = folderparser.parsefolder(classification_folder, is_classification=False)
+        for img in parsed["images"]:
+            self.assertIsNone(img.get("annotationfile"))
+
+        parsed_classification = folderparser.parsefolder(classification_folder, is_classification=True)
+        corrosion_images = [i for i in parsed_classification["images"] if "Corrosion" in i["dirname"]]
+        self.assertTrue(len(corrosion_images) > 0)
+        for img in corrosion_images:
+            self.assertIsNotNone(img.get("annotationfile"))
+            self.assertEqual(img["annotationfile"]["type"], "classification_folder")
+            self.assertEqual(img["annotationfile"]["classification_label"], "Corrosion")
+        no_corrosion_images = [i for i in parsed_classification["images"] if "no-corrosion" in i["dirname"]]
+        self.assertTrue(len(no_corrosion_images) > 0)
+        for img in no_corrosion_images:
+            self.assertIsNotNone(img.get("annotationfile"))
+            self.assertEqual(img["annotationfile"]["type"], "classification_folder")
+            self.assertEqual(img["annotationfile"]["classification_label"], "no-corrosion")
+
+    def test_parse_multilabel_classification_csv(self):
+        folder = f"{thisdir}/../datasets/skinproblem-multilabel-classification"
+        parsed = folderparser.parsefolder(folder, is_classification=True)
+        images = {img["name"]: img for img in parsed["images"]}
+        img1 = images.get("101_jpg.rf.ffb91e580c891eb04b715545274b2469.jpg")
+        self.assertIsNotNone(img1)
+        self.assertEqual(img1["annotationfile"]["type"], "classification_multilabel")
+        self.assertEqual(set(img1["annotationfile"]["labels"]), {"Blackheads"})
+
 
 def _assertJsonMatchesFile(actual, filename):
     with open(filename) as file:

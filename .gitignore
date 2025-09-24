@@ -8,6 +8,7 @@ __pycache__/
 .idea
 # C extensions
 *.so
+.devcontainer/certs/
 
 # Distribution / packaging
 .Python
@@ -154,3 +155,4 @@ tests/manual/data
 README.roboflow.txt
 *.zip
 .DS_Store
+.claude

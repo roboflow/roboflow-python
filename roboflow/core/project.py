@@ -256,13 +256,7 @@ class Project:
 
     def train(
         self,
-        new_version_settings={
-            "preprocessing": {
-                "auto-orient": True,
-                "resize": {"width": 640, "height": 640, "format": "Stretch to"},
-            },
-            "augmentation": {},
-        },
+        new_version_settings: Optional[Dict] = None,
         speed=None,
         checkpoint=None,
         plot_in_notebook=False,
@@ -293,6 +287,15 @@ class Project:
 
             >>> version.train()
         """  # noqa: E501 // docs
+
+        if new_version_settings is None:
+            new_version_settings = {
+                "preprocessing": {
+                    "auto-orient": True,
+                    "resize": {"width": 640, "height": 640, "format": "Stretch to"},
+                },
+                "augmentation": {},
+            }
 
         new_version = self.generate_version(settings=new_version_settings)
         new_version = self.version(new_version)
@@ -384,7 +387,7 @@ class Project:
         split: str = "train",
         num_retry_uploads: int = 0,
         batch_name: Optional[str] = None,
-        tag_names: list = [],
+        tag_names: Optional[List[str]] = None,
         is_prediction: bool = False,
         **kwargs,
     ):
@@ -412,6 +415,9 @@ class Project:
 
             >>> project.upload(image_path="YOUR_IMAGE.jpg")
         """  # noqa: E501 // docs
+
+        if tag_names is None:
+            tag_names = []
 
         is_hosted = image_path.startswith("http://") or image_path.startswith("https://")
 
@@ -476,12 +482,15 @@ class Project:
         split="train",
         num_retry_uploads=0,
         batch_name=None,
-        tag_names=[],
+        tag_names: Optional[List[str]] = None,
         sequence_number=None,
         sequence_size=None,
         **kwargs,
     ):
         project_url = self.id.rsplit("/")[1]
+
+        if tag_names is None:
+            tag_names = []
 
         t0 = time.time()
         upload_retry_attempts = 0
@@ -557,13 +566,15 @@ class Project:
         split="train",
         num_retry_uploads=0,
         batch_name=None,
-        tag_names=[],
+        tag_names: Optional[List[str]] = None,
         is_prediction: bool = False,
         annotation_overwrite=False,
         sequence_number=None,
         sequence_size=None,
         **kwargs,
     ):
+        if tag_names is None:
+            tag_names = []
         if image_path and image_id:
             raise Exception("You can't pass both image_id and image_path")
         if not (image_path or image_id):
@@ -641,7 +652,10 @@ class Project:
         in_dataset: Optional[str] = None,
         batch: bool = False,
         batch_id: Optional[str] = None,
-        fields: list = ["id", "created", "name", "labels"],
+        fields: Optional[List[str]] = None,
+        *,
+        annotation_job: Optional[bool] = None,
+        annotation_job_id: Optional[str] = None,
     ):
         """
         Search for images in a project.
@@ -656,6 +670,8 @@ class Project:
             in_dataset (str): dataset that an image must be in
             batch (bool): whether the image must be in a batch
             batch_id (str): batch id that an image must be in
+            annotation_job (bool): whether the image must be in an annotation job
+            annotation_job_id (str): annotation job id that an image must be in
             fields (list): fields to return in results (default: ["id", "created", "name", "labels"])
 
         Returns:
@@ -670,7 +686,10 @@ class Project:
 
             >>> results = project.search(query="cat", limit=10)
         """  # noqa: E501 // docs
-        payload: Dict[str, Union[str, int, List[str]]] = {}
+        if fields is None:
+            fields = ["id", "created", "name", "labels"]
+
+        payload: Dict[str, Union[str, int, bool, List[str]]] = {}
 
         if like_image is not None:
             payload["like_image"] = like_image
@@ -699,6 +718,12 @@ class Project:
         if batch_id is not None:
             payload["batch_id"] = batch_id
 
+        if annotation_job is not None:
+            payload["annotation_job"] = annotation_job
+
+        if annotation_job_id is not None:
+            payload["annotation_job_id"] = annotation_job_id
+
         payload["fields"] = fields
 
         data = requests.post(
@@ -719,7 +744,10 @@ class Project:
         in_dataset: Optional[str] = None,
         batch: bool = False,
         batch_id: Optional[str] = None,
-        fields: list = ["id", "created"],
+        fields: Optional[List[str]] = None,
+        *,
+        annotation_job: Optional[bool] = None,
+        annotation_job_id: Optional[str] = None,
     ):
         """
         Create a paginated list of search results for use in searching the images in a project.
@@ -734,6 +762,8 @@ class Project:
             in_dataset (str): dataset that an image must be in
             batch (bool): whether the image must be in a batch
             batch_id (str): batch id that an image must be in
+            annotation_job (bool): whether the image must be in an annotation job
+            annotation_job_id (str): annotation job id that an image must be in
             fields (list): fields to return in results (default: ["id", "created", "name", "labels"])
 
         Returns:
@@ -752,6 +782,9 @@ class Project:
 
             >>>     print(result)
         """  # noqa: E501 // docs
+        if fields is None:
+            fields = ["id", "created"]
+
         while True:
             data = self.search(
                 like_image=like_image,
@@ -764,6 +797,8 @@ class Project:
                 batch=batch,
                 batch_id=batch_id,
                 fields=fields,
+                annotation_job=annotation_job,
+                annotation_job_id=annotation_job_id,
             )
 
             yield data
@@ -867,5 +902,70 @@ class Project:
                 raise RuntimeError(response.text)
             except ValueError:
                 raise RuntimeError(f"Failed to create annotation job: {response.text}")
+
+        return response.json()
+
+    def get_batches(self) -> Dict:
+        """
+        Get a list of all batches in the project.
+
+        Returns:
+            Dict: A dictionary containing the list of batches
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> batches = project.get_batches()
+        """
+        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/batches?api_key={self.__api_key}"
+
+        response = requests.get(url)
+
+        if response.status_code != 200:
+            try:
+                error_data = response.json()
+                if "error" in error_data:
+                    raise RuntimeError(error_data["error"])
+                raise RuntimeError(response.text)
+            except ValueError:
+                raise RuntimeError(f"Failed to get batches: {response.text}")
+
+        return response.json()
+
+    def get_batch(self, batch_id: str) -> Dict:
+        """
+        Get information for a specific batch in the project.
+
+        Args:
+            batch_id (str): The ID of the batch to retrieve
+
+        Returns:
+            Dict: A dictionary containing the batch details
+
+        Example:
+            >>> import roboflow
+
+            >>> rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+
+            >>> project = rf.workspace().project("PROJECT_ID")
+
+            >>> batch = project.get_batch("batch123")
+        """
+        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/batches/{batch_id}?api_key={self.__api_key}"
+
+        response = requests.get(url)
+
+        if response.status_code != 200:
+            try:
+                error_data = response.json()
+                if "error" in error_data:
+                    raise RuntimeError(error_data["error"])
+                raise RuntimeError(response.text)
+            except ValueError:
+                raise RuntimeError(f"Failed to get batch {batch_id}: {response.text}")
 
         return response.json()
