@@ -226,7 +226,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
 
 def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
-    _supported_types = ["rfdetr-base", "rfdetr-large", "rfdetr-nano", "rfdetr-small", "rfdetr-medium"]
+    _supported_types = ["rfdetr-base", "rfdetr-large", "rfdetr-nano", "rfdetr-small", "rfdetr-medium", "rfdetr-seg-preview"]
     if model_type not in _supported_types:
         raise ValueError(f"Model type {model_type} not supported. Supported types are {_supported_types}")
 
