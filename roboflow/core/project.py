@@ -653,6 +653,9 @@ class Project:
         batch: bool = False,
         batch_id: Optional[str] = None,
         fields: Optional[List[str]] = None,
+        *,
+        annotation_job: Optional[bool] = None,
+        annotation_job_id: Optional[str] = None,
     ):
         """
         Search for images in a project.
@@ -667,6 +670,8 @@ class Project:
             in_dataset (str): dataset that an image must be in
             batch (bool): whether the image must be in a batch
             batch_id (str): batch id that an image must be in
+            annotation_job (bool): whether the image must be in an annotation job
+            annotation_job_id (str): annotation job id that an image must be in
             fields (list): fields to return in results (default: ["id", "created", "name", "labels"])
 
         Returns:
@@ -684,7 +689,7 @@ class Project:
         if fields is None:
             fields = ["id", "created", "name", "labels"]
 
-        payload: Dict[str, Union[str, int, List[str]]] = {}
+        payload: Dict[str, Union[str, int, bool, List[str]]] = {}
 
         if like_image is not None:
             payload["like_image"] = like_image
@@ -713,6 +718,12 @@ class Project:
         if batch_id is not None:
             payload["batch_id"] = batch_id
 
+        if annotation_job is not None:
+            payload["annotation_job"] = annotation_job
+
+        if annotation_job_id is not None:
+            payload["annotation_job_id"] = annotation_job_id
+
         payload["fields"] = fields
 
         data = requests.post(
@@ -734,6 +745,9 @@ class Project:
         batch: bool = False,
         batch_id: Optional[str] = None,
         fields: Optional[List[str]] = None,
+        *,
+        annotation_job: Optional[bool] = None,
+        annotation_job_id: Optional[str] = None,
     ):
         """
         Create a paginated list of search results for use in searching the images in a project.
@@ -748,6 +762,8 @@ class Project:
             in_dataset (str): dataset that an image must be in
             batch (bool): whether the image must be in a batch
             batch_id (str): batch id that an image must be in
+            annotation_job (bool): whether the image must be in an annotation job
+            annotation_job_id (str): annotation job id that an image must be in
             fields (list): fields to return in results (default: ["id", "created", "name", "labels"])
 
         Returns:
@@ -781,6 +797,8 @@ class Project:
                 batch=batch,
                 batch_id=batch_id,
                 fields=fields,
+                annotation_job=annotation_job,
+                annotation_job_id=annotation_job_id,
             )
 
             yield data

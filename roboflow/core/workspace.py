@@ -103,7 +103,7 @@ class Workspace:
         Args:
             project_name (str): name of the project
             project_type (str): type of the project
-            project_license (str): license of the project (set to `private` for private projects, only available for paid customers)
+            project_license (str): license of the project (set to `Private` for private projects, only available for paid customers)
             annotation (str): annotation of the project
 
         Returns:
@@ -123,7 +123,7 @@ class Workspace:
         if "error" in r.json().keys():
             raise RuntimeError(r.json()["error"])
 
-        return self.project(r.json()["id"].split("/")[-1])
+        return Project(self.__api_key, r.json(), self.model_format)
 
     def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> List[dict]:
         """
@@ -287,6 +287,7 @@ class Workspace:
         project_type: str = "object-detection",
         batch_name=None,
         num_retries=0,
+        is_prediction=False,
     ):
         """
         Upload a dataset to Roboflow.
@@ -298,6 +299,9 @@ class Workspace:
             dataset_format (str): format of the dataset (`voc`, `yolov8`, `yolov5`)
             project_license (str): license of the project (set to `private` for private projects, only available for paid customers)
             project_type (str): type of the project (only `object-detection` is supported)
+            batch_name (str, optional): name of the batch to upload the images to. Defaults to an automatically generated value.
+            num_retries (int, optional): number of times to retry uploading an image if the upload fails. Defaults to 0.
+            is_prediction (bool, optional): whether the annotations provided in the dataset are predictions and not ground truth. Defaults to False.
         """  # noqa: E501 // docs
         if dataset_format != "NOT_USED":
             print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
@@ -385,6 +389,7 @@ class Workspace:
                 image_id=image_id,
                 job_name=batch_name,
                 num_retry_uploads=num_retries,
+                is_prediction=is_prediction,
             )
 
             return annotation, upload_time

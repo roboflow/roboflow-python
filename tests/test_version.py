@@ -2,11 +2,20 @@ import os
 import unittest
 from unittest.mock import patch
 
-import requests
 import responses
 
+from roboflow.adapters import rfapi
 from roboflow.core.version import Version, unwrap_version_id
 from tests.helpers import get_version
+
+
+def mock_generating_url_response(generating_url):
+    """Helper function to mock the generating URL response that's repeated across tests."""
+    responses.add(
+        responses.GET,
+        generating_url,
+        json={"version": {"generating": False, "progress": 1.0, "images": 10}},
+    )
 
 
 class TestDownload(unittest.TestCase):
@@ -24,24 +33,15 @@ class TestDownload(unittest.TestCase):
     @responses.activate
     def test_download_raises_exception_on_bad_request(self):
         responses.add(responses.GET, self.api_url, status=404, json={"error": "Broken"})
-        responses.add(
-            responses.GET,
-            self.generating_url,
-            json={"version": {"generating": False, "progress": 1.0}},
-        )
-
-        with self.assertRaises(RuntimeError):
+        mock_generating_url_response(self.generating_url)
+        with self.assertRaises(rfapi.RoboflowError):
             self.version.download("coco")
 
     @responses.activate
     def test_download_raises_exception_on_api_failure(self):
         responses.add(responses.GET, self.api_url, status=500)
-        responses.add(
-            responses.GET,
-            self.generating_url,
-            json={"version": {"generating": False, "progress": 1.0}},
-        )
-        with self.assertRaises(requests.exceptions.HTTPError):
+        mock_generating_url_response(self.generating_url)
+        with self.assertRaises(rfapi.RoboflowError):
             self.version.download("coco")
 
     @responses.activate
@@ -50,11 +50,7 @@ class TestDownload(unittest.TestCase):
     @patch.object(Version, "_Version__reformat_yaml")
     def test_download_returns_dataset(self, *_):
         responses.add(responses.GET, self.api_url, json={"export": {"link": None}})
-        responses.add(
-            responses.GET,
-            self.generating_url,
-            json={"version": {"generating": False, "progress": 1.0}},
-        )
+        mock_generating_url_response(self.generating_url)
         dataset = self.version.download("coco", location="/my-spot")
         self.assertEqual(dataset.name, self.version.name)
         self.assertEqual(dataset.version, self.version.version)
@@ -76,12 +72,13 @@ class TestExport(unittest.TestCase):
 
     @responses.activate
     def test_export_returns_true_on_api_success(self):
-        responses.add(responses.GET, self.api_url, status=200)
         responses.add(
             responses.GET,
-            self.generating_url,
-            json={"version": {"generating": False, "progress": 1.0}},
+            self.api_url,
+            status=200,
+            json={"export": {"link": "https://api.roboflow.com/test-workspace/test-project/4/test-format"}},
         )
+        mock_generating_url_response(self.generating_url)
         export = self.version.export("test-format")
         request = responses.calls[0].request
 
@@ -92,23 +89,15 @@ class TestExport(unittest.TestCase):
     @responses.activate
     def test_export_raises_error_on_bad_request(self):
         responses.add(responses.GET, self.api_url, status=400, json={"error": "BROKEN!!"})
-        responses.add(
-            responses.GET,
-            self.generating_url,
-            json={"version": {"generating": False, "progress": 1.0}},
-        )
-        with self.assertRaises(RuntimeError):
+        mock_generating_url_response(self.generating_url)
+        with self.assertRaises(rfapi.RoboflowError):
             self.version.export("test-format")
 
     @responses.activate
     def test_export_raises_error_on_api_failure(self):
         responses.add(responses.GET, self.api_url, status=500)
-        responses.add(
-            responses.GET,
-            self.generating_url,
-            json={"version": {"generating": False, "progress": 1.0}},
-        )
-        with self.assertRaises(requests.exceptions.HTTPError):
+        mock_generating_url_response(self.generating_url)
+        with self.assertRaises(rfapi.RoboflowError):
             self.version.export("test-format")
 
 
@@ -128,21 +117,13 @@ class TestGetDownloadLocation(unittest.TestCase):
 
     @responses.activate
     def test_get_download_location_with_env_variable(self, *_):
-        responses.add(
-            responses.GET,
-            self.generating_url,
-            json={"version": {"generating": False, "progress": 1.0}},
-        )
+        mock_generating_url_response(self.generating_url)
         with patch.dict(os.environ, {"DATASET_DIRECTORY": "/my/exports"}, clear=True):
             self.assertEqual(self.get_download_location(), "/my/exports/Test-Dataset-3")
 
     @responses.activate
     def test_get_download_location_without_env_variable(self, *_):
-        responses.add(
-            responses.GET,
-            self.generating_url,
-            json={"version": {"generating": False, "progress": 1.0}},
-        )
+        mock_generating_url_response(self.generating_url)
         self.assertEqual(self.get_download_location(), "Test-Dataset-3")
 
 
@@ -161,11 +142,7 @@ class TestGetDownloadURL(unittest.TestCase):
 
     @responses.activate
     def test_get_download_url(self):
-        responses.add(
-            responses.GET,
-            self.generating_url,
-            json={"version": {"generating": False, "progress": 1.0}},
-        )
+        mock_generating_url_response(self.generating_url)
         url = self.get_download_url("yolo1337")
         self.assertEqual(url, "https://api.roboflow.com/test-workspace/test-project/3/yolo1337")
 

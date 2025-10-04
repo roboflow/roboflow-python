@@ -49,6 +49,106 @@ def get_project(api_key, workspace_url, project_url):
     return result
 
 
+def start_version_training(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    *,
+    speed: Optional[str] = None,
+    checkpoint: Optional[str] = None,
+    model_type: Optional[str] = None,
+):
+    """
+    Start a training job for a specific version.
+
+    This is a thin plumbing wrapper around the backend endpoint.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/train?api_key={api_key}&nocache=true"
+
+    data = {}
+    if speed is not None:
+        data["speed"] = speed
+    if checkpoint is not None:
+        data["checkpoint"] = checkpoint
+    if model_type is not None:
+        # API expects camelCase
+        data["modelType"] = model_type
+
+    response = requests.post(url, json=data)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return True
+
+
+def get_version(api_key: str, workspace_url: str, project_url: str, version: str, nocache: bool = False):
+    """
+    Fetch detailed information about a specific dataset version.
+
+    Args:
+        api_key: Roboflow API key
+        workspace_url: Workspace slug/url
+        project_url: Project slug/url
+        version: Version identifier (number or slug)
+        nocache: If True, bypass server-side cache
+
+    Returns:
+        Parsed JSON response from the API.
+
+    Raises:
+        RoboflowError: On non-200 response status codes.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}?api_key={api_key}"
+    if nocache:
+        url += "&nocache=true"
+
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_version_export(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    format: str,
+):
+    """
+    Fetch export status or finalized link for a specific version/format.
+
+    Returns either:
+      - {"ready": False, "progress": float} when the export is in progress (HTTP 202)
+      - The raw JSON payload (dict) from the server when the export is ready (HTTP 200)
+
+    Raises RoboflowError on non-200/202 statuses or invalid/missing JSON when 200/202.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/{format}?api_key={api_key}&nocache=true"
+    response = requests.get(url)
+
+    # Non-success codes other than 202 are errors
+    if response.status_code not in (200, 202):
+        raise RoboflowError(response.text)
+
+    try:
+        payload = response.json()
+    except Exception:
+        # If server returns a 200/202 without JSON, treat as error for consumers
+        raise RoboflowError(str(response))
+
+    if response.status_code == 202:
+        progress = payload.get("progress")
+        try:
+            progress_val = float(progress) if progress is not None else 0.0
+        except Exception:
+            progress_val = 0.0
+        return {"ready": False, "progress": progress_val}
+
+    # 200 OK: export is ready; return payload unchanged
+    return payload
+
+
 def upload_image(
     api_key,
     project_url,
