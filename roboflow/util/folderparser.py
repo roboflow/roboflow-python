@@ -146,11 +146,13 @@ def _build_image_and_annotation_maps(annotationFiles):
                 stem = os.path.splitext(basename)[0]
 
                 # Prefer full relative path, but also allow basename and stem
-                imgRefMap.update({
-                    f"{filename}/{file_name}": imageRef,
-                    f"{filename}/{basename}": imageRef,
-                    f"{filename}/{stem}": imageRef,
-                })
+                imgRefMap.update(
+                    {
+                        f"{filename}/{file_name}": imageRef,
+                        f"{filename}/{basename}": imageRef,
+                        f"{filename}/{stem}": imageRef,
+                    }
+                )
             for annotation in parsed["annotations"]:
                 annotationMap[f"{dirname}/{annotation['image_id']}"].append(annotation)
     return imgRefMap, annotationMap
