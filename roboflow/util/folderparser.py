@@ -140,7 +140,17 @@ def _build_image_and_annotation_maps(annotationFiles):
         )
         if parsedType == "coco":
             for imageRef in parsed["images"]:
-                imgRefMap[f"{filename}/{imageRef['file_name']}"] = imageRef
+                # Normalize and index by multiple forms to improve matching robustness
+                file_name = _patch_sep(imageRef["file_name"]).lstrip("/")
+                basename = os.path.basename(file_name)
+                stem = os.path.splitext(basename)[0]
+
+                # Prefer full relative path, but also allow basename and stem
+                imgRefMap.update({
+                    f"{filename}/{file_name}": imageRef,
+                    f"{filename}/{basename}": imageRef,
+                    f"{filename}/{stem}": imageRef,
+                })
             for annotation in parsed["annotations"]:
                 annotationMap[f"{dirname}/{annotation['image_id']}"].append(annotation)
     return imgRefMap, annotationMap
@@ -149,7 +159,15 @@ def _build_image_and_annotation_maps(annotationFiles):
 def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotationMap):
     parsed = annotation["parsed"]
     if format == "coco":
-        imgReference = imgRefMap.get(f"{annotation['file']}/{image['name']}")
+        rel_path = image["file"].lstrip("/")
+        imgReference = (
+            # Try matching by full relative path first
+            imgRefMap.get(f"{annotation['file']}/{rel_path}")
+            # Fallback: basename with extension
+            or imgRefMap.get(f"{annotation['file']}/{image['name']}")
+            # Fallback: stem (no extension)
+            or imgRefMap.get(f"{annotation['file']}/{image['key']}")
+        )
         if imgReference:
             # workaround to make Annotations.js correctly identify this as coco in the backend
             fake_annotation = {

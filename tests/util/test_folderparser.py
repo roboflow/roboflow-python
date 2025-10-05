@@ -1,4 +1,6 @@
 import json
+import os
+import tempfile
 import unittest
 from os.path import abspath, dirname
 
@@ -94,6 +96,55 @@ class TestFolderParser(unittest.TestCase):
         self.assertIsNotNone(img1)
         self.assertEqual(img1["annotationfile"]["type"], "classification_multilabel")
         self.assertEqual(set(img1["annotationfile"]["labels"]), {"Blackheads"})
+
+    def test_coco_with_subdir_file_name_should_match_annotations(self):
+        # COCO file_name includes a subdirectory, but the actual image is at dataset root.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create nested image path: /2/100002/img.jpeg
+            image_name = "metaclip_2_100002_02f2f7c6e15f09b401575ae6.jpeg"
+            image_relpath = os.path.join("2", "100002", image_name)
+            image_path = os.path.join(tmpdir, image_name)
+            # Create an empty image file (content not used by parser)
+            open(image_path, "wb").close()
+
+            # Create COCO annotation JSON at dataset root, referencing the image with subdir in file_name
+            coco = {
+                "info": {},
+                "licenses": [],
+                "categories": [{"id": 1, "name": "thing"}],
+                "images": [
+                    {
+                        "id": 10000000,
+                        "file_name": image_relpath.replace(os.sep, "/"),
+                        "width": 800,
+                        "height": 533,
+                    }
+                ],
+                "annotations": [
+                    {
+                        "id": 1,
+                        "image_id": 10000000,
+                        "category_id": 1,
+                        "bbox": [10, 10, 100, 50],
+                        "area": 5000,
+                        "segmentation": [],
+                        "iscrowd": 0,
+                    }
+                ],
+            }
+            coco_path = os.path.join(tmpdir, "_annotations.coco.json")
+            with open(coco_path, "w") as f:
+                json.dump(coco, f)
+
+            parsed = folderparser.parsefolder(tmpdir)
+            # Image entries store file with a leading slash relative to root
+            expected_file_key = f"/{image_name}"
+            img_entries = [i for i in parsed["images"] if i["file"] == expected_file_key]
+            self.assertTrue(len(img_entries) == 1)
+            img_entry = img_entries[0]
+
+            # Expect annotationfile to be populated, but this currently fails due to basename-only matching
+            self.assertIsNotNone(img_entry.get("annotationfile"))
 
 
 def _assertJsonMatchesFile(actual, filename):
