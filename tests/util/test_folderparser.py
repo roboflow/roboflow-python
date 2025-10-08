@@ -148,7 +148,7 @@ class TestFolderParser(unittest.TestCase):
 
     def test_coco_root_annotation_matches_images_in_subdirs(self):
         """Test that COCO annotation at root can match images in subdirectories.
-        
+
         This tests the fix for the bug where annotation file dirname (/) didn't match
         image dirname (/1/100001), causing annotations to not be found.
         """
@@ -190,15 +190,15 @@ class TestFolderParser(unittest.TestCase):
                 json.dump(coco, f)
 
             parsed = folderparser.parsefolder(tmpdir)
-            
+
             # Find the image
             img_entries = [i for i in parsed["images"] if image_name in i["file"]]
             self.assertEqual(len(img_entries), 1, "Should find exactly one image")
             img_entry = img_entries[0]
-            
+
             # Verify annotation was matched
             self.assertIsNotNone(img_entry.get("annotationfile"), "Image should have annotation")
-            
+
             # Verify annotation content
             ann_data = json.loads(img_entry["annotationfile"]["rawText"])
             self.assertEqual(len(ann_data["images"]), 1, "Should have one image reference")
