@@ -191,9 +191,8 @@ def _build_image_and_annotation_maps(annotationFiles):
     imgRefMap = {}
     annotationMap = defaultdict(list)
     for annFile in annotationFiles:
-        filename, dirname, parsed, parsedType = (
+        filename, parsed, parsedType = (
             annFile["file"],
-            annFile["dirname"],
             annFile["parsed"],
             annFile["parsedType"],
         )
