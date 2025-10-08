@@ -112,11 +112,11 @@ def _map_annotations_to_images_1to1(images, annotations):
 
 def _map_annotations_to_images_1tomany(images, annotationFiles):
     imgRefMap, annotationMap = _build_image_and_annotation_maps(annotationFiles)
-    
+
     # Build a map from image file paths to annotation files that reference them
     # This avoids checking every annotation file for every image (O(n*m) -> O(n+m))
     image_path_to_annotation_files = _build_image_to_annotationfile_index(annotationFiles)
-    
+
     for image in tqdm(images):
         # Get candidate annotation files for this image
         rel_path = image["file"].lstrip("/")
@@ -126,12 +126,10 @@ def _map_annotations_to_images_1tomany(images, annotationFiles):
             or image_path_to_annotation_files.get(image["key"], [])
             or annotationFiles  # Fallback to all files for non-COCO formats
         )
-        
+
         for annotationFile in candidate_annotations:
             format = annotationFile["parsedType"]
-            filtered_annotations = _filterIndividualAnnotations(
-                image, annotationFile, format, imgRefMap, annotationMap
-            )
+            filtered_annotations = _filterIndividualAnnotations(image, annotationFile, format, imgRefMap, annotationMap)
             if filtered_annotations:
                 image["annotationfile"] = filtered_annotations
                 break
