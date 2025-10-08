@@ -111,11 +111,8 @@ def _map_annotations_to_images_1to1(images, annotations):
 
 
 def _map_annotations_to_images_1tomany(images, annotationFiles):
-    imgRefMap, annotationMap = _build_image_and_annotation_maps(annotationFiles)
-
-    # Build a map from image file paths to annotation files that reference them
-    # This avoids checking every annotation file for every image (O(n*m) -> O(n+m))
     image_path_to_annotation_files = _build_image_to_annotationfile_index(annotationFiles)
+    imgRefMap, annotationMap = _build_image_and_annotation_maps(annotationFiles)
 
     for image in tqdm(images):
         # Get candidate annotation files for this image

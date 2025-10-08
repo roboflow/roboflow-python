@@ -101,7 +101,7 @@ class TestFolderParser(unittest.TestCase):
         # COCO file_name includes a subdirectory, but the actual image is at dataset root.
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create nested image path: /2/100002/img.jpeg
-            image_name = "metaclip_2_100002_02f2f7c6e15f09b401575ae6.jpeg"
+            image_name = "example_2_100002_02f2f7c6e15f09b401575ae6.jpeg"
             image_relpath = os.path.join("2", "100002", image_name)
             image_path = os.path.join(tmpdir, image_name)
             # Create an empty image file (content not used by parser)
