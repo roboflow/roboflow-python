@@ -146,6 +146,65 @@ class TestFolderParser(unittest.TestCase):
             # Expect annotationfile to be populated, but this currently fails due to basename-only matching
             self.assertIsNotNone(img_entry.get("annotationfile"))
 
+    def test_coco_root_annotation_matches_images_in_subdirs(self):
+        """Test that COCO annotation at root can match images in subdirectories.
+        
+        This tests the fix for the bug where annotation file dirname (/) didn't match
+        image dirname (/1/100001), causing annotations to not be found.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create image in subdirectory
+            subdir = os.path.join(tmpdir, "1", "100001")
+            os.makedirs(subdir, exist_ok=True)
+            image_name = "image.jpeg"
+            image_path = os.path.join(subdir, image_name)
+            open(image_path, "wb").close()
+
+            # Create COCO annotation at root referencing image with subdirectory path
+            coco = {
+                "info": {},
+                "licenses": [],
+                "categories": [{"id": 1, "name": "object"}],
+                "images": [
+                    {
+                        "id": 10000000,
+                        "file_name": "1/100001/image.jpeg",
+                        "width": 800,
+                        "height": 600,
+                    }
+                ],
+                "annotations": [
+                    {
+                        "id": 1,
+                        "image_id": 10000000,
+                        "category_id": 1,
+                        "bbox": [10, 20, 100, 200],
+                        "area": 20000,
+                        "segmentation": [[10, 20, 110, 20, 110, 220, 10, 220]],
+                        "iscrowd": 0,
+                    }
+                ],
+            }
+            coco_path = os.path.join(tmpdir, "_annotations.coco.json")
+            with open(coco_path, "w") as f:
+                json.dump(coco, f)
+
+            parsed = folderparser.parsefolder(tmpdir)
+            
+            # Find the image
+            img_entries = [i for i in parsed["images"] if image_name in i["file"]]
+            self.assertEqual(len(img_entries), 1, "Should find exactly one image")
+            img_entry = img_entries[0]
+            
+            # Verify annotation was matched
+            self.assertIsNotNone(img_entry.get("annotationfile"), "Image should have annotation")
+            
+            # Verify annotation content
+            ann_data = json.loads(img_entry["annotationfile"]["rawText"])
+            self.assertEqual(len(ann_data["images"]), 1, "Should have one image reference")
+            self.assertEqual(len(ann_data["annotations"]), 1, "Should have one annotation")
+            self.assertEqual(ann_data["annotations"][0]["bbox"], [10, 20, 100, 200])
+
 
 def _assertJsonMatchesFile(actual, filename):
     with open(filename) as file:
