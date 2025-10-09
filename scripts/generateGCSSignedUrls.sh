@@ -38,14 +38,14 @@ find_service_account() {
             return 0
         fi
     fi
-    
+
     # If that doesn't work, try to find any service account in the project
     local sa_list=$(gcloud iam service-accounts list --format="value(email)" --limit=1 2>/dev/null)
     if [ -n "$sa_list" ]; then
         echo "$sa_list" | head -n 1
         return 0
     fi
-    
+
     return 1
 }
 
@@ -76,7 +76,7 @@ process_file() {
     if [ $? -eq 0 ] && [ -n "$signed_url_output" ]; then
         # Extract just the signed_url from the YAML output
         local signed_url=$(echo "$signed_url_output" | grep "signed_url:" | sed 's/signed_url: //')
-        
+
         if [ -n "$signed_url" ]; then
             # Extract the path after the bucket name and convert slashes to double underscores
             local path_part=$(echo "$object" | sed 's|gs://[^/]*/||')
