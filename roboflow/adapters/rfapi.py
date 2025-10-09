@@ -1,7 +1,7 @@
 import json
 import os
 import urllib
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 import requests
 from requests.exceptions import RequestException
@@ -58,6 +58,7 @@ def start_version_training(
     speed: Optional[str] = None,
     checkpoint: Optional[str] = None,
     model_type: Optional[str] = None,
+    epochs: Optional[int] = None,
 ):
     """
     Start a training job for a specific version.
@@ -66,7 +67,7 @@ def start_version_training(
     """
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}/train?api_key={api_key}&nocache=true"
 
-    data = {}
+    data: Dict[str, Union[str, int]] = {}
     if speed is not None:
         data["speed"] = speed
     if checkpoint is not None:
@@ -74,6 +75,8 @@ def start_version_training(
     if model_type is not None:
         # API expects camelCase
         data["modelType"] = model_type
+    if epochs is not None:
+        data["epochs"] = epochs
 
     response = requests.post(url, json=data)
     if not response.ok:
