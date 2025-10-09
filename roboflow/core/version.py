@@ -424,7 +424,13 @@ class Version:
                 else:
                     if len(epoch_ids) > 0:
                         title = (
-                                title + ": Epoch: " + str(epoch_ids[-1]) + " mAP: " + str(mAP[-1]) + " loss: " + str(loss[-1])
+                            title
+                            + ": Epoch: "
+                            + str(epoch_ids[-1])
+                            + " mAP: "
+                            + str(mAP[-1])
+                            + " loss: "
+                            + str(loss[-1])
                         )
                     if not first_graph_write:
                         write_line(title)

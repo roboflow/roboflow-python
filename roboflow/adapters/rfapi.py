@@ -1,7 +1,7 @@
 import json
 import os
 import urllib
-from typing import List, Optional, Dict, Union
+from typing import Dict, List, Optional, Union
 
 import requests
 from requests.exceptions import RequestException
