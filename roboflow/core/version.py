@@ -296,7 +296,9 @@ class Version:
         else:
             raise RuntimeError(f"Unexpected export {export_info}")
 
-    def train(self, speed=None, model_type=None, checkpoint=None, plot_in_notebook=False, epochs=None) -> InferenceModel:
+    def train(
+        self, speed=None, model_type=None, checkpoint=None, plot_in_notebook=False, epochs=None
+    ) -> InferenceModel:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
 
