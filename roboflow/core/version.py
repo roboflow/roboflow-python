@@ -307,7 +307,7 @@ class Version:
             model_type: The type of model to train. Default depends on kind of project. It takes precedence over speed. You can check the list of model ids by sending an invalid parameter in this argument.
             checkpoint: A string representing the checkpoint to use while training
             epochs: Number of epochs to train the model
-            plot: Whether to plot the training results. Default is `False`.
+            plot_in_notebook: Whether to plot the training results. Default is `False`.
 
         Returns:
             An instance of the trained model class
@@ -389,7 +389,7 @@ class Version:
                         write_line(line="Training failed")
                         break
 
-            epochs: Union[np.ndarray, list]
+            epoch_ids: Union[np.ndarray, list]
             mAP: Union[np.ndarray, list]
             loss: Union[np.ndarray, list]
 
@@ -397,7 +397,7 @@ class Version:
                 import numpy as np
 
                 # training has started
-                epochs = np.array([int(epoch["epoch"]) for epoch in models["roboflow-train"]["epochs"]])
+                epoch_ids = np.array([int(epoch["epoch"]) for epoch in models["roboflow-train"]["epochs"]])
                 mAP = np.array([float(epoch["mAP"]) for epoch in models["roboflow-train"]["epochs"]])
                 loss = np.array(
                     [
@@ -414,23 +414,23 @@ class Version:
                     num_machine_spin_dots = ["."]
                 title = "Training Machine Spinning Up" + "".join(num_machine_spin_dots)
 
-                epochs = []
+                epoch_ids = []
                 mAP = []
                 loss = []
 
-            if (len(epochs) > len(previous_epochs)) or (len(epochs) == 0):
+            if (len(epoch_ids) > len(previous_epochs)) or (len(epoch_ids) == 0):
                 if plot_in_notebook:
-                    live_plot(epochs, mAP, loss, title)
+                    live_plot(epoch_ids, mAP, loss, title)
                 else:
-                    if len(epochs) > 0:
+                    if len(epoch_ids) > 0:
                         title = (
-                            title + ": Epoch: " + str(epochs[-1]) + " mAP: " + str(mAP[-1]) + " loss: " + str(loss[-1])
+                                title + ": Epoch: " + str(epoch_ids[-1]) + " mAP: " + str(mAP[-1]) + " loss: " + str(loss[-1])
                         )
                     if not first_graph_write:
                         write_line(title)
                         first_graph_write = True
 
-            previous_epochs = copy.deepcopy(epochs)
+            previous_epochs = copy.deepcopy(epoch_ids)
 
             time.sleep(5)
 

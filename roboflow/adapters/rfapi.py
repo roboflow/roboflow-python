@@ -1,7 +1,7 @@
 import json
 import os
 import urllib
-from typing import List, Optional
+from typing import List, Optional, Dict, Union
 
 import requests
 from requests.exceptions import RequestException
@@ -67,7 +67,7 @@ def start_version_training(
     """
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}/train?api_key={api_key}&nocache=true"
 
-    data = {}
+    data: Dict[str, Union[str, int]] = {}
     if speed is not None:
         data["speed"] = speed
     if checkpoint is not None:
