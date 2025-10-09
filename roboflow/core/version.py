@@ -296,7 +296,7 @@ class Version:
         else:
             raise RuntimeError(f"Unexpected export {export_info}")
 
-    def train(self, speed=None, model_type=None, checkpoint=None, plot_in_notebook=False) -> InferenceModel:
+    def train(self, speed=None, model_type=None, checkpoint=None, plot_in_notebook=False, epochs=None) -> InferenceModel:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
 
@@ -304,6 +304,7 @@ class Version:
             speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
             model_type: The type of model to train. Default depends on kind of project. It takes precedence over speed. You can check the list of model ids by sending an invalid parameter in this argument.
             checkpoint: A string representing the checkpoint to use while training
+            epochs: Number of epochs to train the model
             plot: Whether to plot the training results. Default is `False`.
 
         Returns:
@@ -336,6 +337,7 @@ class Version:
             speed=payload_speed,
             checkpoint=payload_checkpoint,
             model_type=payload_model_type,
+            epochs=epochs,
         )
 
         status = "training"
