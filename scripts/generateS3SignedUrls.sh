@@ -3,7 +3,7 @@
 # Script to generate S3 signed URLs for image files in JSONL format
 # Usage: ./generateS3SignedUrls.sh <s3-path> [output-file] [expiration-seconds] [parallel-jobs]
 # Or with curl:
-# curl -fsSL https://gist.githubusercontent.com/tonylampada/20b7bc984a455f53e2d07f88b33bf43c/raw/generateS3SignedUrls.sh | bash -s --  s3://bucket/path output.jsonl
+# curl -fsSL https://raw.githubusercontent.com/roboflow/roboflow-python/main/scripts/generateS3SignedUrls.sh | bash -s --  s3://bucket/path output.jsonl
 
 set -e
 
