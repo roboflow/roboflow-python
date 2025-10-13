@@ -78,7 +78,10 @@ def _describe_file(f):
     name = f.split("/")[-1]
     dirname = os.path.dirname(f)
     fullkey, extension = os.path.splitext(f)
-    fullkey2 = fullkey.replace("/labels", "").replace("/images", "")
+    # Use case-insensitive replacement to support various directory naming conventions
+    # (e.g., "Images", "images", "IMAGES", "Labels", "labels", "LABELS")
+    fullkey2 = re.sub(r"/labels", "", fullkey, flags=re.IGNORECASE)
+    fullkey2 = re.sub(r"/images", "", fullkey2, flags=re.IGNORECASE)
     key = os.path.splitext(name)[0]
     return {
         "file": f,
