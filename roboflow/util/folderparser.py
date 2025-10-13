@@ -111,45 +111,123 @@ def _map_annotations_to_images_1to1(images, annotations):
 
 
 def _map_annotations_to_images_1tomany(images, annotationFiles):
-    annotationsByDirname = _list_map(annotationFiles, "dirname")
+    image_path_to_annotation_files = _build_image_to_annotationfile_index(annotationFiles)
     imgRefMap, annotationMap = _build_image_and_annotation_maps(annotationFiles)
 
     for image in tqdm(images):
-        dirname = image["dirname"]
-        annotationsInSameDir = annotationsByDirname.get(dirname, [])
-        if annotationsInSameDir:
-            for annotationFile in annotationsInSameDir:
-                format = annotationFile["parsedType"]
-                filtered_annotations = _filterIndividualAnnotations(
-                    image, annotationFile, format, imgRefMap, annotationMap
-                )
-                if filtered_annotations:
-                    image["annotationfile"] = filtered_annotations
-                    break
+        # Get candidate annotation files for this image
+        rel_path = image["file"].lstrip("/")
+        candidate_annotations = (
+            image_path_to_annotation_files.get(rel_path, [])
+            or image_path_to_annotation_files.get(image["name"], [])
+            or image_path_to_annotation_files.get(image["key"], [])
+            or annotationFiles  # Fallback to all files for non-COCO formats
+        )
+
+        for annotationFile in candidate_annotations:
+            format = annotationFile["parsedType"]
+            filtered_annotations = _filterIndividualAnnotations(image, annotationFile, format, imgRefMap, annotationMap)
+            if filtered_annotations:
+                image["annotationfile"] = filtered_annotations
+                break
+
+
+def _build_image_to_annotationfile_index(annotationFiles):
+    """Create an index mapping possible image path keys to annotation files that reference them.
+
+    Keys include full relative path, basename, and stem to improve robustness across
+    different dataset layouts. Supports coco, createml, csv, multilabel_csv, jsonl.
+    """
+    index = defaultdict(list)
+    for annotationFile in annotationFiles:
+        parsedType = annotationFile.get("parsedType")
+        parsed = annotationFile.get("parsed")
+        if not parsedType or parsed is None:
+            continue
+
+        if parsedType == "coco":
+            for imageRef in parsed.get("images", []):
+                file_name = _patch_sep(imageRef.get("file_name", "")).lstrip("/")
+                if not file_name:
+                    continue
+                basename = os.path.basename(file_name)
+                stem = os.path.splitext(basename)[0]
+                index[file_name].append(annotationFile)
+                index[basename].append(annotationFile)
+                index[stem].append(annotationFile)
+
+        elif parsedType == "createml":
+            for entry in parsed:
+                image_name = entry.get("image")
+                if not image_name:
+                    continue
+                index[image_name].append(annotationFile)
+
+        elif parsedType == "csv":
+            for ld in parsed.get("lines", []):
+                image_name = ld.get("file_name")
+                if not image_name:
+                    continue
+                index[image_name].append(annotationFile)
+
+        elif parsedType == "multilabel_csv":
+            for row in parsed.get("rows", []):
+                image_name = row.get("file_name")
+                if not image_name:
+                    continue
+                index[image_name].append(annotationFile)
+
+        elif parsedType == "jsonl":
+            for entry in parsed:
+                image_name = entry.get("image")
+                if not image_name:
+                    continue
+                index[image_name].append(annotationFile)
+
+    return index
 
 
 def _build_image_and_annotation_maps(annotationFiles):
     imgRefMap = {}
     annotationMap = defaultdict(list)
     for annFile in annotationFiles:
-        filename, dirname, parsed, parsedType = (
+        filename, parsed, parsedType = (
             annFile["file"],
-            annFile["dirname"],
             annFile["parsed"],
             annFile["parsedType"],
         )
         if parsedType == "coco":
             for imageRef in parsed["images"]:
-                imgRefMap[f"{filename}/{imageRef['file_name']}"] = imageRef
+                # Normalize and index by multiple forms to improve matching robustness
+                file_name = _patch_sep(imageRef["file_name"]).lstrip("/")
+                basename = os.path.basename(file_name)
+                stem = os.path.splitext(basename)[0]
+
+                # Prefer full relative path, but also allow basename and stem
+                imgRefMap.update(
+                    {
+                        f"{filename}/{file_name}": imageRef,
+                        f"{filename}/{basename}": imageRef,
+                        f"{filename}/{stem}": imageRef,
+                    }
+                )
             for annotation in parsed["annotations"]:
-                annotationMap[f"{dirname}/{annotation['image_id']}"].append(annotation)
+                annotationMap[f"{filename}/{annotation['image_id']}"].append(annotation)
     return imgRefMap, annotationMap
 
 
 def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotationMap):
     parsed = annotation["parsed"]
     if format == "coco":
-        imgReference = imgRefMap.get(f"{annotation['file']}/{image['name']}")
+        rel_path = image["file"].lstrip("/")
+        imgReference = (
+            # Try matching by full relative path first
+            imgRefMap.get(f"{annotation['file']}/{rel_path}")
+            # Fallback: basename with extension
+            or imgRefMap.get(f"{annotation['file']}/{image['name']}")
+            # Fallback: stem (no extension)
+            or imgRefMap.get(f"{annotation['file']}/{image['key']}")
+        )
         if imgReference:
             # workaround to make Annotations.js correctly identify this as coco in the backend
             fake_annotation = {
@@ -161,7 +239,7 @@ def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotatio
                 "iscrowd": 0,
             }
             _annotation = {"name": "annotation.coco.json"}
-            annotations_for_image = annotationMap.get(f"{image['dirname']}/{imgReference['id']}", [])
+            annotations_for_image = annotationMap.get(f"{annotation['file']}/{imgReference['id']}", [])
             _annotation["rawText"] = json.dumps(
                 {
                     "info": parsed["info"],
@@ -312,13 +390,6 @@ def _decide_split(images):
             i["split"] = "test"
         else:
             i["split"] = "train"
-
-
-def _list_map(my_list, key):
-    d = {}
-    for i in my_list:
-        d.setdefault(i[key], []).append(i)
-    return d
 
 
 def _infer_classification_labels_from_folders(images):
