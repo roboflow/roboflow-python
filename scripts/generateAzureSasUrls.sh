@@ -52,7 +52,7 @@ process_blob() {
     local storage_account="$2"
     local container="$3"
     local expiry="$4"
-    
+
     # Generate SAS token for the specific blob (redirect stderr to suppress warnings)
     local sas_token=$(az storage blob generate-sas \
         --account-name "$storage_account" \
@@ -63,14 +63,14 @@ process_blob() {
         --https-only \
         --auth-mode key \
         --output tsv 2>/dev/null)
-    
+
     if [ $? -eq 0 ]; then
         # Construct the full URL with SAS token
         local signed_url="https://${storage_account}.blob.core.windows.net/${container}/${blob_name}?${sas_token}"
-        
+
         # Create name with full path using double underscores instead of slashes
         local name_with_path=$(echo "$blob_name" | sed 's|/|__|g')
-        
+
         # Output JSONL
         echo "{\"name\": \"$name_with_path\", \"url\": \"$signed_url\"}"
     fi
@@ -82,7 +82,7 @@ process_blob_with_connection() {
     local storage_account="$2"
     local container="$3"
     local expiry="$4"
-    
+
     # Generate SAS token using connection string if AZURE_STORAGE_CONNECTION_STRING is set
     if [ -n "$AZURE_STORAGE_CONNECTION_STRING" ]; then
         local sas_token=$(az storage blob generate-sas \
@@ -104,7 +104,7 @@ process_blob_with_connection() {
             --https-only \
             --output tsv 2>/dev/null)
     fi
-    
+
     if [ $? -eq 0 ]; then
         local signed_url="https://${storage_account}.blob.core.windows.net/${container}/${blob_name}?${sas_token}"
         local name_with_path=$(echo "$blob_name" | sed 's|/|__|g')
