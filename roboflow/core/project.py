@@ -969,3 +969,31 @@ class Project:
                 raise RuntimeError(f"Failed to get batch {batch_id}: {response.text}")
 
         return response.json()
+
+    def delete_images(self, image_ids: List[str]):
+        """
+        Delete images from a project.
+
+        Args:
+            image_ids (List[str]): A list of image IDs to delete.
+
+        Example:
+            >>> import roboflow
+            >>> rf = roboflow.Roboflow(api_key="")
+            >>> project = rf.workspace().project("PROJECT_ID")
+            >>> project.delete_images(image_ids=["image_id_1", "image_id_2"])
+        """
+        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/images?api_key={self.__api_key}"
+
+        payload = {"images": image_ids}
+
+        response = requests.delete(url, headers={"Content-Type": "application/json"}, json=payload)
+
+        if response.status_code != 204:
+            try:
+                error_data = response.json()
+                if "error" in error_data:
+                    raise RuntimeError(error_data["error"])
+                raise RuntimeError(response.text)
+            except ValueError:
+                raise RuntimeError(f"Failed to delete images: {response.text}")
