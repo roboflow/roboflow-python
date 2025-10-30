@@ -591,6 +591,49 @@ class TestProject(RoboflowTest):
 
         self.assertEqual(str(context.exception), "Batch not found")
 
+    def test_delete_images_success(self):
+        image_ids = ["image1.jpg", "image2.jpg"]
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/images?api_key={ROBOFLOW_API_KEY}"
+
+        responses.add(
+            responses.DELETE,
+            expected_url,
+            status=204,
+            match=[
+                json_params_matcher(
+                    {
+                        "images": image_ids,
+                    }
+                )
+            ],
+        )
+
+        self.project.delete_images(image_ids=image_ids)
+
+    def test_delete_images_error(self):
+        image_ids = ["image1.jpg", "image2.jpg"]
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/images?api_key={ROBOFLOW_API_KEY}"
+        error_response = {"error": "Failed to delete images"}
+
+        responses.add(
+            responses.DELETE,
+            expected_url,
+            json=error_response,
+            status=400,
+            match=[
+                json_params_matcher(
+                    {
+                        "images": image_ids,
+                    }
+                )
+            ],
+        )
+
+        with self.assertRaises(RuntimeError) as context:
+            self.project.delete_images(image_ids=image_ids)
+
+        self.assertEqual(str(context.exception), "Failed to delete images")
+
     def test_classification_dataset_upload(self):
         from roboflow.util import folderparser
 
