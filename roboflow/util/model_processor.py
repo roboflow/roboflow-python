@@ -271,7 +271,6 @@ def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
 def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str):
     class_names_path = os.path.join(model_path, "class_names.txt")
     if os.path.exists(class_names_path):
-        maybe_prepend_dummy_class(class_names_path)
         return class_names_path
 
     import torch
@@ -282,7 +281,6 @@ def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str):
         with open(class_names_path, "w") as f:
             for class_name in args["class_names"]:
                 f.write(class_name + "\n")
-        maybe_prepend_dummy_class(class_names_path)
         return class_names_path
 
     raise FileNotFoundError(
@@ -292,17 +290,6 @@ def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str):
         f"please create a class_names.txt file in the model path with the class names\n"
         f"in new lines in the order of the classes in the model.\n"
     )
-
-
-def maybe_prepend_dummy_class(class_name_file: str):
-    with open(class_name_file) as f:
-        class_names = f.readlines()
-
-    dummy_class = "background_class83422\n"
-    if dummy_class not in class_names:
-        class_names.insert(0, dummy_class)
-        with open(class_name_file, "w") as f:
-            f.writelines(class_names)
 
 
 def _process_huggingface(
