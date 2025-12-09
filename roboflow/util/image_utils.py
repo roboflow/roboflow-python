@@ -5,8 +5,8 @@ import os
 import urllib
 
 # Third-party imports
-import pi_heif  # type: ignore[import-untyped]
-import pillow_avif  # type: ignore[import-untyped]
+import pi_heif  # type: ignore[import-untyped, import-not-found]
+import pillow_avif  # type: ignore[import-untyped, import-not-found]
 import requests
 import yaml
 from PIL import Image
