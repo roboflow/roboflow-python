@@ -87,7 +87,7 @@ class Workspace:
             return Project(self.__api_key, {}, self.model_format)
 
         if not project_id:
-            raise RuntimeError(f"Project id is required but none was specified.")
+            raise RuntimeError("Project id is required but none was specified.")
 
         if "/" in project_id:
             raise RuntimeError(f"{project_id=} cannot contain a '/', use workspace argument to change the URL.")
