@@ -86,10 +86,11 @@ class Workspace:
         if self.__api_key in DEMO_KEYS:
             return Project(self.__api_key, {}, self.model_format)
 
-        # project_id = project_id.replace(self.url + "/", "")
+        if not project_id:
+            raise RuntimeError(f"Project id is required but none was specified.")
 
         if "/" in project_id:
-            raise RuntimeError(f"The {project_id} project is not available in this ({self.url}) workspace")
+            raise RuntimeError(f"{project_id=} cannot contain a '/', use workspace argument to change the URL.")
 
         dataset_info = rfapi.get_project(self.__api_key, self.url, project_id)
         dataset_info = dataset_info["project"]
