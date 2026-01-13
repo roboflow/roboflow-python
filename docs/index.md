@@ -66,7 +66,7 @@ rf = roboflow.Roboflow(api_key="")
 Below are some common methods used with the Roboflow Python package, presented concisely for reference. For a full library reference, refer to the [Roboflow API reference documentation](https://docs.roboflow.com/api-reference).
 
 ```python
-import roboflow 
+import roboflow
 
 # Pass API key or use roboflow.login()
 rf = roboflow.Roboflow(api_key="MY_API_KEY")
