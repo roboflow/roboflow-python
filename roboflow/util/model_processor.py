@@ -24,6 +24,7 @@ def _get_processor_function(model_type: str) -> Callable:
         "yolov10",
         "yolov11",
         "yolov12",
+        "yolo26",
         "yolonas",
         "paligemma",
         "paligemma2",
@@ -132,6 +133,17 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
         print_warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.3.63")], ask_to_continue=True)
 
+    elif "yolo26" in model_type:
+        try:
+            import torch
+            import ultralytics
+
+        except ImportError:
+            raise RuntimeError(
+                "The ultralytics python package is required to deploy yolo26"
+                " models. Please install it with `pip install ultralytics`"
+            )
+
     model = torch.load(os.path.join(model_path, filename), weights_only=False)
 
     model_instance = model["model"] if "model" in model and model["model"] is not None else model["ema"]
@@ -145,13 +157,20 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
         class_names.sort(key=lambda x: x[0])
         class_names = [x[1] for x in class_names]
 
-    if "yolov8" in model_type or "yolov10" in model_type or "yolov11" in model_type or "yolov12" in model_type:
+    if (
+        "yolov8" in model_type
+        or "yolov10" in model_type
+        or "yolov11" in model_type
+        or "yolov12" in model_type
+        or "yolo26" in model_type
+    ):
         # try except for backwards compatibility with older versions of ultralytics
         if (
             "-cls" in model_type
             or model_type.startswith("yolov10")
             or model_type.startswith("yolov11")
             or model_type.startswith("yolov12")
+            or model_type.startswith("yolo26")
         ):
             nc = model_instance.yaml["nc"]
             args = model["train_args"]
