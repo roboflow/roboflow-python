@@ -157,7 +157,13 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
         class_names.sort(key=lambda x: x[0])
         class_names = [x[1] for x in class_names]
 
-    if "yolov8" in model_type or "yolov10" in model_type or "yolov11" in model_type or "yolov12" in model_type or "yolo26" in model_type:
+    if (
+        "yolov8" in model_type
+        or "yolov10" in model_type
+        or "yolov11" in model_type
+        or "yolov12" in model_type
+        or "yolo26" in model_type
+    ):
         # try except for backwards compatibility with older versions of ultralytics
         if (
             "-cls" in model_type
