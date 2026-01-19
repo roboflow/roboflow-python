@@ -10,6 +10,7 @@ from PIL import Image
 from roboflow.config import (
     CLASSIFICATION_MODEL,
     INSTANCE_SEGMENTATION_MODEL,
+    KEYPOINT_DETECTION_MODEL,
     OBJECT_DETECTION_MODEL,
     PREDICTION_OBJECT,
     SEMANTIC_SEGMENTATION_MODEL,
@@ -509,7 +510,7 @@ class PredictionGroup:
         colors = {} if colors is None else colors
         prediction_list = []
 
-        if prediction_type in [OBJECT_DETECTION_MODEL, INSTANCE_SEGMENTATION_MODEL]:
+        if prediction_type in [OBJECT_DETECTION_MODEL, INSTANCE_SEGMENTATION_MODEL, KEYPOINT_DETECTION_MODEL]:
             for prediction in json_response["predictions"]:
                 prediction = Prediction(
                     prediction,
