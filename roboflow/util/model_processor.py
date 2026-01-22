@@ -246,12 +246,21 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
 
 def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
     _supported_types = [
+        # Detection models
         "rfdetr-base",
-        "rfdetr-large",
         "rfdetr-nano",
         "rfdetr-small",
         "rfdetr-medium",
-        "rfdetr-seg-preview",
+        "rfdetr-large",
+        "rfdetr-xlarge",
+        "rfdetr-2xlarge",
+        # Segmentation models
+        "rfdetr-seg-nano",
+        "rfdetr-seg-small",
+        "rfdetr-seg-medium",
+        "rfdetr-seg-large",
+        "rfdetr-seg-xlarge",
+        "rfdetr-seg-2xlarge",
     ]
     if model_type not in _supported_types:
         raise ValueError(f"Model type {model_type} not supported. Supported types are {_supported_types}")
