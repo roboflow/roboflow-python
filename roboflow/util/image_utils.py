@@ -12,7 +12,7 @@ from PIL import Image
 
 # pi-heif requires Python 3.10+
 try:
-    import pi_heif  # type: ignore[import-untyped]
+    import pi_heif  # type: ignore[import-untyped,import-not-found]
 
     pi_heif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
 except ImportError:
