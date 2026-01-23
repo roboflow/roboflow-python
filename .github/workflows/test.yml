@@ -26,6 +26,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: 📦 Install libheif (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install -y libheif-dev
       - name: 🦾 Install dependencies
         run: |
           python -m pip install --upgrade pip
