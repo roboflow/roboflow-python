@@ -672,7 +672,9 @@ class Project:
             batch_id (str): batch id that an image must be in
             annotation_job (bool): whether the image must be in an annotation job
             annotation_job_id (str): annotation job id that an image must be in
-            fields (list): fields to return in results (default: ["id", "created", "name", "labels"])
+            fields (list): fields to return in results (default: ["id", "created", "name", "labels"]).
+                Available fields: id, name, created, annotations, labels, split, tags, owner,
+                embedding, user_metadata.
 
         Returns:
             A list of images that match the search criteria.
@@ -684,7 +686,14 @@ class Project:
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> results = project.search(query="cat", limit=10)
+            >>> # Basic search
+            >>> results = project.search(prompt="cat", limit=10)
+
+            >>> # Search with tags and user_metadata
+            >>> results = project.search(
+            ...     limit=10,
+            ...     fields=["id", "name", "tags", "user_metadata"]
+            ... )
         """  # noqa: E501 // docs
         if fields is None:
             fields = ["id", "created", "name", "labels"]
@@ -764,10 +773,12 @@ class Project:
             batch_id (str): batch id that an image must be in
             annotation_job (bool): whether the image must be in an annotation job
             annotation_job_id (str): annotation job id that an image must be in
-            fields (list): fields to return in results (default: ["id", "created", "name", "labels"])
+            fields (list): fields to return in results (default: ["id", "created"]).
+                Available fields: id, name, created, annotations, labels, split, tags, owner,
+                embedding, user_metadata.
 
         Returns:
-            A list of images that match the search criteria.
+            A generator yielding images that match the search criteria.
 
         Example:
             >>> import roboflow
@@ -776,10 +787,9 @@ class Project:
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> results = project.search_all(query="cat", limit=10)
+            >>> results = project.search_all(prompt="cat", limit=10)
 
             >>> for result in results:
-
             >>>     print(result)
         """  # noqa: E501 // docs
         if fields is None:
