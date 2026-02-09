@@ -104,20 +104,18 @@ Below are some common methods used with the Roboflow Python package, presented c
 ```python
 import roboflow
 
-roboflow.login()
+# Pass API key or use roboflow.login()
+rf = roboflow.Roboflow(api_key="MY_API_KEY")
 
-rf = roboflow.Roboflow()
+workspace = rf.workspace()
 
-# create a project
-rf.create_project(
-    project_name="project name",
-    project_type="project-type",
-    license="project-license" # "private" for private projects
+# creating object detection model that will detect flowers
+project = workspace.create_project(
+    project_name="Flower detector",
+    project_type="object-detection", # Or "classification", "instance-segmentation", "semantic-segmentation"
+    project_license="MIT", # "private" for private projects, only available for paid customers
+    annotation="flowers" # If you plan to annotate lillys, sunflowers, etc.
 )
-
-workspace = rf.workspace("WORKSPACE_URL")
-project = workspace.project("PROJECT_URL")
-version = project.version("VERSION_NUMBER")
 
 # upload a dataset
 workspace.upload_dataset(
@@ -128,12 +126,9 @@ workspace.upload_dataset(
     project_type="object-detection"
 )
 
-# upload model weights
-version.deploy(model_type="yolov8", model_path=f”{HOME}/runs/detect/train/”)
+version = project.version("VERSION_NUMBER")
 
 # upload model weights - yolov10
-# Before attempting to upload YOLOv10 models install ultralytics like this:
-# pip install git+https://github.com/THU-MIG/yolov10.git
 version.deploy(model_type="yolov10", model_path=f”{HOME}/runs/detect/train/”, filename="weights.pt")
 
 # run inference
