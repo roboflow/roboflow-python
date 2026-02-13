@@ -152,6 +152,52 @@ def get_version_export(
     return payload
 
 
+def start_search_export(
+    api_key: str,
+    workspace_url: str,
+    query: str,
+    format: str,
+    dataset: Optional[str] = None,
+    annotation_group: Optional[str] = None,
+    name: Optional[str] = None,
+) -> str:
+    """Start a search export job.
+
+    Returns the export_id string used to poll for completion.
+
+    Raises RoboflowError on non-202 responses.
+    """
+    url = f"{API_URL}/{workspace_url}/search/export?api_key={api_key}"
+    body: Dict[str, str] = {"query": query, "format": format}
+    if dataset is not None:
+        body["dataset"] = dataset
+    if annotation_group is not None:
+        body["annotationGroup"] = annotation_group
+    if name is not None:
+        body["name"] = name
+
+    response = requests.post(url, json=body)
+    if response.status_code != 202:
+        raise RoboflowError(response.text)
+
+    payload = response.json()
+    return payload["link"]
+
+
+def get_search_export(api_key: str, workspace_url: str, export_id: str) -> dict:
+    """Poll the status of a search export job.
+
+    Returns dict with ``ready`` (bool) and ``link`` (str, present when ready).
+
+    Raises RoboflowError on non-200 responses.
+    """
+    url = f"{API_URL}/{workspace_url}/search/export/{export_id}?api_key={api_key}"
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
 def upload_image(
     api_key,
     project_url,

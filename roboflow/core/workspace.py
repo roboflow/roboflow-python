@@ -5,10 +5,14 @@ import glob
 import json
 import os
 import sys
+import time
+import zipfile
 from typing import Any, Dict, List, Optional
 
 import requests
 from PIL import Image
+from requests.exceptions import HTTPError
+from tqdm import tqdm
 
 from roboflow.adapters import rfapi
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
@@ -661,6 +665,119 @@ class Workspace:
 
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
+
+    def search_export(
+        self,
+        query: str,
+        format: str = "coco",
+        location: Optional[str] = None,
+        dataset: Optional[str] = None,
+        annotation_group: Optional[str] = None,
+        name: Optional[str] = None,
+        extract_zip: bool = True,
+    ) -> str:
+        """Export search results as a downloaded dataset.
+
+        Args:
+            query: Search query string (e.g. ``"tag:annotate"`` or ``"*"``).
+            format: Annotation format for the export (default ``"coco"``).
+            location: Local directory to save the exported dataset.
+                Defaults to ``./search-export-{format}``.
+            dataset: Limit export to a specific dataset (project) slug.
+            annotation_group: Limit export to a specific annotation group.
+            name: Optional name for the export.
+            extract_zip: If True (default), extract the zip and remove it.
+                If False, keep the zip file as-is.
+
+        Returns:
+            Absolute path to the extracted directory or the zip file.
+
+        Raises:
+            ValueError: If both *dataset* and *annotation_group* are provided.
+            RoboflowError: On API errors or export timeout.
+        """
+        if dataset is not None and annotation_group is not None:
+            raise ValueError("dataset and annotation_group are mutually exclusive; provide only one")
+
+        if location is None:
+            location = f"./search-export-{format}"
+        location = os.path.abspath(location)
+
+        # 1. Start the export
+        export_id = rfapi.start_search_export(
+            api_key=self.__api_key,
+            workspace_url=self.url,
+            query=query,
+            format=format,
+            dataset=dataset,
+            annotation_group=annotation_group,
+            name=name,
+        )
+        print(f"Export started (id={export_id}). Polling for completion...")
+
+        # 2. Poll until ready
+        timeout = 600
+        poll_interval = 5
+        elapsed = 0
+        while elapsed < timeout:
+            status = rfapi.get_search_export(
+                api_key=self.__api_key,
+                workspace_url=self.url,
+                export_id=export_id,
+            )
+            if status.get("ready"):
+                break
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+        else:
+            raise RoboflowError(f"Search export timed out after {timeout}s")
+
+        download_url = status["link"]
+
+        # 3. Download zip
+        if not os.path.exists(location):
+            os.makedirs(location)
+
+        zip_path = os.path.join(location, "roboflow.zip")
+        response = requests.get(download_url, stream=True)
+        try:
+            response.raise_for_status()
+        except HTTPError as e:
+            raise RoboflowError(f"Failed to download search export: {e}")
+
+        total_length = response.headers.get("content-length")
+        try:
+            total_kib = int(total_length) // 1024 + 1 if total_length is not None else None
+        except (TypeError, ValueError):
+            total_kib = None
+        with open(zip_path, "wb") as f:
+            for chunk in tqdm(
+                response.iter_content(chunk_size=1024),
+                desc=f"Downloading search export to {location}",
+                total=total_kib,
+            ):
+                if chunk:
+                    f.write(chunk)
+                    f.flush()
+
+        if extract_zip:
+            desc = f"Extracting search export to {location}"
+            try:
+                with zipfile.ZipFile(zip_path, "r") as zip_ref:
+                    for member in tqdm(zip_ref.infolist(), desc=desc):
+                        try:
+                            zip_ref.extract(member, location)
+                        except zipfile.error:
+                            raise RoboflowError("Error unzipping search export")
+            except zipfile.BadZipFile:
+                raise RoboflowError(f"Downloaded file is not a valid zip archive: {zip_path}")
+
+            os.remove(zip_path)
+            print(f"Search export extracted to {location}")
+            return location
+        else:
+            print(f"Search export saved to {zip_path}")
+            return zip_path
 
     def __str__(self):
         projects = self.projects()
