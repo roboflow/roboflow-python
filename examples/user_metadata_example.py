@@ -24,13 +24,11 @@ Usage:
     python user_metadata_example.py
 """
 
-import os
-import json
 import glob
-
+import json
+import os
 
 from roboflow import Roboflow
-
 
 # =============================================================================
 # Configuration
