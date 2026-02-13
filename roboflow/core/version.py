@@ -682,4 +682,4 @@ class Version:
 
 
 def unwrap_version_id(version_id: str) -> str:
-    return version_id if "/" not in str(version_id) else version_id.split("/")[-1]
+    return version_id if "/" not in str(version_id) else version_id.rsplit("/", maxsplit=1)[-1]
