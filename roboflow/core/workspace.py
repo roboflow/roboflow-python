@@ -6,7 +6,6 @@ import json
 import os
 import sys
 import time
-import zipfile
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -20,6 +19,7 @@ from roboflow.config import API_URL, APP_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
 from roboflow.util import folderparser
 from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
+from roboflow.util.general import extract_zip as _extract_zip
 from roboflow.util.image_utils import load_labelmap
 from roboflow.util.model_processor import process
 from roboflow.util.two_stage_utils import ocr_infer
@@ -761,18 +761,7 @@ class Workspace:
                     f.flush()
 
         if extract_zip:
-            desc = f"Extracting search export to {location}"
-            try:
-                with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                    for member in tqdm(zip_ref.infolist(), desc=desc):
-                        try:
-                            zip_ref.extract(member, location)
-                        except zipfile.error:
-                            raise RoboflowError("Error unzipping search export")
-            except zipfile.BadZipFile:
-                raise RoboflowError(f"Downloaded file is not a valid zip archive: {zip_path}")
-
-            os.remove(zip_path)
+            _extract_zip(location, desc=f"Extracting search export to {location}")
             print(f"Search export extracted to {location}")
             return location
         else:
