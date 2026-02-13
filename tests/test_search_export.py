@@ -5,8 +5,8 @@ import unittest
 import zipfile
 from unittest.mock import MagicMock, patch
 
-import responses
 import requests
+import responses
 
 from roboflow.adapters.rfapi import RoboflowError, get_search_export, start_search_export
 from roboflow.config import API_URL
