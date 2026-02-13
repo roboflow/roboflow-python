@@ -23,9 +23,9 @@ API SUPPORT:
    - Returns metadata in the 'metadata' field
    - Example: {'material': 'aluminium', 'yummy': 3, 'penguin': 2}
 """
+
 import os
 import sys
-import json
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
 os.environ["ROBOFLOW_CONFIG_DIR"] = f"{thisdir}/data/.config"
@@ -71,7 +71,7 @@ def test_search_and_image_api():
     for i, img in enumerate(results_tags):
         print(f"\nImage {i}: {img.get('name', 'unknown')}")
         print(f"  Keys: {list(img.keys())}")
-        if 'tags' in img:
+        if "tags" in img:
             print(f"  ✅ tags: {img['tags']}")
 
     print("\n" + "=" * 60)
@@ -83,10 +83,10 @@ def test_search_and_image_api():
         for i, img in enumerate(results_metadata):
             print(f"\nImage {i}: {img.get('name', 'unknown')}")
             print(f"  Keys: {list(img.keys())}")
-            if 'user_metadata' in img:
+            if "user_metadata" in img:
                 print(f"  ✅ user_metadata: {img['user_metadata']}")
             else:
-                print(f"  ❌ No user_metadata in response")
+                print("  ❌ No user_metadata in response")
     except Exception as e:
         print(f"  ⚠️  Error: {e}")
         print("  (user_metadata field may not be deployed yet)")
@@ -98,18 +98,18 @@ def test_search_and_image_api():
     # Get images and check their metadata via image API
     images_with_metadata = 0
     for img in results[:5]:
-        image_id = img.get('id')
-        image_name = img.get('name', 'unknown')
+        image_id = img.get("id")
+        image_name = img.get("name", "unknown")
 
         print(f"\nFetching details for: {image_name}")
         details = project.image(image_id)
 
-        metadata = details.get('metadata', {})
+        metadata = details.get("metadata", {})
         if metadata:
             print(f"  ✅ metadata: {metadata}")
             images_with_metadata += 1
         else:
-            print(f"  ❌ No metadata (empty dict)")
+            print("  ❌ No metadata (empty dict)")
 
     print("\n" + "=" * 60)
     if images_with_metadata > 0:

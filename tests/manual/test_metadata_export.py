@@ -27,10 +27,11 @@ FINDINGS (2026-01-30):
    - SDK extracts ZIP locally
    - user_metadata is available in the downloaded files
 """
+
+import glob
+import json
 import os
 import sys
-import json
-import glob
 
 thisdir = os.path.dirname(os.path.abspath(__file__))
 os.environ["ROBOFLOW_CONFIG_DIR"] = f"{thisdir}/data/.config"
@@ -73,21 +74,21 @@ def test_version_export_metadata():
     has_metadata = False
     for json_file in json_files:
         print(f"\n--- Inspecting: {json_file} ---")
-        with open(json_file, 'r') as f:
+        with open(json_file, "r") as f:
             data = json.load(f)
 
         # COCO format has 'images' array
-        if 'images' in data:
+        if "images" in data:
             print(f"Found {len(data['images'])} images in COCO format")
-            for i, img in enumerate(data['images'][:3]):  # Check first 3
+            for i, img in enumerate(data["images"][:3]):  # Check first 3
                 print(f"\nImage {i}: {img.get('file_name', 'unknown')}")
-                extra = img.get('extra', {})
-                user_metadata = extra.get('user_metadata')
+                extra = img.get("extra", {})
+                user_metadata = extra.get("user_metadata")
                 if user_metadata:
                     print(f"  ✅ user_metadata (in extra): {user_metadata}")
                     has_metadata = True
                 else:
-                    print(f"  ❌ No user_metadata in extra field")
+                    print("  ❌ No user_metadata in extra field")
                     print(f"  Keys in image: {list(img.keys())}")
                     print(f"  Keys in extra: {list(extra.keys()) if extra else 'N/A'}")
         else:
