@@ -46,7 +46,7 @@ class TestDownload(unittest.TestCase):
 
     @responses.activate
     @patch.object(Version, "_Version__download_zip")
-    @patch.object(Version, "_Version__extract_zip")
+    @patch("roboflow.core.version.extract_zip")
     @patch.object(Version, "_Version__reformat_yaml")
     def test_download_returns_dataset(self, *_):
         responses.add(responses.GET, self.api_url, json={"export": {"link": None}})

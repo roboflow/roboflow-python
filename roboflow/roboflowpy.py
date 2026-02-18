@@ -202,6 +202,21 @@ def infer(args):
     print(group)
 
 
+def search_export(args):
+    rf = roboflow.Roboflow()
+    workspace = rf.workspace(args.workspace)
+    result = workspace.search_export(
+        query=args.query,
+        format=args.format,
+        location=args.location,
+        dataset=args.dataset,
+        annotation_group=args.annotation_group,
+        name=args.name,
+        extract_zip=not args.no_extract,
+    )
+    print(result)
+
+
 def _argparser():
     parser = argparse.ArgumentParser(description="Welcome to the roboflow CLI: computer vision at your fingertips 🪄")
     subparsers = parser.add_subparsers(title="subcommands")
@@ -218,6 +233,7 @@ def _argparser():
     _add_run_video_inference_api_parser(subparsers)
     deployment.add_deployment_parser(subparsers)
     _add_whoami_parser(subparsers)
+    _add_search_export_parser(subparsers)
 
     parser.add_argument("-v", "--version", help="show version info", action="store_true")
     parser.set_defaults(func=show_version)
@@ -592,6 +608,19 @@ def _add_get_workspace_project_version_parser(subparsers):
         help="version number to upload the model to",
     )
     workspace_project_version_parser.set_defaults(func=get_workspace_project_version)
+
+
+def _add_search_export_parser(subparsers):
+    p = subparsers.add_parser("search-export", help="Export search results as a dataset")
+    p.add_argument("query", help="Search query (e.g. 'tag:annotate' or '*')")
+    p.add_argument("-f", dest="format", default="coco", help="Annotation format (default: coco)")
+    p.add_argument("-w", dest="workspace", help="Workspace url or id (uses default workspace if not specified)")
+    p.add_argument("-l", dest="location", help="Local directory to save the export")
+    p.add_argument("-d", dest="dataset", help="Limit export to a specific dataset (project slug)")
+    p.add_argument("-g", dest="annotation_group", help="Limit export to a specific annotation group")
+    p.add_argument("-n", dest="name", help="Optional name for the export")
+    p.add_argument("--no-extract", dest="no_extract", action="store_true", help="Skip extraction, keep the zip file")
+    p.set_defaults(func=search_export)
 
 
 def _add_login_parser(subparsers):

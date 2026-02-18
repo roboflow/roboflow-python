@@ -5,7 +5,6 @@ import json
 import os
 import sys
 import time
-import zipfile
 from typing import TYPE_CHECKING, Optional, Union
 
 import requests
@@ -32,7 +31,7 @@ from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
-from roboflow.util.general import write_line
+from roboflow.util.general import extract_zip, write_line
 from roboflow.util.model_processor import process
 from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions, normalize_yolo_model_type
 
@@ -239,7 +238,7 @@ class Version:
             link = export_info["export"]["link"]
 
         self.__download_zip(link, location, model_format)
-        self.__extract_zip(location, model_format)
+        extract_zip(location, desc=f"Extracting Dataset Version Zip to {location} in {model_format}:")
         self.__reformat_yaml(location, model_format)  # TODO: is roboflow-python a place to be munging yaml files?
 
         return Dataset(self.name, self.version, model_format, os.path.abspath(location))
@@ -577,30 +576,6 @@ class Version:
         sys.stdout.write("\n")
         sys.stdout.flush()
 
-    def __extract_zip(self, location, format):
-        """
-        Extracts the contents of a downloaded ZIP file and then deletes the zipped file.
-
-        Args:
-            location (str): filepath of the data directory that contains the ZIP file
-            format (str): the format identifier string
-
-        Raises:
-            RuntimeError: If there is an error unzipping the file
-        """  # noqa: E501 // docs
-        desc = None if TQDM_DISABLE else f"Extracting Dataset Version Zip to {location} in {format}:"
-        with zipfile.ZipFile(location + "/roboflow.zip", "r") as zip_ref:
-            for member in tqdm(
-                zip_ref.infolist(),
-                desc=desc,
-            ):
-                try:
-                    zip_ref.extract(member, location)
-                except zipfile.error:
-                    raise RuntimeError("Error unzipping download")
-
-        os.remove(location + "/roboflow.zip")
-
     def __get_download_location(self):
         """
         Get the local path to save a downloaded dataset to
@@ -707,4 +682,4 @@ class Version:
 
 
 def unwrap_version_id(version_id: str) -> str:
-    return version_id if "/" not in str(version_id) else version_id.split("/")[-1]
+    return version_id if "/" not in str(version_id) else version_id.rsplit("/", maxsplit=1)[-1]
