@@ -30,8 +30,7 @@ class TestCheckImageURL(unittest.TestCase):
             self.assertFalse(check_image_url(path))
 
     def test_url_not_found(self):
-        url = "https://example.com/notfound.png"
-        responses.add(responses.HEAD, url, status=404)
+        url = "https://roboflow.com/not-found.png"
         self.assertFalse(check_image_url(url))
 
 
