@@ -716,7 +716,9 @@ class Workspace:
             session=session,
         )
         print(f"Export started (id={export_id}). Polling for completion...")
-        print(f"If this takes too long, you can check the export status at: {API_URL}/{self.url}/search/export/{export_id}?api_key=YOUR_API_KEY")
+        print(
+            f"If this takes too long, you can check the export status at: {API_URL}/{self.url}/search/export/{export_id}?api_key=YOUR_API_KEY"
+        )
 
         # 2. Poll until ready
         timeout = 1800
