@@ -679,7 +679,7 @@ class Workspace:
         """Export search results as a downloaded dataset.
 
         Args:
-            query: Search query string (e.g. ``"tag:annotate"`` or ``"*"``).
+            query: Search query string (e.g. ``"tag:annotate"`` or ``"class:apple"``).
             format: Annotation format for the export (default ``"coco"``).
             location: Local directory to save the exported dataset.
                 Defaults to ``./search-export-{format}``.
