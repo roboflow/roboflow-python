@@ -981,20 +981,17 @@ You can also authenticate with an API key by using the following code:
 <p>Below are some common methods used with the Roboflow Python package, presented concisely for reference. For a full library reference, refer to the <a href="https://docs.roboflow.com/api-reference">Roboflow API reference documentation</a>.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">roboflow</span>
 
-<span class="n">roboflow</span><span class="o">.</span><span class="n">login</span><span class="p">()</span>
+<span class="c1"># Pass API key or use roboflow.login()</span>
+<span class="n">rf</span> <span class="o">=</span> <span class="n">roboflow</span><span class="o">.</span><span class="n">Roboflow</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;MY_API_KEY&quot;</span><span class="p">)</span>
 
-<span class="n">rf</span> <span class="o">=</span> <span class="n">roboflow</span><span class="o">.</span><span class="n">Roboflow</span><span class="p">()</span>
-
-<span class="c1"># create a project</span>
-<span class="n">rf</span><span class="o">.</span><span class="n">create_project</span><span class="p">(</span>
-    <span class="n">project_name</span><span class="o">=</span><span class="s2">&quot;project name&quot;</span><span class="p">,</span>
-    <span class="n">project_type</span><span class="o">=</span><span class="s2">&quot;project-type&quot;</span><span class="p">,</span>
-    <span class="n">license</span><span class="o">=</span><span class="s2">&quot;project-license&quot;</span> <span class="c1"># &quot;private&quot; for private projects</span>
+<span class="n">workspace</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">()</span>
+<span class="c1"># creating object detection model that will detect flowers</span>
+<span class="n">project</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">create_project</span><span class="p">(</span>
+    <span class="n">project_name</span><span class="o">=</span><span class="s2">&quot;Flower detector&quot;</span><span class="p">,</span>
+    <span class="n">project_type</span><span class="o">=</span><span class="s2">&quot;object-detection&quot;</span><span class="p">,</span> <span class="c1"># Or &quot;classification&quot;, &quot;instance-segmentation&quot;, &quot;semantic-segmentation&quot;</span>
+    <span class="n">project_license</span><span class="o">=</span><span class="s2">&quot;MIT&quot;</span><span class="p">,</span> <span class="c1"># &quot;private&quot; for private projects, only available for paid customers</span>
+    <span class="n">annotation</span><span class="o">=</span><span class="s2">&quot;flowers&quot;</span> <span class="c1"># If you plan to annotate lillys, sunflowers, etc.</span>
 <span class="p">)</span>
-
-<span class="n">workspace</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">(</span><span class="s2">&quot;WORKSPACE_URL&quot;</span><span class="p">)</span>
-<span class="n">project</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">&quot;PROJECT_URL&quot;</span><span class="p">)</span>
-<span class="n">version</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">version</span><span class="p">(</span><span class="s2">&quot;VERSION_NUMBER&quot;</span><span class="p">)</span>
 
 <span class="c1"># upload a dataset</span>
 <span class="n">workspace</span><span class="o">.</span><span class="n">upload_dataset</span><span class="p">(</span>
@@ -1005,8 +1002,10 @@ You can also authenticate with an API key by using the following code:
     <span class="n">project_type</span><span class="o">=</span><span class="s2">&quot;object-detection&quot;</span>
 <span class="p">)</span>
 
-<span class="c1"># upload model weights</span>
-<span class="n">version</span><span class="o">.</span><span class="n">deploy</span><span class="p">(</span><span class="n">model_type</span><span class="o">=</span><span class="s2">&quot;yolov8&quot;</span><span class="p">,</span> <span class="n">model_path</span><span class="o">=</span><span class="n">f</span><span class="err">”</span><span class="p">{</span><span class="n">HOME</span><span class="p">}</span><span class="o">/</span><span class="n">runs</span><span class="o">/</span><span class="n">detect</span><span class="o">/</span><span class="n">train</span><span class="o">/</span><span class="err">”</span><span class="p">)</span>
+<span class="n">version</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">version</span><span class="p">(</span><span class="s2">&quot;VERSION_NUMBER&quot;</span><span class="p">)</span>
+
+<span class="c1"># upload model weights - yolov10</span>
+<span class="n">version</span><span class="o">.</span><span class="n">deploy</span><span class="p">(</span><span class="n">model_type</span><span class="o">=</span><span class="s2">&quot;yolov10&quot;</span><span class="p">,</span> <span class="n">model_path</span><span class="o">=</span><span class="n">f</span><span class="err">”</span><span class="p">{</span><span class="n">HOME</span><span class="p">}</span><span class="o">/</span><span class="n">runs</span><span class="o">/</span><span class="n">detect</span><span class="o">/</span><span class="n">train</span><span class="o">/</span><span class="err">”</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;weights.pt&quot;</span><span class="p">)</span>
 
 <span class="c1"># run inference</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">version</span><span class="o">.</span><span class="n">model</span>
