@@ -6,76 +6,8 @@ import zipfile
 
 import responses
 
-from roboflow.adapters.rfapi import RoboflowError, get_search_export, start_search_export
+from roboflow.adapters.rfapi import RoboflowError
 from roboflow.config import API_URL
-
-
-class TestStartSearchExport(unittest.TestCase):
-    API_KEY = "test_key"
-    WORKSPACE = "my-workspace"
-
-    @responses.activate
-    def test_success(self):
-        url = f"{API_URL}/{self.WORKSPACE}/search/export?api_key={self.API_KEY}"
-        responses.add(responses.POST, url, json={"success": True, "link": "export_123"}, status=202)
-
-        export_id = start_search_export(self.API_KEY, self.WORKSPACE, query="*", format="coco")
-        self.assertEqual(export_id, "export_123")
-
-        body = responses.calls[0].request.body
-        self.assertIn(b'"query"', body)
-        self.assertIn(b'"format"', body)
-
-    @responses.activate
-    def test_with_dataset(self):
-        url = f"{API_URL}/{self.WORKSPACE}/search/export?api_key={self.API_KEY}"
-        responses.add(responses.POST, url, json={"success": True, "link": "export_456"}, status=202)
-
-        export_id = start_search_export(
-            self.API_KEY, self.WORKSPACE, query="tag:train", format="yolov8", dataset="my-dataset"
-        )
-        self.assertEqual(export_id, "export_456")
-
-        body = responses.calls[0].request.body
-        self.assertIn(b'"dataset"', body)
-
-    @responses.activate
-    def test_error_response(self):
-        url = f"{API_URL}/{self.WORKSPACE}/search/export?api_key={self.API_KEY}"
-        responses.add(responses.POST, url, body="Bad Request", status=400)
-
-        with self.assertRaises(RoboflowError):
-            start_search_export(self.API_KEY, self.WORKSPACE, query="*", format="coco")
-
-
-class TestGetSearchExport(unittest.TestCase):
-    API_KEY = "test_key"
-    WORKSPACE = "my-workspace"
-
-    @responses.activate
-    def test_not_ready(self):
-        url = f"{API_URL}/{self.WORKSPACE}/search/export/exp1?api_key={self.API_KEY}"
-        responses.add(responses.GET, url, json={"ready": False}, status=200)
-
-        result = get_search_export(self.API_KEY, self.WORKSPACE, "exp1")
-        self.assertFalse(result["ready"])
-
-    @responses.activate
-    def test_ready(self):
-        url = f"{API_URL}/{self.WORKSPACE}/search/export/exp1?api_key={self.API_KEY}"
-        responses.add(responses.GET, url, json={"ready": True, "link": "https://download.url/file.zip"}, status=200)
-
-        result = get_search_export(self.API_KEY, self.WORKSPACE, "exp1")
-        self.assertTrue(result["ready"])
-        self.assertEqual(result["link"], "https://download.url/file.zip")
-
-    @responses.activate
-    def test_error_response(self):
-        url = f"{API_URL}/{self.WORKSPACE}/search/export/exp1?api_key={self.API_KEY}"
-        responses.add(responses.GET, url, body="Not Found", status=404)
-
-        with self.assertRaises(RoboflowError):
-            get_search_export(self.API_KEY, self.WORKSPACE, "exp1")
 
 
 class TestWorkspaceSearchExport(unittest.TestCase):

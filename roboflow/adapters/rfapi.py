@@ -157,10 +157,10 @@ def start_search_export(
     workspace_url: str,
     query: str,
     format: str,
+    session: requests.Session,
     dataset: Optional[str] = None,
     annotation_group: Optional[str] = None,
     name: Optional[str] = None,
-    session: Optional[requests.Session] = None,
 ) -> str:
     """Start a search export job.
 
@@ -168,7 +168,6 @@ def start_search_export(
 
     Raises RoboflowError on non-202 responses.
     """
-    session = session or requests
     url = f"{API_URL}/{workspace_url}/search/export?api_key={api_key}"
     body: Dict[str, str] = {"query": query, "format": format}
     if dataset is not None:
@@ -186,16 +185,13 @@ def start_search_export(
     return payload["link"]
 
 
-def get_search_export(
-    api_key: str, workspace_url: str, export_id: str, session: Optional[requests.Session] = None
-) -> dict:
+def get_search_export(api_key: str, workspace_url: str, export_id: str, session: requests.Session) -> dict:
     """Poll the status of a search export job.
 
     Returns dict with ``ready`` (bool) and ``link`` (str, present when ready).
 
     Raises RoboflowError on non-200 responses.
     """
-    session = session or requests
     url = f"{API_URL}/{workspace_url}/search/export/{export_id}?api_key={api_key}"
     response = session.get(url)
     if response.status_code != 200:
