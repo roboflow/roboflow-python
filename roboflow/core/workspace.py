@@ -704,6 +704,7 @@ class Workspace:
         location = os.path.abspath(location)
 
         # 1. Start the export
+        session = requests.Session()
         export_id = rfapi.start_search_export(
             api_key=self.__api_key,
             workspace_url=self.url,
@@ -712,18 +713,22 @@ class Workspace:
             dataset=dataset,
             annotation_group=annotation_group,
             name=name,
+            session=session,
         )
         print(f"Export started (id={export_id}). Polling for completion...")
+        print(f"If this takes too long, you can check the export status at: {API_URL}/{self.url}/search/export/{export_id}?api_key=YOUR_API_KEY")
 
         # 2. Poll until ready
-        timeout = 600
+        timeout = 1800
         poll_interval = 5
         elapsed = 0
+
         while elapsed < timeout:
             status = rfapi.get_search_export(
                 api_key=self.__api_key,
                 workspace_url=self.url,
                 export_id=export_id,
+                session=session,
             )
             if status.get("ready"):
                 break
@@ -739,7 +744,7 @@ class Workspace:
             os.makedirs(location)
 
         zip_path = os.path.join(location, "roboflow.zip")
-        response = requests.get(download_url, stream=True)
+        response = session.get(download_url, stream=True)
         try:
             response.raise_for_status()
         except HTTPError as e:

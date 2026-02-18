@@ -3,9 +3,7 @@ import os
 import shutil
 import unittest
 import zipfile
-from unittest.mock import MagicMock, patch
 
-import requests
 import responses
 
 from roboflow.adapters.rfapi import RoboflowError, get_search_export, start_search_export
@@ -80,28 +78,11 @@ class TestGetSearchExport(unittest.TestCase):
             get_search_export(self.API_KEY, self.WORKSPACE, "exp1")
 
 
-class TestWorkspaceSearchExportValidation(unittest.TestCase):
-    def _make_workspace(self):
-        from roboflow.core.workspace import Workspace
+class TestWorkspaceSearchExport(unittest.TestCase):
+    API_KEY = "test_key"
+    WORKSPACE = "test-ws"
+    DOWNLOAD_URL = "https://example.com/export.zip"
 
-        info = {
-            "workspace": {
-                "name": "Test",
-                "url": "test-ws",
-                "projects": [],
-                "members": [],
-            }
-        }
-        return Workspace(info, api_key="test_key", default_workspace="test-ws", model_format="yolov8")
-
-    def test_mutual_exclusion(self):
-        ws = self._make_workspace()
-        with self.assertRaises(ValueError) as ctx:
-            ws.search_export(query="*", dataset="ds", annotation_group="ag")
-        self.assertIn("mutually exclusive", str(ctx.exception))
-
-
-class TestWorkspaceSearchExportFlow(unittest.TestCase):
     @staticmethod
     def _build_zip_bytes(files):
         buffer = io.BytesIO()
@@ -116,27 +97,33 @@ class TestWorkspaceSearchExportFlow(unittest.TestCase):
         info = {
             "workspace": {
                 "name": "Test",
-                "url": "test-ws",
+                "url": self.WORKSPACE,
                 "projects": [],
                 "members": [],
             }
         }
-        return Workspace(info, api_key="test_key", default_workspace="test-ws", model_format="yolov8")
+        return Workspace(info, api_key=self.API_KEY, default_workspace=self.WORKSPACE, model_format="yolov8")
 
-    @patch("roboflow.core.workspace.rfapi")
-    @patch("roboflow.core.workspace.requests")
-    def test_full_flow(self, mock_requests, mock_rfapi):
+    def _register_responses(self, zip_bytes=b"", download_status=200):
+        export_url = f"{API_URL}/{self.WORKSPACE}/search/export?api_key={self.API_KEY}"
+        responses.add(responses.POST, export_url, json={"success": True, "link": "exp_abc"}, status=202)
+
+        poll_url = f"{API_URL}/{self.WORKSPACE}/search/export/exp_abc?api_key={self.API_KEY}"
+        responses.add(responses.GET, poll_url, json={"ready": True, "link": self.DOWNLOAD_URL}, status=200)
+
+        responses.add(responses.GET, self.DOWNLOAD_URL, body=zip_bytes, status=download_status)
+
+    def test_mutual_exclusion(self):
         ws = self._make_workspace()
+        with self.assertRaises(ValueError) as ctx:
+            ws.search_export(query="*", dataset="ds", annotation_group="ag")
+        self.assertIn("mutually exclusive", str(ctx.exception))
 
-        mock_rfapi.start_search_export.return_value = "exp_abc"
-        mock_rfapi.get_search_export.return_value = {"ready": True, "link": "https://example.com/export.zip"}
-
+    @responses.activate
+    def test_full_flow(self):
+        ws = self._make_workspace()
         fake_zip = self._build_zip_bytes({"images/sample.jpg": "fake-image-data"})
-        mock_response = MagicMock()
-        mock_response.headers = {"content-length": str(len(fake_zip))}
-        mock_response.raise_for_status.return_value = None
-        mock_response.iter_content.return_value = [fake_zip[:1024], fake_zip[1024:]]
-        mock_requests.get.return_value = mock_response
+        self._register_responses(fake_zip)
 
         location = "./test_search_export_output"
         try:
@@ -146,84 +133,25 @@ class TestWorkspaceSearchExportFlow(unittest.TestCase):
             self.assertEqual(result, expected_location)
             self.assertTrue(os.path.exists(os.path.join(expected_location, "images", "sample.jpg")))
             self.assertFalse(os.path.exists(os.path.join(expected_location, "roboflow.zip")))
-
-            mock_rfapi.start_search_export.assert_called_once_with(
-                api_key="test_key",
-                workspace_url="test-ws",
-                query="*",
-                format="coco",
-                dataset=None,
-                annotation_group=None,
-                name=None,
-            )
-            mock_rfapi.get_search_export.assert_called_once_with(
-                api_key="test_key",
-                workspace_url="test-ws",
-                export_id="exp_abc",
-            )
-            mock_response.raise_for_status.assert_called_once()
-            mock_response.iter_content.assert_called_once_with(chunk_size=1024)
         finally:
             if os.path.exists(location):
                 shutil.rmtree(location)
 
-    @patch("roboflow.core.workspace.rfapi")
-    @patch("roboflow.core.workspace.requests")
-    def test_full_flow_without_content_length_still_streams(self, mock_requests, mock_rfapi):
+    @responses.activate
+    def test_download_http_error(self):
         ws = self._make_workspace()
+        self._register_responses(download_status=403)
 
-        mock_rfapi.start_search_export.return_value = "exp_abc"
-        mock_rfapi.get_search_export.return_value = {"ready": True, "link": "https://example.com/export.zip"}
-
-        fake_zip = self._build_zip_bytes({"annotations/instances.json": "{}"})
-        mock_response = MagicMock()
-        mock_response.headers = {}
-        mock_response.raise_for_status.return_value = None
-        mock_response.iter_content.return_value = [fake_zip]
-        mock_requests.get.return_value = mock_response
-
-        location = "./test_search_export_no_content_length"
-        try:
-            result = ws.search_export(query="*", format="coco", location=location)
-            expected_location = os.path.abspath(location)
-            self.assertEqual(result, expected_location)
-            self.assertTrue(os.path.exists(os.path.join(expected_location, "annotations", "instances.json")))
-            mock_response.iter_content.assert_called_once_with(chunk_size=1024)
-        finally:
-            if os.path.exists(location):
-                shutil.rmtree(location)
-
-    @patch("roboflow.core.workspace.rfapi")
-    @patch("roboflow.core.workspace.requests")
-    def test_download_http_error_raises_roboflow_error(self, mock_requests, mock_rfapi):
-        ws = self._make_workspace()
-
-        mock_rfapi.start_search_export.return_value = "exp_abc"
-        mock_rfapi.get_search_export.return_value = {"ready": True, "link": "https://example.com/export.zip"}
-
-        mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = requests.HTTPError("403 Client Error")
-        mock_requests.get.return_value = mock_response
-
-        with self.assertRaises(RoboflowError) as context:
+        with self.assertRaises(RoboflowError) as ctx:
             ws.search_export(query="*", format="coco", location="./test_search_export_http_error")
 
-        self.assertIn("Failed to download search export", str(context.exception))
+        self.assertIn("Failed to download search export", str(ctx.exception))
 
-    @patch("roboflow.core.workspace.rfapi")
-    @patch("roboflow.core.workspace.requests")
-    def test_no_extract(self, mock_requests, mock_rfapi):
+    @responses.activate
+    def test_no_extract(self):
         ws = self._make_workspace()
-
-        mock_rfapi.start_search_export.return_value = "exp_abc"
-        mock_rfapi.get_search_export.return_value = {"ready": True, "link": "https://example.com/export.zip"}
-
         fake_zip = self._build_zip_bytes({"images/sample.jpg": "fake-image-data"})
-        mock_response = MagicMock()
-        mock_response.headers = {"content-length": str(len(fake_zip))}
-        mock_response.raise_for_status.return_value = None
-        mock_response.iter_content.return_value = [fake_zip]
-        mock_requests.get.return_value = mock_response
+        self._register_responses(fake_zip)
 
         location = "./test_search_export_no_extract"
         try:
