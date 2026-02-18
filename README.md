@@ -141,6 +141,28 @@ predictions = model.predict(img_url, hosted=True).json()
 print(predictions)
 ```
 
+### Search and Export
+
+Search for images across your workspace and export matching results as a ready-to-use dataset:
+
+```python
+workspace = rf.workspace()
+
+# Export images matching a search query
+workspace.search_export(
+    query="class:person",       # search query (e.g. "tag:review", "class:dog", "*")
+    format="coco",              # annotation format: coco, yolov8, yolov5, voc, etc.
+    dataset="my-project",       # optional: limit to a specific project
+    location="./my-export",     # optional: output directory
+)
+```
+
+Or from the CLI:
+
+```bash
+roboflow search-export "class:person" -f coco -d my-project -l ./my-export
+```
+
 ## Library Structure
 
 The Roboflow Python library is structured using the same Workspace, Project, and Version ontology that you will see in the Roboflow application.
