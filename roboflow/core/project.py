@@ -389,6 +389,7 @@ class Project:
         batch_name: Optional[str] = None,
         tag_names: Optional[List[str]] = None,
         is_prediction: bool = False,
+        metadata: Optional[Dict] = None,
         **kwargs,
     ):
         """
@@ -405,6 +406,8 @@ class Project:
             batch_name (str): name of batch to upload to within project
             tag_names (list[str]): tags to be applied to an image
             is_prediction (bool): whether the annotation data is a prediction rather than ground truth
+            metadata (dict, optional): custom key-value metadata to attach to the image.
+                Example: {"camera_id": "cam001", "location": "warehouse"}
 
         Example:
             >>> import roboflow
@@ -450,6 +453,7 @@ class Project:
                 batch_name=batch_name,
                 tag_names=tag_names,
                 is_prediction=is_prediction,
+                metadata=metadata,
                 **kwargs,
             )
 
@@ -468,6 +472,7 @@ class Project:
                         batch_name=batch_name,
                         tag_names=tag_names,
                         is_prediction=is_prediction,
+                        metadata=metadata,
                         **kwargs,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
@@ -485,6 +490,7 @@ class Project:
         tag_names: Optional[List[str]] = None,
         sequence_number=None,
         sequence_size=None,
+        metadata: Optional[Dict] = None,
         **kwargs,
     ):
         project_url = self.id.rsplit("/")[1]
@@ -508,6 +514,7 @@ class Project:
                 tag_names=tag_names,
                 sequence_number=sequence_number,
                 sequence_size=sequence_size,
+                metadata=metadata,
                 **kwargs,
             )
             upload_retry_attempts = retry.retries
@@ -571,6 +578,7 @@ class Project:
         annotation_overwrite=False,
         sequence_number=None,
         sequence_size=None,
+        metadata: Optional[Dict] = None,
         **kwargs,
     ):
         if tag_names is None:
@@ -597,6 +605,7 @@ class Project:
                 tag_names,
                 sequence_number,
                 sequence_size,
+                metadata=metadata,
                 **kwargs,
             )
             image_id = uploaded_image["id"]  # type: ignore[index]
