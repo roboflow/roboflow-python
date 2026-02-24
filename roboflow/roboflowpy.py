@@ -72,16 +72,18 @@ def upload_image(args):
     rf = roboflow.Roboflow()
     workspace = rf.workspace(args.workspace)
     project = workspace.project(args.project)
-    project.single_upload(
-        image_path=args.imagefile,
-        annotation_path=args.annotation,
-        annotation_labelmap=args.labelmap,
-        split=args.split,
-        num_retry_uploads=args.num_retries,
-        batch_name=args.batch,
-        tag_names=args.tag_names.split(",") if args.tag_names else [],
-        is_prediction=args.is_prediction,
-    )
+    tag_names = args.tag_names.split(",") if args.tag_names else []
+    for image_path in args.imagefile:
+        project.single_upload(
+            image_path=image_path,
+            annotation_path=args.annotation,
+            annotation_labelmap=args.labelmap,
+            split=args.split,
+            num_retry_uploads=args.num_retries,
+            batch_name=args.batch,
+            tag_names=tag_names,
+            is_prediction=args.is_prediction,
+        )
 
 
 def upload_model(args):
@@ -279,10 +281,11 @@ def _add_download_parser(subparsers):
 
 
 def _add_upload_parser(subparsers):
-    upload_parser = subparsers.add_parser("upload", help="Upload a single image to a dataset")
+    upload_parser = subparsers.add_parser("upload", help="Upload one or more images to a dataset")
     upload_parser.add_argument(
         "imagefile",
-        help="path to image file",
+        nargs="+",
+        help="path to one or more image files to upload",
     )
     upload_parser.add_argument(
         "-w",
@@ -292,7 +295,8 @@ def _add_upload_parser(subparsers):
     upload_parser.add_argument(
         "-p",
         dest="project",
-        help="project_id to upload the image into",
+        required=True,
+        help="project_id to upload the image into (required)",
     )
     upload_parser.add_argument(
         "-a",
