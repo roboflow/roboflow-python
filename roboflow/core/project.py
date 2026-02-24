@@ -423,6 +423,8 @@ class Project:
             tag_names = []
 
         is_hosted = image_path.startswith("http://") or image_path.startswith("https://")
+        if is_hosted:
+            hosted_image = True
 
         is_file = os.path.isfile(image_path) or is_hosted
         is_dir = os.path.isdir(image_path)
