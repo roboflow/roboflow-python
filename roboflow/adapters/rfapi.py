@@ -209,6 +209,7 @@ def upload_image(
     tag_names: Optional[List[str]] = None,
     sequence_number: Optional[int] = None,
     sequence_size: Optional[int] = None,
+    metadata: Optional[Dict] = None,
     **kwargs,
 ):
     """
@@ -218,6 +219,8 @@ def upload_image(
         image_path (str): path to image you'd like to upload
         hosted_image (bool): whether the image is hosted on Roboflow
         split (str): the dataset split the image to
+        metadata (dict, optional): custom key-value metadata to attach to the image.
+            Example: {"camera_id": "cam001", "location": "warehouse"}
     """
 
     coalesced_batch_name = batch_name or DEFAULT_BATCH_NAME
@@ -232,13 +235,14 @@ def upload_image(
         upload_url = _local_upload_url(
             api_key, project_url, coalesced_batch_name, tag_names, sequence_number, sequence_size, kwargs
         )
-        m = MultipartEncoder(
-            fields={
-                "name": image_name,
-                "split": split,
-                "file": ("imageToUpload", imgjpeg, "image/jpeg"),
-            }
-        )
+        fields = {
+            "name": image_name,
+            "split": split,
+            "file": ("imageToUpload", imgjpeg, "image/jpeg"),
+        }
+        if metadata is not None:
+            fields["metadata"] = json.dumps(metadata)
+        m = MultipartEncoder(fields=fields)
 
         try:
             response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
@@ -247,7 +251,12 @@ def upload_image(
 
     else:
         # Hosted image upload url
-        upload_url = _hosted_upload_url(api_key, project_url, image_path, split, coalesced_batch_name, tag_names)
+        hosted_kwargs = dict(kwargs)
+        if metadata is not None:
+            hosted_kwargs["metadata"] = json.dumps(metadata)
+        upload_url = _hosted_upload_url(
+            api_key, project_url, image_path, split, coalesced_batch_name, tag_names, hosted_kwargs
+        )
 
         try:
             # Get response
@@ -363,7 +372,8 @@ def _upload_url(api_key, project_url, **kwargs):
     return url
 
 
-def _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_names):
+def _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_names, kwargs=None):
+    extra = kwargs or {}
     return _upload_url(
         api_key,
         project_url,
@@ -372,6 +382,7 @@ def _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_
         image=image_path,
         batch=batch_name,
         tag=tag_names,
+        **extra,
     )
 
 

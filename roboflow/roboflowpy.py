@@ -72,6 +72,7 @@ def upload_image(args):
     rf = roboflow.Roboflow()
     workspace = rf.workspace(args.workspace)
     project = workspace.project(args.project)
+    metadata = json.loads(args.metadata) if args.metadata else None
     project.single_upload(
         image_path=args.imagefile,
         annotation_path=args.annotation,
@@ -81,6 +82,7 @@ def upload_image(args):
         batch_name=args.batch,
         tag_names=args.tag_names.split(",") if args.tag_names else [],
         is_prediction=args.is_prediction,
+        metadata=metadata,
     )
 
 
@@ -332,6 +334,12 @@ def _add_upload_parser(subparsers):
         dest="is_prediction",
         help="Whether this upload is a prediction (optional)",
         action="store_true",
+    )
+    upload_parser.add_argument(
+        "-M",
+        "--metadata",
+        dest="metadata",
+        help='JSON string of metadata to attach to the image (e.g. \'{"camera_id":"cam001"}\')',
     )
     upload_parser.set_defaults(func=upload_image)
 

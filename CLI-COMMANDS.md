@@ -126,6 +126,26 @@ Uploading to existing project my-workspace/my-chess
 [UPLOADED] /home/jonny/tmp/chess/112_jpg.rf.1a6e7b87410fa3f787f10e82bd02b54e.jpg (7tWtAn573cKrefeg5pIO) / annotations = OK
 ```
 
+## Example: upload a single image
+
+Upload a single image to a project, optionally with annotations, tags, and metadata:
+
+```bash
+roboflow upload image.jpg -p my-project -s train
+```
+
+Upload with custom metadata (JSON string):
+
+```bash
+roboflow upload image.jpg -p my-project -M '{"camera_id":"cam001","location":"warehouse-3"}'
+```
+
+Upload with annotation and tags:
+
+```bash
+roboflow upload image.jpg -p my-project -a annotation.xml -t "outdoor,daytime" -s valid
+```
+
 ## Example: list workspaces
 List the workspaces you have access to
 

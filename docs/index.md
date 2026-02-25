@@ -126,6 +126,32 @@ Or from the CLI:
 roboflow search-export "class:person" -f coco -d my-project -l ./my-export
 ```
 
+### Upload with Metadata
+
+Attach custom key-value metadata to images during upload:
+
+```python
+project = workspace.project("my-project")
+
+# Upload a local image with metadata
+project.upload(
+    image_path="./image.jpg",
+    metadata={"camera_id": "cam001", "location": "warehouse-3"},
+)
+
+# Upload a hosted image with metadata
+project.upload(
+    image_path="https://example.com/image.jpg",
+    metadata={"camera_id": "cam002", "shift": "night"},
+)
+```
+
+Or from the CLI:
+
+```bash
+roboflow upload image.jpg -p my-project -M '{"camera_id":"cam001","location":"warehouse-3"}'
+```
+
 ## Library Structure
 
 The Roboflow Python library is structured using the same Workspace, Project, and Version ontology that you will see in the Roboflow application.
