@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="https://media.roboflow.com/roboflow_logomark_white.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
     
     
       
@@ -325,6 +325,34 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Quickstart">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#search-and-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Search and Export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upload-with-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload with Metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -885,6 +913,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Quickstart">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#search-and-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Search and Export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upload-with-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload with Metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1015,6 +1071,40 @@ You can also authenticate with an API key by using the following code:
 <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">img_url</span><span class="p">,</span> <span class="n">hosted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="search-and-export">Search and Export<a class="headerlink" href="#search-and-export" title="Permanent link">&para;</a></h3>
+<p>Search for images across your workspace and export matching results as a ready-to-use dataset:</p>
+<div class="highlight"><pre><span></span><code><span class="n">workspace</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">()</span>
+
+<span class="c1"># Export images matching a search query</span>
+<span class="n">workspace</span><span class="o">.</span><span class="n">search_export</span><span class="p">(</span>
+    <span class="n">query</span><span class="o">=</span><span class="s2">&quot;class:person&quot;</span><span class="p">,</span>       <span class="c1"># search query (e.g. &quot;tag:review&quot;, &quot;class:dog&quot;, &quot;*&quot;)</span>
+    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;coco&quot;</span><span class="p">,</span>              <span class="c1"># annotation format: coco, yolov8, yolov5, voc, etc.</span>
+    <span class="n">dataset</span><span class="o">=</span><span class="s2">&quot;my-project&quot;</span><span class="p">,</span>       <span class="c1"># optional: limit to a specific project</span>
+    <span class="n">location</span><span class="o">=</span><span class="s2">&quot;./my-export&quot;</span><span class="p">,</span>     <span class="c1"># optional: output directory</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Or from the CLI:</p>
+<div class="highlight"><pre><span></span><code>roboflow<span class="w"> </span>search-export<span class="w"> </span><span class="s2">&quot;class:person&quot;</span><span class="w"> </span>-f<span class="w"> </span>coco<span class="w"> </span>-d<span class="w"> </span>my-project<span class="w"> </span>-l<span class="w"> </span>./my-export
+</code></pre></div>
+<h3 id="upload-with-metadata">Upload with Metadata<a class="headerlink" href="#upload-with-metadata" title="Permanent link">&para;</a></h3>
+<p>Attach custom key-value metadata to images during upload:</p>
+<div class="highlight"><pre><span></span><code><span class="n">project</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">&quot;my-project&quot;</span><span class="p">)</span>
+
+<span class="c1"># Upload a local image with metadata</span>
+<span class="n">project</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span>
+    <span class="n">image_path</span><span class="o">=</span><span class="s2">&quot;./image.jpg&quot;</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;camera_id&quot;</span><span class="p">:</span> <span class="s2">&quot;cam001&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="s2">&quot;warehouse-3&quot;</span><span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># Upload a hosted image with metadata</span>
+<span class="n">project</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span>
+    <span class="n">image_path</span><span class="o">=</span><span class="s2">&quot;https://example.com/image.jpg&quot;</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;camera_id&quot;</span><span class="p">:</span> <span class="s2">&quot;cam002&quot;</span><span class="p">,</span> <span class="s2">&quot;shift&quot;</span><span class="p">:</span> <span class="s2">&quot;night&quot;</span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Or from the CLI:</p>
+<div class="highlight"><pre><span></span><code>roboflow<span class="w"> </span>upload<span class="w"> </span>image.jpg<span class="w"> </span>-p<span class="w"> </span>my-project<span class="w"> </span>-M<span class="w"> </span><span class="s1">&#39;{&quot;camera_id&quot;:&quot;cam001&quot;,&quot;location&quot;:&quot;warehouse-3&quot;}&#39;</span>
 </code></pre></div>
 <h2 id="library-structure">Library Structure<a class="headerlink" href="#library-structure" title="Permanent link">&para;</a></h2>
 <p>The Roboflow Python library is structured using the same Workspace, Project, and Version ontology that you will see in the Roboflow application.</p>
