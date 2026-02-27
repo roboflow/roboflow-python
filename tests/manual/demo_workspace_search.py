@@ -8,10 +8,10 @@ Uses staging credentials from CLAUDE.md.
 
 import roboflow
 
-API_KEY = "some api key"
+
 WORKSPACE = "model-evaluation-workspace"
 
-rf = roboflow.Roboflow(api_key=API_KEY)
+rf = roboflow.Roboflow()
 ws = rf.workspace(WORKSPACE)
 
 # --- Single page search ---
