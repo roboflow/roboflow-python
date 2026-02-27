@@ -6,8 +6,11 @@ Usage:
 Uses staging credentials from CLAUDE.md.
 """
 
+import os
 import roboflow
 
+thisdir = os.path.dirname(os.path.abspath(__file__))
+os.environ["ROBOFLOW_CONFIG_DIR"] = f"{thisdir}/data/.config"
 
 WORKSPACE = "model-evaluation-workspace"
 
@@ -16,7 +19,7 @@ ws = rf.workspace(WORKSPACE)
 
 # --- Single page search ---
 print("=== Single page search ===")
-page = ws.search("*", page_size=5)
+page = ws.search("project:false", page_size=5)
 print(f"Total results: {page['total']}")
 print(f"Results in this page: {len(page['results'])}")
 print(f"Continuation token: {page.get('continuationToken')}")
