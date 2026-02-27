@@ -53,12 +53,12 @@ APP_URL = get_conditional_configuration_variable("APP_URL", "https://app.roboflo
 UNIVERSE_URL = get_conditional_configuration_variable("UNIVERSE_URL", "https://universe.roboflow.com")
 
 INSTANCE_SEGMENTATION_URL = get_conditional_configuration_variable(
-    "INSTANCE_SEGMENTATION_URL", "https://outline.roboflow.com"
+    "INSTANCE_SEGMENTATION_URL", "https://serverless.roboflow.com"
 )
 SEMANTIC_SEGMENTATION_URL = get_conditional_configuration_variable(
     "SEMANTIC_SEGMENTATION_URL", "https://segment.roboflow.com"
 )
-OBJECT_DETECTION_URL = get_conditional_configuration_variable("OBJECT_DETECTION_URL", "https://detect.roboflow.com")
+OBJECT_DETECTION_URL = get_conditional_configuration_variable("OBJECT_DETECTION_URL", "https://serverless.roboflow.com")
 
 CLIP_FEATURIZE_URL = get_conditional_configuration_variable("CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV")
 OCR_URL = get_conditional_configuration_variable("OCR_URL", "OCR URL NOT IN ENV")

@@ -278,7 +278,7 @@ class ObjectDetectionModel(InferenceModel):
     def webcam(
         self,
         webcam_id=0,
-        inference_engine_url="https://detect.roboflow.com/",
+        inference_engine_url="https://serverless.roboflow.com/",
         within_jupyter=False,
         confidence=40,
         overlap=30,
@@ -291,7 +291,7 @@ class ObjectDetectionModel(InferenceModel):
 
         Args:
             webcam_id (int): Webcam ID (default 0)
-            inference_engine_url (str): Inference engine address to use (default https://detect.roboflow.com)
+            inference_engine_url (str): Inference engine address to use (default https://serverless.roboflow.com)
             within_jupyter (bool): Whether or not to display the webcam within Jupyter notebook (default True)
             confidence (int): Confidence threshold for detections
             overlap (int): Overlap threshold for detections
