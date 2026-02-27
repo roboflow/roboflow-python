@@ -6,7 +6,7 @@ import json
 import os
 import sys
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Generator, List, Optional
 
 import requests
 from PIL import Image
@@ -665,6 +665,89 @@ class Workspace:
 
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
+
+    def search(
+        self,
+        query: str,
+        page_size: int = 50,
+        fields: Optional[List[str]] = None,
+        continuation_token: Optional[str] = None,
+    ) -> dict:
+        """Search across all images in the workspace using RoboQL syntax.
+
+        Args:
+            query: RoboQL search query (e.g. ``"tag:review"``, ``"project:false"``
+                for orphan images, or free-text for semantic CLIP search).
+            page_size: Number of results per page (default 50).
+            fields: Fields to include in each result.
+                Defaults to ``["tags", "projects", "filename"]``.
+            continuation_token: Token returned by a previous call for fetching
+                the next page.
+
+        Returns:
+            Dict with ``results`` (list), ``total`` (int), and
+            ``continuationToken`` (str or None).
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> page = ws.search("tag:review", page_size=10)
+            >>> print(page["total"])
+            >>> for img in page["results"]:
+            ...     print(img["filename"])
+        """
+        if fields is None:
+            fields = ["tags", "projects", "filename"]
+
+        return rfapi.workspace_search(
+            api_key=self.__api_key,
+            workspace_url=self.url,
+            query=query,
+            page_size=page_size,
+            fields=fields,
+            continuation_token=continuation_token,
+        )
+
+    def search_all(
+        self,
+        query: str,
+        page_size: int = 50,
+        fields: Optional[List[str]] = None,
+    ) -> Generator[List[dict], None, None]:
+        """Paginated search across all images in the workspace.
+
+        Yields one page of results at a time, automatically following
+        ``continuationToken`` until all results have been returned.
+
+        Args:
+            query: RoboQL search query.
+            page_size: Number of results per page (default 50).
+            fields: Fields to include in each result.
+                Defaults to ``["tags", "projects", "filename"]``.
+
+        Yields:
+            A list of result dicts for each page.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> for page in ws.search_all("tag:review"):
+            ...     for img in page:
+            ...         print(img["filename"])
+        """
+        token = None
+        while True:
+            response = self.search(
+                query=query,
+                page_size=page_size,
+                fields=fields,
+                continuation_token=token,
+            )
+            results = response.get("results", [])
+            if not results:
+                break
+            yield results
+            token = response.get("continuationToken")
+            if not token:
+                break
 
     def search_export(
         self,

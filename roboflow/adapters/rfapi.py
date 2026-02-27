@@ -199,6 +199,46 @@ def get_search_export(api_key: str, workspace_url: str, export_id: str, session:
     return response.json()
 
 
+def workspace_search(
+    api_key: str,
+    workspace_url: str,
+    query: str,
+    page_size: int = 50,
+    fields: Optional[List[str]] = None,
+    continuation_token: Optional[str] = None,
+) -> dict:
+    """Search across all images in a workspace using RoboQL syntax.
+
+    Args:
+        api_key: Roboflow API key.
+        workspace_url: Workspace slug/url.
+        query: RoboQL search query (e.g. ``"tag:review"``, ``"project:false"``).
+        page_size: Number of results per page (default 50).
+        fields: Fields to include in each result.
+        continuation_token: Token for fetching the next page.
+
+    Returns:
+        Parsed JSON response with ``results``, ``total``, and ``continuationToken``.
+
+    Raises:
+        RoboflowError: On non-200 response status codes.
+    """
+    url = f"{API_URL}/{workspace_url}/search/v1?api_key={api_key}"
+    payload: Dict[str, Union[str, int, List[str]]] = {
+        "query": query,
+        "pageSize": page_size,
+    }
+    if fields is not None:
+        payload["fields"] = fields
+    if continuation_token is not None:
+        payload["continuationToken"] = continuation_token
+
+    response = requests.post(url, json=payload)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
 def upload_image(
     api_key,
     project_url,

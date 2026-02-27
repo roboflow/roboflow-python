@@ -88,6 +88,9 @@ convention = "google"
     "E402", # Module level import not at top of file
     "F401", # Imported but unused
 ]
+"tests/manual/*.py" = [
+    "INP001", # Manual scripts don't need __init__.py
+]
 
 [tool.ruff.lint.pyupgrade]
 # Preserve types, even if a file imports `from __future__ import annotations`.
