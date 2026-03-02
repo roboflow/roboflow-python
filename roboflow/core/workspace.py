@@ -707,6 +707,29 @@ class Workspace:
             continuation_token=continuation_token,
         )
 
+    def delete_images(self, image_ids: List[str]) -> dict:
+        """Delete orphan images from the workspace.
+
+        Only deletes images not associated with any project.
+        Images still in projects are skipped.
+
+        Args:
+            image_ids: List of image IDs to delete.
+
+        Returns:
+            Dict with ``deletedSources`` and ``skippedSources`` counts.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> result = ws.delete_images(["img_id_1", "img_id_2"])
+            >>> print(result["deletedSources"])
+        """
+        return rfapi.workspace_delete_images(
+            api_key=self.__api_key,
+            workspace_url=self.url,
+            image_ids=image_ids,
+        )
+
     def search_all(
         self,
         query: str,

@@ -239,6 +239,31 @@ def workspace_search(
     return response.json()
 
 
+def workspace_delete_images(
+    api_key: str,
+    workspace_url: str,
+    image_ids: List[str],
+) -> dict:
+    """Delete orphan images from a workspace.
+
+    Args:
+        api_key: Roboflow API key.
+        workspace_url: Workspace slug/url.
+        image_ids: List of image IDs to delete.
+
+    Returns:
+        Parsed JSON response with deletion counts.
+
+    Raises:
+        RoboflowError: On non-200 response status codes.
+    """
+    url = f"{API_URL}/{workspace_url}/images?api_key={api_key}"
+    response = requests.delete(url, json={"images": image_ids})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
 def upload_image(
     api_key,
     project_url,
