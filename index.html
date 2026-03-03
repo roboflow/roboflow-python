@@ -341,6 +341,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#delete-workspace-images" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delete Workspace Images
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#upload-with-metadata" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -928,6 +939,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#delete-workspace-images" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delete Workspace Images
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#upload-with-metadata" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1086,6 +1108,14 @@ You can also authenticate with an API key by using the following code:
 </code></pre></div>
 <p>Or from the CLI:</p>
 <div class="highlight"><pre><span></span><code>roboflow<span class="w"> </span>search-export<span class="w"> </span><span class="s2">&quot;class:person&quot;</span><span class="w"> </span>-f<span class="w"> </span>coco<span class="w"> </span>-d<span class="w"> </span>my-project<span class="w"> </span>-l<span class="w"> </span>./my-export
+</code></pre></div>
+<h3 id="delete-workspace-images">Delete Workspace Images<a class="headerlink" href="#delete-workspace-images" title="Permanent link">&para;</a></h3>
+<p>Delete orphan images (not in any project) from your workspace:</p>
+<div class="highlight"><pre><span></span><code><span class="n">workspace</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">()</span>
+
+<span class="c1"># Delete orphan images by ID</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">delete_images</span><span class="p">([</span><span class="s2">&quot;image_id_1&quot;</span><span class="p">,</span> <span class="s2">&quot;image_id_2&quot;</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;deletedSources&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, Skipped: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;skippedSources&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="upload-with-metadata">Upload with Metadata<a class="headerlink" href="#upload-with-metadata" title="Permanent link">&para;</a></h3>
 <p>Attach custom key-value metadata to images during upload:</p>
