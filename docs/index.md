@@ -126,6 +126,18 @@ Or from the CLI:
 roboflow search-export "class:person" -f coco -d my-project -l ./my-export
 ```
 
+### Delete Workspace Images
+
+Delete orphan images (not in any project) from your workspace:
+
+```python
+workspace = rf.workspace()
+
+# Delete orphan images by ID
+result = workspace.delete_images(["image_id_1", "image_id_2"])
+print(f"Deleted: {result['deletedSources']}, Skipped: {result['skippedSources']}")
+```
+
 ### Upload with Metadata
 
 Attach custom key-value metadata to images during upload:
