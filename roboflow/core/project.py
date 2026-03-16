@@ -389,6 +389,7 @@ class Project:
         batch_name: Optional[str] = None,
         tag_names: Optional[List[str]] = None,
         is_prediction: bool = False,
+        metadata: Optional[Dict] = None,
         **kwargs,
     ):
         """
@@ -405,6 +406,8 @@ class Project:
             batch_name (str): name of batch to upload to within project
             tag_names (list[str]): tags to be applied to an image
             is_prediction (bool): whether the annotation data is a prediction rather than ground truth
+            metadata (dict, optional): custom key-value metadata to attach to the image.
+                Example: {"camera_id": "cam001", "location": "warehouse"}
 
         Example:
             >>> import roboflow
@@ -420,6 +423,8 @@ class Project:
             tag_names = []
 
         is_hosted = image_path.startswith("http://") or image_path.startswith("https://")
+        if is_hosted:
+            hosted_image = True
 
         is_file = os.path.isfile(image_path) or is_hosted
         is_dir = os.path.isdir(image_path)
@@ -450,6 +455,7 @@ class Project:
                 batch_name=batch_name,
                 tag_names=tag_names,
                 is_prediction=is_prediction,
+                metadata=metadata,
                 **kwargs,
             )
 
@@ -468,6 +474,7 @@ class Project:
                         batch_name=batch_name,
                         tag_names=tag_names,
                         is_prediction=is_prediction,
+                        metadata=metadata,
                         **kwargs,
                     )
                     print("[ " + path + " ] was uploaded succesfully.")
@@ -485,6 +492,7 @@ class Project:
         tag_names: Optional[List[str]] = None,
         sequence_number=None,
         sequence_size=None,
+        metadata: Optional[Dict] = None,
         **kwargs,
     ):
         project_url = self.id.rsplit("/")[1]
@@ -508,6 +516,7 @@ class Project:
                 tag_names=tag_names,
                 sequence_number=sequence_number,
                 sequence_size=sequence_size,
+                metadata=metadata,
                 **kwargs,
             )
             upload_retry_attempts = retry.retries
@@ -571,6 +580,7 @@ class Project:
         annotation_overwrite=False,
         sequence_number=None,
         sequence_size=None,
+        metadata: Optional[Dict] = None,
         **kwargs,
     ):
         if tag_names is None:
@@ -597,6 +607,7 @@ class Project:
                 tag_names,
                 sequence_number,
                 sequence_size,
+                metadata=metadata,
                 **kwargs,
             )
             image_id = uploaded_image["id"]  # type: ignore[index]
@@ -672,7 +683,9 @@ class Project:
             batch_id (str): batch id that an image must be in
             annotation_job (bool): whether the image must be in an annotation job
             annotation_job_id (str): annotation job id that an image must be in
-            fields (list): fields to return in results (default: ["id", "created", "name", "labels"])
+            fields (list): fields to return in results (default: ["id", "created", "name", "labels"]).
+                Available fields: id, name, created, annotations, labels, split, tags, owner,
+                embedding, user_metadata.
 
         Returns:
             A list of images that match the search criteria.
@@ -684,7 +697,14 @@ class Project:
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> results = project.search(query="cat", limit=10)
+            >>> # Basic search
+            >>> results = project.search(prompt="cat", limit=10)
+
+            >>> # Search with tags and user_metadata
+            >>> results = project.search(
+            ...     limit=10,
+            ...     fields=["id", "name", "tags", "user_metadata"]
+            ... )
         """  # noqa: E501 // docs
         if fields is None:
             fields = ["id", "created", "name", "labels"]
@@ -764,10 +784,12 @@ class Project:
             batch_id (str): batch id that an image must be in
             annotation_job (bool): whether the image must be in an annotation job
             annotation_job_id (str): annotation job id that an image must be in
-            fields (list): fields to return in results (default: ["id", "created", "name", "labels"])
+            fields (list): fields to return in results (default: ["id", "created"]).
+                Available fields: id, name, created, annotations, labels, split, tags, owner,
+                embedding, user_metadata.
 
         Returns:
-            A list of images that match the search criteria.
+            A generator yielding images that match the search criteria.
 
         Example:
             >>> import roboflow
@@ -776,10 +798,9 @@ class Project:
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> results = project.search_all(query="cat", limit=10)
+            >>> results = project.search_all(prompt="cat", limit=10)
 
             >>> for result in results:
-
             >>>     print(result)
         """  # noqa: E501 // docs
         if fields is None:

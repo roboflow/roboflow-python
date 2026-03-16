@@ -152,6 +152,118 @@ def get_version_export(
     return payload
 
 
+def start_search_export(
+    api_key: str,
+    workspace_url: str,
+    query: str,
+    format: str,
+    session: requests.Session,
+    dataset: Optional[str] = None,
+    annotation_group: Optional[str] = None,
+    name: Optional[str] = None,
+) -> str:
+    """Start a search export job.
+
+    Returns the export_id string used to poll for completion.
+
+    Raises RoboflowError on non-202 responses.
+    """
+    url = f"{API_URL}/{workspace_url}/search/export?api_key={api_key}"
+    body: Dict[str, str] = {"query": query, "format": format}
+    if dataset is not None:
+        body["dataset"] = dataset
+    if annotation_group is not None:
+        body["annotationGroup"] = annotation_group
+    if name is not None:
+        body["name"] = name
+
+    response = session.post(url, json=body)
+    if response.status_code != 202:
+        raise RoboflowError(response.text)
+
+    payload = response.json()
+    return payload["link"]
+
+
+def get_search_export(api_key: str, workspace_url: str, export_id: str, session: requests.Session) -> dict:
+    """Poll the status of a search export job.
+
+    Returns dict with ``ready`` (bool) and ``link`` (str, present when ready).
+
+    Raises RoboflowError on non-200 responses.
+    """
+    url = f"{API_URL}/{workspace_url}/search/export/{export_id}?api_key={api_key}"
+    response = session.get(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def workspace_search(
+    api_key: str,
+    workspace_url: str,
+    query: str,
+    page_size: int = 50,
+    fields: Optional[List[str]] = None,
+    continuation_token: Optional[str] = None,
+) -> dict:
+    """Search across all images in a workspace using RoboQL syntax.
+
+    Args:
+        api_key: Roboflow API key.
+        workspace_url: Workspace slug/url.
+        query: RoboQL search query (e.g. ``"tag:review"``, ``"project:false"``).
+        page_size: Number of results per page (default 50).
+        fields: Fields to include in each result.
+        continuation_token: Token for fetching the next page.
+
+    Returns:
+        Parsed JSON response with ``results``, ``total``, and ``continuationToken``.
+
+    Raises:
+        RoboflowError: On non-200 response status codes.
+    """
+    url = f"{API_URL}/{workspace_url}/search/v1?api_key={api_key}"
+    payload: Dict[str, Union[str, int, List[str]]] = {
+        "query": query,
+        "pageSize": page_size,
+    }
+    if fields is not None:
+        payload["fields"] = fields
+    if continuation_token is not None:
+        payload["continuationToken"] = continuation_token
+
+    response = requests.post(url, json=payload)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def workspace_delete_images(
+    api_key: str,
+    workspace_url: str,
+    image_ids: List[str],
+) -> dict:
+    """Delete orphan images from a workspace.
+
+    Args:
+        api_key: Roboflow API key.
+        workspace_url: Workspace slug/url.
+        image_ids: List of image IDs to delete.
+
+    Returns:
+        Parsed JSON response with deletion counts.
+
+    Raises:
+        RoboflowError: On non-200 response status codes.
+    """
+    url = f"{API_URL}/{workspace_url}/images?api_key={api_key}"
+    response = requests.delete(url, json={"images": image_ids})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
 def upload_image(
     api_key,
     project_url,
@@ -162,6 +274,7 @@ def upload_image(
     tag_names: Optional[List[str]] = None,
     sequence_number: Optional[int] = None,
     sequence_size: Optional[int] = None,
+    metadata: Optional[Dict] = None,
     **kwargs,
 ):
     """
@@ -171,6 +284,8 @@ def upload_image(
         image_path (str): path to image you'd like to upload
         hosted_image (bool): whether the image is hosted on Roboflow
         split (str): the dataset split the image to
+        metadata (dict, optional): custom key-value metadata to attach to the image.
+            Example: {"camera_id": "cam001", "location": "warehouse"}
     """
 
     coalesced_batch_name = batch_name or DEFAULT_BATCH_NAME
@@ -185,13 +300,14 @@ def upload_image(
         upload_url = _local_upload_url(
             api_key, project_url, coalesced_batch_name, tag_names, sequence_number, sequence_size, kwargs
         )
-        m = MultipartEncoder(
-            fields={
-                "name": image_name,
-                "split": split,
-                "file": ("imageToUpload", imgjpeg, "image/jpeg"),
-            }
-        )
+        fields = {
+            "name": image_name,
+            "split": split,
+            "file": ("imageToUpload", imgjpeg, "image/jpeg"),
+        }
+        if metadata is not None:
+            fields["metadata"] = json.dumps(metadata)
+        m = MultipartEncoder(fields=fields)
 
         try:
             response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
@@ -200,7 +316,12 @@ def upload_image(
 
     else:
         # Hosted image upload url
-        upload_url = _hosted_upload_url(api_key, project_url, image_path, split, coalesced_batch_name, tag_names)
+        hosted_kwargs = dict(kwargs)
+        if metadata is not None:
+            hosted_kwargs["metadata"] = json.dumps(metadata)
+        upload_url = _hosted_upload_url(
+            api_key, project_url, image_path, split, coalesced_batch_name, tag_names, hosted_kwargs
+        )
 
         try:
             # Get response
@@ -316,7 +437,8 @@ def _upload_url(api_key, project_url, **kwargs):
     return url
 
 
-def _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_names):
+def _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_names, kwargs=None):
+    extra = kwargs or {}
     return _upload_url(
         api_key,
         project_url,
@@ -325,6 +447,7 @@ def _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_
         image=image_path,
         batch=batch_name,
         tag=tag_names,
+        **extra,
     )
 
 

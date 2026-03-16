@@ -7,7 +7,8 @@ numpy>=1.18.5
 opencv-python-headless==4.10.0.84
 Pillow>=7.1.2
 # https://github.com/roboflow/roboflow-python/issues/390
-pi-heif<2
+# pi-heif 1.x requires Python 3.10+
+pi-heif<2; python_version >= "3.10"
 pillow-avif-plugin<2
 python-dateutil
 python-dotenv

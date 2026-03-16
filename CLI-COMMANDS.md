@@ -8,7 +8,7 @@ $ roboflow --help
 ```
 
 ```
-usage: roboflow [-h] {login,download,upload,import,infer,project,workspace} ...
+usage: roboflow [-h] {login,download,upload,import,infer,search-export,project,workspace} ...
 
 Welcome to the roboflow CLI: computer vision at your fingertips 🪄
 
@@ -16,12 +16,13 @@ options:
   -h, --help            show this help message and exit
 
 subcommands:
-  {login,download,upload,import,infer,project,workspace}
+  {login,download,upload,import,infer,search-export,project,workspace}
     login               Log in to Roboflow
     download            Download a dataset version from your workspace or Roboflow Universe.
     upload              Upload a single image to a dataset
     import              Import a dataset from a local folder
     infer               perform inference on an image
+    search-export       Export search results as a dataset
     project             project related commands. type 'roboflow project' to see detailed command help
     workspace           workspace related commands. type 'roboflow workspace' to see detailed command help
 ```
@@ -123,6 +124,26 @@ Uploading to existing project my-workspace/my-chess
 [UPLOADED] /home/jonny/tmp/chess/10_jpg.rf.841f3ccdfc4b93ee68566e602025c03f.jpg (HnkCpUcYzxStvQF49VQW) / annotations = OK
 [UPLOADED] /home/jonny/tmp/chess/130_jpg.rf.29f756d510d2e488eb5e12769c7707ff.jpg (WxrFIhfaJ9H1JvaXMgfF) / annotations = OK
 [UPLOADED] /home/jonny/tmp/chess/112_jpg.rf.1a6e7b87410fa3f787f10e82bd02b54e.jpg (7tWtAn573cKrefeg5pIO) / annotations = OK
+```
+
+## Example: upload a single image
+
+Upload a single image to a project, optionally with annotations, tags, and metadata:
+
+```bash
+roboflow upload image.jpg -p my-project -s train
+```
+
+Upload with custom metadata (JSON string):
+
+```bash
+roboflow upload image.jpg -p my-project -M '{"camera_id":"cam001","location":"warehouse-3"}'
+```
+
+Upload with annotation and tags:
+
+```bash
+roboflow upload image.jpg -p my-project -a annotation.xml -t "outdoor,daytime" -s valid
 ```
 
 ## Example: list workspaces
@@ -244,4 +265,46 @@ roboflow infer -w roboflow-58fyf -m rock-paper-scissors-sxsw/11 ~/scissors.png
   "image_path": "/Users/tony/scissors.png",
   "prediction_type": "ObjectDetectionModel"
 }
+```
+
+## Example: search and export a dataset
+
+Use Roboflow's search to query images across your workspace and export matching results as a dataset. This is useful when you want to create a dataset from specific search criteria (e.g. images with a certain class, tag, or other metadata).
+
+```bash
+$ roboflow search-export --help
+```
+```
+usage: roboflow search-export [-h] [-f FORMAT] [-w WORKSPACE] [-l LOCATION] [-d DATASET] [-g ANNOTATION_GROUP] [-n NAME] [--no-extract] query
+
+positional arguments:
+  query              Search query (e.g. 'tag:annotate' or '*')
+
+options:
+  -h, --help         show this help message and exit
+  -f FORMAT          Annotation format (default: coco)
+  -w WORKSPACE       Workspace url or id (uses default workspace if not specified)
+  -l LOCATION        Local directory to save the export
+  -d DATASET         Limit export to a specific dataset (project slug)
+  -g ANNOTATION_GROUP  Limit export to a specific annotation group
+  -n NAME            Optional name for the export
+  --no-extract       Skip extraction, keep the zip file
+```
+
+Export all images tagged "annotate" in COCO format:
+
+```bash
+$ roboflow search-export "tag:annotate"
+```
+
+Export images containing a specific class, limited to one dataset, in COCO format:
+
+```bash
+$ roboflow search-export "class:person" -f coco -d my-dataset -l ~/exports/people
+```
+
+```
+Export started (id=abc123). Polling for completion...
+Downloading search export to /Users/tony/exports/people: 100%|██████████| 5420/5420 [00:02<00:00, 2710.00it/s]
+Search export extracted to /Users/tony/exports/people
 ```
