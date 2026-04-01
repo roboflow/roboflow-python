@@ -203,5 +203,64 @@ class TestModelUpload(unittest.TestCase):
             _upload_model(args)
 
 
+class TestExtractErrorMessage(unittest.TestCase):
+    """Test _extract_error_message helper."""
+
+    def test_plain_string(self) -> None:
+        from roboflow.cli.handlers.model import _extract_error_message
+
+        self.assertEqual(_extract_error_message("something broke"), "something broke")
+
+    def test_json_with_nested_error(self) -> None:
+        from roboflow.cli.handlers.model import _extract_error_message
+
+        raw = '{"error": {"message": "Unsupported request"}}'
+        self.assertEqual(_extract_error_message(raw), "Unsupported request")
+
+    def test_json_with_string_error(self) -> None:
+        from roboflow.cli.handlers.model import _extract_error_message
+
+        raw = '{"error": "Not found"}'
+        self.assertEqual(_extract_error_message(raw), "Not found")
+
+
+class TestModelListError(unittest.TestCase):
+    """Test _list_models handles API errors cleanly."""
+
+    def _make_args(self, **kwargs: object) -> types.SimpleNamespace:
+        defaults = {
+            "json": True,
+            "api_key": "test-key",
+            "workspace": "test-ws",
+            "project": "nonexistent-project",
+        }
+        defaults.update(kwargs)
+        return types.SimpleNamespace(**defaults)
+
+    @patch("roboflow.Roboflow")
+    def test_list_models_project_not_found(self, mock_rf_cls: MagicMock) -> None:
+        from roboflow.cli.handlers.model import _list_models
+
+        mock_workspace = MagicMock()
+        mock_workspace.project.side_effect = RuntimeError("Project not found")
+        mock_rf = MagicMock()
+        mock_rf.workspace.return_value = mock_workspace
+        mock_rf_cls.return_value = mock_rf
+
+        args = self._make_args()
+        buf = io.StringIO()
+        old_stderr = sys.stderr
+        sys.stderr = buf
+        try:
+            with self.assertRaises(SystemExit) as ctx:
+                _list_models(args)
+            self.assertEqual(ctx.exception.code, 3)
+        finally:
+            sys.stderr = old_stderr
+
+        result = json.loads(buf.getvalue())
+        self.assertIn("error", result)
+
+
 if __name__ == "__main__":
     unittest.main()

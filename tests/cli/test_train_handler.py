@@ -144,6 +144,28 @@ class TestTrainStart(unittest.TestCase):
             _start(args)
         self.assertEqual(ctx.exception.code, 2)
 
+    @patch("roboflow.adapters.rfapi.start_version_training")
+    def test_start_json_error_not_double_encoded(self, mock_train: MagicMock) -> None:
+        from roboflow.adapters.rfapi import RoboflowError
+        from roboflow.cli.handlers.train import _start
+
+        # Simulate API returning a JSON error string
+        mock_train.side_effect = RoboflowError('{"error": {"message": "Unsupported request"}}')
+
+        args = self._make_args(json=True)
+        buf = io.StringIO()
+        old_stderr = sys.stderr
+        sys.stderr = buf
+        try:
+            with self.assertRaises(SystemExit):
+                _start(args)
+        finally:
+            sys.stderr = old_stderr
+
+        result = json.loads(buf.getvalue())
+        # Should be a clean string, not double-encoded JSON
+        self.assertEqual(result["error"], "Unsupported request")
+
 
 if __name__ == "__main__":
     unittest.main()
