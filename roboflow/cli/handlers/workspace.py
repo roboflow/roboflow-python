@@ -81,13 +81,15 @@ def _get_workspace(args: argparse.Namespace) -> None:
     # Human-readable text for non-JSON mode
     ws = workspace_json.get("workspace", workspace_json)
     name = ws.get("name", workspace_id)
-    members = ws.get("members", {})
+    members = ws.get("members", 0)
     projects = ws.get("projects", [])
+    member_count = members if isinstance(members, int) else len(members)
+    project_count = len(projects) if isinstance(projects, list) else projects
     lines = [
         f"Workspace: {name}",
         f"  URL: {workspace_id}",
         f"  Link: {APP_URL}/{workspace_id}",
-        f"  Members: {len(members)}",
-        f"  Projects: {len(projects)}",
+        f"  Members: {member_count}",
+        f"  Projects: {project_count}",
     ]
     output(args, workspace_json, text="\n".join(lines))

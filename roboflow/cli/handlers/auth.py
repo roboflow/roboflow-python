@@ -123,18 +123,32 @@ def _login(args: argparse.Namespace) -> None:
             output_error(args, "Could not determine workspace.", hint="Pass --workspace explicitly.", exit_code=1)
             return
 
+        # Fetch workspace name from the API
+        ws_name = ws_url
+        try:
+            from roboflow.adapters import rfapi
+
+            ws_json = rfapi.get_workspace(api_key, ws_url)
+            ws_detail = ws_json.get("workspace", ws_json)
+            ws_name = ws_detail.get("name", ws_url)
+        except Exception:  # noqa: BLE001
+            pass  # Fall back to using the URL as the name
+
         # Build config with workspace info
         config = _load_config()
         workspaces = config.get("workspaces", {})
-        workspaces[ws_url] = {"url": ws_url, "name": ws_url, "apiKey": api_key}
+        workspaces[ws_url] = {"url": ws_url, "name": ws_name, "apiKey": api_key}
         config["workspaces"] = workspaces
         config["RF_WORKSPACE"] = ws_url
         _save_config(config)
 
+        note = ""
+        if len(workspaces) == 1:
+            note = "\n  Note: API key login stores only the key's workspace. Use interactive login for all workspaces."
         output(
             args,
             {"status": "logged_in", "workspace": ws_url, "api_key": _mask_key(api_key)},
-            text=f"Logged in. Default workspace: {ws_url}",
+            text=f"Logged in. Default workspace: {ws_url}{note}",
         )
     else:
         # Interactive flow
@@ -166,15 +180,41 @@ def _login(args: argparse.Namespace) -> None:
 
 
 def _status(args: argparse.Namespace) -> None:
+    import os
+
     from roboflow.cli._output import output, output_error
 
     config = _load_config()
     workspaces = config.get("workspaces", {})
     default_ws_url = config.get("RF_WORKSPACE")
 
-    if not workspaces and not default_ws_url:
+    # Fall back to --api-key flag or ROBOFLOW_API_KEY env var
+    api_key = getattr(args, "api_key", None) or os.getenv("ROBOFLOW_API_KEY")
+
+    if not workspaces and not default_ws_url and not api_key:
         output_error(args, "Not logged in.", hint="Run 'roboflow auth login' to authenticate.", exit_code=2)
         return  # unreachable, but helps mypy
+
+    if api_key and not default_ws_url:
+        # No config file, but we have an API key — fetch workspace from API
+        import requests
+
+        from roboflow.config import API_URL
+
+        resp = requests.post(API_URL + "/?api_key=" + api_key)
+        if resp.status_code == 200:
+            ws_url = resp.json().get("workspace", "unknown")
+            data = {"url": ws_url, "name": ws_url, "apiKey": _mask_key(api_key)}
+            lines = [
+                f"Workspace: {ws_url}",
+                f"  URL: {ws_url}",
+                f"  API Key: {_mask_key(api_key)}",
+                "  (authenticated via --api-key or ROBOFLOW_API_KEY)",
+            ]
+            output(args, data, text="\n".join(lines))
+        else:
+            output_error(args, "API key is invalid or expired.", exit_code=2)
+        return
 
     if not default_ws_url:
         output_error(args, "No default workspace configured.", hint="Run 'roboflow auth set-workspace <id>'.")
@@ -184,8 +224,10 @@ def _status(args: argparse.Namespace) -> None:
     default_ws = workspaces_by_url.get(default_ws_url)
 
     if default_ws:
+        # Use stored API key, or fall back to flag/env
+        display_key = api_key or default_ws.get("apiKey", "")
         masked = dict(default_ws)
-        masked["apiKey"] = _mask_key(masked.get("apiKey", ""))
+        masked["apiKey"] = _mask_key(display_key)
         lines = [
             f"Workspace: {masked.get('name', 'unknown')}",
             f"  URL: {masked.get('url', 'unknown')}",
