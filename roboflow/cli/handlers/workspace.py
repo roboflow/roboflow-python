@@ -51,8 +51,9 @@ def _list_workspaces(args: argparse.Namespace) -> None:
 
 def _get_workspace(args: argparse.Namespace) -> None:
     from roboflow.adapters import rfapi
+    from roboflow.adapters.rfapi import RoboflowError
     from roboflow.cli._output import output, output_error
-    from roboflow.config import load_roboflow_api_key
+    from roboflow.config import APP_URL, load_roboflow_api_key
 
     workspace_id = args.workspace_id
     api_key = getattr(args, "api_key", None) or load_roboflow_api_key(workspace_id)
@@ -64,6 +65,29 @@ def _get_workspace(args: argparse.Namespace) -> None:
             hint="Run 'roboflow auth login' or pass --api-key.",
             exit_code=2,
         )
+        return  # unreachable, but helps mypy
 
-    workspace_json = rfapi.get_workspace(api_key, workspace_id)
-    output(args, workspace_json)
+    try:
+        workspace_json = rfapi.get_workspace(api_key, workspace_id)
+    except RoboflowError:
+        output_error(
+            args,
+            f"Workspace '{workspace_id}' not found.",
+            hint=f"Check the workspace ID and try again. Browse workspaces at {APP_URL}.",
+            exit_code=3,
+        )
+        return  # unreachable, but helps mypy
+
+    # Human-readable text for non-JSON mode
+    ws = workspace_json.get("workspace", workspace_json)
+    name = ws.get("name", workspace_id)
+    members = ws.get("members", {})
+    projects = ws.get("projects", [])
+    lines = [
+        f"Workspace: {name}",
+        f"  URL: {workspace_id}",
+        f"  Link: {APP_URL}/{workspace_id}",
+        f"  Members: {len(members)}",
+        f"  Projects: {len(projects)}",
+    ]
+    output(args, workspace_json, text="\n".join(lines))

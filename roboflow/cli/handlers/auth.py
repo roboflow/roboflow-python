@@ -99,31 +99,35 @@ def _login(args: argparse.Namespace) -> None:
     force = getattr(args, "force", False)
 
     if api_key:
-        # Non-interactive: store key directly
+        # Non-interactive: validate key and fetch workspace info
         import requests
 
         from roboflow.config import API_URL
 
-        # Validate the key
         resp = requests.post(API_URL + "/?api_key=" + api_key)
         if resp.status_code == 401:
             output_error(args, "Invalid API key.", hint="Check your key at app.roboflow.com/settings", exit_code=2)
+            return
         if resp.status_code != 200:
             output_error(args, f"API error ({resp.status_code}).", exit_code=1)
+            return
 
         r_login = resp.json()
         if r_login is None:
             output_error(args, "Invalid API key.", exit_code=2)
+            return
 
-        config = {"workspaces": r_login}
-        # Set default workspace
-        first_ws_id = list(r_login.keys())[0]
-        ws_url = r_login[first_ws_id]["url"]
-        if workspace_id:
-            # Verify requested workspace exists
-            ws_by_url = {w["url"]: w for w in r_login.values()}
-            if workspace_id in ws_by_url:
-                ws_url = workspace_id
+        # The validation endpoint returns {"workspace": "<url>", ...}
+        ws_url = workspace_id or r_login.get("workspace", "")
+        if not ws_url:
+            output_error(args, "Could not determine workspace.", hint="Pass --workspace explicitly.", exit_code=1)
+            return
+
+        # Build config with workspace info
+        config = _load_config()
+        workspaces = config.get("workspaces", {})
+        workspaces[ws_url] = {"url": ws_url, "name": ws_url, "apiKey": api_key}
+        config["workspaces"] = workspaces
         config["RF_WORKSPACE"] = ws_url
         _save_config(config)
 
@@ -163,31 +167,39 @@ def _login(args: argparse.Namespace) -> None:
 
 def _status(args: argparse.Namespace) -> None:
     from roboflow.cli._output import output, output_error
-    from roboflow.config import get_conditional_configuration_variable
 
-    workspaces = get_conditional_configuration_variable("workspaces", default={})
-    if not workspaces:
+    config = _load_config()
+    workspaces = config.get("workspaces", {})
+    default_ws_url = config.get("RF_WORKSPACE")
+
+    if not workspaces and not default_ws_url:
         output_error(args, "Not logged in.", hint="Run 'roboflow auth login' to authenticate.", exit_code=2)
         return  # unreachable, but helps mypy
 
-    workspaces_by_url = {w["url"]: w for w in workspaces.values()}
-    default_ws_url = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
-    default_ws = workspaces_by_url.get(default_ws_url)
-
-    if not default_ws:
+    if not default_ws_url:
         output_error(args, "No default workspace configured.", hint="Run 'roboflow auth set-workspace <id>'.")
         return  # unreachable, but helps mypy
 
-    # Mask the API key
-    masked = dict(default_ws)
-    masked["apiKey"] = _mask_key(masked.get("apiKey", ""))
+    workspaces_by_url = {w["url"]: w for w in workspaces.values()}
+    default_ws = workspaces_by_url.get(default_ws_url)
 
-    lines = [
-        f"Workspace: {masked.get('name', 'unknown')}",
-        f"  URL: {masked.get('url', 'unknown')}",
-        f"  API Key: {masked['apiKey']}",
-    ]
-    output(args, masked, text="\n".join(lines))
+    if default_ws:
+        masked = dict(default_ws)
+        masked["apiKey"] = _mask_key(masked.get("apiKey", ""))
+        lines = [
+            f"Workspace: {masked.get('name', 'unknown')}",
+            f"  URL: {masked.get('url', 'unknown')}",
+            f"  API Key: {masked['apiKey']}",
+        ]
+        output(args, masked, text="\n".join(lines))
+    else:
+        # RF_WORKSPACE is set but no matching workspace details
+        data = {"url": default_ws_url, "name": default_ws_url}
+        output(
+            args,
+            data,
+            text=f"Workspace: {default_ws_url}\n  (no detailed info available)",
+        )
 
 
 def _set_workspace(args: argparse.Namespace) -> None:
