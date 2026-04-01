@@ -36,7 +36,7 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
 
 def _add_upload(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
     p = sub.add_parser("upload", help="Upload an image file or import a directory")
-    p.add_argument("path", help="Path to image file or directory")
+    p.add_argument("path", help="Path to image file or directory (auto-detects single file vs. directory bulk import)")
     p.add_argument("-p", "--project", required=True, help="Project ID")
     p.add_argument("-a", "--annotation", default=None, help="Path to annotation file (single upload)")
     p.add_argument("-s", "--split", default="train", help="Dataset split (default: train)")
@@ -71,18 +71,21 @@ def _handle_upload_single(args: argparse.Namespace, api_key: str, path: str) -> 
     workspace = rf.workspace(args.workspace)
     project = workspace.project(args.project)
 
-    metadata = json.loads(args.metadata) if args.metadata else None
-    tag_names = args.tag.split(",") if args.tag else []
+    metadata_raw = getattr(args, "metadata", None)
+    metadata = json.loads(metadata_raw) if metadata_raw else None
+    tag_raw = getattr(args, "tag", None) or getattr(args, "tag_names", None)
+    tag_names = tag_raw.split(",") if tag_raw else []
+    retries = getattr(args, "retries", None) or getattr(args, "num_retries", 0) or 0
 
     project.single_upload(
         image_path=path,
         annotation_path=args.annotation,
-        annotation_labelmap=args.labelmap,
+        annotation_labelmap=getattr(args, "labelmap", None),
         split=args.split,
-        num_retry_uploads=args.retries,
+        num_retry_uploads=retries,
         batch_name=args.batch,
         tag_names=tag_names,
-        is_prediction=args.is_prediction,
+        is_prediction=getattr(args, "is_prediction", False),
         metadata=metadata,
     )
 
@@ -96,12 +99,14 @@ def _handle_upload_directory(args: argparse.Namespace, api_key: str, path: str) 
     rf = roboflow.Roboflow(api_key)
     workspace = rf.workspace(args.workspace)
 
+    retries = getattr(args, "retries", None) or getattr(args, "num_retries", 0) or 0
+
     workspace.upload_dataset(
         dataset_path=path,
         project_name=args.project,
         num_workers=args.concurrency,
-        batch_name=args.batch,
-        num_retries=args.retries,
+        batch_name=getattr(args, "batch", None),
+        num_retries=retries,
     )
 
     # Count files uploaded (approximate via image extensions)
@@ -197,6 +202,9 @@ def _add_tag(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
 
 def _handle_tag(args: argparse.Namespace) -> None:
     import requests
+
+    if not args.add_tags and not args.remove_tags:
+        output_error(args, "Nothing to do", hint="Specify --add and/or --remove with comma-separated tags")
 
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
