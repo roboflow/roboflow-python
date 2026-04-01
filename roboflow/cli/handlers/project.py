@@ -48,13 +48,33 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
 
 
 def _list_projects(args: argparse.Namespace) -> None:
-    import roboflow
-    from roboflow.cli._output import output
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
     from roboflow.cli._table import format_table
+    from roboflow.config import load_roboflow_api_key
 
-    rf = roboflow.Roboflow()
-    workspace = rf.workspace(args.workspace)
-    projects = workspace.project_list
+    workspace_url = args.workspace
+    if not workspace_url:
+        from roboflow.config import get_conditional_configuration_variable
+
+        workspace_url = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+
+    if not workspace_url:
+        output_error(args, "No workspace specified.", hint="Use --workspace or run 'roboflow auth login'.")
+        return
+
+    api_key = args.api_key or load_roboflow_api_key(workspace_url)
+    if not api_key:
+        output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
+        return
+
+    try:
+        data = rfapi.get_workspace(api_key, workspace_url)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    projects = data.get("workspace", {}).get("projects", [])
 
     if args.type:
         projects = [p for p in projects if p.get("type") == args.type]
@@ -96,11 +116,23 @@ def _get_project(args: argparse.Namespace) -> None:
 
 
 def _create_project(args: argparse.Namespace) -> None:
+    import io
+    import sys
+
     import roboflow
     from roboflow.cli._output import output, output_error
 
-    rf = roboflow.Roboflow()
-    workspace = rf.workspace(args.workspace)
+    # Suppress SDK status messages that pollute stdout (especially in --json mode)
+    quiet = getattr(args, "json", False) or getattr(args, "quiet", False)
+    if quiet:
+        _orig_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+    try:
+        rf = roboflow.Roboflow()
+        workspace = rf.workspace(args.workspace)
+    finally:
+        if quiet:
+            sys.stdout = _orig_stdout
 
     try:
         project = workspace.create_project(
