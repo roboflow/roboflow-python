@@ -19,10 +19,11 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     if deployment_parser is None:
         return
 
-    # Find the deployment subparsers action
+    # Walk the parser's _actions list to find its _SubParsersAction.
+    # This avoids poking at the private _subparsers._group_actions chain.
     deployment_subs = None
-    for action in deployment_parser._subparsers._group_actions:
-        if hasattr(action, "choices"):
+    for action in deployment_parser._actions:
+        if isinstance(action, type(subparsers)):
             deployment_subs = action
             break
 
