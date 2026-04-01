@@ -79,6 +79,24 @@ class TestAnnotationStub(unittest.TestCase):
 
         self.assertIn("not yet implemented", buf.getvalue())
 
+    def test_stub_json_mode(self):
+        import json
+
+        from roboflow.cli.handlers.annotation import _stub
+
+        args = types.SimpleNamespace(json=True)
+
+        buf = io.StringIO()
+        old = sys.stderr
+        sys.stderr = buf
+        try:
+            _stub(args)
+        finally:
+            sys.stderr = old
+
+        result = json.loads(buf.getvalue())
+        self.assertEqual(result["error"], "not yet implemented")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -81,4 +81,9 @@ def _add_job(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
 
 def _stub(args: argparse.Namespace) -> None:
     """Placeholder for not-yet-implemented annotation commands."""
-    print("not yet implemented", file=sys.stderr)
+    if getattr(args, "json", False):
+        import json
+
+        print(json.dumps({"error": "not yet implemented"}), file=sys.stderr)
+    else:
+        print("not yet implemented", file=sys.stderr)

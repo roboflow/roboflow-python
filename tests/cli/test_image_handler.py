@@ -327,5 +327,30 @@ class TestUploadPathNotFound(unittest.TestCase):
             _handle_upload(args)
 
 
+class TestImageTagValidation(unittest.TestCase):
+    """Test that tag command validates --add/--remove presence."""
+
+    def test_tag_no_add_or_remove(self):
+        from roboflow.cli.handlers.image import _handle_tag
+
+        args = _make_args(
+            image_id="img-1",
+            project="proj",
+            add_tags=None,
+            remove_tags=None,
+        )
+
+        buf = io.StringIO()
+        old = sys.stderr
+        sys.stderr = buf
+        try:
+            with self.assertRaises(SystemExit):
+                _handle_tag(args)
+        finally:
+            sys.stderr = old
+
+        self.assertIn("Nothing to do", buf.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()
