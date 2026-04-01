@@ -6,9 +6,11 @@ for failures so that ``--json`` mode works uniformly.
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import sys
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
 
 
 def output(args: Any, data: Any, text: Optional[str] = None) -> None:
@@ -64,3 +66,18 @@ def output_error(
             msg += f"\n  Hint: {hint}"
         print(msg, file=sys.stderr)
     sys.exit(exit_code)
+
+
+@contextlib.contextmanager
+def suppress_sdk_output(args: Any) -> Iterator[None]:
+    """Suppress SDK stdout noise (e.g. 'loading Roboflow workspace...').
+
+    Active when ``--json`` or ``--quiet`` is set.  In normal mode, SDK
+    messages pass through to the terminal.
+    """
+    quiet = getattr(args, "json", False) or getattr(args, "quiet", False)
+    if quiet:
+        with contextlib.redirect_stdout(io.StringIO()):
+            yield
+    else:
+        yield
