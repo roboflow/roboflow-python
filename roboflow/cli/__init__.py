@@ -69,9 +69,15 @@ def build_parser() -> argparse.ArgumentParser:
     for _importer, modname, _ispkg in pkgutil.iter_modules(_handlers_pkg.__path__):
         if modname.startswith("_"):
             continue
-        mod = importlib.import_module(f"roboflow.cli.handlers.{modname}")
-        if hasattr(mod, "register"):
-            mod.register(subparsers)
+        try:
+            mod = importlib.import_module(f"roboflow.cli.handlers.{modname}")
+            if hasattr(mod, "register"):
+                mod.register(subparsers)
+        except Exception as exc:  # noqa: BLE001
+            # A broken handler must not take down the entire CLI
+            import logging
+
+            logging.getLogger("roboflow.cli").debug("Failed to load handler %s: %s", modname, exc)
 
     # Load aliases last so they can reference handler functions
     from roboflow.cli.handlers import _aliases
