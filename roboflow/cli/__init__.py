@@ -82,8 +82,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _show_version() -> None:
-    print(roboflow.__version__)
+def _show_version(args: argparse.Namespace) -> None:
+    if getattr(args, "json", False):
+        import json
+
+        print(json.dumps({"version": roboflow.__version__}))
+    else:
+        print(roboflow.__version__)
 
 
 def main() -> None:
@@ -92,7 +97,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.version:
-        _show_version()
+        _show_version(args)
         sys.exit(0)
 
     if args.func is not None:
