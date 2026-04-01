@@ -33,12 +33,22 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
 
 
 def _search(args: argparse.Namespace) -> None:
+    import contextlib
+    import io
+
     import roboflow
     from roboflow.cli._output import output_error
 
     try:
-        rf = roboflow.Roboflow()
-        workspace = rf.workspace(args.workspace)
+        # Suppress "loading Roboflow workspace..." messages that corrupt --json output
+        quiet = getattr(args, "json", False) or getattr(args, "quiet", False)
+        if quiet:
+            with contextlib.redirect_stdout(io.StringIO()):
+                rf = roboflow.Roboflow()
+                workspace = rf.workspace(args.workspace)
+        else:  # noqa: PLR5501
+            rf = roboflow.Roboflow()
+            workspace = rf.workspace(args.workspace)
     except Exception as exc:
         output_error(args, str(exc), exit_code=2)
         return
