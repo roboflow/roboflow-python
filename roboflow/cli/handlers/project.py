@@ -110,39 +110,67 @@ def _get_project(args: argparse.Namespace) -> None:
         output_error(args, str(exc), exit_code=3)
         return
 
-    import json
+    project = data.get("project", data)
+    lines = []
+    field_map = [
+        ("Name", "name"),
+        ("ID", "id"),
+        ("Type", "type"),
+        ("License", "license"),
+        ("Annotation", "annotation"),
+        ("Classes", "classes"),
+        ("Images", "images"),
+        ("Versions", "versions"),
+        ("Created", "created"),
+        ("Updated", "updated"),
+        ("Public", "public"),
+    ]
+    for label, key in field_map:
+        if key in project:
+            val = project[key]
+            if isinstance(val, dict):
+                val = ", ".join(f"{k}: {v}" for k, v in val.items())
+            lines.append(f"  {label:12s} {val}")
+    text = "\n".join(lines) if lines else "(no project details)"
 
-    output(args, data, text=json.dumps(data, indent=2, default=str))
+    output(args, data, text=text)
 
 
 def _create_project(args: argparse.Namespace) -> None:
-    import io
-    import sys
-
     import roboflow
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import output, output_error, suppress_sdk_output
 
-    # Suppress SDK status messages that pollute stdout (especially in --json mode)
-    quiet = getattr(args, "json", False) or getattr(args, "quiet", False)
-    if quiet:
-        _orig_stdout = sys.stdout
-        sys.stdout = io.StringIO()
-    try:
-        rf = roboflow.Roboflow()
-        workspace = rf.workspace(args.workspace)
-    finally:
-        if quiet:
-            sys.stdout = _orig_stdout
+    annotation = args.annotation if args.annotation else args.name
+
+    with suppress_sdk_output(args):
+        try:
+            rf = roboflow.Roboflow()
+            workspace = rf.workspace(args.workspace)
+        except Exception as exc:
+            output_error(args, str(exc))
+            return
 
     try:
         project = workspace.create_project(
             project_name=args.name,
             project_type=args.type,
             project_license=args.license,
-            annotation=args.annotation,
+            annotation=annotation,
         )
     except Exception as exc:
-        output_error(args, str(exc))
+        msg = str(exc)
+        hint = None
+        # Try to extract a useful message from HTTP 422 responses
+        if hasattr(exc, "response"):
+            try:
+                body = exc.response.json()  # type: ignore[union-attr]
+                if "error" in body:
+                    hint = body["error"].get("message", None) if isinstance(body["error"], dict) else str(body["error"])
+                elif "message" in body:
+                    hint = str(body["message"])
+            except Exception:
+                pass
+        output_error(args, msg, hint=hint)
         return
 
     data = {
