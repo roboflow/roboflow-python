@@ -279,17 +279,50 @@ class TestCreateWorkflow(unittest.TestCase):
         result = create_workflow("key", "ws", name="New Workflow")
         self.assertEqual(result["workflow"]["url"], "new-wf")
         self.assertIn("/ws/createWorkflow", mock_post.call_args[0][0])
-        self.assertEqual(mock_post.call_args[1]["json"]["name"], "New Workflow")
+        # Params are passed as query-string params, not JSON body
+        params = mock_post.call_args[1]["params"]
+        self.assertEqual(params["name"], "New Workflow")
 
     @patch("roboflow.adapters.rfapi.requests.post")
-    def test_with_definition_and_description(self, mock_post):
+    def test_auto_generates_url_slug(self, mock_post):
+        from roboflow.adapters.rfapi import create_workflow
+
+        mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "my-workflow"}})
+        create_workflow("key", "ws", name="My Workflow")
+        params = mock_post.call_args[1]["params"]
+        self.assertEqual(params["url"], "my-workflow")
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_with_config_and_template(self, mock_post):
         from roboflow.adapters.rfapi import create_workflow
 
         mock_post.return_value = MagicMock(status_code=200, json=lambda: {"workflow": {"url": "wf2"}})
-        create_workflow("key", "ws", name="WF2", definition={"steps": []}, description="A workflow")
-        payload = mock_post.call_args[1]["json"]
-        self.assertEqual(payload["definition"], {"steps": []})
-        self.assertEqual(payload["description"], "A workflow")
+        create_workflow("key", "ws", name="WF2", url="wf2", config='{"a":1}', template='{"b":2}')
+        params = mock_post.call_args[1]["params"]
+        self.assertEqual(params["url"], "wf2")
+        self.assertEqual(params["config"], '{"a":1}')
+        self.assertEqual(params["template"], '{"b":2}')
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_config_dict_serialized_to_string(self, mock_post):
+        from roboflow.adapters.rfapi import create_workflow
+
+        mock_post.return_value = MagicMock(status_code=200, json=lambda: {"workflow": {"url": "wf3"}})
+        create_workflow("key", "ws", name="WF3", config={"a": 1}, template={"b": 2})
+        params = mock_post.call_args[1]["params"]
+        # config and template must be strings per the API
+        self.assertIsInstance(params["config"], str)
+        self.assertIsInstance(params["template"], str)
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_defaults_config_and_template(self, mock_post):
+        from roboflow.adapters.rfapi import create_workflow
+
+        mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "wf4"}})
+        create_workflow("key", "ws", name="WF4")
+        params = mock_post.call_args[1]["params"]
+        self.assertEqual(params["config"], "{}")
+        self.assertEqual(params["template"], "{}")
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_error(self, mock_post):
@@ -306,12 +339,26 @@ class TestUpdateWorkflow(unittest.TestCase):
         from roboflow.adapters.rfapi import update_workflow
 
         mock_post.return_value = MagicMock(status_code=200, json=lambda: {"status": "ok"})
-        result = update_workflow("key", "ws", workflow_url="wf1", definition={"steps": [1]})
+        result = update_workflow(
+            "key", "ws", workflow_id="id-1", workflow_name="WF1", workflow_url="wf1", config={"steps": [1]}
+        )
         self.assertEqual(result["status"], "ok")
         self.assertIn("/ws/updateWorkflow", mock_post.call_args[0][0])
         payload = mock_post.call_args[1]["json"]
-        self.assertEqual(payload["workflowUrl"], "wf1")
-        self.assertEqual(payload["definition"], {"steps": [1]})
+        self.assertEqual(payload["id"], "id-1")
+        self.assertEqual(payload["name"], "WF1")
+        self.assertEqual(payload["url"], "wf1")
+        # config dict should be serialized to string
+        self.assertIsInstance(payload["config"], str)
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_config_string_passthrough(self, mock_post):
+        from roboflow.adapters.rfapi import update_workflow
+
+        mock_post.return_value = MagicMock(status_code=200, json=lambda: {"status": "ok"})
+        update_workflow("key", "ws", workflow_id="id-1", workflow_name="WF1", workflow_url="wf1", config='{"a":1}')
+        payload = mock_post.call_args[1]["json"]
+        self.assertEqual(payload["config"], '{"a":1}')
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_error(self, mock_post):
@@ -319,7 +366,7 @@ class TestUpdateWorkflow(unittest.TestCase):
 
         mock_post.return_value = MagicMock(status_code=500, text="Server error")
         with self.assertRaises(RoboflowError):
-            update_workflow("key", "ws", workflow_url="wf1")
+            update_workflow("key", "ws", workflow_id="id-1", workflow_name="WF1", workflow_url="wf1", config="{}")
 
 
 class TestListWorkflowVersions(unittest.TestCase):
@@ -347,18 +394,32 @@ class TestForkWorkflow(unittest.TestCase):
         from roboflow.adapters.rfapi import fork_workflow
 
         mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "forked"}})
-        result = fork_workflow("key", "ws", "wf1")
+        result = fork_workflow("key", "target-ws", source_workspace="src-ws", source_workflow="wf1")
         self.assertEqual(result["workflow"]["url"], "forked")
-        self.assertIn("/ws/forkWorkflow", mock_post.call_args[0][0])
-        self.assertEqual(mock_post.call_args[1]["json"]["workflowUrl"], "wf1")
+        self.assertIn("/target-ws/forkWorkflow", mock_post.call_args[0][0])
+        payload = mock_post.call_args[1]["json"]
+        self.assertEqual(payload["source_workspace"], "src-ws")
+        self.assertEqual(payload["source_workflow"], "wf1")
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_success_200(self, mock_post):
         from roboflow.adapters.rfapi import fork_workflow
 
         mock_post.return_value = MagicMock(status_code=200, json=lambda: {"workflow": {"url": "forked2"}})
-        result = fork_workflow("key", "ws", "wf2")
+        result = fork_workflow("key", "ws", source_workspace="src-ws", source_workflow="wf2")
         self.assertEqual(result["workflow"]["url"], "forked2")
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_with_name_and_url(self, mock_post):
+        from roboflow.adapters.rfapi import fork_workflow
+
+        mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "custom-fork"}})
+        fork_workflow(
+            "key", "ws", source_workspace="src-ws", source_workflow="wf1", name="Custom Fork", url="custom-fork"
+        )
+        payload = mock_post.call_args[1]["json"]
+        self.assertEqual(payload["name"], "Custom Fork")
+        self.assertEqual(payload["url"], "custom-fork")
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_error(self, mock_post):
@@ -366,7 +427,7 @@ class TestForkWorkflow(unittest.TestCase):
 
         mock_post.return_value = MagicMock(status_code=403, text="Forbidden")
         with self.assertRaises(RoboflowError):
-            fork_workflow("key", "ws", "wf1")
+            fork_workflow("key", "ws", source_workspace="src-ws", source_workflow="wf1")
 
 
 class TestGetBillingUsage(unittest.TestCase):
