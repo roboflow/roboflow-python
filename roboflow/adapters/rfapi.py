@@ -486,7 +486,7 @@ def _save_annotation_error(response):
 
 def list_batches(api_key, workspace_url, project_url):
     """GET /{ws}/{proj}/batches — list annotation batches."""
-    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches?api_key={api_key}")
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches", params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -494,7 +494,7 @@ def list_batches(api_key, workspace_url, project_url):
 
 def get_batch(api_key, workspace_url, project_url, batch_id):
     """GET /{ws}/{proj}/batches/{batch_id} — get batch details."""
-    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches/{batch_id}?api_key={api_key}")
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches/{batch_id}", params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -502,7 +502,7 @@ def get_batch(api_key, workspace_url, project_url, batch_id):
 
 def list_annotation_jobs(api_key, workspace_url, project_url):
     """GET /{ws}/{proj}/jobs — list annotation jobs."""
-    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs?api_key={api_key}")
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs", params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -510,7 +510,7 @@ def list_annotation_jobs(api_key, workspace_url, project_url):
 
 def get_annotation_job(api_key, workspace_url, project_url, job_id):
     """GET /{ws}/{proj}/jobs/{job_id} — get annotation job details."""
-    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs/{job_id}?api_key={api_key}")
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs/{job_id}", params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
