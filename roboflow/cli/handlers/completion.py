@@ -2,30 +2,35 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import typer
 
-if TYPE_CHECKING:
-    import argparse
+from roboflow.cli._compat import ctx_to_args
+
+completion_app = typer.Typer(help="Generate shell completions", no_args_is_help=True)
 
 
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the ``completion`` command group."""
-    from roboflow.cli._output import stub
+def _stub(args) -> None:  # noqa: ANN001
+    from roboflow.cli._output import output_error
 
-    comp_parser = subparsers.add_parser("completion", help="Generate shell completions")
-    comp_subs = comp_parser.add_subparsers(title="completion commands", dest="completion_command")
+    output_error(args, "This command is not yet implemented.", hint="Coming soon.", exit_code=1)
 
-    # --- completion bash ---
-    bash_p = comp_subs.add_parser("bash", help="Generate bash completions")
-    bash_p.set_defaults(func=stub)
 
-    # --- completion zsh ---
-    zsh_p = comp_subs.add_parser("zsh", help="Generate zsh completions")
-    zsh_p.set_defaults(func=stub)
+@completion_app.command("bash")
+def bash(ctx: typer.Context) -> None:
+    """Generate bash completions."""
+    args = ctx_to_args(ctx)
+    _stub(args)
 
-    # --- completion fish ---
-    fish_p = comp_subs.add_parser("fish", help="Generate fish completions")
-    fish_p.set_defaults(func=stub)
 
-    # Default
-    comp_parser.set_defaults(func=lambda args: comp_parser.print_help())
+@completion_app.command("zsh")
+def zsh(ctx: typer.Context) -> None:
+    """Generate zsh completions."""
+    args = ctx_to_args(ctx)
+    _stub(args)
+
+
+@completion_app.command("fish")
+def fish(ctx: typer.Context) -> None:
+    """Generate fish completions."""
+    args = ctx_to_args(ctx)
+    _stub(args)

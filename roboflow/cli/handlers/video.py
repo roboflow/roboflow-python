@@ -2,35 +2,44 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Annotated
 
-if TYPE_CHECKING:
-    import argparse
+import typer
 
+from roboflow.cli._compat import ctx_to_args
 
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the ``video`` command group."""
-    video_parser = subparsers.add_parser("video", help="Video inference operations")
-    video_subs = video_parser.add_subparsers(title="video commands", dest="video_command")
-
-    # --- video infer ---
-    infer_p = video_subs.add_parser("infer", help="Run video inference")
-    infer_p.add_argument("-p", "--project", dest="project", required=True, help="Project ID")
-    infer_p.add_argument("-v", "--version", dest="version_number", type=int, required=True, help="Model version number")
-    infer_p.add_argument("-f", "--file", dest="video_file", required=True, help="Path to video file")
-    infer_p.add_argument("--fps", dest="fps", type=int, default=5, help="Frames per second (default: 5)")
-    infer_p.set_defaults(func=_video_infer)
-
-    # --- video status ---
-    status_p = video_subs.add_parser("status", help="Check video inference job status")
-    status_p.add_argument("job_id", help="Job ID to check")
-    status_p.set_defaults(func=_video_status)
-
-    # Default
-    video_parser.set_defaults(func=lambda args: video_parser.print_help())
+video_app = typer.Typer(help="Video inference operations", no_args_is_help=True)
 
 
-def _video_infer(args: argparse.Namespace) -> None:
+@video_app.command("infer")
+def infer(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+    version_number: Annotated[int, typer.Option("-v", "--version", help="Model version number")],
+    video_file: Annotated[str, typer.Option("-f", "--file", help="Path to video file")],
+    fps: Annotated[int, typer.Option("--fps", help="Frames per second")] = 5,
+) -> None:
+    """Run video inference."""
+    args = ctx_to_args(ctx, project=project, version_number=version_number, video_file=video_file, fps=fps)
+    _video_infer(args)
+
+
+@video_app.command("status")
+def status(
+    ctx: typer.Context,
+    job_id: Annotated[str, typer.Argument(help="Job ID to check")],
+) -> None:
+    """Check video inference job status."""
+    args = ctx_to_args(ctx, job_id=job_id)
+    _video_status(args)
+
+
+# ---------------------------------------------------------------------------
+# Business logic (unchanged from argparse version)
+# ---------------------------------------------------------------------------
+
+
+def _video_infer(args) -> None:  # noqa: ANN001
     import roboflow
     from roboflow.cli._output import output, output_error
     from roboflow.config import load_roboflow_api_key
@@ -62,7 +71,7 @@ def _video_infer(args: argparse.Namespace) -> None:
     output(args, data, text=f"Video inference submitted. Job ID: {job_id}")
 
 
-def _video_status(args: argparse.Namespace) -> None:
+def _video_status(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.config import load_roboflow_api_key

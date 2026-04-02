@@ -2,70 +2,111 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Annotated, Optional
 
-if TYPE_CHECKING:
-    import argparse
+import typer
+
+from roboflow.cli._compat import ctx_to_args
+
+workflow_app = typer.Typer(help="Manage workflows", no_args_is_help=True)
+
+# ---------------------------------------------------------------------------
+# Sub-app for ``workflow version`` subcommands
+# ---------------------------------------------------------------------------
+
+_version_app = typer.Typer(help="Manage workflow versions", no_args_is_help=True)
+workflow_app.add_typer(_version_app, name="version")
 
 
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the ``workflow`` command group."""
-    wf_parser = subparsers.add_parser("workflow", help="Manage workflows")
-    wf_subs = wf_parser.add_subparsers(title="workflow commands", dest="workflow_command")
+@workflow_app.command("list")
+def list_workflows(ctx: typer.Context) -> None:
+    """List workflows in a workspace."""
+    args = ctx_to_args(ctx)
+    _list_workflows(args)
 
-    # --- workflow list ---
-    list_p = wf_subs.add_parser("list", help="List workflows in a workspace")
-    list_p.set_defaults(func=_list_workflows)
 
-    # --- workflow get ---
-    get_p = wf_subs.add_parser("get", help="Show details for a workflow")
-    get_p.add_argument("workflow_url", help="Workflow URL or ID")
-    get_p.set_defaults(func=_get_workflow)
+@workflow_app.command("get")
+def get_workflow(
+    ctx: typer.Context,
+    workflow_url: Annotated[str, typer.Argument(help="Workflow URL or ID")],
+) -> None:
+    """Show details for a workflow."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url)
+    _get_workflow(args)
 
-    # --- workflow create ---
-    create_p = wf_subs.add_parser("create", help="Create a new workflow")
-    create_p.add_argument("--name", required=True, help="Workflow name")
-    create_p.add_argument("--definition", help="Path to JSON definition file")
-    create_p.add_argument("--description", default=None, help="Workflow description")
-    create_p.set_defaults(func=_create_workflow)
 
-    # --- workflow update ---
-    update_p = wf_subs.add_parser("update", help="Update an existing workflow")
-    update_p.add_argument("workflow_url", help="Workflow URL or ID")
-    update_p.add_argument("--definition", help="Path to JSON definition file")
-    update_p.set_defaults(func=_update_workflow)
+@workflow_app.command("create")
+def create_workflow(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Option("--name", help="Workflow name")],
+    definition: Annotated[Optional[str], typer.Option(help="Path to JSON definition file")] = None,
+    description: Annotated[Optional[str], typer.Option(help="Workflow description")] = None,
+) -> None:
+    """Create a new workflow."""
+    args = ctx_to_args(ctx, name=name, definition=definition, description=description)
+    _create_workflow(args)
 
-    # --- workflow version ---
-    version_p = wf_subs.add_parser("version", help="Manage workflow versions")
-    version_subs = version_p.add_subparsers(title="workflow version commands", dest="workflow_version_command")
-    version_list_p = version_subs.add_parser("list", help="List versions of a workflow")
-    version_list_p.add_argument("workflow_url", help="Workflow URL or ID")
-    version_list_p.set_defaults(func=_list_workflow_versions)
-    version_p.set_defaults(func=lambda args: version_p.print_help())
 
-    # --- workflow fork ---
-    fork_p = wf_subs.add_parser("fork", help="Fork a workflow")
-    fork_p.add_argument("workflow_url", help="Workflow URL or ID")
-    fork_p.set_defaults(func=_fork_workflow)
+@workflow_app.command("update")
+def update_workflow(
+    ctx: typer.Context,
+    workflow_url: Annotated[str, typer.Argument(help="Workflow URL or ID")],
+    definition: Annotated[Optional[str], typer.Option(help="Path to JSON definition file")] = None,
+) -> None:
+    """Update an existing workflow."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url, definition=definition)
+    _update_workflow(args)
 
-    # --- workflow build (stub) ---
-    build_p = wf_subs.add_parser("build", help="Build a workflow from a prompt")
-    build_p.add_argument("prompt", help="Natural language prompt describing the workflow")
-    build_p.set_defaults(func=_stub_build)
 
-    # --- workflow run (stub) ---
-    run_p = wf_subs.add_parser("run", help="Run a workflow")
-    run_p.add_argument("workflow_url", help="Workflow URL or ID")
-    run_p.add_argument("--input", dest="input", help="Input file or URL")
-    run_p.set_defaults(func=_stub_run)
+@_version_app.command("list")
+def list_workflow_versions(
+    ctx: typer.Context,
+    workflow_url: Annotated[str, typer.Argument(help="Workflow URL or ID")],
+) -> None:
+    """List versions of a workflow."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url)
+    _list_workflow_versions(args)
 
-    # --- workflow deploy (stub) ---
-    deploy_p = wf_subs.add_parser("deploy", help="Deploy a workflow")
-    deploy_p.add_argument("workflow_url", help="Workflow URL or ID")
-    deploy_p.set_defaults(func=_stub_deploy)
 
-    # Default
-    wf_parser.set_defaults(func=lambda args: wf_parser.print_help())
+@workflow_app.command("fork")
+def fork_workflow(
+    ctx: typer.Context,
+    workflow_url: Annotated[str, typer.Argument(help="Workflow URL or ID")],
+) -> None:
+    """Fork a workflow."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url)
+    _fork_workflow(args)
+
+
+@workflow_app.command("build")
+def build_workflow(
+    ctx: typer.Context,
+    prompt: Annotated[str, typer.Argument(help="Natural language prompt describing the workflow")],
+) -> None:
+    """Build a workflow from a prompt."""
+    args = ctx_to_args(ctx, prompt=prompt)
+    _stub_build(args)
+
+
+@workflow_app.command("run")
+def run_workflow(
+    ctx: typer.Context,
+    workflow_url: Annotated[str, typer.Argument(help="Workflow URL or ID")],
+    input: Annotated[Optional[str], typer.Option("--input", help="Input file or URL")] = None,
+) -> None:
+    """Run a workflow."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url, input=input)
+    _stub_run(args)
+
+
+@workflow_app.command("deploy")
+def deploy_workflow(
+    ctx: typer.Context,
+    workflow_url: Annotated[str, typer.Argument(help="Workflow URL or ID")],
+) -> None:
+    """Deploy a workflow."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url)
+    _stub_deploy(args)
 
 
 # ---------------------------------------------------------------------------
@@ -73,14 +114,14 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
 # ---------------------------------------------------------------------------
 
 
-def _resolve_workspace_and_key(args: argparse.Namespace):
+def _resolve_workspace_and_key(args):  # noqa: ANN001
     """Return (workspace_url, api_key) or call output_error and return None."""
     from roboflow.cli._resolver import resolve_ws_and_key
 
     return resolve_ws_and_key(args)
 
 
-def _read_definition_file(args: argparse.Namespace):
+def _read_definition_file(args):  # noqa: ANN001
     """Read and parse a JSON definition file. Returns the parsed dict, or None if no file given.
 
     Calls output_error and returns False on failure.
@@ -110,7 +151,7 @@ def _read_definition_file(args: argparse.Namespace):
 # ---------------------------------------------------------------------------
 
 
-def _list_workflows(args: argparse.Namespace) -> None:
+def _list_workflows(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._table import format_table
@@ -136,7 +177,7 @@ def _list_workflows(args: argparse.Namespace) -> None:
     output(args, workflows, text=table)
 
 
-def _get_workflow(args: argparse.Namespace) -> None:
+def _get_workflow(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -169,7 +210,7 @@ def _get_workflow(args: argparse.Namespace) -> None:
     output(args, data, text=text)
 
 
-def _create_workflow(args: argparse.Namespace) -> None:
+def _create_workflow(args) -> None:  # noqa: ANN001
     import json as _json
 
     from roboflow.adapters import rfapi
@@ -204,7 +245,7 @@ def _create_workflow(args: argparse.Namespace) -> None:
     output(args, data, text=text)
 
 
-def _update_workflow(args: argparse.Namespace) -> None:
+def _update_workflow(args) -> None:  # noqa: ANN001
     import json as _json
 
     from roboflow.adapters import rfapi
@@ -260,7 +301,7 @@ def _update_workflow(args: argparse.Namespace) -> None:
     output(args, data, text=text)
 
 
-def _list_workflow_versions(args: argparse.Namespace) -> None:
+def _list_workflow_versions(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._table import format_table
@@ -286,7 +327,7 @@ def _list_workflow_versions(args: argparse.Namespace) -> None:
     output(args, versions, text=table)
 
 
-def _fork_workflow(args: argparse.Namespace) -> None:
+def _fork_workflow(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -334,7 +375,7 @@ def _fork_workflow(args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _stub_build(args: argparse.Namespace) -> None:
+def _stub_build(args) -> None:  # noqa: ANN001
     from roboflow.cli._output import output_error
 
     output_error(
@@ -344,7 +385,7 @@ def _stub_build(args: argparse.Namespace) -> None:
     )
 
 
-def _stub_run(args: argparse.Namespace) -> None:
+def _stub_run(args) -> None:  # noqa: ANN001
     from roboflow.cli._output import output_error
 
     output_error(
@@ -354,7 +395,7 @@ def _stub_run(args: argparse.Namespace) -> None:
     )
 
 
-def _stub_deploy(args: argparse.Namespace) -> None:
+def _stub_deploy(args) -> None:  # noqa: ANN001
     from roboflow.cli._output import output_error
 
     output_error(

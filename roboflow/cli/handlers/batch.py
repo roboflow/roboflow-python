@@ -2,44 +2,62 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Annotated, Optional
 
-if TYPE_CHECKING:
-    import argparse
+import typer
+
+from roboflow.cli._compat import ctx_to_args
+
+batch_app = typer.Typer(help="Batch processing operations", no_args_is_help=True)
 
 
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the ``batch`` command group."""
-    from roboflow.cli._output import stub
+def _stub(args) -> None:  # noqa: ANN001
+    from roboflow.cli._output import output_error
 
-    batch_parser = subparsers.add_parser("batch", help="Batch processing operations")
-    batch_subs = batch_parser.add_subparsers(title="batch commands", dest="batch_command")
+    output_error(args, "This command is not yet implemented.", hint="Coming soon.", exit_code=1)
 
-    # --- batch create ---
-    create_p = batch_subs.add_parser("create", help="Create a batch processing job")
-    create_p.add_argument("--workflow", dest="workflow", required=True, help="Workflow ID to run")
-    create_p.add_argument("--input", dest="input", required=True, help="Input path (image directory or video file)")
-    create_p.add_argument("--model", dest="model", default=None, help="Model ID override (default: workflow model)")
-    create_p.add_argument("--output", dest="output", default=None, help="Output directory for results")
-    create_p.set_defaults(func=stub)
 
-    # --- batch status ---
-    status_p = batch_subs.add_parser("status", help="Check batch job status")
-    status_p.add_argument("job_id", help="Batch job ID")
-    status_p.set_defaults(func=stub)
+@batch_app.command("create")
+def create(
+    ctx: typer.Context,
+    workflow: Annotated[str, typer.Option(help="Workflow ID to run")],
+    input: Annotated[str, typer.Option(help="Input path (image directory or video file)")],
+    model: Annotated[Optional[str], typer.Option(help="Model ID override (default: workflow model)")] = None,
+    output_dir: Annotated[Optional[str], typer.Option("--output", help="Output directory for results")] = None,
+) -> None:
+    """Create a batch processing job."""
+    args = ctx_to_args(ctx, workflow=workflow, input=input, model=model, output=output_dir)
+    _stub(args)
 
-    # --- batch list ---
-    list_p = batch_subs.add_parser("list", help="List batch jobs")
-    list_p.add_argument(
-        "--status", dest="status", default=None, help="Filter by status (pending, running, completed, failed)"
-    )
-    list_p.set_defaults(func=stub)
 
-    # --- batch results ---
-    results_p = batch_subs.add_parser("results", help="Get batch job results")
-    results_p.add_argument("job_id", help="Batch job ID")
-    results_p.add_argument("--format", dest="format", default=None, help="Output format (json, csv)")
-    results_p.set_defaults(func=stub)
+@batch_app.command("status")
+def status(
+    ctx: typer.Context,
+    job_id: Annotated[str, typer.Argument(help="Batch job ID")],
+) -> None:
+    """Check batch job status."""
+    args = ctx_to_args(ctx, job_id=job_id)
+    _stub(args)
 
-    # Default
-    batch_parser.set_defaults(func=lambda args: batch_parser.print_help())
+
+@batch_app.command("list")
+def list_jobs(
+    ctx: typer.Context,
+    status_filter: Annotated[
+        Optional[str], typer.Option("--status", help="Filter by status (pending, running, completed, failed)")
+    ] = None,
+) -> None:
+    """List batch jobs."""
+    args = ctx_to_args(ctx, status=status_filter)
+    _stub(args)
+
+
+@batch_app.command("results")
+def results(
+    ctx: typer.Context,
+    job_id: Annotated[str, typer.Argument(help="Batch job ID")],
+    format: Annotated[Optional[str], typer.Option(help="Output format (json, csv)")] = None,
+) -> None:
+    """Get batch job results."""
+    args = ctx_to_args(ctx, job_id=job_id, format=format)
+    _stub(args)
