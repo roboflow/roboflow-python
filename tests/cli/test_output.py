@@ -68,8 +68,8 @@ class TestOutput(unittest.TestCase):
             sys.stderr = old_stderr
         self.assertEqual(ctx.exception.code, 1)
         result = json.loads(buf.getvalue())
-        self.assertEqual(result["error"], "something broke")
-        self.assertEqual(result["hint"], "try again")
+        self.assertEqual(result["error"]["message"], "something broke")
+        self.assertEqual(result["error"]["hint"], "try again")
 
     def test_output_error_text_mode(self) -> None:
         from roboflow.cli._output import output_error

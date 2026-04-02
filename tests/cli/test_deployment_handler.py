@@ -101,7 +101,7 @@ class TestDeploymentErrorWrapping(unittest.TestCase):
         err_output = stderr.getvalue().strip()
         parsed = json.loads(err_output)
         self.assertIn("error", parsed)
-        self.assertIn("401", parsed["error"])
+        self.assertIn("401", parsed["error"]["message"])
 
     def test_wrapped_success_prints_output(self) -> None:
         """On success, wrapped func should replay captured stdout."""

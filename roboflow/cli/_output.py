@@ -85,17 +85,24 @@ def output_error(
     parsed, human_message = _parse_error_message(message)
 
     if getattr(args, "json", False):
-        # If the raw message was JSON containing an "error" key, unwrap it
-        # so we emit {"error": {message details}} not {"error": {"error": ...}}.
+        # Normalise error to always be {"error": {"message": "..."}} so
+        # consumers see a consistent schema regardless of error source.
         if parsed is not None and "error" in parsed:
-            error_value: Any = parsed["error"]
+            inner: Any = parsed["error"]
         elif parsed is not None:
-            error_value = parsed
+            inner = parsed
         else:
-            error_value = message
-        payload: dict[str, Any] = {"error": error_value}
+            inner = None
+
+        if isinstance(inner, dict):
+            error_obj: dict[str, Any] = dict(inner)
+            error_obj.setdefault("message", human_message)
+        else:
+            error_obj = {"message": human_message}
+
         if hint:
-            payload["hint"] = hint
+            error_obj.setdefault("hint", hint)
+        payload: dict[str, Any] = {"error": error_obj}
         print(json.dumps(payload), file=sys.stderr)
     else:
         msg = f"Error: {human_message}"

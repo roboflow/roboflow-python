@@ -188,19 +188,18 @@ def _status(args: argparse.Namespace) -> None:
     workspaces = config.get("workspaces", {})
     default_ws_url = config.get("RF_WORKSPACE")
 
-    # Fall back to --api-key flag or ROBOFLOW_API_KEY env var
-    api_key = getattr(args, "api_key", None) or os.getenv("ROBOFLOW_API_KEY")
+    # Explicit --api-key flag takes priority, then env var
+    explicit_api_key = getattr(args, "api_key", None)
+    api_key = explicit_api_key or os.getenv("ROBOFLOW_API_KEY")
 
-    if not workspaces and not default_ws_url and not api_key:
-        output_error(args, "Not logged in.", hint="Run 'roboflow auth login' to authenticate.", exit_code=2)
-        return  # unreachable, but helps mypy
-
-    if api_key and not default_ws_url:
-        # No config file, but we have an API key — fetch workspace from API
+    # When an explicit --api-key is provided, always validate it against the
+    # API rather than showing saved config — the user wants to check *this* key.
+    if explicit_api_key or (api_key and not default_ws_url):
         import requests
 
         from roboflow.config import API_URL
 
+        assert api_key is not None  # guaranteed by the condition above
         resp = requests.post(API_URL + "/?api_key=" + api_key)
         if resp.status_code == 200:
             ws_url = resp.json().get("workspace", "unknown")
@@ -216,6 +215,10 @@ def _status(args: argparse.Namespace) -> None:
             output_error(args, "API key is invalid or expired.", exit_code=2)
         return
 
+    if not workspaces and not default_ws_url and not api_key:
+        output_error(args, "Not logged in.", hint="Run 'roboflow auth login' to authenticate.", exit_code=2)
+        return  # unreachable, but helps mypy
+
     if not default_ws_url:
         output_error(args, "No default workspace configured.", hint="Run 'roboflow auth set-workspace <id>'.")
         return  # unreachable, but helps mypy
@@ -224,7 +227,7 @@ def _status(args: argparse.Namespace) -> None:
     default_ws = workspaces_by_url.get(default_ws_url)
 
     if default_ws:
-        # Use stored API key, or fall back to flag/env
+        # Use stored API key, or fall back to env var
         display_key = api_key or default_ws.get("apiKey", "")
         masked = dict(default_ws)
         masked["apiKey"] = _mask_key(display_key)

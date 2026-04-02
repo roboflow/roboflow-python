@@ -99,7 +99,7 @@ class TestAnnotationStub(unittest.TestCase):
             sys.stderr = old
 
         result = json.loads(buf.getvalue())
-        self.assertIn("not yet implemented", result["error"])
+        self.assertIn("not yet implemented", result["error"]["message"])
 
 
 if __name__ == "__main__":
