@@ -27,12 +27,40 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
 
 
 def _list_workspaces(args: argparse.Namespace) -> None:
+    import os
+
     from roboflow.cli._output import output
     from roboflow.cli._table import format_table
     from roboflow.config import APP_URL, get_conditional_configuration_variable
 
     workspaces = get_conditional_configuration_variable("workspaces", default={})
     default_ws_url = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+
+    # When no workspaces in config, fall back to API using available API key
+    if not workspaces:
+        api_key = getattr(args, "api_key", None) or os.getenv("ROBOFLOW_API_KEY")
+        if api_key:
+            import requests
+
+            from roboflow.config import API_URL
+
+            resp = requests.post(API_URL + "/?api_key=" + api_key)
+            if resp.status_code == 200:
+                data = resp.json()
+                ws_url = data.get("workspace", "")
+                if ws_url:
+                    ws_name = ws_url
+                    try:
+                        from roboflow.adapters import rfapi
+
+                        ws_json = rfapi.get_workspace(api_key, ws_url)
+                        ws_detail = ws_json.get("workspace", ws_json)
+                        ws_name = ws_detail.get("name", ws_url)
+                    except Exception:  # noqa: BLE001
+                        pass
+                    workspaces = {ws_url: {"url": ws_url, "name": ws_name, "apiKey": api_key}}
+                    if not default_ws_url:
+                        default_ws_url = ws_url
 
     rows = []
     for w in workspaces.values():
