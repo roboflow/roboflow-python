@@ -2,55 +2,56 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Annotated, Optional
 
-if TYPE_CHECKING:
-    import argparse
+import typer
+
+from roboflow.cli._compat import ctx_to_args
+
+auth_app = typer.Typer(help="Manage authentication and credentials", no_args_is_help=True)
 
 
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the ``auth`` command group."""
-    auth_parser = subparsers.add_parser("auth", help="Manage authentication and credentials")
-    auth_sub = auth_parser.add_subparsers(title="auth commands", dest="auth_command")
+@auth_app.command("login")
+def login(
+    ctx: typer.Context,
+    login_api_key: Annotated[Optional[str], typer.Option("--api-key", help="API key (skip interactive prompt)")] = None,
+    login_workspace: Annotated[
+        Optional[str], typer.Option("--workspace", help="Set default workspace during login")
+    ] = None,
+    force: Annotated[bool, typer.Option("--force", "-f", help="Force re-login even if already logged in")] = False,
+) -> None:
+    """Log in to Roboflow."""
+    args = ctx_to_args(ctx, login_api_key=login_api_key, login_workspace=login_workspace, force=force)
+    _login(args)
 
-    # --- auth login ---
-    login_p = auth_sub.add_parser("login", help="Log in to Roboflow")
-    login_p.add_argument(
-        "--api-key",
-        dest="login_api_key",
-        default=None,
-        help="API key (skip interactive prompt)",
-    )
-    login_p.add_argument(
-        "--workspace",
-        dest="login_workspace",
-        default=None,
-        help="Set default workspace during login",
-    )
-    login_p.add_argument(
-        "--force",
-        "-f",
-        action="store_true",
-        default=False,
-        help="Force re-login even if already logged in",
-    )
-    login_p.set_defaults(func=_login)
 
-    # --- auth status ---
-    status_p = auth_sub.add_parser("status", help="Show current auth status")
-    status_p.set_defaults(func=_status)
+@auth_app.command("status")
+def status(ctx: typer.Context) -> None:
+    """Show current auth status."""
+    args = ctx_to_args(ctx)
+    _status(args)
 
-    # --- auth set-workspace ---
-    sw_p = auth_sub.add_parser("set-workspace", help="Set the default workspace")
-    sw_p.add_argument("workspace_id", help="Workspace URL or ID to set as default")
-    sw_p.set_defaults(func=_set_workspace)
 
-    # --- auth logout ---
-    logout_p = auth_sub.add_parser("logout", help="Remove stored credentials")
-    logout_p.set_defaults(func=_logout)
+@auth_app.command("set-workspace")
+def set_workspace(
+    ctx: typer.Context,
+    workspace_id: Annotated[str, typer.Argument(help="Workspace URL or ID to set as default")],
+) -> None:
+    """Set the default workspace."""
+    args = ctx_to_args(ctx, workspace_id=workspace_id)
+    _set_workspace(args)
 
-    # Default: show help when no subcommand given
-    auth_parser.set_defaults(func=lambda args: auth_parser.print_help())
+
+@auth_app.command("logout")
+def logout(ctx: typer.Context) -> None:
+    """Remove stored credentials."""
+    args = ctx_to_args(ctx)
+    _logout(args)
+
+
+# ---------------------------------------------------------------------------
+# Business logic (unchanged from argparse version)
+# ---------------------------------------------------------------------------
 
 
 def _get_config_path() -> str:
@@ -94,7 +95,7 @@ def _mask_key(key: str) -> str:
     return key[:2] + "*" * (len(key) - 4) + key[-2:]
 
 
-def _login(args: argparse.Namespace) -> None:
+def _login(args):  # noqa: ANN001
     from roboflow.cli._output import output, output_error
 
     api_key = getattr(args, "login_api_key", None) or getattr(args, "api_key", None)
@@ -182,7 +183,7 @@ def _login(args: argparse.Namespace) -> None:
         )
 
 
-def _status(args: argparse.Namespace) -> None:
+def _status(args):  # noqa: ANN001
     import os
 
     from roboflow.cli._output import output, output_error
@@ -250,7 +251,7 @@ def _status(args: argparse.Namespace) -> None:
         )
 
 
-def _set_workspace(args: argparse.Namespace) -> None:
+def _set_workspace(args):  # noqa: ANN001
     from roboflow.cli._output import output
 
     workspace_id = args.workspace_id
@@ -264,7 +265,7 @@ def _set_workspace(args: argparse.Namespace) -> None:
     )
 
 
-def _logout(args: argparse.Namespace) -> None:
+def _logout(args):  # noqa: ANN001
     import os
 
     from roboflow.cli._output import output
