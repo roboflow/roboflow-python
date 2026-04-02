@@ -114,7 +114,6 @@ class TestVideoStatus(unittest.TestCase):
         result = json.loads(captured.getvalue())
         self.assertEqual(result["status"], "processing")
 
-
     def test_status_passes_job_id_to_api(self) -> None:
         import io
         import sys

@@ -73,7 +73,7 @@ class TestUniverseSearch(unittest.TestCase):
 
         parser = build_parser()
         args = parser.parse_args(["universe", "search", "cats"])
-        from unittest.mock import call, patch
+        from unittest.mock import patch
 
         mock_data = {"results": []}
         captured = io.StringIO()

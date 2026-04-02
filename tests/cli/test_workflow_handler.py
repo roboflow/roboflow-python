@@ -5,7 +5,7 @@ import os
 import tempfile
 import unittest
 from argparse import Namespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 
 def _make_args(**kwargs):
@@ -97,9 +97,11 @@ class TestWorkflowList(unittest.TestCase):
     def test_list_workflows_text(self, _mock_key, mock_list):
         from roboflow.cli.handlers.workflow import _list_workflows
 
-        mock_list.return_value = {"workflows": [
-            {"name": "My Workflow", "url": "my-workflow", "status": "active"},
-        ]}
+        mock_list.return_value = {
+            "workflows": [
+                {"name": "My Workflow", "url": "my-workflow", "status": "active"},
+            ]
+        }
         args = _make_args()
         with patch("builtins.print") as mock_print:
             _list_workflows(args)
@@ -112,9 +114,11 @@ class TestWorkflowList(unittest.TestCase):
     def test_list_workflows_json(self, _mock_key, mock_list):
         from roboflow.cli.handlers.workflow import _list_workflows
 
-        mock_list.return_value = {"workflows": [
-            {"name": "WF1", "url": "wf-1", "status": "active"},
-        ]}
+        mock_list.return_value = {
+            "workflows": [
+                {"name": "WF1", "url": "wf-1", "status": "active"},
+            ]
+        }
         args = _make_args(json=True)
         with patch("builtins.print") as mock_print:
             _list_workflows(args)
@@ -238,9 +242,7 @@ class TestWorkflowUpdate(unittest.TestCase):
     def test_update_workflow(self, _mock_key, mock_get, mock_update):
         from roboflow.cli.handlers.workflow import _update_workflow
 
-        mock_get.return_value = {
-            "workflow": {"id": "wf-123", "name": "My WF", "url": "my-wf", "config": "{}"}
-        }
+        mock_get.return_value = {"workflow": {"id": "wf-123", "name": "My WF", "url": "my-wf", "config": "{}"}}
         mock_update.return_value = {"url": "my-wf", "status": "updated"}
         defn = {"blocks": []}
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -304,10 +306,12 @@ class TestWorkflowVersionList(unittest.TestCase):
     def test_list_versions(self, _mock_key, mock_versions):
         from roboflow.cli.handlers.workflow import _list_workflow_versions
 
-        mock_versions.return_value = {"versions": [
-            {"version": "1", "created": "2026-01-01"},
-            {"version": "2", "created": "2026-02-01"},
-        ]}
+        mock_versions.return_value = {
+            "versions": [
+                {"version": "1", "created": "2026-01-01"},
+                {"version": "2", "created": "2026-02-01"},
+            ]
+        }
         args = _make_args(workflow_url="my-wf")
         with patch("builtins.print") as mock_print:
             _list_workflow_versions(args)
@@ -340,9 +344,7 @@ class TestWorkflowFork(unittest.TestCase):
         args = _make_args(workflow_url="my-wf")
         with patch("builtins.print") as mock_print:
             _fork_workflow(args)
-        mock_fork.assert_called_once_with(
-            "test-key", "test-ws", source_workspace="test-ws", source_workflow="my-wf"
-        )
+        mock_fork.assert_called_once_with("test-key", "test-ws", source_workspace="test-ws", source_workflow="my-wf")
         printed = mock_print.call_args[0][0]
         self.assertIn("Forked workflow", printed)
 
@@ -356,9 +358,7 @@ class TestWorkflowFork(unittest.TestCase):
         args = _make_args(workflow_url="other-ws/my-wf")
         with patch("builtins.print"):
             _fork_workflow(args)
-        mock_fork.assert_called_once_with(
-            "test-key", "test-ws", source_workspace="other-ws", source_workflow="my-wf"
-        )
+        mock_fork.assert_called_once_with("test-key", "test-ws", source_workspace="other-ws", source_workflow="my-wf")
 
     @patch("roboflow.adapters.rfapi.fork_workflow")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")

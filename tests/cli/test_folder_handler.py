@@ -131,7 +131,9 @@ class TestFolderCreateHandler(unittest.TestCase):
     @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
     def test_create_folder_json(self, _mock_key, _mock_ws, mock_create):
         mock_create.return_value = {"id": "new-folder-id"}
-        args = Namespace(json=True, workspace=None, api_key=None, quiet=False, name="NewFolder", parent=None, projects=None)
+        args = Namespace(
+            json=True, workspace=None, api_key=None, quiet=False, name="NewFolder", parent=None, projects=None
+        )
 
         from roboflow.cli.handlers.folder import _create_folder
 

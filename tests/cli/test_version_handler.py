@@ -120,9 +120,7 @@ class TestVersionCreate(unittest.TestCase):
             f.write("not valid json")
             f.flush()
             parser = _make_parser()
-            args = parser.parse_args(
-                ["--json", "version", "create", "-p", "my-ws/my-project", "--settings", f.name]
-            )
+            args = parser.parse_args(["--json", "version", "create", "-p", "my-ws/my-project", "--settings", f.name])
             args.api_key = "fake-key"
             with patch("roboflow.config.load_roboflow_api_key", return_value="fake-key"):
                 with self.assertRaises(SystemExit) as ctx:
@@ -138,9 +136,7 @@ class TestVersionCreate(unittest.TestCase):
             json.dump(settings, f)
             f.flush()
             parser = _make_parser()
-            args = parser.parse_args(
-                ["--json", "version", "create", "-p", "my-ws/my-project", "--settings", f.name]
-            )
+            args = parser.parse_args(["--json", "version", "create", "-p", "my-ws/my-project", "--settings", f.name])
             # Patch load_roboflow_api_key to return None
             from unittest.mock import patch
 
