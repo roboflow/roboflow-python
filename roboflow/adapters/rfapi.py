@@ -477,3 +477,264 @@ def _save_annotation_error(response):
         return AnnotationSaveError(err_msg, status_code=response.status_code)
 
     return AnnotationSaveError(str(responsejson), status_code=response.status_code)
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Annotation batch & job endpoints
+# ---------------------------------------------------------------------------
+
+
+def list_batches(api_key, workspace_url, project_url):
+    """GET /{ws}/{proj}/batches — list annotation batches."""
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches?api_key={api_key}")
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_batch(api_key, workspace_url, project_url, batch_id):
+    """GET /{ws}/{proj}/batches/{batch_id} — get batch details."""
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches/{batch_id}?api_key={api_key}")
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def list_annotation_jobs(api_key, workspace_url, project_url):
+    """GET /{ws}/{proj}/jobs — list annotation jobs."""
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs?api_key={api_key}")
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_annotation_job(api_key, workspace_url, project_url, job_id):
+    """GET /{ws}/{proj}/jobs/{job_id} — get annotation job details."""
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs/{job_id}?api_key={api_key}")
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def create_annotation_job(api_key, workspace_url, project_url, *, name, batch_id=None, assignees=None):
+    """POST /{ws}/{proj}/jobs — create an annotation job."""
+    payload = {"name": name}
+    if batch_id:
+        payload["batchId"] = batch_id
+    if assignees:
+        payload["assignees"] = assignees
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/jobs",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if response.status_code not in (200, 201):
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Folder (project group) endpoints
+# ---------------------------------------------------------------------------
+
+
+def list_folders(api_key, workspace_url):
+    """GET /{ws}/groups — list project folders."""
+    response = requests.get(f"{API_URL}/{workspace_url}/groups", params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_folder(api_key, workspace_url, group_id):
+    """GET /{ws}/groups?groupId={id} — get folder details."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/groups",
+        params={"api_key": api_key, "groupId": group_id},
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def create_folder(api_key, workspace_url, name, *, parent_id=None, project_ids=None):
+    """POST /{ws}/groups — create a project folder."""
+    payload: Dict[str, Union[str, List[str], None]] = {"name": name}
+    if parent_id:
+        payload["parent_id"] = parent_id
+    if project_ids:
+        payload["projects"] = project_ids
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/groups",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if response.status_code not in (200, 201):
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def update_folder(api_key, workspace_url, group_id, *, name=None):
+    """POST /{ws}/groups/{id} — update a project folder."""
+    payload: Dict[str, Optional[str]] = {}
+    if name:
+        payload["name"] = name
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/groups/{group_id}",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def delete_folder(api_key, workspace_url, group_id):
+    """DELETE /{ws}/groups/{id} — delete a project folder."""
+    response = requests.delete(
+        f"{API_URL}/{workspace_url}/groups/{group_id}",
+        params={"api_key": api_key},
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Workflow endpoints
+# ---------------------------------------------------------------------------
+
+
+def list_workflows(api_key, workspace_url):
+    """GET /{ws}/workflows — list workflows."""
+    response = requests.get(f"{API_URL}/{workspace_url}/workflows", params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_workflow(api_key, workspace_url, workflow_url):
+    """GET /{ws}/workflows/{url} — get workflow details."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/workflows/{workflow_url}",
+        params={"api_key": api_key},
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def create_workflow(api_key, workspace_url, *, name, definition=None, description=None):
+    """POST /{ws}/createWorkflow — create a workflow."""
+    payload: Dict[str, Union[str, dict, None]] = {"name": name}
+    if definition:
+        payload["definition"] = definition
+    if description:
+        payload["description"] = description
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/createWorkflow",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if response.status_code not in (200, 201):
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def update_workflow(api_key, workspace_url, *, workflow_url, definition=None):
+    """POST /{ws}/updateWorkflow — update a workflow definition."""
+    payload: Dict[str, Union[str, dict, None]] = {"workflowUrl": workflow_url}
+    if definition:
+        payload["definition"] = definition
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/updateWorkflow",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def list_workflow_versions(api_key, workspace_url, workflow_url):
+    """GET /{ws}/workflows/{url}/versions — list workflow versions."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/workflows/{workflow_url}/versions",
+        params={"api_key": api_key},
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def fork_workflow(api_key, workspace_url, workflow_url):
+    """POST /{ws}/forkWorkflow — fork a workflow."""
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/forkWorkflow",
+        params={"api_key": api_key},
+        json={"workflowUrl": workflow_url},
+    )
+    if response.status_code not in (200, 201):
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Workspace statistics endpoints
+# ---------------------------------------------------------------------------
+
+
+def get_billing_usage(api_key, workspace_url):
+    """POST /{ws}/billing-usage-report — get billing usage report."""
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/billing-usage-report",
+        params={"api_key": api_key},
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_plan_info(api_key):
+    """GET /usage/plan — get workspace plan info and limits."""
+    response = requests.get(f"{API_URL}/usage/plan", params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_labeling_stats(api_key, workspace_url):
+    """GET /{ws}/stats — get annotation/labeling statistics."""
+    response = requests.get(f"{API_URL}/{workspace_url}/stats", params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Video inference status
+# ---------------------------------------------------------------------------
+
+
+def get_video_job_status(api_key, job_id):
+    """GET /videoinfer?jobId={id} — check video inference job status."""
+    response = requests.get(f"{API_URL}/videoinfer", params={"api_key": api_key, "jobId": job_id})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Universe search
+# ---------------------------------------------------------------------------
+
+
+def search_universe(query, *, project_type=None, limit=12, page=1):
+    """GET /universe/search — search Roboflow Universe (no auth required)."""
+    params: Dict[str, Union[str, int]] = {"q": query, "limit": limit, "page": page}
+    if project_type:
+        params["type"] = project_type
+    response = requests.get(f"{API_URL}/universe/search", params=params)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
