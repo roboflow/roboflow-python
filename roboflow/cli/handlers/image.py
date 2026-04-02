@@ -65,8 +65,10 @@ def _handle_upload(args: argparse.Namespace) -> None:
 
 
 def _handle_upload_single(args: argparse.Namespace, api_key: str, path: str) -> None:
+    import contextlib
+    import io
+
     import roboflow
-    from roboflow.cli._output import suppress_sdk_output
 
     metadata_raw = getattr(args, "metadata", None)
     metadata = json.loads(metadata_raw) if metadata_raw else None
@@ -74,50 +76,64 @@ def _handle_upload_single(args: argparse.Namespace, api_key: str, path: str) -> 
     tag_names = tag_raw.split(",") if tag_raw else []
     retries = getattr(args, "retries", None) or getattr(args, "num_retries", 0) or 0
 
-    with suppress_sdk_output(args):
+    # Always suppress SDK "loading..." noise during workspace/project init
+    with contextlib.redirect_stdout(io.StringIO()):
         try:
             rf = roboflow.Roboflow(api_key)
             workspace = rf.workspace(args.workspace)
             project = workspace.project(args.project)
-            project.single_upload(
-                image_path=path,
-                annotation_path=args.annotation,
-                annotation_labelmap=getattr(args, "labelmap", None),
-                split=args.split,
-                num_retry_uploads=retries,
-                batch_name=args.batch,
-                tag_names=tag_names,
-                is_prediction=getattr(args, "is_prediction", False),
-                metadata=metadata,
-            )
         except Exception as exc:
             output_error(args, str(exc), exit_code=3)
             return
+
+    try:
+        project.single_upload(
+            image_path=path,
+            annotation_path=args.annotation,
+            annotation_labelmap=getattr(args, "labelmap", None),
+            split=args.split,
+            num_retry_uploads=retries,
+            batch_name=args.batch,
+            tag_names=tag_names,
+            is_prediction=getattr(args, "is_prediction", False),
+            metadata=metadata,
+        )
+    except Exception as exc:
+        output_error(args, str(exc))
+        return
 
     data = {"status": "uploaded", "path": path, "project": args.project}
     output(args, data, text=f"Uploaded {path} to {args.project}")
 
 
 def _handle_upload_directory(args: argparse.Namespace, api_key: str, path: str) -> None:
+    import contextlib
+    import io
+
     import roboflow
-    from roboflow.cli._output import suppress_sdk_output
 
-    retries = getattr(args, "retries", None) or getattr(args, "num_retries", 0) or 0
-
-    with suppress_sdk_output(args):
+    # Always suppress SDK "loading..." noise during workspace init
+    with contextlib.redirect_stdout(io.StringIO()):
         try:
             rf = roboflow.Roboflow(api_key)
             workspace = rf.workspace(args.workspace)
-            workspace.upload_dataset(
-                dataset_path=path,
-                project_name=args.project,
-                num_workers=args.concurrency,
-                batch_name=getattr(args, "batch", None),
-                num_retries=retries,
-            )
         except Exception as exc:
             output_error(args, str(exc), exit_code=3)
             return
+
+    retries = getattr(args, "retries", None) or getattr(args, "num_retries", 0) or 0
+
+    try:
+        workspace.upload_dataset(
+            dataset_path=path,
+            project_name=args.project,
+            num_workers=args.concurrency,
+            batch_name=getattr(args, "batch", None),
+            num_retries=retries,
+        )
+    except Exception as exc:
+        output_error(args, str(exc))
+        return
 
     # Count files uploaded (approximate via image extensions)
     count = 0

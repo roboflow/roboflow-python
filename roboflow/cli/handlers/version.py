@@ -159,8 +159,11 @@ def _parse_url(url: str) -> tuple:
 
 
 def _download(args: argparse.Namespace) -> None:
+    import contextlib
+    import io
+
     import roboflow
-    from roboflow.cli._output import output, output_error, suppress_sdk_output
+    from roboflow.cli._output import output, output_error
 
     w, p, v = _parse_url(args.url_or_id)
 
@@ -168,26 +171,31 @@ def _download(args: argparse.Namespace) -> None:
         output_error(args, f"Could not parse URL or shorthand: {args.url_or_id}")
         return
 
-    with suppress_sdk_output(args):
+    # Always suppress SDK "loading..." noise during workspace/project init
+    with contextlib.redirect_stdout(io.StringIO()):
         try:
             rf = roboflow.Roboflow()
             project = rf.workspace(w).project(p)
-
-            if not v:
-                versions = project.versions()
-                if not versions:
-                    output_error(args, f"Project {p} does not have any versions.")
-                    return
-                version_obj = versions[-1]
-            else:
-                version_obj = project.version(int(v))
-
-            version_obj.download(args.format, location=args.location, overwrite=True)
-        except SystemExit:
-            raise
         except Exception as exc:
             output_error(args, str(exc), exit_code=3)
             return
+
+    try:
+        if not v:
+            versions = project.versions()
+            if not versions:
+                output_error(args, f"Project {p} does not have any versions.")
+                return
+            version_obj = versions[-1]
+        else:
+            version_obj = project.version(int(v))
+
+        version_obj.download(args.format, location=args.location, overwrite=True)
+    except SystemExit:
+        raise
+    except Exception as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
 
     data = {
         "workspace": w,
