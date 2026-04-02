@@ -58,11 +58,34 @@ class TestUniverseSearch(unittest.TestCase):
         sys.stdout = captured
         try:
             with patch("roboflow.adapters.rfapi.search_universe", return_value=mock_data):
-                args.func(args)
+                with patch("roboflow.config.load_roboflow_api_key", return_value="test-key"):
+                    args.func(args)
         finally:
             sys.stdout = old_stdout
         out = captured.getvalue()
         self.assertIn("cats-dataset", out)
+
+    def test_search_passes_api_key(self) -> None:
+        import io
+        import sys
+
+        from roboflow.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args(["universe", "search", "cats"])
+        from unittest.mock import call, patch
+
+        mock_data = {"results": []}
+        captured = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured
+        try:
+            with patch("roboflow.adapters.rfapi.search_universe", return_value=mock_data) as mock_search:
+                with patch("roboflow.config.load_roboflow_api_key", return_value="my-key"):
+                    args.func(args)
+        finally:
+            sys.stdout = old_stdout
+        mock_search.assert_called_once_with("cats", api_key="my-key", project_type=None, limit=12)
 
     def test_search_json_output(self) -> None:
         import io

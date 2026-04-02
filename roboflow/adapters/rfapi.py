@@ -595,8 +595,10 @@ def delete_folder(api_key, workspace_url, group_id):
         f"{API_URL}/{workspace_url}/groups/{group_id}",
         params={"api_key": api_key},
     )
-    if response.status_code != 200:
+    if response.status_code not in (200, 204):
         raise RoboflowError(response.text)
+    if response.status_code == 204 or not response.text.strip():
+        return {}
     return response.json()
 
 
@@ -703,9 +705,14 @@ def get_plan_info(api_key):
     return response.json()
 
 
-def get_labeling_stats(api_key, workspace_url):
+def get_labeling_stats(api_key, workspace_url, *, start_date=None, end_date=None):
     """GET /{ws}/stats — get annotation/labeling statistics."""
-    response = requests.get(f"{API_URL}/{workspace_url}/stats", params={"api_key": api_key})
+    params: Dict[str, str] = {"api_key": api_key}
+    if start_date:
+        params["startDate"] = start_date
+    if end_date:
+        params["endDate"] = end_date
+    response = requests.get(f"{API_URL}/{workspace_url}/stats", params=params)
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -729,9 +736,11 @@ def get_video_job_status(api_key, job_id):
 # ---------------------------------------------------------------------------
 
 
-def search_universe(query, *, project_type=None, limit=12, page=1):
-    """GET /universe/search — search Roboflow Universe (no auth required)."""
+def search_universe(query, *, api_key=None, project_type=None, limit=12, page=1):
+    """GET /universe/search — search Roboflow Universe."""
     params: Dict[str, Union[str, int]] = {"q": query, "limit": limit, "page": page}
+    if api_key:
+        params["api_key"] = api_key
     if project_type:
         params["type"] = project_type
     response = requests.get(f"{API_URL}/universe/search", params=params)

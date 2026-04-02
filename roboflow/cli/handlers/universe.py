@@ -28,9 +28,12 @@ def _search(args: argparse.Namespace) -> None:
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._table import format_table
+    from roboflow.config import load_roboflow_api_key
+
+    api_key = args.api_key or load_roboflow_api_key(None)
 
     try:
-        data = rfapi.search_universe(args.query, project_type=args.type, limit=args.limit)
+        data = rfapi.search_universe(args.query, api_key=api_key, project_type=args.type, limit=args.limit)
     except rfapi.RoboflowError as exc:
         output_error(args, str(exc))
         return
