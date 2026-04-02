@@ -2,73 +2,86 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Annotated, Optional
 
-if TYPE_CHECKING:
-    import argparse
+import typer
 
+from roboflow.cli._compat import ctx_to_args
 
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register ``train`` subcommand and its verbs."""
-    train_parser = subparsers.add_parser("train", help="Train a model")
-    train_subs = train_parser.add_subparsers(title="train commands", dest="train_command")
-
-    # --- train start ---
-    start_parser = train_subs.add_parser("start", help="Start training for a dataset version")
-    _add_start_args(start_parser, required=True)
-    start_parser.set_defaults(func=_start)
-
-    # Default: `train` without subcommand behaves like `train start`
-    _add_start_args(train_parser, required=False)
-    train_parser.set_defaults(func=_start)
+train_app = typer.Typer(help="Train a model", invoke_without_command=True)
 
 
-def _add_start_args(parser: argparse.ArgumentParser, *, required: bool = True) -> None:
-    """Add shared arguments for the train start command."""
-    parser.add_argument(
-        "-p",
-        "--project",
-        dest="project",
-        required=required,
-        help="Project ID to train",
+@train_app.callback(invoke_without_command=True)
+def _train_callback(
+    ctx: typer.Context,
+    project: Annotated[Optional[str], typer.Option("-p", "--project", help="Project ID to train")] = None,
+    version_number: Annotated[Optional[int], typer.Option("-v", "--version", help="Version number to train")] = None,
+    model_type: Annotated[
+        Optional[str], typer.Option("-t", "--type", help="Model type (e.g. rfdetr-nano, yolov8n)")
+    ] = None,
+    checkpoint: Annotated[Optional[str], typer.Option(help="Checkpoint to resume training from")] = None,
+    speed: Annotated[Optional[str], typer.Option(help="Training speed preset")] = None,
+    epochs: Annotated[Optional[int], typer.Option(help="Number of training epochs")] = None,
+) -> None:
+    """Train a model. When invoked without a subcommand, behaves like ``train start``."""
+    if ctx.invoked_subcommand is not None:
+        return
+    # No subcommand — behave like `train start`
+    if not project:
+        from roboflow.cli._output import output_error
+
+        args = ctx_to_args(ctx)
+        output_error(args, "Project is required.", hint="Use -p/--project.")
+        return
+    if version_number is None:
+        from roboflow.cli._output import output_error
+
+        args = ctx_to_args(ctx)
+        output_error(args, "Version is required.", hint="Use -v/--version.")
+        return
+    args = ctx_to_args(
+        ctx,
+        project=project,
+        version_number=version_number,
+        model_type=model_type,
+        checkpoint=checkpoint,
+        speed=speed,
+        epochs=epochs,
     )
-    parser.add_argument(
-        "-v",
-        "--version",
-        dest="version_number",
-        type=int,
-        required=required,
-        help="Version number to train",
-    )
-    parser.add_argument(
-        "-t",
-        "--type",
-        dest="model_type",
-        default=None,
-        help="Model type (e.g. rfdetr-nano, yolov8n)",
-    )
-    parser.add_argument(
-        "--checkpoint",
-        dest="checkpoint",
-        default=None,
-        help="Checkpoint to resume training from",
-    )
-    parser.add_argument(
-        "--speed",
-        dest="speed",
-        default=None,
-        help="Training speed preset",
-    )
-    parser.add_argument(
-        "--epochs",
-        dest="epochs",
-        type=int,
-        default=None,
-        help="Number of training epochs",
-    )
+    _start(args)
 
 
-def _start(args: argparse.Namespace) -> None:
+@train_app.command("start")
+def start_training(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID to train")],
+    version_number: Annotated[int, typer.Option("-v", "--version", help="Version number to train")],
+    model_type: Annotated[
+        Optional[str], typer.Option("-t", "--type", help="Model type (e.g. rfdetr-nano, yolov8n)")
+    ] = None,
+    checkpoint: Annotated[Optional[str], typer.Option(help="Checkpoint to resume training from")] = None,
+    speed: Annotated[Optional[str], typer.Option(help="Training speed preset")] = None,
+    epochs: Annotated[Optional[int], typer.Option(help="Number of training epochs")] = None,
+) -> None:
+    """Start training for a dataset version."""
+    args = ctx_to_args(
+        ctx,
+        project=project,
+        version_number=version_number,
+        model_type=model_type,
+        checkpoint=checkpoint,
+        speed=speed,
+        epochs=epochs,
+    )
+    _start(args)
+
+
+# ---------------------------------------------------------------------------
+# Business logic (unchanged from argparse version)
+# ---------------------------------------------------------------------------
+
+
+def _start(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._resolver import resolve_resource
