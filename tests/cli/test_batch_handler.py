@@ -15,8 +15,10 @@ class TestBatchRegistration(unittest.TestCase):
         from roboflow.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args(["batch", "create"])
+        args = parser.parse_args(["batch", "create", "--workflow", "wf-1", "--input", "/tmp/imgs"])
         self.assertIsNotNone(args.func)
+        self.assertEqual(args.workflow, "wf-1")
+        self.assertEqual(args.input, "/tmp/imgs")
 
     def test_batch_status_exists(self) -> None:
         from roboflow.cli import build_parser
