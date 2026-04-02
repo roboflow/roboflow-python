@@ -41,16 +41,19 @@ def _video_infer(args: argparse.Namespace) -> None:
         return
 
     try:
-        rf = roboflow.Roboflow(api_key)
-        project = rf.workspace().project(args.project)
-        version = project.version(args.version_number)
-        model = version.model
+        from roboflow.cli._output import suppress_sdk_output
 
-        job_id, _signed_url, _expire_time = model.predict_video(
-            args.video_file,
-            args.fps,
-            prediction_type="batch-video",
-        )
+        with suppress_sdk_output():
+            rf = roboflow.Roboflow(api_key)
+            project = rf.workspace().project(args.project)
+            version = project.version(args.version_number)
+            model = version.model
+
+            job_id, _signed_url, _expire_time = model.predict_video(
+                args.video_file,
+                args.fps,
+                prediction_type="batch-video",
+            )
     except Exception as exc:
         output_error(args, str(exc))
         return

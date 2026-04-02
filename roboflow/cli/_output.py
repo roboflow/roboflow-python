@@ -36,6 +36,13 @@ def output(args: Any, data: Any, text: Optional[str] = None) -> None:
         print(json.dumps(data, indent=2, default=str))
 
 
+def _sanitize_credentials(text: str) -> str:
+    """Strip API keys from URLs and other sensitive patterns in error messages."""
+    import re
+
+    return re.sub(r"api_key=[A-Za-z0-9_]+", "api_key=***", text)
+
+
 def _parse_error_message(raw: str) -> tuple[Optional[dict[str, Any]], str]:
     """Try to parse a raw error string that may contain embedded JSON.
 
@@ -44,7 +51,7 @@ def _parse_error_message(raw: str) -> tuple[Optional[dict[str, Any]], str]:
     otherwise ``None``.  The *human_readable_message* drills into nested
     ``error.message`` structures so the text-mode output is clean.
     """
-    text = raw.strip()
+    text = _sanitize_credentials(raw.strip())
     # Strip status-code prefix like "404: {...}"
     colon_idx = text.find(": {")
     if 0 < colon_idx < 5:
@@ -60,7 +67,7 @@ def _parse_error_message(raw: str) -> tuple[Optional[dict[str, Any]], str]:
             return parsed, human
     except (json.JSONDecodeError, TypeError, ValueError):
         pass
-    return None, raw
+    return None, text  # Return sanitized text, not the original raw
 
 
 def output_error(
