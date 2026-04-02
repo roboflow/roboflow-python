@@ -44,7 +44,7 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     upload_p.add_argument("-r", "--retries", dest="num_retries", type=int, default=0, help="Retry count")
     upload_p.add_argument("-b", "--batch", dest="batch", help="Batch name")
     upload_p.add_argument("-t", "--tag", dest="tag_names", help="Comma-separated tag names")
-    upload_p.add_argument("--metadata", dest="metadata", help="JSON metadata string")
+    upload_p.add_argument("-M", "--metadata", dest="metadata", help="JSON metadata string")
     upload_p.add_argument("-c", "--concurrency", dest="concurrency", type=int, default=10, help="Upload concurrency")
     upload_p.add_argument("--is-prediction", dest="is_prediction", action="store_true", help="Mark as prediction")
     upload_p.set_defaults(func=_handle_upload)

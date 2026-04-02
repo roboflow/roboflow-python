@@ -84,8 +84,10 @@ class TestReorderArgv(unittest.TestCase):
         self.assertEqual(result, ["-k", "abc123", "project", "list"])
 
     def test_multiple_flags_mixed(self) -> None:
+        # -w is NOT reordered (collides with deployment's -w/--wait_on_pending)
+        # but --workspace (long form) and --json are reordered
         result = self._reorder(["project", "list", "--json", "-w", "my-ws"])
-        self.assertEqual(result, ["--json", "-w", "my-ws", "project", "list"])
+        self.assertEqual(result, ["--json", "project", "list", "-w", "my-ws"])
 
     def test_value_flag_at_end_without_value(self) -> None:
         """A value flag at the very end with no following arg should still be moved."""

@@ -25,6 +25,13 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     search_parser.add_argument(
         "-d", "--dataset", dest="dataset", default=None, help="Limit to a specific dataset (project slug)"
     )
+    search_parser.add_argument(
+        "-g",
+        "--annotation-group",
+        dest="annotation_group",
+        default=None,
+        help="Limit export to a specific annotation group",
+    )
     search_parser.add_argument("--name", dest="name", default=None, help="Optional name for the export")
     search_parser.add_argument(
         "--no-extract", dest="no_extract", action="store_true", default=False, help="Keep zip file, skip extraction"
@@ -91,6 +98,7 @@ def _do_export(args: argparse.Namespace, workspace: Any) -> None:
             format=args.format,
             location=args.location,
             dataset=args.dataset,
+            annotation_group=getattr(args, "annotation_group", None),
             name=args.name,
             extract_zip=not args.no_extract,
         )

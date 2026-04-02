@@ -145,7 +145,9 @@ def _reorder_argv(argv: list[str]) -> list[str]:
     e.g. ``roboflow project list --json``.  This helper transparently
     re-orders the argv so those flags are consumed by the root parser.
     """
-    global_flags_with_value = {"--api-key", "-k", "--workspace", "-w"}
+    # Note: -w is intentionally excluded — it collides with deployment's
+    # -w/--wait_on_pending (boolean).  --workspace (long form) is safe.
+    global_flags_with_value = {"--api-key", "-k", "--workspace"}
     global_flags_bool = {"--json", "-j", "--quiet", "-q", "--version"}
 
     reordered: list[str] = []
