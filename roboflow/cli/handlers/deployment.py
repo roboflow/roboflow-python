@@ -16,16 +16,22 @@ def _wrap_deployment_func(func: Callable[..., Any]) -> Callable[..., None]:
     The functions in ``roboflow.deployment`` use bare ``print()`` + ``exit()``
     for errors.  This wrapper intercepts both so that ``--json`` mode gets
     valid JSON on stderr and exit codes are normalised.
+
+    It also bridges the global ``--api-key`` flag to the legacy ``-a`` flag
+    that deployment handlers expect as ``args.api_key``.
     """
 
     def _wrapped(args: argparse.Namespace) -> None:
         from roboflow.cli._output import output_error
 
+        # Bridge global --api-key (dest="api_key") to legacy -a (also dest="api_key")
+        # The global flag may have set it; legacy handlers read args.api_key too.
+        # No-op if both point to the same dest, but ensures it's set.
+
         captured = io.StringIO()
         orig_stdout = sys.stdout
 
         try:
-            # Capture stdout so we can inspect bare-text error messages
             sys.stdout = captured
             func(args)
         except SystemExit as exc:
@@ -33,7 +39,6 @@ def _wrap_deployment_func(func: Callable[..., Any]) -> Callable[..., None]:
             code = exc.code if isinstance(exc.code, int) else 1
             text = captured.getvalue().strip()
             if text:
-                # Normalise exit code: anything > 3 becomes 1
                 output_error(args, text, exit_code=min(code, 3) if code else 1)
             else:
                 output_error(args, "Deployment command failed.", exit_code=1)
@@ -41,10 +46,21 @@ def _wrap_deployment_func(func: Callable[..., Any]) -> Callable[..., None]:
         finally:
             sys.stdout = orig_stdout
 
-        # Success path: replay captured output
+        # Success path: if --json, try to parse and re-emit as structured output
         text = captured.getvalue()
         if text:
-            print(text, end="")
+            if getattr(args, "json", False):
+                import json as _json
+
+                from roboflow.cli._output import output
+
+                try:
+                    data = _json.loads(text)
+                    output(args, data)
+                except (ValueError, TypeError):
+                    print(text, end="")
+            else:
+                print(text, end="")
 
     return _wrapped
 
@@ -60,6 +76,9 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     if deployment_parser is None:
         return
 
+    # Improve help text to match other handlers
+    deployment_parser.description = "Manage dedicated deployments"
+
     # Set default so `roboflow deployment` (no subcommand) shows its own help
     deployment_parser.set_defaults(func=lambda args: deployment_parser.print_help())
 
@@ -74,47 +93,51 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
         return
 
     # Wrap all existing deployment subcommand handlers for structured errors
-    for name, sub_parser in list(deployment_subs.choices.items()):
+    for _name, sub_parser in list(deployment_subs.choices.items()):
         defaults = sub_parser._defaults
         if "func" in defaults:
             defaults["func"] = _wrap_deployment_func(defaults["func"])
 
     # --- "create" as alias for "add" ---
     create_parser = deployment_subs.add_parser("create", help="Create a dedicated deployment (alias for 'add')")
-    create_parser.add_argument("-a", "--api_key", help="api key")
     create_parser.add_argument(
         "deployment_name",
-        help="deployment name, must contain 5-15 lowercase characters, first character must be a letter",
+        help="Deployment name (5-15 lowercase chars, must start with a letter)",
     )
     create_parser.add_argument(
         "-m",
-        "--machine_type",
-        help="machine type, run `roboflow deployment machine_type` to see available options",
+        "--machine-type",
+        dest="machine_type",
+        help="Machine type (run 'roboflow deployment machine-type' to see options)",
         required=True,
     )
     create_parser.add_argument(
-        "-e", "--creator_email", help="your email address (must be added to the workspace)", required=True
+        "-e", "--email", dest="creator_email", help="Your email address (must be a workspace member)", required=True
     )
     create_parser.add_argument(
         "-t",
         "--duration",
-        help="duration, how long you want to keep the deployment (unit: hour, default: 3)",
+        help="Duration in hours (default: 3)",
         type=float,
         default=3,
     )
     create_parser.add_argument(
-        "-nodel", "--no_delete_on_expiration", help="keep when expired (default: False)", action="store_true"
+        "--no-delete-on-expiration",
+        dest="no_delete_on_expiration",
+        help="Keep deployment when expired",
+        action="store_true",
     )
     create_parser.add_argument(
-        "-v",
-        "--inference_version",
-        help="inference server version (default: latest)",
+        "--inference-version",
+        dest="inference_version",
+        help="Inference server version (default: latest)",
         default="latest",
     )
-    create_parser.add_argument("-w", "--wait_on_pending", help="wait if deployment is pending", action="store_true")
+    create_parser.add_argument(
+        "--wait", dest="wait_on_pending", help="Wait for deployment to be ready", action="store_true"
+    )
     create_parser.set_defaults(func=_wrap_deployment_func(add_deployment))
 
     # --- "machine-type" as alias for "machine_type" ---
-    mt_parser = deployment_subs.add_parser("machine-type", help="List machine types (alias for 'machine_type')")
-    mt_parser.add_argument("-a", "--api_key", help="api key")
+    mt_parser = deployment_subs.add_parser("machine-type", help="List available machine types")
     mt_parser.set_defaults(func=_wrap_deployment_func(list_machine_types))

@@ -99,15 +99,12 @@ def output_error(
 
 
 @contextlib.contextmanager
-def suppress_sdk_output(args: Any) -> Iterator[None]:
+def suppress_sdk_output(args: Any = None) -> Iterator[None]:
     """Suppress SDK stdout noise (e.g. 'loading Roboflow workspace...').
 
-    Active when ``--json`` or ``--quiet`` is set.  In normal mode, SDK
-    messages pass through to the terminal.
+    Always active — the SDK's "loading Roboflow workspace..." messages
+    are not useful CLI output in any mode.  The CLI controls its own
+    output via ``output()`` and ``output_error()``.
     """
-    quiet = getattr(args, "json", False) or getattr(args, "quiet", False)
-    if quiet:
-        with contextlib.redirect_stdout(io.StringIO()):
-            yield
-    else:
+    with contextlib.redirect_stdout(io.StringIO()):
         yield
