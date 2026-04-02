@@ -2,55 +2,132 @@
 
 from __future__ import annotations
 
-import json
-import os
-from typing import TYPE_CHECKING
+from typing import Annotated, Optional
 
-from roboflow.adapters import rfapi
-from roboflow.cli._output import output, output_error
-from roboflow.config import API_URL, load_roboflow_api_key
+import typer
 
-if TYPE_CHECKING:
-    import argparse
+from roboflow.cli._compat import ctx_to_args
+
+image_app = typer.Typer(help="Image management commands", no_args_is_help=True)
 
 
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the ``image`` command group."""
-    image_parser = subparsers.add_parser("image", help="Image management commands")
-    image_sub = image_parser.add_subparsers(title="image commands", dest="image_command")
+@image_app.command("upload")
+def upload_image(
+    ctx: typer.Context,
+    path: Annotated[
+        str, typer.Argument(help="Path to image file or directory (auto-detects single vs. directory bulk import)")
+    ],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+    annotation: Annotated[
+        Optional[str], typer.Option("-a", "--annotation", help="Path to annotation file (single upload)")
+    ] = None,
+    split: Annotated[str, typer.Option("-s", "--split", help="Dataset split")] = "train",
+    batch: Annotated[Optional[str], typer.Option("-b", "--batch", help="Batch name")] = None,
+    tag: Annotated[Optional[str], typer.Option("-t", "--tag", help="Comma-separated tag names")] = None,
+    metadata: Annotated[Optional[str], typer.Option(help="JSON string of key-value metadata")] = None,
+    concurrency: Annotated[int, typer.Option("-c", "--concurrency", help="Concurrency for directory import")] = 10,
+    retries: Annotated[int, typer.Option("-r", "--retries", help="Retry failed uploads N times")] = 0,
+    labelmap: Annotated[Optional[str], typer.Option(help="Path to labelmap file")] = None,
+    is_prediction: Annotated[bool, typer.Option("--is-prediction", help="Mark upload as prediction")] = False,
+) -> None:
+    """Upload an image file or import a directory."""
+    args = ctx_to_args(
+        ctx,
+        path=path,
+        project=project,
+        annotation=annotation,
+        split=split,
+        batch=batch,
+        tag=tag,
+        metadata=metadata,
+        concurrency=concurrency,
+        retries=retries,
+        labelmap=labelmap,
+        is_prediction=is_prediction,
+    )
+    _handle_upload(args)
 
-    _add_upload(image_sub)
-    _add_get(image_sub)
-    _add_search(image_sub)
-    _add_tag(image_sub)
-    _add_delete(image_sub)
-    _add_annotate(image_sub)
 
-    image_parser.set_defaults(func=lambda args: image_parser.print_help())
+@image_app.command("get")
+def get_image(
+    ctx: typer.Context,
+    image_id: Annotated[str, typer.Argument(help="Image ID")],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+) -> None:
+    """Get image details."""
+    args = ctx_to_args(ctx, image_id=image_id, project=project)
+    _handle_get(args)
+
+
+@image_app.command("search")
+def search_images(
+    ctx: typer.Context,
+    query: Annotated[str, typer.Argument(help="RoboQL search query")],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID (used in query filter)")],
+    limit: Annotated[int, typer.Option(help="Number of results")] = 50,
+    cursor: Annotated[Optional[str], typer.Option(help="Continuation token for pagination")] = None,
+) -> None:
+    """Search images in workspace."""
+    args = ctx_to_args(ctx, query=query, project=project, limit=limit, cursor=cursor)
+    _handle_search(args)
+
+
+@image_app.command("tag")
+def tag_image(
+    ctx: typer.Context,
+    image_id: Annotated[str, typer.Argument(help="Image ID")],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+    add_tags: Annotated[Optional[str], typer.Option("--add", help="Comma-separated tags to add")] = None,
+    remove_tags: Annotated[Optional[str], typer.Option("--remove", help="Comma-separated tags to remove")] = None,
+) -> None:
+    """Add or remove tags on an image."""
+    args = ctx_to_args(ctx, image_id=image_id, project=project, add_tags=add_tags, remove_tags=remove_tags)
+    _handle_tag(args)
+
+
+@image_app.command("delete")
+def delete_images(
+    ctx: typer.Context,
+    image_ids: Annotated[str, typer.Argument(help="Comma-separated image IDs")],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+) -> None:
+    """Delete images from workspace."""
+    args = ctx_to_args(ctx, image_ids=image_ids, project=project)
+    _handle_delete(args)
+
+
+@image_app.command("annotate")
+def annotate_image(
+    ctx: typer.Context,
+    image_id: Annotated[str, typer.Argument(help="Image ID")],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+    annotation_file: Annotated[str, typer.Option("--annotation-file", help="Path to annotation file")],
+    annotation_format: Annotated[Optional[str], typer.Option("--format", help="Annotation format name")] = None,
+    labelmap: Annotated[Optional[str], typer.Option(help="Path to labelmap file")] = None,
+) -> None:
+    """Upload annotation for an image."""
+    args = ctx_to_args(
+        ctx,
+        image_id=image_id,
+        project=project,
+        annotation_file=annotation_file,
+        annotation_format=annotation_format,
+        labelmap=labelmap,
+    )
+    _handle_annotate(args)
 
 
 # ---------------------------------------------------------------------------
-# upload
+# Business logic (unchanged from argparse version)
 # ---------------------------------------------------------------------------
 
 
-def _add_upload(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    p = sub.add_parser("upload", help="Upload an image file or import a directory")
-    p.add_argument("path", help="Path to image file or directory (auto-detects single file vs. directory bulk import)")
-    p.add_argument("-p", "--project", required=True, help="Project ID")
-    p.add_argument("-a", "--annotation", default=None, help="Path to annotation file (single upload)")
-    p.add_argument("-s", "--split", default="train", help="Dataset split (default: train)")
-    p.add_argument("-b", "--batch", default=None, help="Batch name")
-    p.add_argument("-t", "--tag", default=None, help="Comma-separated tag names")
-    p.add_argument("--metadata", default=None, help="JSON string of key-value metadata")
-    p.add_argument("-c", "--concurrency", type=int, default=10, help="Concurrency for directory import (default: 10)")
-    p.add_argument("-r", "--retries", type=int, default=0, help="Retry failed uploads N times (default: 0)")
-    p.add_argument("--labelmap", default=None, help="Path to labelmap file")
-    p.add_argument("--is-prediction", action="store_true", default=False, help="Mark upload as prediction")
-    p.set_defaults(func=_handle_upload)
+def _handle_upload(args):  # noqa: ANN001
+    import os
 
+    from roboflow.cli._output import output_error
+    from roboflow.config import load_roboflow_api_key
 
-def _handle_upload(args: argparse.Namespace) -> None:
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
         output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
@@ -66,9 +143,11 @@ def _handle_upload(args: argparse.Namespace) -> None:
         return
 
 
-def _handle_upload_single(args: argparse.Namespace, api_key: str, path: str) -> None:
+def _handle_upload_single(args, api_key: str, path: str) -> None:  # noqa: ANN001
+    import json
+
     import roboflow
-    from roboflow.cli._output import suppress_sdk_output
+    from roboflow.cli._output import output, output_error, suppress_sdk_output
 
     metadata_raw = getattr(args, "metadata", None)
     metadata = json.loads(metadata_raw) if metadata_raw else None
@@ -110,9 +189,11 @@ def _handle_upload_single(args: argparse.Namespace, api_key: str, path: str) -> 
     output(args, data, text=f"Uploaded {path} to {args.project}")
 
 
-def _handle_upload_directory(args: argparse.Namespace, api_key: str, path: str) -> None:
+def _handle_upload_directory(args, api_key: str, path: str) -> None:  # noqa: ANN001
+    import os
+
     import roboflow
-    from roboflow.cli._output import suppress_sdk_output
+    from roboflow.cli._output import output, output_error, suppress_sdk_output
 
     # Always suppress SDK "loading..." noise during workspace init
     with suppress_sdk_output():
@@ -149,20 +230,13 @@ def _handle_upload_directory(args: argparse.Namespace, api_key: str, path: str) 
     output(args, data, text=f"Imported {count} images from {path} to {args.project}")
 
 
-# ---------------------------------------------------------------------------
-# get
-# ---------------------------------------------------------------------------
+def _handle_get(args):  # noqa: ANN001
+    import json
 
-
-def _add_get(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    p = sub.add_parser("get", help="Get image details")
-    p.add_argument("image_id", help="Image ID")
-    p.add_argument("-p", "--project", required=True, help="Project ID")
-    p.set_defaults(func=_handle_get)
-
-
-def _handle_get(args: argparse.Namespace) -> None:
     import requests
+
+    from roboflow.cli._output import output, output_error
+    from roboflow.config import API_URL, load_roboflow_api_key
 
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
@@ -184,21 +258,13 @@ def _handle_get(args: argparse.Namespace) -> None:
     output(args, data, text=json.dumps(data, indent=2))
 
 
-# ---------------------------------------------------------------------------
-# search
-# ---------------------------------------------------------------------------
+def _handle_search(args):  # noqa: ANN001
+    import json
 
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.config import load_roboflow_api_key
 
-def _add_search(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    p = sub.add_parser("search", help="Search images in workspace")
-    p.add_argument("query", help="RoboQL search query")
-    p.add_argument("-p", "--project", required=True, help="Project ID (used in query filter)")
-    p.add_argument("--limit", type=int, default=50, help="Number of results (default: 50)")
-    p.add_argument("--cursor", default=None, help="Continuation token for pagination")
-    p.set_defaults(func=_handle_search)
-
-
-def _handle_search(args: argparse.Namespace) -> None:
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
         output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
@@ -219,22 +285,11 @@ def _handle_search(args: argparse.Namespace) -> None:
     output(args, result, text=json.dumps(result, indent=2))
 
 
-# ---------------------------------------------------------------------------
-# tag
-# ---------------------------------------------------------------------------
-
-
-def _add_tag(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    p = sub.add_parser("tag", help="Add or remove tags on an image")
-    p.add_argument("image_id", help="Image ID")
-    p.add_argument("-p", "--project", required=True, help="Project ID")
-    p.add_argument("--add", default=None, dest="add_tags", help="Comma-separated tags to add")
-    p.add_argument("--remove", default=None, dest="remove_tags", help="Comma-separated tags to remove")
-    p.set_defaults(func=_handle_tag)
-
-
-def _handle_tag(args: argparse.Namespace) -> None:
+def _handle_tag(args):  # noqa: ANN001
     import requests
+
+    from roboflow.cli._output import output, output_error
+    from roboflow.config import API_URL, load_roboflow_api_key
 
     if not args.add_tags and not args.remove_tags:
         output_error(args, "Nothing to do", hint="Specify --add and/or --remove with comma-separated tags")
@@ -282,19 +337,11 @@ def _handle_tag(args: argparse.Namespace) -> None:
     output(args, data, text=text)
 
 
-# ---------------------------------------------------------------------------
-# delete
-# ---------------------------------------------------------------------------
+def _handle_delete(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.config import load_roboflow_api_key
 
-
-def _add_delete(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    p = sub.add_parser("delete", help="Delete images from workspace")
-    p.add_argument("image_ids", help="Comma-separated image IDs")
-    p.add_argument("-p", "--project", required=True, help="Project ID")
-    p.set_defaults(func=_handle_delete)
-
-
-def _handle_delete(args: argparse.Namespace) -> None:
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
         output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
@@ -318,22 +365,14 @@ def _handle_delete(args: argparse.Namespace) -> None:
     output(args, data, text=f"Deleted {deleted}, skipped {skipped}")
 
 
-# ---------------------------------------------------------------------------
-# annotate
-# ---------------------------------------------------------------------------
+def _handle_annotate(args):  # noqa: ANN001
+    import json
+    import os
 
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.config import load_roboflow_api_key
 
-def _add_annotate(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    p = sub.add_parser("annotate", help="Upload annotation for an image")
-    p.add_argument("image_id", help="Image ID")
-    p.add_argument("-p", "--project", required=True, help="Project ID")
-    p.add_argument("--annotation-file", required=True, help="Path to annotation file")
-    p.add_argument("--format", default=None, dest="annotation_format", help="Annotation format name")
-    p.add_argument("--labelmap", default=None, help="Path to labelmap file")
-    p.set_defaults(func=_handle_annotate)
-
-
-def _handle_annotate(args: argparse.Namespace) -> None:
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
         output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
