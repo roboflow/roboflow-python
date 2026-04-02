@@ -496,7 +496,7 @@ class TestGetVideoJobStatus(unittest.TestCase):
         result = get_video_job_status("key", "job-123")
         self.assertEqual(result["status"], "completed")
         call_kwargs = mock_get.call_args[1]
-        self.assertEqual(call_kwargs["params"]["jobId"], "job-123")
+        self.assertEqual(call_kwargs["params"]["job_id"], "job-123")
 
     @patch("roboflow.adapters.rfapi.requests.get")
     def test_error(self, mock_get):

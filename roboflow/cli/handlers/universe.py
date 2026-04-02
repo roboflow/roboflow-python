@@ -39,6 +39,9 @@ def _search(args: argparse.Namespace) -> None:
         return
 
     results = data.get("results", [])
+    # The API may ignore the limit param; enforce it client-side
+    if args.limit and len(results) > args.limit:
+        results = results[: args.limit]
     rows = []
     for r in results:
         rows.append(
