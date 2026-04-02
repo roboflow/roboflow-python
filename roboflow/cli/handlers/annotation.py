@@ -237,7 +237,7 @@ def _job_create(args: argparse.Namespace) -> None:
 
     with suppress_sdk_output(args):
         try:
-            rf = roboflow.Roboflow()
+            rf = roboflow.Roboflow(api_key=_api_key)
             workspace = rf.workspace(workspace_url)
             project = workspace.project(project_slug)
         except Exception as exc:

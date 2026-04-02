@@ -299,18 +299,13 @@ def _create(args: argparse.Namespace) -> None:
         try:
             rf = roboflow.Roboflow(api_key)
             project = rf.workspace(workspace_url).project(project_slug)
-            project.generate_version(settings)
+            version_id = project.generate_version(settings)
         except Exception as exc:
             output_error(args, str(exc))
             return
 
-    # After generation, the latest version is the newly created one
-    with suppress_sdk_output():
-        try:
-            versions = project.versions()
-            version_num = max(int(v.version.split("/")[-1]) for v in versions) if versions else 1
-        except Exception:
-            version_num = 1
+    # generate_version returns the version number/ID directly
+    version_num = version_id if version_id else "unknown"
 
     data = {"status": "created", "project": project_slug, "version": version_num}
     output(args, data, text=f"Created version {version_num} for project {project_slug}")
