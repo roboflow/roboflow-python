@@ -17,9 +17,37 @@ Examples
 
 from __future__ import annotations
 
+import os
 from typing import Optional, Tuple
 
 from roboflow.config import get_conditional_configuration_variable
+
+
+def resolve_default_workspace(api_key: Optional[str] = None) -> Optional[str]:
+    """Return the default workspace URL, querying the API if necessary.
+
+    Checks (in order): ``RF_WORKSPACE`` in config/env, then the API
+    validation endpoint using the supplied *api_key* (or ``ROBOFLOW_API_KEY``).
+    """
+    ws = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+    if ws:
+        return ws
+
+    key = api_key or os.getenv("ROBOFLOW_API_KEY")
+    if not key:
+        return None
+
+    import requests
+
+    from roboflow.config import API_URL
+
+    try:
+        resp = requests.post(API_URL + "/?api_key=" + key)
+        if resp.status_code == 200:
+            return resp.json().get("workspace") or None
+    except Exception:  # noqa: BLE001
+        pass
+    return None
 
 
 def resolve_resource(
@@ -49,7 +77,7 @@ def resolve_resource(
     """
     parts = shorthand.strip("/").split("/")
 
-    default_ws = workspace_override or get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+    default_ws = workspace_override or resolve_default_workspace()
 
     if len(parts) == 1:
         # "my-project"

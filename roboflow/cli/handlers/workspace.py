@@ -30,6 +30,7 @@ def _list_workspaces(args: argparse.Namespace) -> None:
     import os
 
     from roboflow.cli._output import output
+    from roboflow.cli._resolver import resolve_default_workspace
     from roboflow.cli._table import format_table
     from roboflow.config import APP_URL, get_conditional_configuration_variable
 
@@ -39,28 +40,22 @@ def _list_workspaces(args: argparse.Namespace) -> None:
     # When no workspaces in config, fall back to API using available API key
     if not workspaces:
         api_key = getattr(args, "api_key", None) or os.getenv("ROBOFLOW_API_KEY")
-        if api_key:
-            import requests
+        ws_url = resolve_default_workspace(api_key=api_key)
+        if ws_url:
+            ws_name = ws_url
+            if api_key or os.getenv("ROBOFLOW_API_KEY"):
+                try:
+                    from roboflow.adapters import rfapi
 
-            from roboflow.config import API_URL
-
-            resp = requests.post(API_URL + "/?api_key=" + api_key)
-            if resp.status_code == 200:
-                data = resp.json()
-                ws_url = data.get("workspace", "")
-                if ws_url:
-                    ws_name = ws_url
-                    try:
-                        from roboflow.adapters import rfapi
-
-                        ws_json = rfapi.get_workspace(api_key, ws_url)
-                        ws_detail = ws_json.get("workspace", ws_json)
-                        ws_name = ws_detail.get("name", ws_url)
-                    except Exception:  # noqa: BLE001
-                        pass
-                    workspaces = {ws_url: {"url": ws_url, "name": ws_name, "apiKey": api_key}}
-                    if not default_ws_url:
-                        default_ws_url = ws_url
+                    key = api_key or os.getenv("ROBOFLOW_API_KEY") or ""
+                    ws_json = rfapi.get_workspace(key, ws_url)
+                    ws_detail = ws_json.get("workspace", ws_json)
+                    ws_name = ws_detail.get("name", ws_url)
+                except Exception:  # noqa: BLE001
+                    pass
+            workspaces = {ws_url: {"url": ws_url, "name": ws_name}}
+            if not default_ws_url:
+                default_ws_url = ws_url
 
     rows = []
     for w in workspaces.values():

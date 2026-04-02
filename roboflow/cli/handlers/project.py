@@ -56,9 +56,9 @@ def _list_projects(args: argparse.Namespace) -> None:
 
     workspace_url = args.workspace
     if not workspace_url:
-        from roboflow.config import get_conditional_configuration_variable
+        from roboflow.cli._resolver import resolve_default_workspace
 
-        workspace_url = get_conditional_configuration_variable("RF_WORKSPACE", default=None)
+        workspace_url = resolve_default_workspace(api_key=args.api_key)
 
     if not workspace_url:
         output_error(args, "No workspace specified.", hint="Use --workspace or run 'roboflow auth login'.")
