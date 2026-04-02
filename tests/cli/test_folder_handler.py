@@ -203,7 +203,7 @@ class TestFolderDeleteHandler(unittest.TestCase):
 
         with self.assertRaises(SystemExit) as ctx:
             _delete_folder(args)
-        self.assertEqual(ctx.exception.code, 1)
+        self.assertEqual(ctx.exception.code, 3)
 
 
 if __name__ == "__main__":

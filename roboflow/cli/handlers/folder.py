@@ -75,6 +75,13 @@ def _list_folders(args: argparse.Namespace) -> None:
 
     try:
         result = rfapi.list_folders(api_key, ws)
+    except rfapi.RoboflowError as exc:
+        # The API returns 404 when there are no folders — treat as empty, not error
+        if "Not Found" in str(exc):
+            result = {"data": []}
+        else:
+            output_error(args, str(exc), exit_code=3)
+            return
     except Exception as exc:
         output_error(args, str(exc), exit_code=3)
         return
@@ -178,7 +185,7 @@ def _delete_folder(args: argparse.Namespace) -> None:
     try:
         rfapi.delete_folder(api_key, ws, args.folder_id)
     except Exception as exc:
-        output_error(args, str(exc), exit_code=1)
+        output_error(args, str(exc), exit_code=3)
         return
 
     data = {"status": "deleted"}
