@@ -39,10 +39,12 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     export_parser.add_argument("-f", "--format", dest="format", default="voc", help="Export format (default: voc)")
     export_parser.set_defaults(func=_export)
 
-    # --- version create (stub) ---
-    create_parser = version_subs.add_parser("create", help="Create a new version (coming soon)")
+    # --- version create ---
+    create_parser = version_subs.add_parser("create", help="Create a new dataset version")
     create_parser.add_argument("-p", "--project", dest="project", required=True, help="Project ID")
-    create_parser.add_argument("--settings", dest="settings", default=None, help="Version settings as JSON string")
+    create_parser.add_argument(
+        "--settings", dest="settings", required=True, help="Path to JSON file with augmentation/preprocessing config"
+    )
     create_parser.set_defaults(func=_create)
 
     # Default when no verb is given
@@ -240,6 +242,50 @@ def _export(args: argparse.Namespace) -> None:
 
 
 def _create(args: argparse.Namespace) -> None:
-    from roboflow.cli._output import output_error
+    import json
 
-    output_error(args, "This command is not yet implemented.", hint="Coming soon.", exit_code=1)
+    import roboflow
+    from roboflow.cli._output import output, output_error, suppress_sdk_output
+    from roboflow.cli._resolver import resolve_resource
+    from roboflow.config import load_roboflow_api_key
+
+    try:
+        workspace_url, project_slug, _ver = resolve_resource(args.project, workspace_override=args.workspace)
+    except ValueError as exc:
+        output_error(args, str(exc))
+        return
+
+    api_key = args.api_key or load_roboflow_api_key(workspace_url)
+    if not api_key:
+        output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
+        return
+
+    try:
+        with open(args.settings) as f:
+            settings = json.load(f)
+    except FileNotFoundError:
+        output_error(args, f"Settings file not found: {args.settings}")
+        return
+    except json.JSONDecodeError as exc:
+        output_error(args, f"Invalid JSON in settings file: {exc}")
+        return
+
+    with suppress_sdk_output():
+        try:
+            rf = roboflow.Roboflow(api_key)
+            project = rf.workspace(workspace_url).project(project_slug)
+            project.generate_version(settings)
+        except Exception as exc:
+            output_error(args, str(exc))
+            return
+
+    # After generation, the latest version is the newly created one
+    with suppress_sdk_output():
+        try:
+            versions = project.versions()
+            version_num = max(int(v.version.split("/")[-1]) for v in versions) if versions else 1
+        except Exception:
+            version_num = 1
+
+    data = {"status": "created", "project": project_slug, "version": version_num}
+    output(args, data, text=f"Created version {version_num} for project {project_slug}")
