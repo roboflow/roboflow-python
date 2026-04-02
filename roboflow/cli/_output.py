@@ -56,7 +56,16 @@ def output_error(
         Process exit code.  Convention: 1 = general, 2 = auth, 3 = not found.
     """
     if getattr(args, "json", False):
-        payload: dict[str, Any] = {"error": message}
+        # If message is a JSON string (e.g. from an API response), parse it
+        # so the error field is a proper object, not a double-encoded string.
+        error_value: Any = message
+        try:
+            parsed = json.loads(message)
+            if isinstance(parsed, dict):
+                error_value = parsed
+        except (json.JSONDecodeError, TypeError):
+            pass
+        payload: dict[str, Any] = {"error": error_value}
         if hint:
             payload["hint"] = hint
         print(json.dumps(payload), file=sys.stderr)
