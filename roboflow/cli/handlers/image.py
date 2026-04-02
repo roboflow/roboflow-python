@@ -99,7 +99,11 @@ def _handle_upload_single(args: argparse.Namespace, api_key: str, path: str) -> 
             metadata=metadata,
         )
     except Exception as exc:
-        output_error(args, str(exc))
+        msg = str(exc)
+        hint = None
+        if "cannot identify image file" in msg:
+            hint = "Supported formats: JPEG, PNG, BMP, GIF, TIFF, WebP."
+        output_error(args, msg, hint=hint)
         return
 
     data = {"status": "uploaded", "path": path, "project": args.project}
