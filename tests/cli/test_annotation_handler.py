@@ -73,7 +73,9 @@ class TestAnnotationStub(unittest.TestCase):
         old = sys.stderr
         sys.stderr = buf
         try:
-            _stub(args)
+            with self.assertRaises(SystemExit) as ctx:
+                _stub(args)
+            self.assertEqual(ctx.exception.code, 1)
         finally:
             sys.stderr = old
 
@@ -90,12 +92,14 @@ class TestAnnotationStub(unittest.TestCase):
         old = sys.stderr
         sys.stderr = buf
         try:
-            _stub(args)
+            with self.assertRaises(SystemExit) as ctx:
+                _stub(args)
+            self.assertEqual(ctx.exception.code, 1)
         finally:
             sys.stderr = old
 
         result = json.loads(buf.getvalue())
-        self.assertEqual(result["error"], "not yet implemented")
+        self.assertIn("not yet implemented", result["error"])
 
 
 if __name__ == "__main__":

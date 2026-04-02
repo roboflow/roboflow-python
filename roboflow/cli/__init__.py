@@ -12,9 +12,48 @@ import argparse
 import importlib
 import pkgutil
 import sys
+from typing import Any
 
 import roboflow
 from roboflow.cli import handlers as _handlers_pkg
+
+
+class _CleanHelpFormatter(argparse.HelpFormatter):
+    """Custom formatter that hides SUPPRESS-ed subparser choices.
+
+    The default argparse formatter includes *all* subparser names in the
+    ``{a,b,c,...}`` usage line and shows ``==SUPPRESS==`` in the command
+    list.  This formatter filters both so that hidden legacy aliases are
+    truly invisible.
+    """
+
+    def _format_action(self, action: argparse.Action) -> str:
+        # Hide subparser entries whose help is SUPPRESS
+        if action.help == argparse.SUPPRESS:
+            return ""
+        return super()._format_action(action)
+
+    def _metavar_formatter(
+        self,
+        action: argparse.Action,
+        default_metavar: str,
+    ) -> Any:
+        if isinstance(action, argparse._SubParsersAction):
+            # Filter choices to only those with visible help
+            visible = [
+                name
+                for name, parser in action.choices.items()
+                if not any(ca.dest == name and ca.help == argparse.SUPPRESS for ca in action._choices_actions)
+                and name in [ca.dest for ca in action._choices_actions if ca.help != argparse.SUPPRESS]
+            ]
+            if visible:
+
+                def _fmt(tuple_size: int) -> tuple[str, ...]:
+                    result = "{" + ",".join(visible) + "}"
+                    return (result,) * tuple_size if tuple_size > 1 else (result,)
+
+                return _fmt
+        return super()._metavar_formatter(action, default_metavar)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,6 +61,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="roboflow",
         description="Roboflow CLI: computer vision at your fingertips",
+        formatter_class=_CleanHelpFormatter,
     )
 
     # --- global flags ---

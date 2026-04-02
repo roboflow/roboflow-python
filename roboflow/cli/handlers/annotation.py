@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -81,9 +80,6 @@ def _add_job(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
 
 def _stub(args: argparse.Namespace) -> None:
     """Placeholder for not-yet-implemented annotation commands."""
-    if getattr(args, "json", False):
-        import json
+    from roboflow.cli._output import output_error
 
-        print(json.dumps({"error": "not yet implemented"}), file=sys.stderr)
-    else:
-        print("not yet implemented", file=sys.stderr)
+    output_error(args, "This command is not yet implemented.", hint="Coming soon.", exit_code=1)
