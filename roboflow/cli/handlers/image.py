@@ -102,27 +102,22 @@ def _handle_upload_directory(args: argparse.Namespace, api_key: str, path: str) 
     import roboflow
     from roboflow.cli._output import suppress_sdk_output
 
+    retries = getattr(args, "retries", None) or getattr(args, "num_retries", 0) or 0
+
     with suppress_sdk_output(args):
         try:
             rf = roboflow.Roboflow(api_key)
             workspace = rf.workspace(args.workspace)
+            workspace.upload_dataset(
+                dataset_path=path,
+                project_name=args.project,
+                num_workers=args.concurrency,
+                batch_name=getattr(args, "batch", None),
+                num_retries=retries,
+            )
         except Exception as exc:
             output_error(args, str(exc), exit_code=3)
             return
-
-    retries = getattr(args, "retries", None) or getattr(args, "num_retries", 0) or 0
-
-    try:
-        workspace.upload_dataset(
-            dataset_path=path,
-            project_name=args.project,
-            num_workers=args.concurrency,
-            batch_name=getattr(args, "batch", None),
-            num_retries=retries,
-        )
-    except Exception as exc:
-        output_error(args, str(exc))
-        return
 
     # Count files uploaded (approximate via image extensions)
     count = 0

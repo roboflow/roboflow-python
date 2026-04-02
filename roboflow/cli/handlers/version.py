@@ -172,25 +172,27 @@ def _download(args: argparse.Namespace) -> None:
         try:
             rf = roboflow.Roboflow()
             project = rf.workspace(w).project(p)
+
+            if not v:
+                versions = project.versions()
+                if not versions:
+                    output_error(args, f"Project {p} does not have any versions.")
+                    return
+                version_obj = versions[-1]
+            else:
+                version_obj = project.version(int(v))
+
+            version_obj.download(args.format, location=args.location, overwrite=True)
+        except SystemExit:
+            raise
         except Exception as exc:
             output_error(args, str(exc), exit_code=3)
             return
 
-    if not v:
-        versions = project.versions()
-        if not versions:
-            output_error(args, f"Project {p} does not have any versions.")
-            return
-        version = versions[-1]
-    else:
-        version = project.version(int(v))
-
-    version.download(args.format, location=args.location, overwrite=True)
-
     data = {
         "workspace": w,
         "project": p,
-        "version": int(v) if v else version.version,
+        "version": int(v) if v else version_obj.version,
         "format": args.format,
         "location": args.location or "",
     }
