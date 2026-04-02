@@ -881,6 +881,62 @@ class Workspace:
             print(f"Search export saved to {zip_path}")
             return zip_path
 
+    # -----------------------------------------------------------------
+    # Phase 2: Folder management
+    # -----------------------------------------------------------------
+
+    def list_folders(self):
+        """List project folders in this workspace."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.list_folders(self.__api_key, self.url)
+
+    def create_folder(self, name, parent_id=None, project_ids=None):
+        """Create a project folder in this workspace."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.create_folder(self.__api_key, self.url, name, parent_id=parent_id, project_ids=project_ids)
+
+    # -----------------------------------------------------------------
+    # Phase 2: Workflow management
+    # -----------------------------------------------------------------
+
+    def list_workflows(self):
+        """List workflows in this workspace."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.list_workflows(self.__api_key, self.url)
+
+    def get_workflow(self, workflow_url):
+        """Get workflow details."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.get_workflow(self.__api_key, self.url, workflow_url)
+
+    def create_workflow(self, name, definition=None, description=None):
+        """Create a new workflow."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.create_workflow(
+            self.__api_key, self.url, name=name, definition=definition, description=description
+        )
+
+    # -----------------------------------------------------------------
+    # Phase 2: Workspace statistics
+    # -----------------------------------------------------------------
+
+    def get_usage(self):
+        """Get billing usage report for this workspace."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.get_billing_usage(self.__api_key, self.url)
+
+    def get_plan(self):
+        """Get workspace plan info and limits."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.get_plan_info(self.__api_key)
+
     def __str__(self):
         projects = self.projects()
         json_value = {"name": self.name, "url": self.url, "projects": projects}
