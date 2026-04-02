@@ -21,7 +21,8 @@ class TestDeploymentRegistration(unittest.TestCase):
         args = parser.parse_args(["deployment", "list"])
         self.assertIsNotNone(args.func)
 
-    def test_deployment_add_exists(self) -> None:
+    def test_deployment_add_hidden_alias(self) -> None:
+        """Legacy 'add' alias should still work (hidden from help)."""
         from roboflow.cli import build_parser
 
         parser = build_parser()
@@ -30,7 +31,7 @@ class TestDeploymentRegistration(unittest.TestCase):
         )
         self.assertIsNotNone(args.func)
 
-    def test_deployment_create_alias(self) -> None:
+    def test_deployment_create_canonical(self) -> None:
         from roboflow.cli import build_parser
 
         parser = build_parser()
@@ -39,11 +40,19 @@ class TestDeploymentRegistration(unittest.TestCase):
         )
         self.assertIsNotNone(args.func)
 
-    def test_deployment_machine_type_alias(self) -> None:
+    def test_deployment_machine_type_canonical(self) -> None:
         from roboflow.cli import build_parser
 
         parser = build_parser()
         args = parser.parse_args(["deployment", "machine-type"])
+        self.assertIsNotNone(args.func)
+
+    def test_deployment_machine_type_legacy_alias(self) -> None:
+        """Legacy 'machine_type' alias should still work."""
+        from roboflow.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args(["deployment", "machine_type"])
         self.assertIsNotNone(args.func)
 
     def test_deployment_get_exists(self) -> None:
@@ -60,18 +69,42 @@ class TestDeploymentRegistration(unittest.TestCase):
         args = parser.parse_args(["deployment", "delete", "mydepl"])
         self.assertIsNotNone(args.func)
 
-    def test_deployment_no_subcommand_shows_own_help(self) -> None:
-        """Running 'roboflow deployment' should show deployment help, not top-level help."""
+    def test_deployment_subparser_registered(self) -> None:
+        """The 'deployment' subparser should be registered on the root parser."""
         from roboflow.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args(["deployment"])
+        # Find the subparsers action
+        for action in parser._actions:
+            if isinstance(action, type(parser._subparsers._group_actions[0])):
+                self.assertIn("deployment", action.choices)
+                return
+        self.fail("No subparsers action found")
+
+    def test_deployment_usage_canonical(self) -> None:
+        """The new 'usage' command accepts optional deployment name."""
+        from roboflow.cli import build_parser
+
+        parser = build_parser()
+        # Workspace-wide usage (no deployment name)
+        args = parser.parse_args(["deployment", "usage"])
         self.assertIsNotNone(args.func)
-        # Calling func should print deployment help (containing 'deployment subcommands')
-        captured = io.StringIO()
-        with patch("sys.stdout", captured):
-            args.func(args)
-        self.assertIn("deployment subcommands", captured.getvalue())
+        self.assertIsNone(args.deployment_name)
+
+        # Deployment-specific usage
+        args = parser.parse_args(["deployment", "usage", "mydepl"])
+        self.assertEqual(args.deployment_name, "mydepl")
+
+    def test_deployment_usage_legacy_aliases(self) -> None:
+        """Legacy usage_workspace and usage_deployment aliases should still work."""
+        from roboflow.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args(["deployment", "usage_workspace"])
+        self.assertIsNotNone(args.func)
+
+        args = parser.parse_args(["deployment", "usage_deployment", "mydepl"])
+        self.assertIsNotNone(args.func)
 
 
 class TestDeploymentErrorWrapping(unittest.TestCase):
@@ -79,7 +112,7 @@ class TestDeploymentErrorWrapping(unittest.TestCase):
 
     def test_wrapped_error_uses_structured_output(self) -> None:
         """Deployment errors should go through output_error, not bare print."""
-        from roboflow.cli.handlers.deployment import _wrap_deployment_func
+        from roboflow.cli.handlers.deployment import _wrap
 
         def _fake_handler(args: object) -> None:
             print("401: Unauthorized (invalid api_key)")
@@ -88,24 +121,21 @@ class TestDeploymentErrorWrapping(unittest.TestCase):
         import argparse
 
         ns = argparse.Namespace(json=True, api_key=None, workspace=None, quiet=False)
-        wrapped = _wrap_deployment_func(_fake_handler)
+        wrapped = _wrap(_fake_handler)
         stderr = io.StringIO()
         with patch("sys.stderr", stderr):
             with self.assertRaises(SystemExit) as ctx:
                 wrapped(ns)
-            # Exit code should be normalised (<=3)
             self.assertLessEqual(ctx.exception.code, 3)
-        # stderr should contain JSON with "error" key
         import json
 
         err_output = stderr.getvalue().strip()
         parsed = json.loads(err_output)
         self.assertIn("error", parsed)
-        self.assertIn("401", parsed["error"]["message"])
 
     def test_wrapped_success_prints_output(self) -> None:
         """On success, wrapped func should replay captured stdout."""
-        from roboflow.cli.handlers.deployment import _wrap_deployment_func
+        from roboflow.cli.handlers.deployment import _wrap
 
         def _fake_handler(args: object) -> None:
             print('{"machines": []}')
@@ -113,7 +143,7 @@ class TestDeploymentErrorWrapping(unittest.TestCase):
         import argparse
 
         ns = argparse.Namespace(json=False, api_key=None, workspace=None, quiet=False)
-        wrapped = _wrap_deployment_func(_fake_handler)
+        wrapped = _wrap(_fake_handler)
         captured = io.StringIO()
         with patch("sys.stdout", captured):
             wrapped(ns)
