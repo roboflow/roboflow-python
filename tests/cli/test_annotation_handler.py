@@ -49,13 +49,21 @@ class TestAnnotationParserRegistration(unittest.TestCase):
 
     def test_annotation_job_create(self):
         parser = _build_annotation_parser()
-        args = parser.parse_args([
-            "annotation", "job", "create",
-            "-p", "proj",
-            "--name", "my-job",
-            "--batch", "batch-1",
-            "--assignees", "a@b.com,c@d.com",
-        ])
+        args = parser.parse_args(
+            [
+                "annotation",
+                "job",
+                "create",
+                "-p",
+                "proj",
+                "--name",
+                "my-job",
+                "--batch",
+                "batch-1",
+                "--assignees",
+                "a@b.com,c@d.com",
+            ]
+        )
         self.assertEqual(args.name, "my-job")
         self.assertEqual(args.batch, "batch-1")
         self.assertEqual(args.assignees, "a@b.com,c@d.com")

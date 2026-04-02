@@ -38,12 +38,18 @@ class TestModelRegister(unittest.TestCase):
         from roboflow.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args([
-            "model", "upload",
-            "-p", "proj1",
-            "-t", "yolov8",
-            "-m", "/path/to/model",
-        ])
+        args = parser.parse_args(
+            [
+                "model",
+                "upload",
+                "-p",
+                "proj1",
+                "-t",
+                "yolov8",
+                "-m",
+                "/path/to/model",
+            ]
+        )
         self.assertEqual(args.project, ["proj1"])
         self.assertEqual(args.model_type, "yolov8")
         self.assertEqual(args.model_path, "/path/to/model")
@@ -54,12 +60,20 @@ class TestModelRegister(unittest.TestCase):
         from roboflow.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args([
-            "model", "upload",
-            "-p", "proj1", "-p", "proj2",
-            "-t", "yolov8",
-            "-m", "/path/to/model",
-        ])
+        args = parser.parse_args(
+            [
+                "model",
+                "upload",
+                "-p",
+                "proj1",
+                "-p",
+                "proj2",
+                "-t",
+                "yolov8",
+                "-m",
+                "/path/to/model",
+            ]
+        )
         self.assertEqual(args.project, ["proj1", "proj2"])
 
 

@@ -1,7 +1,6 @@
 """Tests for the deployment CLI handler."""
 
 import io
-import sys
 import unittest
 from unittest.mock import patch
 
@@ -26,18 +25,14 @@ class TestDeploymentRegistration(unittest.TestCase):
         from roboflow.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args(
-            ["deployment", "add", "mydepl", "-m", "gpu-small", "-e", "test@example.com"]
-        )
+        args = parser.parse_args(["deployment", "add", "mydepl", "-m", "gpu-small", "-e", "test@example.com"])
         self.assertIsNotNone(args.func)
 
     def test_deployment_create_canonical(self) -> None:
         from roboflow.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args(
-            ["deployment", "create", "mydepl", "-m", "gpu-small", "-e", "test@example.com"]
-        )
+        args = parser.parse_args(["deployment", "create", "mydepl", "-m", "gpu-small", "-e", "test@example.com"])
         self.assertIsNotNone(args.func)
 
     def test_deployment_machine_type_canonical(self) -> None:

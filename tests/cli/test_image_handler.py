@@ -80,9 +80,7 @@ class TestImageParserRegistration(unittest.TestCase):
 
     def test_image_annotate_parser(self):
         parser = _build_image_parser()
-        args = parser.parse_args(
-            ["image", "annotate", "img-1", "-p", "proj", "--annotation-file", "ann.txt"]
-        )
+        args = parser.parse_args(["image", "annotate", "img-1", "-p", "proj", "--annotation-file", "ann.txt"])
         self.assertEqual(args.image_id, "img-1")
         self.assertEqual(args.annotation_file, "ann.txt")
 

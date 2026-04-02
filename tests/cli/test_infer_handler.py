@@ -34,13 +34,20 @@ class TestInferRegister(unittest.TestCase):
         from roboflow.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args([
-            "infer", "img.png",
-            "-m", "proj/1",
-            "-c", "0.7",
-            "-o", "0.3",
-            "-t", "object-detection",
-        ])
+        args = parser.parse_args(
+            [
+                "infer",
+                "img.png",
+                "-m",
+                "proj/1",
+                "-c",
+                "0.7",
+                "-o",
+                "0.3",
+                "-t",
+                "object-detection",
+            ]
+        )
         self.assertAlmostEqual(args.confidence, 0.7)
         self.assertAlmostEqual(args.overlap, 0.3)
         self.assertEqual(args.type, "object-detection")

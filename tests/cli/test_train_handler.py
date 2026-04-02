@@ -42,12 +42,21 @@ class TestTrainRegister(unittest.TestCase):
         from roboflow.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args([
-            "train", "-p", "proj", "-v", "1",
-            "--checkpoint", "abc123",
-            "--speed", "fast",
-            "--epochs", "50",
-        ])
+        args = parser.parse_args(
+            [
+                "train",
+                "-p",
+                "proj",
+                "-v",
+                "1",
+                "--checkpoint",
+                "abc123",
+                "--speed",
+                "fast",
+                "--epochs",
+                "50",
+            ]
+        )
         self.assertEqual(args.checkpoint, "abc123")
         self.assertEqual(args.speed, "fast")
         self.assertEqual(args.epochs, 50)
