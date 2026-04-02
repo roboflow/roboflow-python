@@ -32,6 +32,8 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
 
     # --- workspace stats ---
     stats_p = ws_sub.add_parser("stats", help="Show annotation/labeling statistics")
+    stats_p.add_argument("--start-date", dest="start_date", required=True, help="Start date (YYYY-MM-DD)")
+    stats_p.add_argument("--end-date", dest="end_date", required=True, help="End date (YYYY-MM-DD)")
     stats_p.set_defaults(func=_workspace_stats)
 
     # Default: show help
@@ -208,7 +210,7 @@ def _workspace_stats(args: argparse.Namespace) -> None:
     ws, api_key = resolved
 
     try:
-        result = rfapi.get_labeling_stats(api_key, ws)
+        result = rfapi.get_labeling_stats(api_key, ws, start_date=args.start_date, end_date=args.end_date)
     except Exception as exc:
         output_error(args, str(exc), exit_code=3)
         return

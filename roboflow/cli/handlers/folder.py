@@ -79,7 +79,7 @@ def _list_folders(args: argparse.Namespace) -> None:
         output_error(args, str(exc), exit_code=3)
         return
 
-    folders = result.get("groups", result if isinstance(result, list) else [])
+    folders = result.get("data", result.get("groups", result if isinstance(result, list) else []))
     rows = []
     for f in folders:
         projects = f.get("projects", [])
@@ -105,7 +105,9 @@ def _get_folder(args: argparse.Namespace) -> None:
         output_error(args, str(exc), exit_code=3)
         return
 
-    folder = result.get("group", result)
+    # API returns {"data": [folder_obj]} — extract the first item
+    data_list = result.get("data", [])
+    folder = data_list[0] if isinstance(data_list, list) and data_list else result.get("group", result)
     lines = [
         f"Folder: {folder.get('name', '')}",
         f"  ID: {folder.get('id', '')}",

@@ -47,8 +47,10 @@ class TestWorkspaceRegistration(unittest.TestCase):
         from roboflow.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args(["workspace", "stats"])
+        args = parser.parse_args(["workspace", "stats", "--start-date", "2026-01-01", "--end-date", "2026-04-01"])
         self.assertIsNotNone(args.func)
+        self.assertEqual(args.start_date, "2026-01-01")
+        self.assertEqual(args.end_date, "2026-04-01")
 
     def test_handler_functions_exist(self) -> None:
         from roboflow.cli.handlers import workspace
@@ -144,7 +146,7 @@ class TestWorkspaceStatsHandler(unittest.TestCase):
     @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
     def test_stats_json(self, _mock_key, _mock_ws, mock_stats):
         mock_stats.return_value = {"stats": {"total_annotations": 500}}
-        args = Namespace(json=True, workspace=None, api_key=None, quiet=False)
+        args = Namespace(json=True, workspace=None, api_key=None, quiet=False, start_date="2026-01-01", end_date="2026-04-01")
 
         from roboflow.cli.handlers.workspace import _workspace_stats
 
@@ -157,9 +159,22 @@ class TestWorkspaceStatsHandler(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.get_labeling_stats")
     @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
     @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_stats_passes_dates(self, _mock_key, _mock_ws, mock_stats):
+        mock_stats.return_value = {"stats": {"total_annotations": 500}}
+        args = Namespace(json=True, workspace=None, api_key=None, quiet=False, start_date="2026-01-01", end_date="2026-04-01")
+
+        from roboflow.cli.handlers.workspace import _workspace_stats
+
+        with patch("builtins.print"):
+            _workspace_stats(args)
+        mock_stats.assert_called_once_with("fake-key", "test-ws", start_date="2026-01-01", end_date="2026-04-01")
+
+    @patch("roboflow.adapters.rfapi.get_labeling_stats")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
     def test_stats_text(self, _mock_key, _mock_ws, mock_stats):
         mock_stats.return_value = {"stats": {"total_annotations": 500}}
-        args = Namespace(json=False, workspace=None, api_key=None, quiet=False)
+        args = Namespace(json=False, workspace=None, api_key=None, quiet=False, start_date="2026-01-01", end_date="2026-04-01")
 
         from roboflow.cli.handlers.workspace import _workspace_stats
 
@@ -172,7 +187,7 @@ class TestWorkspaceStatsHandler(unittest.TestCase):
     @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
     @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
     def test_stats_error_json(self, _mock_key, _mock_ws, _mock_stats):
-        args = Namespace(json=True, workspace=None, api_key=None, quiet=False)
+        args = Namespace(json=True, workspace=None, api_key=None, quiet=False, start_date="2026-01-01", end_date="2026-04-01")
 
         from roboflow.cli.handlers.workspace import _workspace_stats
 

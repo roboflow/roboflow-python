@@ -67,7 +67,7 @@ class TestFolderListHandler(unittest.TestCase):
     @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
     @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
     def test_list_folders_text(self, _mock_key, _mock_ws, mock_list):
-        mock_list.return_value = {"groups": [{"name": "Folder1", "id": "f1", "projects": ["p1", "p2"]}]}
+        mock_list.return_value = {"data": [{"name": "Folder1", "id": "f1", "projects": ["p1", "p2"]}]}
         args = Namespace(json=False, workspace=None, api_key=None, quiet=False)
 
         from roboflow.cli.handlers.folder import _list_folders
@@ -82,7 +82,7 @@ class TestFolderListHandler(unittest.TestCase):
     @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
     @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
     def test_list_folders_json(self, _mock_key, _mock_ws, mock_list):
-        mock_list.return_value = {"groups": [{"name": "Folder1", "id": "f1", "projects": []}]}
+        mock_list.return_value = {"data": [{"name": "Folder1", "id": "f1", "projects": []}]}
         args = Namespace(json=True, workspace=None, api_key=None, quiet=False)
 
         from roboflow.cli.handlers.folder import _list_folders
@@ -112,7 +112,7 @@ class TestFolderGetHandler(unittest.TestCase):
     @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
     @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
     def test_get_folder_text(self, _mock_key, _mock_ws, mock_get):
-        mock_get.return_value = {"group": {"name": "MyFolder", "id": "f1", "projects": []}}
+        mock_get.return_value = {"data": [{"name": "MyFolder", "id": "f1", "projects": []}]}
         args = Namespace(json=False, workspace=None, api_key=None, quiet=False, folder_id="f1")
 
         from roboflow.cli.handlers.folder import _get_folder
