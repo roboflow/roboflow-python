@@ -76,6 +76,55 @@ Before that, install the dependencies:
 python -m pip install mkdocs mkdocs-material mkdocstrings mkdocstrings[python]
 ```
 
+### CLI Development
+
+The CLI lives in `roboflow/cli/` with auto-discovered handler modules. To add a new command:
+
+1. Create `roboflow/cli/handlers/mycommand.py`:
+
+```python
+"""My command description."""
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import argparse
+
+def register(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser("mycommand", help="Do something")
+    sub = parser.add_subparsers(title="mycommand commands")
+
+    p = sub.add_parser("list", help="List things")
+    p.add_argument("-p", "--project", required=True, help="Project ID")
+    p.set_defaults(func=_list)
+
+    parser.set_defaults(func=lambda args: parser.print_help())
+
+def _list(args: argparse.Namespace) -> None:
+    from roboflow.cli._output import output, output_error, suppress_sdk_output
+
+    with suppress_sdk_output():
+        try:
+            # ... your logic here ...
+            data = [{"id": "example"}]
+        except Exception as exc:
+            output_error(args, str(exc), hint="Check your project ID.", exit_code=3)
+            return
+
+    output(args, data, text="Found 1 result.")
+```
+
+2. Add tests in `tests/cli/test_mycommand_handler.py`
+3. Run `make check_code_quality` and `python -m unittest`
+
+**Agent experience checklist** (every command must satisfy):
+- [ ] Supports `--json` via `output()` helper
+- [ ] No interactive prompts when all required flags are provided
+- [ ] Errors use `output_error(args, message, hint=..., exit_code=N)`
+- [ ] SDK calls wrapped in `with suppress_sdk_output():`
+- [ ] Exit codes: 0=success, 1=error, 2=auth, 3=not found
+
+**Documentation policy:** `CLI-COMMANDS.md` in this repo is a quickstart only. The comprehensive command reference lives in [`roboflow-product-docs`](https://github.com/roboflow/roboflow-product-docs) and is published to docs.roboflow.com. When adding a new command, update both: add a quick example to `CLI-COMMANDS.md` and the full reference to the product docs CLI page.
+
 ### Pre-commit Hooks
 
 To ensure code quality and consistency, we use pre-commit hooks. Follow these steps to set up pre-commit in your development environment:
