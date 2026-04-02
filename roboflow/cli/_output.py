@@ -36,6 +36,25 @@ def output(args: Any, data: Any, text: Optional[str] = None) -> None:
         print(json.dumps(data, indent=2, default=str))
 
 
+_PLAN_HINT_PATTERNS: list[tuple[str, str]] = [
+    ("require", "This feature requires a higher plan. Visit https://roboflow.com/pricing to upgrade."),
+    ("Growth plan", "This feature requires a Growth plan or higher. Visit https://roboflow.com/pricing to upgrade."),
+    ("Enterprise", "This feature requires an Enterprise plan. Contact sales@roboflow.com to upgrade."),
+    ("folder billing", "This feature requires folder billing. Visit https://app.roboflow.com/settings to enable it."),
+    ("Unauthorized", "Check your API key and workspace permissions. Some features require specific plan tiers."),
+    ("over_quota", "Your workspace has exceeded its quota. Visit https://roboflow.com/pricing to upgrade."),
+]
+
+
+def _detect_plan_hint(message: str) -> Optional[str]:
+    """Detect plan/billing-related errors and return an appropriate upgrade hint."""
+    lower = message.lower()
+    for pattern, hint in _PLAN_HINT_PATTERNS:
+        if pattern.lower() in lower:
+            return hint
+    return None
+
+
 def _sanitize_credentials(text: str) -> str:
     """Strip API keys from URLs and other sensitive patterns in error messages."""
     import re
@@ -90,6 +109,10 @@ def output_error(
         Process exit code.  Convention: 1 = general, 2 = auth, 3 = not found.
     """
     parsed, human_message = _parse_error_message(message)
+
+    # Auto-detect plan-gated errors and add upgrade hints when none provided
+    if not hint:
+        hint = _detect_plan_hint(human_message)
 
     if getattr(args, "json", False):
         # Normalise error to always be {"error": {"message": "..."}} so
