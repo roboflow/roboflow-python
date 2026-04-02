@@ -87,6 +87,28 @@ class TestUniverseSearch(unittest.TestCase):
             sys.stdout = old_stdout
         mock_search.assert_called_once_with("cats", api_key="my-key", project_type=None, limit=12)
 
+    def test_search_passes_custom_limit(self) -> None:
+        import io
+        import sys
+
+        from roboflow.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args(["universe", "search", "dogs", "--limit", "5"])
+        from unittest.mock import patch
+
+        mock_data = {"results": []}
+        captured = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured
+        try:
+            with patch("roboflow.adapters.rfapi.search_universe", return_value=mock_data) as mock_search:
+                with patch("roboflow.config.load_roboflow_api_key", return_value="k"):
+                    args.func(args)
+        finally:
+            sys.stdout = old_stdout
+        mock_search.assert_called_once_with("dogs", api_key="k", project_type=None, limit=5)
+
     def test_search_json_output(self) -> None:
         import io
         import json

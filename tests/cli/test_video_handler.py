@@ -115,5 +115,28 @@ class TestVideoStatus(unittest.TestCase):
         self.assertEqual(result["status"], "processing")
 
 
+    def test_status_passes_job_id_to_api(self) -> None:
+        import io
+        import sys
+
+        from roboflow.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args(["video", "status", "my-unique-job-777"])
+        from unittest.mock import patch
+
+        mock_data = {"status": "completed"}
+        captured = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured
+        try:
+            with patch("roboflow.config.load_roboflow_api_key", return_value="fake-key"):
+                with patch("roboflow.adapters.rfapi.get_video_job_status", return_value=mock_data) as mock_api:
+                    args.func(args)
+        finally:
+            sys.stdout = old_stdout
+        mock_api.assert_called_once_with("fake-key", "my-unique-job-777")
+
+
 if __name__ == "__main__":
     unittest.main()
