@@ -161,19 +161,28 @@ def _get_version(args: argparse.Namespace) -> None:
 
 
 def _parse_url(url: str) -> tuple:
-    """Parse a Roboflow URL or shorthand into (workspace, project, version)."""
-    regex = (
-        r"(?:https?://)?(?:universe|app)\.roboflow\.(?:com|one)/([^/]+)/([^/]+)"
-        r"(?:/dataset)?(?:/(\d+))?"
-        r"|([^/]+)/([^/]+)(?:/(\d+))?"
-    )
-    match = re.match(regex, url)
+    """Parse a Roboflow URL or shorthand into (workspace, project, version).
+
+    Supports:
+    - Full URLs: https://universe.roboflow.com/ws/proj/3
+    - Three segments: ws/proj/3
+    - Two segments: ws/proj  OR  proj/3 (numeric = version, uses default ws)
+    - One segment: proj (uses default ws, no version)
+    """
+    # Try full URL first
+    url_regex = r"(?:https?://)?(?:universe|app)\.roboflow\.(?:com|one)/([^/]+)/([^/]+)(?:/dataset)?(?:/(\d+))?"
+    match = re.match(url_regex, url)
     if match:
-        organization = match.group(1) or match.group(4)
-        dataset = match.group(2) or match.group(5)
-        version = match.group(3) or match.group(6)
-        return organization, dataset, version
-    return None, None, None
+        return match.group(1), match.group(2), match.group(3)
+
+    # Non-URL shorthand: use resolve_resource for proper disambiguation
+    from roboflow.cli._resolver import resolve_resource
+
+    try:
+        ws, proj, ver = resolve_resource(url, workspace_override=None)
+        return ws, proj, str(ver) if ver is not None else None
+    except ValueError:
+        return None, None, None
 
 
 def _download(args: argparse.Namespace) -> None:
