@@ -174,8 +174,8 @@ def _handle_get(args: argparse.Namespace) -> None:
         output_error(args, "No workspace specified", hint="Use --workspace or run 'roboflow auth login'")
         return
 
-    url = f"{API_URL}/{workspace_url}/{args.project}/images/{args.image_id}?api_key={api_key}"
-    response = requests.get(url)
+    url = f"{API_URL}/{workspace_url}/{args.project}/images/{args.image_id}"
+    response = requests.get(url, params={"api_key": api_key})
     if response.status_code != 200:
         output_error(args, f"Failed to get image: {response.text}", exit_code=3)
         return
@@ -259,7 +259,7 @@ def _handle_tag(args: argparse.Namespace) -> None:
             tag = tag.strip()
             if not tag:
                 continue
-            resp = requests.post(f"{base}?api_key={api_key}", json={"tag": tag})
+            resp = requests.post(base, params={"api_key": api_key}, json={"tag": tag})
             if resp.status_code == 200:
                 added.append(tag)
 
@@ -268,7 +268,7 @@ def _handle_tag(args: argparse.Namespace) -> None:
             tag = tag.strip()
             if not tag:
                 continue
-            resp = requests.delete(f"{base}/{tag}?api_key={api_key}")
+            resp = requests.delete(f"{base}/{tag}", params={"api_key": api_key})
             if resp.status_code == 200:
                 removed.append(tag)
 
