@@ -11,7 +11,7 @@ from __future__ import annotations
 import types
 from typing import Any
 
-import typer
+import typer  # noqa: TC002 — needed at runtime for Context type
 
 
 def ctx_to_args(ctx: typer.Context, **kwargs: Any) -> types.SimpleNamespace:

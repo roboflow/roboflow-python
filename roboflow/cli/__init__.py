@@ -28,7 +28,7 @@ app = typer.Typer(
 def _version_callback(value: bool) -> None:
     if value:
         print(roboflow.__version__)
-        raise typer.Exit()
+        raise typer.Exit
 
 
 def _json_version_callback(ctx: typer.Context, value: bool) -> None:
@@ -40,7 +40,7 @@ def _json_version_callback(ctx: typer.Context, value: bool) -> None:
             print(json.dumps({"version": roboflow.__version__}))
         else:
             print(roboflow.__version__)
-        raise typer.Exit()
+        raise typer.Exit
 
 
 @app.callback(invoke_without_command=True)
