@@ -8,12 +8,6 @@ if TYPE_CHECKING:
     import argparse
 
 
-def _stub(args: argparse.Namespace) -> None:
-    from roboflow.cli._output import output_error
-
-    output_error(args, "This command is not yet implemented.", hint="Coming soon.", exit_code=1)
-
-
 def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
     """Register the ``video`` command group."""
     video_parser = subparsers.add_parser("video", help="Video inference operations")
@@ -30,7 +24,9 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     # --- video status ---
     status_p = video_subs.add_parser("status", help="Check video inference job status")
     status_p.add_argument("job_id", help="Job ID to check")
-    status_p.set_defaults(func=_stub)
+    from roboflow.cli._output import stub
+
+    status_p.set_defaults(func=stub)
 
     # Default
     video_parser.set_defaults(func=lambda args: video_parser.print_help())

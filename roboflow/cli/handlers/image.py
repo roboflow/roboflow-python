@@ -54,6 +54,7 @@ def _handle_upload(args: argparse.Namespace) -> None:
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
         output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
+        return
 
     path = args.path
     if os.path.isdir(path):
@@ -62,13 +63,12 @@ def _handle_upload(args: argparse.Namespace) -> None:
         _handle_upload_single(args, api_key, path)
     else:
         output_error(args, f"Path not found: {path}", hint="Provide a valid file or directory path")
+        return
 
 
 def _handle_upload_single(args: argparse.Namespace, api_key: str, path: str) -> None:
-    import contextlib
-    import io
-
     import roboflow
+    from roboflow.cli._output import suppress_sdk_output
 
     metadata_raw = getattr(args, "metadata", None)
     metadata = json.loads(metadata_raw) if metadata_raw else None
@@ -77,7 +77,7 @@ def _handle_upload_single(args: argparse.Namespace, api_key: str, path: str) -> 
     retries = getattr(args, "retries", None) or getattr(args, "num_retries", 0) or 0
 
     # Always suppress SDK "loading..." noise during workspace/project init
-    with contextlib.redirect_stdout(io.StringIO()):
+    with suppress_sdk_output():
         try:
             rf = roboflow.Roboflow(api_key)
             workspace = rf.workspace(args.workspace)
@@ -111,13 +111,11 @@ def _handle_upload_single(args: argparse.Namespace, api_key: str, path: str) -> 
 
 
 def _handle_upload_directory(args: argparse.Namespace, api_key: str, path: str) -> None:
-    import contextlib
-    import io
-
     import roboflow
+    from roboflow.cli._output import suppress_sdk_output
 
     # Always suppress SDK "loading..." noise during workspace init
-    with contextlib.redirect_stdout(io.StringIO()):
+    with suppress_sdk_output():
         try:
             rf = roboflow.Roboflow(api_key)
             workspace = rf.workspace(args.workspace)
@@ -169,15 +167,18 @@ def _handle_get(args: argparse.Namespace) -> None:
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
         output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
+        return
 
     workspace_url = args.workspace or _default_workspace()
     if not workspace_url:
         output_error(args, "No workspace specified", hint="Use --workspace or run 'roboflow auth login'")
+        return
 
     url = f"{API_URL}/{workspace_url}/{args.project}/images/{args.image_id}?api_key={api_key}"
     response = requests.get(url)
     if response.status_code != 200:
         output_error(args, f"Failed to get image: {response.text}", exit_code=3)
+        return
 
     data = response.json()
     output(args, data, text=json.dumps(data, indent=2))
@@ -201,10 +202,12 @@ def _handle_search(args: argparse.Namespace) -> None:
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
         output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
+        return
 
     workspace_url: str = args.workspace or _default_workspace() or ""
     if not workspace_url:
         output_error(args, "No workspace specified", hint="Use --workspace or run 'roboflow auth login'")
+        return
 
     result = rfapi.workspace_search(
         api_key=api_key,
@@ -235,14 +238,17 @@ def _handle_tag(args: argparse.Namespace) -> None:
 
     if not args.add_tags and not args.remove_tags:
         output_error(args, "Nothing to do", hint="Specify --add and/or --remove with comma-separated tags")
+        return
 
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
         output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
+        return
 
     workspace_url = args.workspace or _default_workspace()
     if not workspace_url:
         output_error(args, "No workspace specified", hint="Use --workspace or run 'roboflow auth login'")
+        return
 
     base = f"{API_URL}/{workspace_url}/{args.project}/images/{args.image_id}/tags"
     added = []
@@ -292,10 +298,12 @@ def _handle_delete(args: argparse.Namespace) -> None:
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
         output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
+        return
 
     workspace_url: str = args.workspace or _default_workspace() or ""
     if not workspace_url:
         output_error(args, "No workspace specified", hint="Use --workspace or run 'roboflow auth login'")
+        return
 
     ids = [i.strip() for i in args.image_ids.split(",") if i.strip()]
     result = rfapi.workspace_delete_images(
@@ -329,10 +337,12 @@ def _handle_annotate(args: argparse.Namespace) -> None:
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
         output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
+        return
 
     annotation_path = args.annotation_file
     if not os.path.isfile(annotation_path):
         output_error(args, f"Annotation file not found: {annotation_path}")
+        return
 
     with open(annotation_path) as f:
         annotation_string = f.read()

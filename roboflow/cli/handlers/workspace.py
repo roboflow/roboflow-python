@@ -43,12 +43,11 @@ def _list_workspaces(args: argparse.Namespace) -> None:
         ws_url = resolve_default_workspace(api_key=api_key)
         if ws_url:
             ws_name = ws_url
-            if api_key or os.getenv("ROBOFLOW_API_KEY"):
+            if api_key:
                 try:
                     from roboflow.adapters import rfapi
 
-                    key = api_key or os.getenv("ROBOFLOW_API_KEY") or ""
-                    ws_json = rfapi.get_workspace(key, ws_url)
+                    ws_json = rfapi.get_workspace(api_key, ws_url)
                     ws_detail = ws_json.get("workspace", ws_json)
                     ws_name = ws_detail.get("name", ws_url)
                 except Exception:  # noqa: BLE001

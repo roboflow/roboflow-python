@@ -65,7 +65,7 @@ class TestAnnotationStub(unittest.TestCase):
     """Verify stub handlers print not-yet-implemented."""
 
     def test_stub_prints_message(self):
-        from roboflow.cli.handlers.annotation import _stub
+        from roboflow.cli._output import stub as _stub
 
         args = types.SimpleNamespace(json=False)
 
@@ -84,7 +84,7 @@ class TestAnnotationStub(unittest.TestCase):
     def test_stub_json_mode(self):
         import json
 
-        from roboflow.cli.handlers.annotation import _stub
+        from roboflow.cli._output import stub as _stub
 
         args = types.SimpleNamespace(json=True)
 

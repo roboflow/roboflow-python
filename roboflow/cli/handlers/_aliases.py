@@ -64,7 +64,7 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     from roboflow.cli.handlers.version import _download
 
     download_p = subparsers.add_parser("download", help="Download a dataset version (alias for 'version download')")
-    download_p.add_argument("datasetUrl", help="Dataset URL (e.g. workspace/project/version)")
+    download_p.add_argument("url_or_id", metavar="datasetUrl", help="Dataset URL (e.g. workspace/project/version)")
     download_p.add_argument("-f", "--format", dest="format", default="voc", help="Export format")
     download_p.add_argument("-l", "--location", dest="location", help="Download location")
     download_p.set_defaults(func=_download)

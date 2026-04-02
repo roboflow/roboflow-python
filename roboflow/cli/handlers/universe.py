@@ -8,14 +8,10 @@ if TYPE_CHECKING:
     import argparse
 
 
-def _stub(args: argparse.Namespace) -> None:
-    from roboflow.cli._output import output_error
-
-    output_error(args, "This command is not yet implemented.", hint="Coming soon.", exit_code=1)
-
-
 def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
     """Register the ``universe`` command group."""
+    from roboflow.cli._output import stub
+
     uni_parser = subparsers.add_parser("universe", help="Browse Roboflow Universe")
     uni_subs = uni_parser.add_subparsers(title="universe commands", dest="universe_command")
 
@@ -24,7 +20,7 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     search_p.add_argument("query", help="Search query")
     search_p.add_argument("--type", dest="type", choices=["dataset", "model"], default=None, help="Filter by type")
     search_p.add_argument("--limit", type=int, default=20, help="Max results (default: 20)")
-    search_p.set_defaults(func=_stub)
+    search_p.set_defaults(func=stub)
 
     # Default
     uni_parser.set_defaults(func=lambda args: uni_parser.print_help())

@@ -112,6 +112,11 @@ def output_error(
     sys.exit(exit_code)
 
 
+def stub(args: Any) -> None:
+    """Placeholder handler for not-yet-implemented commands."""
+    output_error(args, "This command is not yet implemented.", hint="Coming soon.", exit_code=1)
+
+
 @contextlib.contextmanager
 def suppress_sdk_output(args: Any = None) -> Iterator[None]:
     """Suppress SDK stdout noise (e.g. 'loading Roboflow workspace...').

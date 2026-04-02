@@ -159,11 +159,8 @@ def _parse_url(url: str) -> tuple:
 
 
 def _download(args: argparse.Namespace) -> None:
-    import contextlib
-    import io
-
     import roboflow
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import output, output_error, suppress_sdk_output
 
     w, p, v = _parse_url(args.url_or_id)
 
@@ -172,7 +169,7 @@ def _download(args: argparse.Namespace) -> None:
         return
 
     # Always suppress SDK "loading..." noise during workspace/project init
-    with contextlib.redirect_stdout(io.StringIO()):
+    with suppress_sdk_output():
         try:
             rf = roboflow.Roboflow()
             project = rf.workspace(w).project(p)
@@ -243,4 +240,6 @@ def _export(args: argparse.Namespace) -> None:
 
 
 def _create(args: argparse.Namespace) -> None:
-    print("version create is not yet implemented")
+    from roboflow.cli._output import output_error
+
+    output_error(args, "This command is not yet implemented.", hint="Coming soon.", exit_code=1)
