@@ -33,8 +33,8 @@ class TestProjectHandlerRegistration(unittest.TestCase):
 
     def test_project_list_with_type_filter(self) -> None:
         parser = _make_parser()
-        args = parser.parse_args(["project", "list", "--type", "classification"])
-        self.assertEqual(args.type, "classification")
+        args = parser.parse_args(["project", "list", "--type", "single-label-classification"])
+        self.assertEqual(args.type, "single-label-classification")
 
     def test_project_get_requires_id(self) -> None:
         parser = _make_parser()
@@ -64,12 +64,12 @@ class TestProjectHandlerRegistration(unittest.TestCase):
 
     def test_project_create_default_license(self) -> None:
         parser = _make_parser()
-        args = parser.parse_args(["project", "create", "Test", "--type", "classification"])
+        args = parser.parse_args(["project", "create", "Test", "--type", "single-label-classification"])
         self.assertEqual(args.license, "Private")
 
     def test_subcommands_have_func(self) -> None:
         parser = _make_parser()
-        for subcmd in ["list", "get my-proj", "create Foo --type classification"]:
+        for subcmd in ["list", "get my-proj", "create Foo --type single-label-classification"]:
             args = parser.parse_args(["project"] + subcmd.split())
             self.assertIsNotNone(args.func, f"project {subcmd} has no func")
 

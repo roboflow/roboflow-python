@@ -85,7 +85,14 @@ def output_error(
     parsed, human_message = _parse_error_message(message)
 
     if getattr(args, "json", False):
-        error_value: Any = parsed if parsed is not None else message
+        # If the raw message was JSON containing an "error" key, unwrap it
+        # so we emit {"error": {message details}} not {"error": {"error": ...}}.
+        if parsed is not None and "error" in parsed:
+            error_value: Any = parsed["error"]
+        elif parsed is not None:
+            error_value = parsed
+        else:
+            error_value = message
         payload: dict[str, Any] = {"error": error_value}
         if hint:
             payload["hint"] = hint

@@ -32,7 +32,8 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
         required=True,
         choices=[
             "object-detection",
-            "classification",
+            "single-label-classification",
+            "multi-label-classification",
             "instance-segmentation",
             "semantic-segmentation",
             "keypoint-detection",

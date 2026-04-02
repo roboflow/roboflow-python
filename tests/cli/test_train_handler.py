@@ -165,7 +165,7 @@ class TestTrainStart(unittest.TestCase):
         result = json.loads(buf.getvalue())
         # Should be a parsed object, not a double-encoded JSON string
         self.assertIsInstance(result["error"], dict)
-        self.assertEqual(result["error"]["error"]["message"], "Unsupported request")
+        self.assertEqual(result["error"]["message"], "Unsupported request")
 
 
 if __name__ == "__main__":

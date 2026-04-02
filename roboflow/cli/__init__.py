@@ -137,10 +137,39 @@ def _show_version(args: argparse.Namespace) -> None:
         print(roboflow.__version__)
 
 
+def _reorder_argv(argv: list[str]) -> list[str]:
+    """Move known global flags that appear after the subcommand to the front.
+
+    argparse only recognises global flags when they appear *before* the
+    subcommand.  Many users (and AI agents) naturally write them at the end,
+    e.g. ``roboflow project list --json``.  This helper transparently
+    re-orders the argv so those flags are consumed by the root parser.
+    """
+    global_flags_with_value = {"--api-key", "-k", "--workspace", "-w"}
+    global_flags_bool = {"--json", "-j", "--quiet", "-q", "--version"}
+
+    reordered: list[str] = []
+    rest: list[str] = []
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg in global_flags_bool:
+            reordered.append(arg)
+        elif arg in global_flags_with_value:
+            reordered.append(arg)
+            if i + 1 < len(argv):
+                i += 1
+                reordered.append(argv[i])
+        else:
+            rest.append(arg)
+        i += 1
+    return reordered + rest
+
+
 def main() -> None:
     """CLI entry point."""
     parser = build_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(_reorder_argv(sys.argv[1:]))
 
     if args.version:
         _show_version(args)
