@@ -75,24 +75,9 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
 
 def _resolve_workspace_and_key(args: argparse.Namespace):
     """Return (workspace_url, api_key) or call output_error and return None."""
-    from roboflow.cli._output import output_error
-    from roboflow.cli._resolver import resolve_default_workspace
-    from roboflow.config import load_roboflow_api_key
+    from roboflow.cli._resolver import resolve_ws_and_key
 
-    workspace_url = args.workspace
-    if not workspace_url:
-        workspace_url = resolve_default_workspace(api_key=args.api_key)
-
-    if not workspace_url:
-        output_error(args, "No workspace specified.", hint="Use --workspace or run 'roboflow auth login'.")
-        return None
-
-    api_key = args.api_key or load_roboflow_api_key(workspace_url)
-    if not api_key:
-        output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
-        return None
-
-    return workspace_url, api_key
+    return resolve_ws_and_key(args)
 
 
 def _read_definition_file(args: argparse.Namespace):

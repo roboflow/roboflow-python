@@ -133,21 +133,9 @@ def _get_workspace(args: argparse.Namespace) -> None:
 
 def _resolve_ws_and_key(args: argparse.Namespace):
     """Resolve workspace and API key for workspace subcommands."""
-    from roboflow.cli._output import output_error
-    from roboflow.cli._resolver import resolve_default_workspace
-    from roboflow.config import load_roboflow_api_key
+    from roboflow.cli._resolver import resolve_ws_and_key
 
-    ws = args.workspace or resolve_default_workspace(api_key=args.api_key)
-    if not ws:
-        output_error(args, "No workspace specified.", hint="Use --workspace or run 'roboflow auth login'.", exit_code=2)
-        return None
-
-    api_key = args.api_key or load_roboflow_api_key(ws)
-    if not api_key:
-        output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
-        return None
-
-    return ws, api_key
+    return resolve_ws_and_key(args)
 
 
 def _workspace_usage(args: argparse.Namespace) -> None:

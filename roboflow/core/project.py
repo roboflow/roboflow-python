@@ -878,17 +878,9 @@ class Project:
         Returns:
             Dict: A dictionary containing the list of annotation jobs.
         """
-        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/jobs?api_key={self.__api_key}"
-        response = requests.get(url)
-        if response.status_code != 200:
-            try:
-                error_data = response.json()
-                if "error" in error_data:
-                    raise RuntimeError(error_data["error"])
-                raise RuntimeError(response.text)
-            except ValueError:
-                raise RuntimeError(f"Failed to get annotation jobs: {response.text}")
-        return response.json()
+        from roboflow.adapters import rfapi
+
+        return rfapi.list_annotation_jobs(self.__api_key, self.__workspace, self.__project_name)
 
     def get_annotation_job(self, job_id: str) -> Dict:
         """Get information for a specific annotation job.
@@ -899,17 +891,9 @@ class Project:
         Returns:
             Dict: A dictionary containing the job details.
         """
-        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/jobs/{job_id}?api_key={self.__api_key}"
-        response = requests.get(url)
-        if response.status_code != 200:
-            try:
-                error_data = response.json()
-                if "error" in error_data:
-                    raise RuntimeError(error_data["error"])
-                raise RuntimeError(response.text)
-            except ValueError:
-                raise RuntimeError(f"Failed to get annotation job: {response.text}")
-        return response.json()
+        from roboflow.adapters import rfapi
+
+        return rfapi.get_annotation_job(self.__api_key, self.__workspace, self.__project_name, job_id)
 
     def create_annotation_job(
         self, name: str, batch_id: str, num_images: int, labeler_email: str, reviewer_email: str

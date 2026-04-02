@@ -913,13 +913,14 @@ class Workspace:
 
         return rfapi.get_workflow(self.__api_key, self.url, workflow_url)
 
-    def create_workflow(self, name, definition=None, description=None):
+    def create_workflow(self, name, definition=None):
         """Create a new workflow."""
+        import json
+
         from roboflow.adapters import rfapi
 
-        return rfapi.create_workflow(
-            self.__api_key, self.url, name=name, definition=definition, description=description
-        )
+        config = json.dumps(definition) if definition else None
+        return rfapi.create_workflow(self.__api_key, self.url, name=name, config=config)
 
     # -----------------------------------------------------------------
     # Phase 2: Workspace statistics

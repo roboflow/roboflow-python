@@ -408,7 +408,7 @@ class TestWorkflowNoWorkspace(unittest.TestCase):
         args = _make_args(workspace=None, api_key=None)
         with self.assertRaises(SystemExit) as ctx:
             _list_workflows(args)
-        self.assertEqual(ctx.exception.code, 1)
+        self.assertEqual(ctx.exception.code, 2)
 
 
 if __name__ == "__main__":
