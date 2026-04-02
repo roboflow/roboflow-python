@@ -160,20 +160,21 @@ def _parse_url(url: str) -> tuple:
 
 def _download(args: argparse.Namespace) -> None:
     import roboflow
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import output, output_error, suppress_sdk_output
 
-    rf = roboflow.Roboflow()
     w, p, v = _parse_url(args.url_or_id)
 
     if not w or not p:
         output_error(args, f"Could not parse URL or shorthand: {args.url_or_id}")
         return
 
-    try:
-        project = rf.workspace(w).project(p)
-    except Exception as exc:
-        output_error(args, str(exc), exit_code=3)
-        return
+    with suppress_sdk_output(args):
+        try:
+            rf = roboflow.Roboflow()
+            project = rf.workspace(w).project(p)
+        except Exception as exc:
+            output_error(args, str(exc), exit_code=3)
+            return
 
     if not v:
         versions = project.versions()
