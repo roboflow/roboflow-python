@@ -72,7 +72,16 @@ def _video_status(args: argparse.Namespace) -> None:
     try:
         data = rfapi.get_video_job_status(api_key, args.job_id)
     except rfapi.RoboflowError as exc:
-        output_error(args, str(exc), exit_code=3)
+        msg = str(exc)
+        if "NOT FOUND" in msg.upper():
+            output_error(
+                args,
+                f"Video job '{args.job_id}' not found.",
+                hint="Run 'roboflow video infer' to start a video job.",
+                exit_code=3,
+            )
+        else:
+            output_error(args, msg, exit_code=3)
         return
 
     status = data.get("status", "unknown")

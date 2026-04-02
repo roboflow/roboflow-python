@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import argparse
 import re
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import argparse
+
+class _RawEpilogFormatter(argparse.HelpFormatter):
+    """Formatter that preserves raw text in the epilog while wrapping everything else."""
+
+    def _fill_text(self, text: str, width: int, indent: str) -> str:
+        return text
 
 
 def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
@@ -40,7 +44,19 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     export_parser.set_defaults(func=_export)
 
     # --- version create ---
-    create_parser = version_subs.add_parser("create", help="Create a new dataset version")
+    create_parser = version_subs.add_parser(
+        "create",
+        help="Create a new dataset version",
+        epilog=(
+            "Settings JSON example:\n"
+            '  {"augmentation": {"flip": {"horizontal": true, "vertical": false},\n'
+            '    "rotate": {"degrees": 15}, "brightness": {"percent": 25}},\n'
+            '   "preprocessing": {"auto-orient": true, "resize": {"width": 640,\n'
+            '    "height": 640, "format": "Stretch to"}}}\n\n'
+            "See https://docs.roboflow.com/datasets/create-a-dataset-version for all options."
+        ),
+        formatter_class=_RawEpilogFormatter,
+    )
     create_parser.add_argument("-p", "--project", dest="project", required=True, help="Project ID")
     create_parser.add_argument(
         "--settings", dest="settings", required=True, help="Path to JSON file with augmentation/preprocessing config"

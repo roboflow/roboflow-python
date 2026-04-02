@@ -331,7 +331,7 @@ def _fork_workflow(args: argparse.Namespace) -> None:
         output_error(args, str(exc))
         return
 
-    new_url = data.get("url", data.get("workflow_url", "")) if isinstance(data, dict) else ""
+    new_url = data.get("workflow", data.get("url", data.get("workflow_url", ""))) if isinstance(data, dict) else ""
     result = {"status": "forked", "source": args.workflow_url, "new_url": new_url}
     text = f"Forked workflow: {args.workflow_url} -> {new_url}"
     output(args, result, text=text)

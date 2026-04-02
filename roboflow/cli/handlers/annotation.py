@@ -76,6 +76,24 @@ def _add_job(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
 
 
 # ---------------------------------------------------------------------------
+# helpers
+# ---------------------------------------------------------------------------
+
+
+def _normalize_timestamps(obj):
+    """Recursively convert Firestore timestamp dicts ({"_seconds": N, "_nanoseconds": N}) to ISO 8601 strings."""
+    from datetime import datetime, timezone
+
+    if isinstance(obj, dict):
+        if "_seconds" in obj and "_nanoseconds" in obj and len(obj) == 2:
+            return datetime.fromtimestamp(obj["_seconds"], tz=timezone.utc).isoformat()
+        return {k: _normalize_timestamps(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_normalize_timestamps(item) for item in obj]
+    return obj
+
+
+# ---------------------------------------------------------------------------
 # handlers
 # ---------------------------------------------------------------------------
 
@@ -117,6 +135,7 @@ def _batch_list(args: argparse.Namespace) -> None:
         return
 
     batches = data if isinstance(data, list) else data.get("batches", data)
+    batches = _normalize_timestamps(batches)
 
     table = format_table(
         batches if isinstance(batches, list) else [],
@@ -141,6 +160,7 @@ def _batch_get(args: argparse.Namespace) -> None:
         output_error(args, str(exc), exit_code=3)
         return
 
+    data = _normalize_timestamps(data)
     batch = data.get("batch", data) if isinstance(data, dict) else data
 
     lines = []
@@ -169,6 +189,7 @@ def _job_list(args: argparse.Namespace) -> None:
         return
 
     jobs = data if isinstance(data, list) else data.get("jobs", data)
+    jobs = _normalize_timestamps(jobs)
 
     table = format_table(
         jobs if isinstance(jobs, list) else [],
@@ -193,6 +214,7 @@ def _job_get(args: argparse.Namespace) -> None:
         output_error(args, str(exc), exit_code=3)
         return
 
+    data = _normalize_timestamps(data)
     job = data.get("job", data) if isinstance(data, dict) else data
 
     lines = []
