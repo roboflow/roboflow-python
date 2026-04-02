@@ -22,7 +22,7 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     from roboflow.cli.handlers.auth import _login
 
     login_p = subparsers.add_parser("login", help="Log in to Roboflow (alias for 'auth login')")
-    login_p.add_argument("--api-key", dest="api_key_flag", default=None, help="API key (skip interactive login)")
+    login_p.add_argument("--api-key", dest="login_api_key", default=None, help="API key (skip interactive login)")
     login_p.add_argument("--force", "-f", action="store_true", help="Force re-login")
     login_p.set_defaults(func=_login)
 

@@ -78,10 +78,13 @@ def _load_config() -> dict:
 def _save_config(config: dict) -> None:
     import json
     import os
+    import stat
 
     path = _get_config_path()
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
+    # Write with owner-only permissions (0600) since the file contains API keys
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, stat.S_IRUSR | stat.S_IWUSR)
+    with os.fdopen(fd, "w") as f:
         json.dump(config, f, indent=2)
 
 
