@@ -2,44 +2,55 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Annotated, Any, Optional
 
-if TYPE_CHECKING:
-    import argparse
+import typer
 
-
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the ``search`` command."""
-    search_parser = subparsers.add_parser("search", help="Search workspace images or export results as a dataset")
-    search_parser.add_argument("query", help="Search query (e.g. 'tag:review' or '*')")
-    search_parser.add_argument("--limit", type=int, default=50, help="Max results to return (default: 50)")
-    search_parser.add_argument("--cursor", default=None, help="Continuation token for pagination")
-    search_parser.add_argument("--fields", default=None, help="Comma-separated list of fields to include")
-    search_parser.add_argument(
-        "--export", action="store_true", default=False, help="Export search results as a dataset"
-    )
-    search_parser.add_argument(
-        "-f", "--format", dest="format", default="coco", help="Annotation format for export (default: coco)"
-    )
-    search_parser.add_argument("-l", "--location", dest="location", default=None, help="Local directory for export")
-    search_parser.add_argument(
-        "-d", "--dataset", dest="dataset", default=None, help="Limit to a specific dataset (project slug)"
-    )
-    search_parser.add_argument(
-        "-g",
-        "--annotation-group",
-        dest="annotation_group",
-        default=None,
-        help="Limit export to a specific annotation group",
-    )
-    search_parser.add_argument("--name", dest="name", default=None, help="Optional name for the export")
-    search_parser.add_argument(
-        "--no-extract", dest="no_extract", action="store_true", default=False, help="Keep zip file, skip extraction"
-    )
-    search_parser.set_defaults(func=_search)
+from roboflow.cli._compat import ctx_to_args
 
 
-def _search(args: argparse.Namespace) -> None:
+def search_command(app: typer.Typer) -> None:
+    """Register the top-level ``search`` command on *app*."""
+
+    @app.command("search")
+    def search(
+        ctx: typer.Context,
+        query: Annotated[str, typer.Argument(help="Search query (e.g. 'tag:review' or '*')")],
+        limit: Annotated[int, typer.Option(help="Max results to return")] = 50,
+        cursor: Annotated[Optional[str], typer.Option(help="Continuation token for pagination")] = None,
+        fields: Annotated[Optional[str], typer.Option(help="Comma-separated list of fields to include")] = None,
+        export: Annotated[bool, typer.Option("--export", help="Export search results as a dataset")] = False,
+        format: Annotated[str, typer.Option("-f", "--format", help="Annotation format for export")] = "coco",
+        location: Annotated[Optional[str], typer.Option("-l", "--location", help="Local directory for export")] = None,
+        dataset: Annotated[
+            Optional[str], typer.Option("-d", "--dataset", help="Limit to a specific dataset (project slug)")
+        ] = None,
+        annotation_group: Annotated[
+            Optional[str],
+            typer.Option("-g", "--annotation-group", help="Limit export to a specific annotation group"),
+        ] = None,
+        name: Annotated[Optional[str], typer.Option(help="Optional name for the export")] = None,
+        no_extract: Annotated[bool, typer.Option("--no-extract", help="Keep zip file, skip extraction")] = False,
+    ) -> None:
+        """Search workspace images or export results as a dataset."""
+        args = ctx_to_args(
+            ctx,
+            query=query,
+            limit=limit,
+            cursor=cursor,
+            fields=fields,
+            export=export,
+            format=format,
+            location=location,
+            dataset=dataset,
+            annotation_group=annotation_group,
+            name=name,
+            no_extract=no_extract,
+        )
+        _search(args)
+
+
+def _search(args):  # noqa: ANN001
     import roboflow
     from roboflow.cli._output import output_error, suppress_sdk_output
 
@@ -57,7 +68,7 @@ def _search(args: argparse.Namespace) -> None:
         _do_search(args, workspace)
 
 
-def _do_search(args: argparse.Namespace, workspace: Any) -> None:
+def _do_search(args: Any, workspace: Any) -> None:
     from roboflow.cli._output import output, output_error
 
     fields = args.fields.split(",") if args.fields else None
@@ -89,7 +100,7 @@ def _do_search(args: argparse.Namespace, workspace: Any) -> None:
     output(args, data, text="\n".join(text_lines))
 
 
-def _do_export(args: argparse.Namespace, workspace: Any) -> None:
+def _do_export(args: Any, workspace: Any) -> None:
     from roboflow.cli._output import output, output_error
 
     try:
