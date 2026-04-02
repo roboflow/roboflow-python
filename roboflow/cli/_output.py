@@ -36,6 +36,33 @@ def output(args: Any, data: Any, text: Optional[str] = None) -> None:
         print(json.dumps(data, indent=2, default=str))
 
 
+def _parse_error_message(raw: str) -> tuple[Optional[dict[str, Any]], str]:
+    """Try to parse a raw error string that may contain embedded JSON.
+
+    Returns ``(parsed_dict_or_None, human_readable_message)``.
+    The *parsed_dict* is the deserialized JSON when the string is JSON,
+    otherwise ``None``.  The *human_readable_message* drills into nested
+    ``error.message`` structures so the text-mode output is clean.
+    """
+    text = raw.strip()
+    # Strip status-code prefix like "404: {...}"
+    colon_idx = text.find(": {")
+    if 0 < colon_idx < 5:
+        text = text[colon_idx + 2 :]
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            err = parsed.get("error", parsed)
+            if isinstance(err, dict):
+                human = str(err.get("message") or err.get("hint") or err)
+            else:
+                human = str(err)
+            return parsed, human
+    except (json.JSONDecodeError, TypeError, ValueError):
+        pass
+    return None, raw
+
+
 def output_error(
     args: Any,
     message: str,
@@ -55,22 +82,16 @@ def output_error(
     exit_code:
         Process exit code.  Convention: 1 = general, 2 = auth, 3 = not found.
     """
+    parsed, human_message = _parse_error_message(message)
+
     if getattr(args, "json", False):
-        # If message is a JSON string (e.g. from an API response), parse it
-        # so the error field is a proper object, not a double-encoded string.
-        error_value: Any = message
-        try:
-            parsed = json.loads(message)
-            if isinstance(parsed, dict):
-                error_value = parsed
-        except (json.JSONDecodeError, TypeError):
-            pass
+        error_value: Any = parsed if parsed is not None else message
         payload: dict[str, Any] = {"error": error_value}
         if hint:
             payload["hint"] = hint
         print(json.dumps(payload), file=sys.stderr)
     else:
-        msg = f"Error: {message}"
+        msg = f"Error: {human_message}"
         if hint:
             msg += f"\n  Hint: {hint}"
         print(msg, file=sys.stderr)

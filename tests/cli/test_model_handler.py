@@ -203,25 +203,31 @@ class TestModelUpload(unittest.TestCase):
             _upload_model(args)
 
 
-class TestExtractErrorMessage(unittest.TestCase):
-    """Test _extract_error_message helper."""
+class TestParseErrorMessage(unittest.TestCase):
+    """Test _parse_error_message helper (centralized in _output.py)."""
 
     def test_plain_string(self) -> None:
-        from roboflow.cli.handlers.model import _extract_error_message
+        from roboflow.cli._output import _parse_error_message
 
-        self.assertEqual(_extract_error_message("something broke"), "something broke")
+        parsed, human = _parse_error_message("something broke")
+        self.assertIsNone(parsed)
+        self.assertEqual(human, "something broke")
 
     def test_json_with_nested_error(self) -> None:
-        from roboflow.cli.handlers.model import _extract_error_message
+        from roboflow.cli._output import _parse_error_message
 
         raw = '{"error": {"message": "Unsupported request"}}'
-        self.assertEqual(_extract_error_message(raw), "Unsupported request")
+        parsed, human = _parse_error_message(raw)
+        self.assertIsNotNone(parsed)
+        self.assertEqual(human, "Unsupported request")
 
     def test_json_with_string_error(self) -> None:
-        from roboflow.cli.handlers.model import _extract_error_message
+        from roboflow.cli._output import _parse_error_message
 
         raw = '{"error": "Not found"}'
-        self.assertEqual(_extract_error_message(raw), "Not found")
+        parsed, human = _parse_error_message(raw)
+        self.assertIsNotNone(parsed)
+        self.assertEqual(human, "Not found")
 
 
 class TestModelListError(unittest.TestCase):

@@ -2,29 +2,10 @@
 
 from __future__ import annotations
 
-import json as _json
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import argparse
-
-
-def _extract_error_message(raw: str) -> str:
-    """Extract a human-readable message from a potentially JSON-encoded error string."""
-    text = raw.strip()
-    colon_idx = text.find(": {")
-    if colon_idx > 0 and colon_idx < 5:
-        text = text[colon_idx + 2 :]
-    try:
-        parsed = _json.loads(text)
-        if isinstance(parsed, dict):
-            err = parsed.get("error", parsed)
-            if isinstance(err, dict):
-                return str(err.get("message") or err.get("hint") or err)
-            return str(err)
-    except (ValueError, TypeError):
-        pass
-    return raw
 
 
 def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
@@ -125,7 +106,7 @@ def _list_models(args: argparse.Namespace) -> None:
             project = workspace.project(project_slug)
             versions = project.versions()
     except Exception as exc:
-        output_error(args, _extract_error_message(str(exc)), exit_code=3)
+        output_error(args, str(exc), exit_code=3)
         return
 
     models = []
@@ -175,7 +156,7 @@ def _get_model(args: argparse.Namespace) -> None:
         else:
             data = rfapi.get_project(api_key, workspace_url, project_slug)
     except rfapi.RoboflowError as exc:
-        output_error(args, _extract_error_message(str(exc)), exit_code=3)
+        output_error(args, str(exc), exit_code=3)
         return
 
     output(args, data, text=json.dumps(data, indent=2, default=str))
