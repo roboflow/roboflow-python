@@ -77,7 +77,7 @@ def _video_status(args: argparse.Namespace) -> None:
             output_error(
                 args,
                 f"Video job '{args.job_id}' not found.",
-                hint="Run 'roboflow video infer' to start a video job.",
+                hint="Check the job ID. You can get job IDs from 'roboflow video infer'.",
                 exit_code=3,
             )
         else:
