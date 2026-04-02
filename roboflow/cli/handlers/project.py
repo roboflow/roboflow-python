@@ -125,10 +125,15 @@ def _get_project(args: argparse.Namespace) -> None:
         ("Updated", "updated"),
         ("Public", "public"),
     ]
+    epoch_keys = {"created", "updated"}
     for label, key in field_map:
         if key in project:
             val = project[key]
-            if isinstance(val, dict):
+            if key in epoch_keys and isinstance(val, (int, float)):
+                import datetime
+
+                val = datetime.datetime.fromtimestamp(val).strftime("%Y-%m-%d %H:%M:%S")
+            elif isinstance(val, dict):
                 val = ", ".join(f"{k}: {v}" for k, v in val.items())
             lines.append(f"  {label:12s} {val}")
     text = "\n".join(lines) if lines else "(no project details)"
