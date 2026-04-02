@@ -185,6 +185,8 @@ def _get_workflow(args: argparse.Namespace) -> None:
 
 
 def _create_workflow(args: argparse.Namespace) -> None:
+    import json as _json
+
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -197,13 +199,17 @@ def _create_workflow(args: argparse.Namespace) -> None:
     if definition is False:
         return
 
+    # The API expects config/template as JSON strings.
+    config = _json.dumps(definition) if definition is not None else "{}"
+    template = "{}"
+
     try:
         data = rfapi.create_workflow(
             api_key,
             workspace_url,
             name=args.name,
-            definition=definition,
-            description=args.description,
+            config=config,
+            template=template,
         )
     except rfapi.RoboflowError as exc:
         output_error(args, str(exc))
@@ -214,6 +220,8 @@ def _create_workflow(args: argparse.Namespace) -> None:
 
 
 def _update_workflow(args: argparse.Namespace) -> None:
+    import json as _json
+
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -226,12 +234,38 @@ def _update_workflow(args: argparse.Namespace) -> None:
     if definition is False:
         return
 
+    # Fetch the existing workflow to get required id/name/url fields.
+    try:
+        existing = rfapi.get_workflow(api_key, workspace_url, args.workflow_url)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    wf = existing.get("workflow", existing) if isinstance(existing, dict) else existing
+    if not isinstance(wf, dict):
+        output_error(args, "Unexpected response from API when fetching workflow.")
+        return
+
+    workflow_id = wf.get("id", "")
+    workflow_name = wf.get("name", "")
+    workflow_url_slug = wf.get("url", args.workflow_url)
+
+    # Merge: use new definition as config if provided, otherwise keep existing.
+    if definition is not None:
+        config = _json.dumps(definition) if not isinstance(definition, str) else definition
+    else:
+        config = wf.get("config", "{}")
+        if not isinstance(config, str):
+            config = _json.dumps(config)
+
     try:
         data = rfapi.update_workflow(
             api_key,
             workspace_url,
-            workflow_url=args.workflow_url,
-            definition=definition,
+            workflow_id=workflow_id,
+            workflow_name=workflow_name,
+            workflow_url=workflow_url_slug,
+            config=config,
         )
     except rfapi.RoboflowError as exc:
         output_error(args, str(exc))
@@ -276,8 +310,23 @@ def _fork_workflow(args: argparse.Namespace) -> None:
         return
     workspace_url, api_key = resolved
 
+    # Parse workflow_url: could be "workflow-slug" or "source-ws/workflow-slug".
+    parts = args.workflow_url.strip("/").split("/")
+    if len(parts) == 2:
+        source_workspace = parts[0]
+        source_workflow = parts[1]
+    else:
+        # Default: source workspace is the current workspace.
+        source_workspace = workspace_url
+        source_workflow = parts[0]
+
     try:
-        data = rfapi.fork_workflow(api_key, workspace_url, args.workflow_url)
+        data = rfapi.fork_workflow(
+            api_key,
+            workspace_url,
+            source_workspace=source_workspace,
+            source_workflow=source_workflow,
+        )
     except rfapi.RoboflowError as exc:
         output_error(args, str(exc))
         return

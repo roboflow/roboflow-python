@@ -626,28 +626,67 @@ def get_workflow(api_key, workspace_url, workflow_url):
     return response.json()
 
 
-def create_workflow(api_key, workspace_url, *, name, definition=None, description=None):
-    """POST /{ws}/createWorkflow — create a workflow."""
-    payload: Dict[str, Union[str, dict, None]] = {"name": name}
-    if definition:
-        payload["definition"] = definition
-    if description:
-        payload["description"] = description
+def create_workflow(api_key, workspace_url, *, name, url=None, config=None, template=None):
+    """POST /{ws}/createWorkflow — create a workflow.
+
+    The API validates ``name``, ``url``, ``template``, and ``config`` as
+    query-string parameters (all required strings).
+
+    Args:
+        name: Display name for the workflow.
+        url: URL slug. Auto-generated from *name* when ``None``.
+        config: JSON string of the workflow config. Defaults to ``"{}"``.
+        template: JSON string of the workflow template. Defaults to ``"{}"``.
+    """
+    if url is None:
+        import re
+
+        url = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    if config is None:
+        config = "{}"
+    if template is None:
+        template = "{}"
+    # config/template must be strings (the API validates with Joi.string)
+    if not isinstance(config, str):
+        config = json.dumps(config)
+    if not isinstance(template, str):
+        template = json.dumps(template)
+    params: Dict[str, str] = {
+        "api_key": api_key,
+        "name": name,
+        "url": url,
+        "template": template,
+        "config": config,
+    }
     response = requests.post(
         f"{API_URL}/{workspace_url}/createWorkflow",
-        params={"api_key": api_key},
-        json=payload,
+        params=params,
     )
     if response.status_code not in (200, 201):
         raise RoboflowError(response.text)
     return response.json()
 
 
-def update_workflow(api_key, workspace_url, *, workflow_url, definition=None):
-    """POST /{ws}/updateWorkflow — update a workflow definition."""
-    payload: Dict[str, Union[str, dict, None]] = {"workflowUrl": workflow_url}
-    if definition:
-        payload["definition"] = definition
+def update_workflow(api_key, workspace_url, *, workflow_id, workflow_name, workflow_url, config):
+    """POST /{ws}/updateWorkflow — update a workflow definition.
+
+    The API validates ``id``, ``name``, ``url``, and ``config`` in the
+    request body (all required strings).
+
+    Args:
+        workflow_id: The workflow's internal ID.
+        workflow_name: The workflow's display name.
+        workflow_url: The workflow's URL slug.
+        config: JSON string (or dict) of the workflow config.
+    """
+    if not isinstance(config, str):
+        config = json.dumps(config)
+    payload: Dict[str, str] = {
+        "id": workflow_id,
+        "name": workflow_name,
+        "url": workflow_url,
+        "config": config,
+    }
     response = requests.post(
         f"{API_URL}/{workspace_url}/updateWorkflow",
         params={"api_key": api_key},
@@ -669,12 +708,28 @@ def list_workflow_versions(api_key, workspace_url, workflow_url):
     return response.json()
 
 
-def fork_workflow(api_key, workspace_url, workflow_url):
-    """POST /{ws}/forkWorkflow — fork a workflow."""
+def fork_workflow(api_key, workspace_url, *, source_workspace, source_workflow, name=None, url=None):
+    """POST /{ws}/forkWorkflow — fork a workflow into this workspace.
+
+    Args:
+        workspace_url: Target workspace that will own the fork.
+        source_workspace: URL slug of the workspace that owns the source.
+        source_workflow: URL slug of the source workflow.
+        name: Optional display name for the fork.
+        url: Optional URL slug for the fork.
+    """
+    payload: Dict[str, str] = {
+        "source_workspace": source_workspace,
+        "source_workflow": source_workflow,
+    }
+    if name:
+        payload["name"] = name
+    if url:
+        payload["url"] = url
     response = requests.post(
         f"{API_URL}/{workspace_url}/forkWorkflow",
         params={"api_key": api_key},
-        json={"workflowUrl": workflow_url},
+        json=payload,
     )
     if response.status_code not in (200, 201):
         raise RoboflowError(response.text)

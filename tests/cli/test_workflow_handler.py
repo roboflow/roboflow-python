@@ -180,7 +180,7 @@ class TestWorkflowCreate(unittest.TestCase):
         args = _make_args(name="New WF", definition=None, description=None)
         with patch("builtins.print") as mock_print:
             _create_workflow(args)
-        mock_create.assert_called_once_with("test-key", "test-ws", name="New WF", definition=None, description=None)
+        mock_create.assert_called_once_with("test-key", "test-ws", name="New WF", config="{}", template="{}")
         printed = mock_print.call_args[0][0]
         self.assertIn("Created workflow", printed)
 
@@ -201,7 +201,7 @@ class TestWorkflowCreate(unittest.TestCase):
             with patch("builtins.print"):
                 _create_workflow(args)
             mock_create.assert_called_once_with(
-                "test-key", "test-ws", name="New WF", definition=defn, description="A desc"
+                "test-key", "test-ws", name="New WF", config=json.dumps(defn), template="{}"
             )
         finally:
             os.unlink(tmp_path)
@@ -233,10 +233,14 @@ class TestWorkflowCreate(unittest.TestCase):
 
 class TestWorkflowUpdate(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.update_workflow")
+    @patch("roboflow.adapters.rfapi.get_workflow")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
-    def test_update_workflow(self, _mock_key, mock_update):
+    def test_update_workflow(self, _mock_key, mock_get, mock_update):
         from roboflow.cli.handlers.workflow import _update_workflow
 
+        mock_get.return_value = {
+            "workflow": {"id": "wf-123", "name": "My WF", "url": "my-wf", "config": "{}"}
+        }
         mock_update.return_value = {"url": "my-wf", "status": "updated"}
         defn = {"blocks": []}
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -248,11 +252,42 @@ class TestWorkflowUpdate(unittest.TestCase):
             args = _make_args(workflow_url="my-wf", definition=tmp_path)
             with patch("builtins.print") as mock_print:
                 _update_workflow(args)
-            mock_update.assert_called_once_with("test-key", "test-ws", workflow_url="my-wf", definition=defn)
+            mock_get.assert_called_once_with("test-key", "test-ws", "my-wf")
+            mock_update.assert_called_once_with(
+                "test-key",
+                "test-ws",
+                workflow_id="wf-123",
+                workflow_name="My WF",
+                workflow_url="my-wf",
+                config=json.dumps(defn),
+            )
             printed = mock_print.call_args[0][0]
             self.assertIn("Updated workflow", printed)
         finally:
             os.unlink(tmp_path)
+
+    @patch("roboflow.adapters.rfapi.update_workflow")
+    @patch("roboflow.adapters.rfapi.get_workflow")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
+    def test_update_workflow_no_definition(self, _mock_key, mock_get, mock_update):
+        """When no --definition is given, existing config is preserved."""
+        from roboflow.cli.handlers.workflow import _update_workflow
+
+        mock_get.return_value = {
+            "workflow": {"id": "wf-123", "name": "My WF", "url": "my-wf", "config": '{"existing": true}'}
+        }
+        mock_update.return_value = {"url": "my-wf", "status": "updated"}
+        args = _make_args(workflow_url="my-wf", definition=None)
+        with patch("builtins.print"):
+            _update_workflow(args)
+        mock_update.assert_called_once_with(
+            "test-key",
+            "test-ws",
+            workflow_id="wf-123",
+            workflow_name="My WF",
+            workflow_url="my-wf",
+            config='{"existing": true}',
+        )
 
     def test_update_workflow_missing_file(self):
         from roboflow.cli.handlers.workflow import _update_workflow
@@ -297,16 +332,33 @@ class TestWorkflowVersionList(unittest.TestCase):
 class TestWorkflowFork(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.fork_workflow")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
-    def test_fork_workflow(self, _mock_key, mock_fork):
+    def test_fork_workflow_same_workspace(self, _mock_key, mock_fork):
+        """When workflow_url is just a slug, source_workspace defaults to current ws."""
         from roboflow.cli.handlers.workflow import _fork_workflow
 
         mock_fork.return_value = {"url": "my-wf-fork", "workflow_url": "my-wf-fork"}
         args = _make_args(workflow_url="my-wf")
         with patch("builtins.print") as mock_print:
             _fork_workflow(args)
-        mock_fork.assert_called_once_with("test-key", "test-ws", "my-wf")
+        mock_fork.assert_called_once_with(
+            "test-key", "test-ws", source_workspace="test-ws", source_workflow="my-wf"
+        )
         printed = mock_print.call_args[0][0]
         self.assertIn("Forked workflow", printed)
+
+    @patch("roboflow.adapters.rfapi.fork_workflow")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
+    def test_fork_workflow_cross_workspace(self, _mock_key, mock_fork):
+        """When workflow_url is 'other-ws/my-wf', source_workspace is parsed."""
+        from roboflow.cli.handlers.workflow import _fork_workflow
+
+        mock_fork.return_value = {"url": "my-wf-fork"}
+        args = _make_args(workflow_url="other-ws/my-wf")
+        with patch("builtins.print"):
+            _fork_workflow(args)
+        mock_fork.assert_called_once_with(
+            "test-key", "test-ws", source_workspace="other-ws", source_workflow="my-wf"
+        )
 
     @patch("roboflow.adapters.rfapi.fork_workflow")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
