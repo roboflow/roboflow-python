@@ -62,14 +62,71 @@ def get_image(
 @image_app.command("search")
 def search_images(
     ctx: typer.Context,
-    query: Annotated[str, typer.Argument(help="RoboQL search query")],
-    project: Annotated[str, typer.Option("-p", "--project", help="Project ID (used in query filter)")],
+    query: Annotated[str, typer.Argument(help="RoboQL search query (e.g. 'tag:review' or '*')")],
+    project: Annotated[
+        Optional[str], typer.Option("-p", "--project", help="Project ID (omit to search entire workspace)")
+    ] = None,
     limit: Annotated[int, typer.Option(help="Number of results")] = 50,
     cursor: Annotated[Optional[str], typer.Option(help="Continuation token for pagination")] = None,
+    export: Annotated[bool, typer.Option("--export", help="Export search results as a dataset")] = False,
+    format: Annotated[str, typer.Option("-f", "--format", help="Annotation format for export")] = "coco",
+    location: Annotated[Optional[str], typer.Option("-l", "--location", help="Local directory for export")] = None,
+    dataset: Annotated[
+        Optional[str], typer.Option("-d", "--dataset", help="Limit export to a specific dataset")
+    ] = None,
+    annotation_group: Annotated[
+        Optional[str], typer.Option("-g", "--annotation-group", help="Annotation group")
+    ] = None,
+    name: Annotated[Optional[str], typer.Option(help="Optional name for the export")] = None,
+    no_extract: Annotated[bool, typer.Option("--no-extract", help="Keep zip file, skip extraction")] = False,
 ) -> None:
-    """Search images in workspace."""
-    args = ctx_to_args(ctx, query=query, project=project, limit=limit, cursor=cursor)
-    _handle_search(args)
+    """Search images in workspace or project.
+
+    Without -p/--project, searches across the entire workspace using RoboQL.
+    With -p/--project, searches within a specific project.
+    Use --export to download matching results as a dataset.
+    """
+    if project:
+        # Project-scoped search (legacy behavior)
+        args = ctx_to_args(ctx, query=query, project=project, limit=limit, cursor=cursor)
+        _handle_search(args)
+    elif export:
+        # Workspace-level export
+        from roboflow.cli.handlers.search import _search
+
+        args = ctx_to_args(
+            ctx,
+            query=query,
+            limit=limit,
+            cursor=cursor,
+            export=True,
+            format=format,
+            location=location,
+            dataset=dataset,
+            annotation_group=annotation_group,
+            name=name,
+            no_extract=no_extract,
+        )
+        _search(args)
+    else:
+        # Workspace-level search
+        from roboflow.cli.handlers.search import _search
+
+        args = ctx_to_args(
+            ctx,
+            query=query,
+            limit=limit,
+            cursor=cursor,
+            export=False,
+            format=format,
+            location=location,
+            dataset=dataset,
+            annotation_group=annotation_group,
+            name=name,
+            no_extract=no_extract,
+            fields=None,
+        )
+        _search(args)
 
 
 @image_app.command("tag")

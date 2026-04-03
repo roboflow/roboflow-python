@@ -31,6 +31,25 @@ def get_model(
     _get_model(args)
 
 
+@model_app.command("infer")
+def model_infer(
+    ctx: typer.Context,
+    file: Annotated[str, typer.Argument(help="Path to an image file")],
+    model: Annotated[str, typer.Option("-m", "--model", help="Model ID (project/version, e.g. my-project/3)")],
+    confidence: Annotated[float, typer.Option("-c", "--confidence", help="Confidence threshold 0.0-1.0")] = 0.5,
+    overlap: Annotated[float, typer.Option("-o", "--overlap", help="Overlap/NMS threshold 0.0-1.0")] = 0.5,
+    type: Annotated[
+        Optional[str],
+        typer.Option("-t", "--type", help="Model type (auto-detected if not specified)"),
+    ] = None,
+) -> None:
+    """Run inference on an image using a trained model."""
+    from roboflow.cli.handlers.infer import _infer
+
+    args = ctx_to_args(ctx, file=file, model=model, confidence=confidence, overlap=overlap, type=type)
+    _infer(args)
+
+
 @model_app.command("upload")
 def upload_model(
     ctx: typer.Context,

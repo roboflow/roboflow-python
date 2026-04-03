@@ -110,8 +110,10 @@ def _print_flattened_help() -> None:
             if hasattr(cmd, "list_commands") and cmd.list_commands(None):
                 _walk(cmd, full)
             else:
-                # Use the full short_help (not truncated get_short_help_str)
-                help_text = getattr(cmd, "short_help", None) or cmd.get_short_help_str() or ""
+                # Use the full help text: try help attr, then short_help, then docstring
+                help_text = getattr(cmd, "help", None) or getattr(cmd, "short_help", None) or ""
+                # Take only the first line/sentence
+                help_text = help_text.split("\n")[0].strip()
                 commands.append((full, help_text))
 
     _walk(click_app)
