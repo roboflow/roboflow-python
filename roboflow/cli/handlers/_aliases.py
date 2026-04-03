@@ -16,10 +16,10 @@ import typer
 from roboflow.cli._compat import ctx_to_args
 
 
-def register_download_alias(app: typer.Typer) -> None:
-    """Register the visible ``download`` shorthand at its alphabetical position."""
+def register_hidden_aliases(app: typer.Typer) -> None:
+    """Register all hidden backwards-compat aliases (not shown in --help)."""
 
-    @app.command("download")
+    @app.command("download", hidden=True)
     def download_alias(
         ctx: typer.Context,
         url_or_id: Annotated[
@@ -28,15 +28,11 @@ def register_download_alias(app: typer.Typer) -> None:
         format: Annotated[str, typer.Option("-f", "--format", help="Export format")] = "voc",
         location: Annotated[Optional[str], typer.Option("-l", "--location", help="Download location")] = None,
     ) -> None:
-        """Download a dataset version (shorthand for 'version download')."""
+        """Download a dataset version (alias for 'version download')."""
         from roboflow.cli.handlers.version import _download
 
         args = ctx_to_args(ctx, url_or_id=url_or_id, format=format, location=location)
         _download(args)
-
-
-def register_hidden_aliases(app: typer.Typer) -> None:
-    """Register all hidden backwards-compat aliases (not shown in --help)."""
 
     @app.command("login", hidden=True)
     def login_alias(

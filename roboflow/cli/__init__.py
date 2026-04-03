@@ -110,7 +110,9 @@ def _print_flattened_help() -> None:
             if hasattr(cmd, "list_commands") and cmd.list_commands(None):
                 _walk(cmd, full)
             else:
-                commands.append((full, cmd.get_short_help_str() or ""))
+                # Use the full short_help (not truncated get_short_help_str)
+                help_text = getattr(cmd, "short_help", None) or cmd.get_short_help_str() or ""
+                commands.append((full, help_text))
 
     _walk(click_app)
     commands.sort(key=lambda x: x[0])
@@ -193,12 +195,6 @@ app.add_typer(auth_app, name="auth")
 app.add_typer(batch_app, name="batch")
 app.add_typer(completion_app, name="completion")
 app.add_typer(deployment_app, name="deployment")
-
-# "download" alias — registered here alphabetically (visible shorthand)
-from roboflow.cli.handlers._aliases import register_download_alias  # noqa: E402
-
-register_download_alias(app)
-
 app.add_typer(folder_app, name="folder")
 app.add_typer(image_app, name="image")
 

@@ -12,7 +12,7 @@ from roboflow.cli._compat import ctx_to_args
 def search_command(app: typer.Typer) -> None:
     """Register the top-level ``search`` command on *app*."""
 
-    @app.command("search")
+    @app.command("search", hidden=True)
     def search(
         ctx: typer.Context,
         query: Annotated[str, typer.Argument(help="Search query (e.g. 'tag:review' or '*')")],

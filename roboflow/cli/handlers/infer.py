@@ -12,7 +12,7 @@ from roboflow.cli._compat import ctx_to_args
 def infer_command(app: typer.Typer) -> None:
     """Register the top-level ``infer`` command on *app*."""
 
-    @app.command("infer")
+    @app.command("infer", hidden=True)
     def infer(
         ctx: typer.Context,
         file: Annotated[str, typer.Argument(help="Path to an image file")],
