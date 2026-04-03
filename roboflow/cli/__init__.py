@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from typing import Annotated, Optional
 
+import click
 import typer
 
 import roboflow
@@ -209,4 +210,34 @@ def main() -> None:
     import sys
 
     sys.argv[1:] = _reorder_argv(sys.argv[1:])
-    app()
+
+    # In --json mode, intercept Click/typer validation errors and emit
+    # structured JSON on stderr instead of Rich-formatted text.
+    json_mode = "--json" in sys.argv or "-j" in sys.argv
+    if json_mode:
+        try:
+            app(standalone_mode=False)
+        except SystemExit as exc:
+            # Exit code 0 = success (already handled), just re-raise
+            if exc.code == 0:
+                raise
+            # Exit code 2 = Click usage error (missing arg, bad option)
+            # Other codes = our output_error already printed JSON
+            raise
+        except click.exceptions.UsageError as exc:
+            # Click/typer validation error — emit JSON on stderr
+            import json as _json
+
+            payload = {"error": {"message": str(exc), "hint": "Run with --help for usage information."}}
+            print(_json.dumps(payload), file=sys.stderr)
+            sys.exit(2)
+        except click.exceptions.Abort:
+            sys.exit(1)
+        except Exception as exc:
+            import json as _json
+
+            payload = {"error": {"message": str(exc)}}
+            print(_json.dumps(payload), file=sys.stderr)
+            sys.exit(1)
+    else:
+        app()
