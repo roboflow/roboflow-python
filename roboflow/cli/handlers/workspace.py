@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Optional
 
 import typer
 
@@ -21,9 +21,18 @@ def list_workspaces(ctx: typer.Context) -> None:
 @workspace_app.command("get")
 def get_workspace(
     ctx: typer.Context,
-    workspace_id: Annotated[str, typer.Argument(help="Workspace URL or ID")],
+    workspace_id: Annotated[
+        Optional[str], typer.Argument(help="Workspace URL or ID (defaults to current workspace)")
+    ] = None,
 ) -> None:
     """Get workspace details."""
+    # Default to current workspace if not specified
+    if not workspace_id:
+        from roboflow.cli._resolver import resolve_default_workspace
+
+        workspace_id = (ctx.obj or {}).get("workspace") or resolve_default_workspace(
+            api_key=(ctx.obj or {}).get("api_key")
+        )
     args = ctx_to_args(ctx, workspace_id=workspace_id)
     _get_workspace(args)
 

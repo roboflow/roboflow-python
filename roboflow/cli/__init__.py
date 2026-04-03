@@ -20,9 +20,15 @@ import roboflow
 
 app = typer.Typer(
     name="roboflow",
-    help="Roboflow CLI: computer vision at your fingertips",
+    help=(
+        "Build and deploy computer vision models with Roboflow. "
+        "Manage datasets, train models, run inference, and deploy "
+        "workflows \u2014 from the command line or via structured JSON for AI agents."
+    ),
     no_args_is_help=True,
     pretty_exceptions_enable=False,  # We handle errors ourselves via output_error
+    rich_markup_mode="rich",
+    add_completion=False,  # We have our own 'completion' subcommand
 )
 
 
@@ -92,6 +98,7 @@ from roboflow.cli.handlers.video import video_app  # noqa: E402
 from roboflow.cli.handlers.workflow import workflow_app  # noqa: E402
 from roboflow.cli.handlers.workspace import workspace_app  # noqa: E402
 
+# Register command groups (alphabetical order)
 app.add_typer(annotation_app, name="annotation")
 app.add_typer(auth_app, name="auth")
 app.add_typer(batch_app, name="batch")
@@ -112,10 +119,19 @@ app.add_typer(workspace_app, name="workspace")
 infer_command(app)
 search_command(app)
 
-# Backwards-compat aliases (loaded last)
+# "roboflow download" — visible shorthand (common enough to show)
+# "roboflow help" — alias for --help
 from roboflow.cli.handlers._aliases import register_aliases  # noqa: E402
 
 register_aliases(app)
+
+
+# "roboflow help" command
+@app.command("help", hidden=True)
+def help_command(ctx: typer.Context) -> None:
+    """Show help information."""
+    print(ctx.parent.get_help() if ctx.parent else ctx.get_help())  # noqa: T201
+
 
 # ---------------------------------------------------------------------------
 # Backwards-compat: build_parser returns None (argparse is gone)

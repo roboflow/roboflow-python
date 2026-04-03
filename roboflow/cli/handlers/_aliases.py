@@ -19,9 +19,9 @@ from roboflow.cli._compat import ctx_to_args
 def register_aliases(app: typer.Typer) -> None:
     """Register top-level aliases for common commands."""
 
-    # --- roboflow login (visible alias for auth login) ---
+    # --- roboflow login (hidden alias for auth login) ---
 
-    @app.command("login")
+    @app.command("login", hidden=True)
     def login_alias(
         ctx: typer.Context,
         login_api_key: Annotated[
@@ -35,9 +35,9 @@ def register_aliases(app: typer.Typer) -> None:
         args = ctx_to_args(ctx, login_api_key=login_api_key, force=force)
         _login(args)
 
-    # --- roboflow whoami (visible alias for auth status) ---
+    # --- roboflow whoami (hidden alias for auth status) ---
 
-    @app.command("whoami")
+    @app.command("whoami", hidden=True)
     def whoami_alias(ctx: typer.Context) -> None:
         """Show current user (alias for 'auth status')."""
         from roboflow.cli.handlers.auth import _status
@@ -45,9 +45,9 @@ def register_aliases(app: typer.Typer) -> None:
         args = ctx_to_args(ctx)
         _status(args)
 
-    # --- roboflow upload (visible alias for image upload) ---
+    # --- roboflow upload (hidden alias for image upload) ---
 
-    @app.command("upload")
+    @app.command("upload", hidden=True)
     def upload_alias(
         ctx: typer.Context,
         path: Annotated[str, typer.Argument(help="Path to image file or directory")],
@@ -81,9 +81,9 @@ def register_aliases(app: typer.Typer) -> None:
         )
         _handle_upload(args)
 
-    # --- roboflow import (visible alias for image upload with directory) ---
+    # --- roboflow import (hidden alias for image upload with directory) ---
 
-    @app.command("import")
+    @app.command("import", hidden=True)
     def import_alias(
         ctx: typer.Context,
         path: Annotated[str, typer.Argument(metavar="folder", help="Path to dataset folder")],
