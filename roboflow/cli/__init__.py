@@ -138,17 +138,12 @@ def _print_flattened_help() -> None:
         ("--help", "-h", "", "Show this message and exit."),
     ]
     opt_table = Table(show_header=False, box=None, padding=(0, 1))
-    opt_table.add_column(no_wrap=True)  # flags
+    opt_table.add_column(no_wrap=True, style="bold cyan")  # long flag
+    opt_table.add_column(no_wrap=True, style="bold green")  # short flag
+    opt_table.add_column(no_wrap=True, style="bold yellow")  # metavar
     opt_table.add_column()  # description
     for long_flag, short_flag, metavar, desc in options_data:
-        flag_text = Text()
-        flag_text.append(long_flag, style="bold cyan")
-        flag_text.append("  ")
-        flag_text.append(short_flag, style="bold green")
-        if metavar:
-            flag_text.append("  ")
-            flag_text.append(metavar, style="bold yellow")
-        opt_table.add_row(flag_text, desc)
+        opt_table.add_row(long_flag, short_flag, metavar, desc)
     console.print(Panel(opt_table, title="Options", title_align="left", border_style="dim"))
 
     # Commands panel — group name in dim cyan, verb in bold
