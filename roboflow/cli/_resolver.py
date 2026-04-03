@@ -113,3 +113,25 @@ def resolve_resource(
         f"Cannot resolve '{shorthand}': expected 1-3 path segments "
         "(project, workspace/project, or workspace/project/version)."
     )
+
+
+def resolve_ws_and_key(args) -> Optional[Tuple[str, str]]:
+    """Resolve workspace and API key from CLI args.
+
+    Returns (workspace_url, api_key) or ``None`` after calling
+    ``output_error`` on failure.
+    """
+    from roboflow.cli._output import output_error
+    from roboflow.config import load_roboflow_api_key
+
+    ws = getattr(args, "workspace", None) or resolve_default_workspace(api_key=getattr(args, "api_key", None))
+    if not ws:
+        output_error(args, "No workspace specified.", hint="Use --workspace or run 'roboflow auth login'.", exit_code=2)
+        return None
+
+    api_key = getattr(args, "api_key", None) or load_roboflow_api_key(ws)
+    if not api_key:
+        output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
+        return None
+
+    return ws, api_key

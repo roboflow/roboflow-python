@@ -1,4 +1,4 @@
-"""Workspace commands: list, get."""
+"""Workspace commands: list, get, usage, plan, stats."""
 
 from __future__ import annotations
 
@@ -21,6 +21,20 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     get_p = ws_sub.add_parser("get", help="Get workspace details")
     get_p.add_argument("workspace_id", help="Workspace URL or ID")
     get_p.set_defaults(func=_get_workspace)
+
+    # --- workspace usage ---
+    usage_p = ws_sub.add_parser("usage", help="Show billing usage report")
+    usage_p.set_defaults(func=_workspace_usage)
+
+    # --- workspace plan ---
+    plan_p = ws_sub.add_parser("plan", help="Show workspace plan info and limits")
+    plan_p.set_defaults(func=_workspace_plan)
+
+    # --- workspace stats ---
+    stats_p = ws_sub.add_parser("stats", help="Show annotation/labeling statistics")
+    stats_p.add_argument("--start-date", dest="start_date", required=True, help="Start date (YYYY-MM-DD)")
+    stats_p.add_argument("--end-date", dest="end_date", required=True, help="End date (YYYY-MM-DD)")
+    stats_p.set_defaults(func=_workspace_stats)
 
     # Default: show help
     ws_parser.set_defaults(func=lambda args: ws_parser.print_help())
@@ -115,3 +129,85 @@ def _get_workspace(args: argparse.Namespace) -> None:
         f"  Projects: {project_count}",
     ]
     output(args, workspace_json, text="\n".join(lines))
+
+
+def _resolve_ws_and_key(args: argparse.Namespace):
+    """Resolve workspace and API key for workspace subcommands."""
+    from roboflow.cli._resolver import resolve_ws_and_key
+
+    return resolve_ws_and_key(args)
+
+
+def _workspace_usage(args: argparse.Namespace) -> None:
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_ws_and_key(args)
+    if not resolved:
+        return
+    ws, api_key = resolved
+
+    try:
+        result = rfapi.get_billing_usage(api_key, ws)
+    except Exception as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    usage = result.get("usage", result)
+    lines = ["Billing Usage:"]
+    if isinstance(usage, dict):
+        for key, val in usage.items():
+            lines.append(f"  {key}: {val}")
+    else:
+        lines.append(f"  {usage}")
+    output(args, result, text="\n".join(lines))
+
+
+def _workspace_plan(args: argparse.Namespace) -> None:
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_ws_and_key(args)
+    if not resolved:
+        return
+    _ws, api_key = resolved
+
+    try:
+        result = rfapi.get_plan_info(api_key)
+    except Exception as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    plan = result.get("plan", result)
+    lines = ["Plan Info:"]
+    if isinstance(plan, dict):
+        for key, val in plan.items():
+            lines.append(f"  {key}: {val}")
+    else:
+        lines.append(f"  {plan}")
+    output(args, result, text="\n".join(lines))
+
+
+def _workspace_stats(args: argparse.Namespace) -> None:
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_ws_and_key(args)
+    if not resolved:
+        return
+    ws, api_key = resolved
+
+    try:
+        result = rfapi.get_labeling_stats(api_key, ws, start_date=args.start_date, end_date=args.end_date)
+    except Exception as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    stats = result.get("stats", result)
+    lines = ["Labeling Stats:"]
+    if isinstance(stats, dict):
+        for key, val in stats.items():
+            lines.append(f"  {key}: {val}")
+    else:
+        lines.append(f"  {stats}")
+    output(args, result, text="\n".join(lines))

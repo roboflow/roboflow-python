@@ -10,61 +10,355 @@ if TYPE_CHECKING:
 
 def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
     """Register the ``workflow`` command group."""
-    from roboflow.cli._output import stub
-
     wf_parser = subparsers.add_parser("workflow", help="Manage workflows")
     wf_subs = wf_parser.add_subparsers(title="workflow commands", dest="workflow_command")
 
     # --- workflow list ---
     list_p = wf_subs.add_parser("list", help="List workflows in a workspace")
-    list_p.set_defaults(func=stub)
+    list_p.set_defaults(func=_list_workflows)
 
     # --- workflow get ---
     get_p = wf_subs.add_parser("get", help="Show details for a workflow")
     get_p.add_argument("workflow_url", help="Workflow URL or ID")
-    get_p.set_defaults(func=stub)
+    get_p.set_defaults(func=_get_workflow)
 
     # --- workflow create ---
     create_p = wf_subs.add_parser("create", help="Create a new workflow")
     create_p.add_argument("--name", required=True, help="Workflow name")
     create_p.add_argument("--definition", help="Path to JSON definition file")
     create_p.add_argument("--description", default=None, help="Workflow description")
-    create_p.set_defaults(func=stub)
+    create_p.set_defaults(func=_create_workflow)
 
     # --- workflow update ---
     update_p = wf_subs.add_parser("update", help="Update an existing workflow")
     update_p.add_argument("workflow_url", help="Workflow URL or ID")
     update_p.add_argument("--definition", help="Path to JSON definition file")
-    update_p.set_defaults(func=stub)
+    update_p.set_defaults(func=_update_workflow)
 
     # --- workflow version ---
     version_p = wf_subs.add_parser("version", help="Manage workflow versions")
     version_subs = version_p.add_subparsers(title="workflow version commands", dest="workflow_version_command")
     version_list_p = version_subs.add_parser("list", help="List versions of a workflow")
     version_list_p.add_argument("workflow_url", help="Workflow URL or ID")
-    version_list_p.set_defaults(func=stub)
+    version_list_p.set_defaults(func=_list_workflow_versions)
     version_p.set_defaults(func=lambda args: version_p.print_help())
 
     # --- workflow fork ---
     fork_p = wf_subs.add_parser("fork", help="Fork a workflow")
     fork_p.add_argument("workflow_url", help="Workflow URL or ID")
-    fork_p.set_defaults(func=stub)
+    fork_p.set_defaults(func=_fork_workflow)
 
-    # --- workflow build ---
+    # --- workflow build (stub) ---
     build_p = wf_subs.add_parser("build", help="Build a workflow from a prompt")
     build_p.add_argument("prompt", help="Natural language prompt describing the workflow")
-    build_p.set_defaults(func=stub)
+    build_p.set_defaults(func=_stub_build)
 
-    # --- workflow run ---
+    # --- workflow run (stub) ---
     run_p = wf_subs.add_parser("run", help="Run a workflow")
     run_p.add_argument("workflow_url", help="Workflow URL or ID")
     run_p.add_argument("--input", dest="input", help="Input file or URL")
-    run_p.set_defaults(func=stub)
+    run_p.set_defaults(func=_stub_run)
 
-    # --- workflow deploy ---
+    # --- workflow deploy (stub) ---
     deploy_p = wf_subs.add_parser("deploy", help="Deploy a workflow")
     deploy_p.add_argument("workflow_url", help="Workflow URL or ID")
-    deploy_p.set_defaults(func=stub)
+    deploy_p.set_defaults(func=_stub_deploy)
 
     # Default
     wf_parser.set_defaults(func=lambda args: wf_parser.print_help())
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _resolve_workspace_and_key(args: argparse.Namespace):
+    """Return (workspace_url, api_key) or call output_error and return None."""
+    from roboflow.cli._resolver import resolve_ws_and_key
+
+    return resolve_ws_and_key(args)
+
+
+def _read_definition_file(args: argparse.Namespace):
+    """Read and parse a JSON definition file. Returns the parsed dict, or None if no file given.
+
+    Calls output_error and returns False on failure.
+    """
+    import json
+    import os
+
+    from roboflow.cli._output import output_error
+
+    if not args.definition:
+        return None
+
+    if not os.path.isfile(args.definition):
+        output_error(args, f"File not found: {args.definition}", hint="Provide a valid JSON file path.")
+        return False
+
+    with open(args.definition) as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError as exc:
+            output_error(args, f"Invalid JSON in {args.definition}: {exc}")
+            return False
+
+
+# ---------------------------------------------------------------------------
+# Implemented commands
+# ---------------------------------------------------------------------------
+
+
+def _list_workflows(args: argparse.Namespace) -> None:
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.cli._table import format_table
+
+    resolved = _resolve_workspace_and_key(args)
+    if resolved is None:
+        return
+    workspace_url, api_key = resolved
+
+    try:
+        data = rfapi.list_workflows(api_key, workspace_url)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    workflows = data if isinstance(data, list) else data.get("workflows", [])
+
+    table = format_table(
+        workflows,
+        columns=["name", "url", "status"],
+        headers=["NAME", "URL", "STATUS"],
+    )
+    output(args, workflows, text=table)
+
+
+def _get_workflow(args: argparse.Namespace) -> None:
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_workspace_and_key(args)
+    if resolved is None:
+        return
+    workspace_url, api_key = resolved
+
+    try:
+        data = rfapi.get_workflow(api_key, workspace_url, args.workflow_url)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    workflow = data.get("workflow", data) if isinstance(data, dict) else data
+
+    lines = []
+    if isinstance(workflow, dict):
+        field_map = [
+            ("Name", "name"),
+            ("URL", "url"),
+            ("Description", "description"),
+            ("Blocks", "blockCount"),
+        ]
+        for label, key in field_map:
+            if key in workflow:
+                lines.append(f"  {label:14s} {workflow[key]}")
+    text = "\n".join(lines) if lines else "(no workflow details)"
+
+    output(args, data, text=text)
+
+
+def _create_workflow(args: argparse.Namespace) -> None:
+    import json as _json
+
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_workspace_and_key(args)
+    if resolved is None:
+        return
+    workspace_url, api_key = resolved
+
+    definition = _read_definition_file(args)
+    if definition is False:
+        return
+
+    # The API expects config/template as JSON strings.
+    config = _json.dumps(definition) if definition is not None else "{}"
+    template = "{}"
+
+    try:
+        data = rfapi.create_workflow(
+            api_key,
+            workspace_url,
+            name=args.name,
+            config=config,
+            template=template,
+        )
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+
+    text = f"Created workflow: {args.name}"
+    output(args, data, text=text)
+
+
+def _update_workflow(args: argparse.Namespace) -> None:
+    import json as _json
+
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_workspace_and_key(args)
+    if resolved is None:
+        return
+    workspace_url, api_key = resolved
+
+    definition = _read_definition_file(args)
+    if definition is False:
+        return
+
+    # Fetch the existing workflow to get required id/name/url fields.
+    try:
+        existing = rfapi.get_workflow(api_key, workspace_url, args.workflow_url)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    wf = existing.get("workflow", existing) if isinstance(existing, dict) else existing
+    if not isinstance(wf, dict):
+        output_error(args, "Unexpected response from API when fetching workflow.")
+        return
+
+    workflow_id = wf.get("id", "")
+    workflow_name = wf.get("name", "")
+    workflow_url_slug = wf.get("url", args.workflow_url)
+
+    # Merge: use new definition as config if provided, otherwise keep existing.
+    if definition is not None:
+        config = _json.dumps(definition) if not isinstance(definition, str) else definition
+    else:
+        config = wf.get("config", "{}")
+        if not isinstance(config, str):
+            config = _json.dumps(config)
+
+    try:
+        data = rfapi.update_workflow(
+            api_key,
+            workspace_url,
+            workflow_id=workflow_id,
+            workflow_name=workflow_name,
+            workflow_url=workflow_url_slug,
+            config=config,
+        )
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+
+    text = f"Updated workflow: {args.workflow_url}"
+    output(args, data, text=text)
+
+
+def _list_workflow_versions(args: argparse.Namespace) -> None:
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.cli._table import format_table
+
+    resolved = _resolve_workspace_and_key(args)
+    if resolved is None:
+        return
+    workspace_url, api_key = resolved
+
+    try:
+        data = rfapi.list_workflow_versions(api_key, workspace_url, args.workflow_url)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    versions = data if isinstance(data, list) else data.get("versions", [])
+
+    table = format_table(
+        versions,
+        columns=["version", "created"],
+        headers=["VERSION", "CREATED"],
+    )
+    output(args, versions, text=table)
+
+
+def _fork_workflow(args: argparse.Namespace) -> None:
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_workspace_and_key(args)
+    if resolved is None:
+        return
+    workspace_url, api_key = resolved
+
+    # Parse workflow_url: could be "workflow-slug" or "source-ws/workflow-slug".
+    parts = args.workflow_url.strip("/").split("/")
+    if len(parts) == 2:
+        source_workspace = parts[0]
+        source_workflow = parts[1]
+    else:
+        # Default: source workspace is the current workspace.
+        source_workspace = workspace_url
+        source_workflow = parts[0]
+
+    try:
+        data = rfapi.fork_workflow(
+            api_key,
+            workspace_url,
+            source_workspace=source_workspace,
+            source_workflow=source_workflow,
+        )
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+
+    # Extract the forked workflow URL from potentially nested response
+    new_url = ""
+    if isinstance(data, dict):
+        wf = data.get("workflow", data)
+        if isinstance(wf, dict):
+            new_url = str(wf.get("url", wf.get("workflow_url", "")))
+        else:
+            new_url = str(wf) if wf else ""
+    result = {"status": "forked", "source": args.workflow_url, "new_url": new_url}
+    text = f"Forked workflow: {args.workflow_url} -> {new_url}"
+    output(args, result, text=text)
+
+
+# ---------------------------------------------------------------------------
+# Stubs
+# ---------------------------------------------------------------------------
+
+
+def _stub_build(args: argparse.Namespace) -> None:
+    from roboflow.cli._output import output_error
+
+    output_error(
+        args,
+        "This command is not yet implemented.",
+        hint="Requires Roboflow Agent API. Coming in a future release.",
+    )
+
+
+def _stub_run(args: argparse.Namespace) -> None:
+    from roboflow.cli._output import output_error
+
+    output_error(
+        args,
+        "This command is not yet implemented.",
+        hint="Requires inference_sdk integration. Coming in a future release.",
+    )
+
+
+def _stub_deploy(args: argparse.Namespace) -> None:
+    from roboflow.cli._output import output_error
+
+    output_error(
+        args,
+        "This command is not yet implemented.",
+        hint="Coming in a future release.",
+    )

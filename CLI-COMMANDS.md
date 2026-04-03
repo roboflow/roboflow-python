@@ -64,6 +64,64 @@ roboflow version list -p my-project
 roboflow model list -p my-project
 ```
 
+### Manage folders
+
+```bash
+roboflow folder list
+roboflow folder create "Training Data" --projects proj1,proj2
+roboflow folder get <folder-id>
+roboflow folder update <folder-id> --name "New Name"
+roboflow folder delete <folder-id>
+```
+
+### Annotation batches and jobs
+
+```bash
+roboflow annotation batch list -p my-project
+roboflow annotation batch get <batch-id> -p my-project
+roboflow annotation job list -p my-project
+roboflow annotation job create -p my-project --name "Label round 1" \
+  --batch <batch-id> --num-images 100 --labeler a@co.com --reviewer b@co.com
+```
+
+### Workflows
+
+```bash
+roboflow workflow list
+roboflow workflow get my-workflow
+roboflow workflow create --name "My Workflow" --definition workflow.json
+roboflow workflow update my-workflow --definition updated.json
+roboflow workflow version list my-workflow
+roboflow workflow fork other-ws/their-workflow
+```
+
+### Create a dataset version
+
+```bash
+roboflow version create -p my-project --settings settings.json
+```
+
+### Workspace stats and billing
+
+```bash
+roboflow workspace usage
+roboflow workspace plan
+roboflow workspace stats --start-date 2026-01-01 --end-date 2026-03-31
+```
+
+### Search Roboflow Universe
+
+```bash
+roboflow universe search "hard hats" --type dataset --limit 5
+```
+
+### Video inference
+
+```bash
+roboflow video infer -p my-project -v 3 -f video.mp4 --fps 10
+roboflow video status <job-id>
+```
+
 ## JSON output for agents
 
 Every command supports `--json` for structured output that's safe to pipe:
@@ -103,12 +161,12 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `infer` | Run inference on images |
 | `search` | Search workspace images (RoboQL), export results |
 | `deployment` | Manage dedicated deployments |
-| `workflow` | Manage workflows *(coming soon)* |
-| `folder` | Manage project folders *(coming soon)* |
+| `workflow` | Manage workflows |
+| `folder` | Manage workspace folders |
+| `annotation` | Annotation batches and jobs |
+| `universe` | Search Roboflow Universe |
+| `video` | Video inference |
 | `batch` | Batch processing jobs *(coming soon)* |
-| `universe` | Browse Roboflow Universe *(coming soon)* |
-| `video` | Video inference *(coming soon)* |
-| `annotation` | Annotation batches and jobs *(coming soon)* |
 | `completion` | Shell completion scripts *(coming soon)* |
 
 Run `roboflow <command> --help` for details on any command.

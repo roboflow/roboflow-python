@@ -70,10 +70,17 @@ class TestVersionHandlerRegistration(unittest.TestCase):
         self.assertEqual(args.project, "my-project")
         self.assertEqual(args.format, "yolov8")
 
-    def test_version_create_is_stub(self) -> None:
+    def test_version_create_parses_args(self) -> None:
         parser = _make_parser()
-        args = parser.parse_args(["version", "create", "-p", "my-project"])
+        args = parser.parse_args(["version", "create", "-p", "my-project", "--settings", "config.json"])
         self.assertIsNotNone(args.func)
+        self.assertEqual(args.project, "my-project")
+        self.assertEqual(args.settings, "config.json")
+
+    def test_version_create_requires_settings(self) -> None:
+        parser = _make_parser()
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["version", "create", "-p", "my-project"])
 
     def test_subcommands_have_func(self) -> None:
         parser = _make_parser()
@@ -82,11 +89,83 @@ class TestVersionHandlerRegistration(unittest.TestCase):
             "get 3 -p proj",
             "download ws/proj/1",
             "export 1 -p proj",
-            "create -p proj",
+            "create -p proj --settings s.json",
         ]
         for subcmd in subcmds:
             args = parser.parse_args(["version"] + subcmd.split())
             self.assertIsNotNone(args.func, f"version {subcmd} has no func")
+
+
+class TestVersionCreate(unittest.TestCase):
+    """Test version create handler."""
+
+    def test_create_missing_settings_file(self) -> None:
+        from unittest.mock import patch
+
+        parser = _make_parser()
+        args = parser.parse_args(
+            ["--json", "version", "create", "-p", "my-ws/my-project", "--settings", "/nonexistent/file.json"]
+        )
+        args.api_key = "fake-key"
+        with patch("roboflow.config.load_roboflow_api_key", return_value="fake-key"):
+            with self.assertRaises(SystemExit) as ctx:
+                args.func(args)
+            self.assertEqual(ctx.exception.code, 1)
+
+    def test_create_invalid_json_file(self) -> None:
+        import tempfile
+        from unittest.mock import patch
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            f.write("not valid json")
+            f.flush()
+            parser = _make_parser()
+            args = parser.parse_args(["--json", "version", "create", "-p", "my-ws/my-project", "--settings", f.name])
+            args.api_key = "fake-key"
+            with patch("roboflow.config.load_roboflow_api_key", return_value="fake-key"):
+                with self.assertRaises(SystemExit) as ctx:
+                    args.func(args)
+                self.assertEqual(ctx.exception.code, 1)
+
+    def test_create_no_api_key(self) -> None:
+        import json
+        import tempfile
+
+        settings = {"augmentation": {}, "preprocessing": {}}
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(settings, f)
+            f.flush()
+            parser = _make_parser()
+            args = parser.parse_args(["--json", "version", "create", "-p", "my-ws/my-project", "--settings", f.name])
+            # Patch load_roboflow_api_key to return None
+            from unittest.mock import patch
+
+            with patch("roboflow.config.load_roboflow_api_key", return_value=None):
+                with self.assertRaises(SystemExit) as ctx:
+                    args.func(args)
+                self.assertEqual(ctx.exception.code, 2)
+
+    def test_create_json_error_output(self) -> None:
+        import io
+        import sys
+
+        parser = _make_parser()
+        args = parser.parse_args(
+            ["--json", "version", "create", "-p", "my-ws/my-project", "--settings", "/nonexistent/file.json"]
+        )
+        captured = io.StringIO()
+        old_stderr = sys.stderr
+        sys.stderr = captured
+        try:
+            with self.assertRaises(SystemExit):
+                args.func(args)
+        finally:
+            sys.stderr = old_stderr
+        import json
+
+        err = json.loads(captured.getvalue())
+        self.assertIn("error", err)
+        self.assertIn("message", err["error"])
 
 
 class TestParseUrl(unittest.TestCase):

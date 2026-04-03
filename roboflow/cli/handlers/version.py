@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import argparse
 import re
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import argparse
+
+class _RawEpilogFormatter(argparse.HelpFormatter):
+    """Formatter that preserves raw text in the epilog while wrapping everything else."""
+
+    def _fill_text(self, text: str, width: int, indent: str) -> str:
+        return text
 
 
 def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
@@ -39,10 +43,24 @@ def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[ty
     export_parser.add_argument("-f", "--format", dest="format", default="voc", help="Export format (default: voc)")
     export_parser.set_defaults(func=_export)
 
-    # --- version create (stub) ---
-    create_parser = version_subs.add_parser("create", help="Create a new version (coming soon)")
+    # --- version create ---
+    create_parser = version_subs.add_parser(
+        "create",
+        help="Create a new dataset version",
+        epilog=(
+            "Settings JSON example:\n"
+            '  {"augmentation": {"flip": {"horizontal": true, "vertical": false},\n'
+            '    "rotate": {"degrees": 15}, "brightness": {"percent": 25}},\n'
+            '   "preprocessing": {"auto-orient": true, "resize": {"width": 640,\n'
+            '    "height": 640, "format": "Stretch to"}}}\n\n'
+            "See https://docs.roboflow.com/datasets/create-a-dataset-version for all options."
+        ),
+        formatter_class=_RawEpilogFormatter,
+    )
     create_parser.add_argument("-p", "--project", dest="project", required=True, help="Project ID")
-    create_parser.add_argument("--settings", dest="settings", default=None, help="Version settings as JSON string")
+    create_parser.add_argument(
+        "--settings", dest="settings", required=True, help="Path to JSON file with augmentation/preprocessing config"
+    )
     create_parser.set_defaults(func=_create)
 
     # Default when no verb is given
@@ -143,19 +161,28 @@ def _get_version(args: argparse.Namespace) -> None:
 
 
 def _parse_url(url: str) -> tuple:
-    """Parse a Roboflow URL or shorthand into (workspace, project, version)."""
-    regex = (
-        r"(?:https?://)?(?:universe|app)\.roboflow\.(?:com|one)/([^/]+)/([^/]+)"
-        r"(?:/dataset)?(?:/(\d+))?"
-        r"|([^/]+)/([^/]+)(?:/(\d+))?"
-    )
-    match = re.match(regex, url)
+    """Parse a Roboflow URL or shorthand into (workspace, project, version).
+
+    Supports:
+    - Full URLs: https://universe.roboflow.com/ws/proj/3
+    - Three segments: ws/proj/3
+    - Two segments: ws/proj  OR  proj/3 (numeric = version, uses default ws)
+    - One segment: proj (uses default ws, no version)
+    """
+    # Try full URL first
+    url_regex = r"(?:https?://)?(?:universe|app)\.roboflow\.(?:com|one)/([^/]+)/([^/]+)(?:/dataset)?(?:/(\d+))?"
+    match = re.match(url_regex, url)
     if match:
-        organization = match.group(1) or match.group(4)
-        dataset = match.group(2) or match.group(5)
-        version = match.group(3) or match.group(6)
-        return organization, dataset, version
-    return None, None, None
+        return match.group(1), match.group(2), match.group(3)
+
+    # Non-URL shorthand: use resolve_resource for proper disambiguation
+    from roboflow.cli._resolver import resolve_resource
+
+    try:
+        ws, proj, ver = resolve_resource(url, workspace_override=None)
+        return ws, proj, str(ver) if ver is not None else None
+    except ValueError:
+        return None, None, None
 
 
 def _download(args: argparse.Namespace) -> None:
@@ -240,6 +267,45 @@ def _export(args: argparse.Namespace) -> None:
 
 
 def _create(args: argparse.Namespace) -> None:
-    from roboflow.cli._output import output_error
+    import json
 
-    output_error(args, "This command is not yet implemented.", hint="Coming soon.", exit_code=1)
+    import roboflow
+    from roboflow.cli._output import output, output_error, suppress_sdk_output
+    from roboflow.cli._resolver import resolve_resource
+    from roboflow.config import load_roboflow_api_key
+
+    try:
+        workspace_url, project_slug, _ver = resolve_resource(args.project, workspace_override=args.workspace)
+    except ValueError as exc:
+        output_error(args, str(exc))
+        return
+
+    api_key = args.api_key or load_roboflow_api_key(workspace_url)
+    if not api_key:
+        output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
+        return
+
+    try:
+        with open(args.settings) as f:
+            settings = json.load(f)
+    except FileNotFoundError:
+        output_error(args, f"Settings file not found: {args.settings}")
+        return
+    except json.JSONDecodeError as exc:
+        output_error(args, f"Invalid JSON in settings file: {exc}")
+        return
+
+    with suppress_sdk_output():
+        try:
+            rf = roboflow.Roboflow(api_key)
+            project = rf.workspace(workspace_url).project(project_slug)
+            version_id = project.generate_version(settings)
+        except Exception as exc:
+            output_error(args, str(exc))
+            return
+
+    # generate_version returns the version number/ID directly
+    version_num = version_id if version_id else "unknown"
+
+    data = {"status": "created", "project": project_slug, "version": version_num}
+    output(args, data, text=f"Created version {version_num} for project {project_slug}")

@@ -92,6 +92,10 @@ def _start(args: argparse.Namespace) -> None:
         output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
         return
 
+    # Ensure the version has the required export format before training
+    if args.model_type:
+        _ensure_export(args, api_key, workspace_url, project_slug, str(args.version_number), args.model_type)
+
     try:
         rfapi.start_version_training(
             api_key,
@@ -104,7 +108,16 @@ def _start(args: argparse.Namespace) -> None:
             epochs=args.epochs,
         )
     except rfapi.RoboflowError as exc:
-        output_error(args, str(exc))
+        err_str = str(exc)
+        if "Unknown error" in err_str:
+            output_error(
+                args,
+                "Training failed. The server returned an unexpected error.",
+                hint="Ensure the version is fully generated and exported. "
+                "Run 'roboflow version export -p <project> <version> -f coco' first.",
+            )
+        else:
+            output_error(args, err_str)
         return
 
     data = {
@@ -113,3 +126,66 @@ def _start(args: argparse.Namespace) -> None:
         "version": args.version_number,
     }
     output(args, data, text=f"Training started for {project_slug} version {args.version_number}.")
+
+
+def _ensure_export(args, api_key, workspace_url, project_slug, version_str, model_type):
+    """Check if the version has the required export format; trigger and poll if not."""
+    import sys
+    import time
+
+    from roboflow.adapters import rfapi
+    from roboflow.util.versions import get_model_format
+
+    required_format = get_model_format(model_type)
+
+    try:
+        version_data = rfapi.get_version(api_key, workspace_url, project_slug, version_str)
+    except rfapi.RoboflowError:
+        return  # Can't check; let the train call handle errors
+
+    version_info = version_data.get("version", {})
+
+    # Check if still generating
+    if version_info.get("generating"):
+        if not getattr(args, "quiet", False):
+            print(f"Version is still generating ({version_info.get('progress', 0):.0%})... waiting.", file=sys.stderr)
+        while True:
+            time.sleep(5)
+            try:
+                version_data = rfapi.get_version(api_key, workspace_url, project_slug, version_str, nocache=True)
+                version_info = version_data.get("version", {})
+                if not version_info.get("generating"):
+                    break
+                if not getattr(args, "quiet", False):
+                    print(
+                        f"  Generating... {version_info.get('progress', 0):.0%}",
+                        file=sys.stderr,
+                    )
+            except rfapi.RoboflowError:
+                break
+
+    # Check if export exists
+    exports = version_info.get("exports", [])
+    if required_format not in exports:
+        if not getattr(args, "quiet", False):
+            print(
+                f"Exporting version in {required_format} format (required for {model_type})...",
+                file=sys.stderr,
+            )
+        try:
+            rfapi.get_version_export(api_key, workspace_url, project_slug, version_str, required_format)
+        except rfapi.RoboflowError:
+            pass  # Export may have been triggered; poll below
+
+        # Poll until export is ready
+        for _ in range(120):  # Up to 10 minutes
+            time.sleep(5)
+            try:
+                version_data = rfapi.get_version(api_key, workspace_url, project_slug, version_str, nocache=True)
+                current_exports = version_data.get("version", {}).get("exports", [])
+                if required_format in current_exports:
+                    if not getattr(args, "quiet", False):
+                        print("  Export complete.", file=sys.stderr)
+                    return
+            except rfapi.RoboflowError:
+                pass

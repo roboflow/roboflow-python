@@ -32,13 +32,21 @@ def _wrap(func: Callable[..., Any]) -> Callable[..., None]:
         except SystemExit as exc:
             sys.stdout = orig_stdout
             code = exc.code if isinstance(exc.code, int) else 1
-            # Map legacy exit codes to CLI conventions: 1=general, 2=auth, 3=not-found
             exit_code = {0: 1, 1: 1, 2: 2, 3: 3}.get(code, 1) if code else 1
             text = captured.getvalue().strip()
             if text:
                 output_error(args, text, exit_code=exit_code)
             else:
                 output_error(args, "Deployment command failed.", exit_code=1)
+            return
+        except Exception as exc:
+            sys.stdout = orig_stdout
+            output_error(
+                args,
+                f"Deployment service unavailable: {type(exc).__name__}",
+                hint="The dedicated deployment service may be down or unreachable. Try again later.",
+                exit_code=1,
+            )
             return
         finally:
             sys.stdout = orig_stdout
