@@ -156,7 +156,7 @@ def register_aliases(app: typer.Typer) -> None:
     @app.command("upload_model", hidden=True)
     def upload_model_alias(
         ctx: typer.Context,
-        project: Annotated[Optional[str], typer.Option("-p", help="Project ID")] = None,
+        project: Annotated[Optional[list[str]], typer.Option("-p", help="Project ID (repeatable)")] = None,
         version_number: Annotated[Optional[int], typer.Option("-v", help="Version number")] = None,
         model_type: Annotated[Optional[str], typer.Option("-t", help="Model type")] = None,
         model_path: Annotated[Optional[str], typer.Option("-m", help="Model file path")] = None,

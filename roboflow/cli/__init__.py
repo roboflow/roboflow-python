@@ -131,33 +131,71 @@ class _LegacyParserShim:
     """
 
     def parse_args(self, argv: list[str] | None = None) -> object:  # noqa: ANN001
-        """Parse *argv* using typer, return an argparse-like namespace."""
+        """Parse *argv* and return an argparse-like namespace with ``func``.
+
+        Does NOT execute the command — callers are expected to call
+        ``args.func(args)`` themselves, matching the old argparse pattern.
+        """
         import sys
         import types
-
-        from click.testing import CliRunner as _ClickRunner
 
         if argv is None:
             argv = sys.argv[1:]
 
-        runner = _ClickRunner(mix_stderr=False)  # type: ignore[call-arg]
-        result = runner.invoke(app, argv, catch_exceptions=True, standalone_mode=False)  # type: ignore[arg-type]
+        argv = _reorder_argv(list(argv))
 
-        if result.exception and not isinstance(result.exception, SystemExit):
-            raise result.exception
+        # Build a namespace with the parsed values by invoking the CLI
+        # in a dry-run fashion: we intercept before execution.
+        ns = types.SimpleNamespace(
+            json=False,
+            api_key=None,
+            workspace=None,
+            quiet=False,
+            func=None,
+        )
 
-        ns = types.SimpleNamespace()
-        ns.func = None
-        if result.exit_code == 0:
-            ns._result = result
+        # Extract global flags manually
+        remaining = []
+        i = 0
+        while i < len(argv):
+            if argv[i] in ("--json", "-j"):
+                ns.json = True
+            elif argv[i] in ("--quiet", "-q"):
+                ns.quiet = True
+            elif argv[i] in ("--api-key", "-k") and i + 1 < len(argv):
+                i += 1
+                ns.api_key = argv[i]
+            elif argv[i] == "--workspace" and i + 1 < len(argv):
+                i += 1
+                ns.workspace = argv[i]
+            else:
+                remaining.append(argv[i])
+            i += 1
+
+        # Set func to a lambda that invokes the CLI with the original argv
+        original_argv = list(argv)
+
+        def _run_via_typer(_args: object) -> None:
+            from typer.testing import CliRunner as _TyperRunner
+
+            runner = _TyperRunner()
+            result = runner.invoke(app, original_argv, catch_exceptions=False)
+            if result.output:
+                print(result.output, end="")  # noqa: T201
+            if result.exit_code:
+                sys.exit(result.exit_code)
+
+        ns.func = _run_via_typer
         return ns
 
     def print_help(self) -> None:
         """Print the CLI help text."""
-        from click.testing import CliRunner as _ClickRunner
+        from typer.testing import CliRunner as _TyperRunner
 
-        runner = _ClickRunner()
-        runner.invoke(app, ["--help"])  # type: ignore[arg-type]
+        runner = _TyperRunner()
+        result = runner.invoke(app, ["--help"])
+        if result.output:
+            print(result.output, end="")  # noqa: T201
 
 
 def build_parser() -> _LegacyParserShim:
