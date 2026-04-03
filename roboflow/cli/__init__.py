@@ -191,7 +191,7 @@ from roboflow.cli.handlers.workspace import workspace_app  # noqa: E402
 # Register ALL commands in alphabetical order for clean --help output
 app.add_typer(annotation_app, name="annotation")
 app.add_typer(auth_app, name="auth")
-app.add_typer(batch_app, name="batch")
+app.add_typer(batch_app, name="batch", hidden=True)  # All stubs — hidden until implemented
 app.add_typer(completion_app, name="completion")
 app.add_typer(deployment_app, name="deployment")
 app.add_typer(folder_app, name="folder")

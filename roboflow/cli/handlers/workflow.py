@@ -78,7 +78,7 @@ def fork_workflow(
     _fork_workflow(args)
 
 
-@workflow_app.command("build")
+@workflow_app.command("build", hidden=True)
 def build_workflow(
     ctx: typer.Context,
     prompt: Annotated[str, typer.Argument(help="Natural language prompt describing the workflow")],
@@ -88,7 +88,7 @@ def build_workflow(
     _stub_build(args)
 
 
-@workflow_app.command("run")
+@workflow_app.command("run", hidden=True)
 def run_workflow(
     ctx: typer.Context,
     workflow_url: Annotated[str, typer.Argument(help="Workflow URL or ID")],
@@ -99,7 +99,7 @@ def run_workflow(
     _stub_run(args)
 
 
-@workflow_app.command("deploy")
+@workflow_app.command("deploy", hidden=True)
 def deploy_workflow(
     ctx: typer.Context,
     workflow_url: Annotated[str, typer.Argument(help="Workflow URL or ID")],
