@@ -78,28 +78,29 @@ python -m pip install mkdocs mkdocs-material mkdocstrings mkdocstrings[python]
 
 ### CLI Development
 
-The CLI lives in `roboflow/cli/` with auto-discovered handler modules. To add a new command:
+The CLI is built on [typer](https://typer.tiangolo.com/). Each command group is a separate `typer.Typer()` app registered in `roboflow/cli/__init__.py`. To add a new command:
 
 1. Create `roboflow/cli/handlers/mycommand.py`:
 
 ```python
 """My command description."""
 from __future__ import annotations
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    import argparse
+from typing import Annotated, Optional
+import typer
+from roboflow.cli._compat import ctx_to_args
 
-def register(subparsers: argparse._SubParsersAction) -> None:
-    parser = subparsers.add_parser("mycommand", help="Do something")
-    sub = parser.add_subparsers(title="mycommand commands")
+mycommand_app = typer.Typer(help="Do something", no_args_is_help=True)
 
-    p = sub.add_parser("list", help="List things")
-    p.add_argument("-p", "--project", required=True, help="Project ID")
-    p.set_defaults(func=_list)
+@mycommand_app.command("list")
+def list_things(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+) -> None:
+    """List things in a project."""
+    args = ctx_to_args(ctx, project=project)
+    _list(args)
 
-    parser.set_defaults(func=lambda args: parser.print_help())
-
-def _list(args: argparse.Namespace) -> None:
+def _list(args) -> None:
     from roboflow.cli._output import output, output_error, suppress_sdk_output
 
     with suppress_sdk_output():
@@ -113,8 +114,14 @@ def _list(args: argparse.Namespace) -> None:
     output(args, data, text="Found 1 result.")
 ```
 
-2. Add tests in `tests/cli/test_mycommand_handler.py`
-3. Run `make check_code_quality` and `python -m unittest`
+2. Register in `roboflow/cli/__init__.py`:
+```python
+from roboflow.cli.handlers.mycommand import mycommand_app
+app.add_typer(mycommand_app, name="mycommand")
+```
+
+3. Add tests using `typer.testing.CliRunner` in `tests/cli/test_mycommand_handler.py`
+4. Run `make check_code_quality` and `python -m unittest`
 
 **Agent experience checklist** (every command must satisfy):
 - [ ] Supports `--json` via `output()` helper
@@ -123,7 +130,7 @@ def _list(args: argparse.Namespace) -> None:
 - [ ] SDK calls wrapped in `with suppress_sdk_output():`
 - [ ] Exit codes: 0=success, 1=error, 2=auth, 3=not found
 
-**Documentation policy:** `CLI-COMMANDS.md` in this repo is a quickstart only. The comprehensive command reference lives in [`roboflow-product-docs`](https://github.com/roboflow/roboflow-product-docs) and is published to docs.roboflow.com. When adding a new command, update both: add a quick example to `CLI-COMMANDS.md` and the full reference to the product docs CLI page.
+**Documentation policy:** `CLI-COMMANDS.md` in this repo is a quickstart only. The comprehensive command reference lives in [`roboflow-dev-reference`](https://github.com/roboflow/roboflow-dev-reference) and is published to docs.roboflow.com/developer/command-line-interface. When adding a new command, update both: add a quick example to `CLI-COMMANDS.md` and the full reference to the dev-reference CLI page.
 
 ### Pre-commit Hooks
 

@@ -86,22 +86,25 @@ The Roboflow Python SDK follows a hierarchical object model that mirrors the Rob
 
 ### CLI Package (`roboflow/cli/`)
 
-The CLI is a modular package with auto-discovered handler modules. `roboflow/roboflowpy.py` is a backwards-compatibility shim that delegates to `roboflow.cli.main`.
+The CLI is built on [typer](https://typer.tiangolo.com/) (which uses Click under the hood). `roboflow/roboflowpy.py` is a backwards-compatibility shim that delegates to `roboflow.cli.main`.
 
 **Package structure:**
-- `__init__.py` — Root parser with global flags (`--json`, `--workspace`, `--api-key`, `--quiet`), auto-discovery via `pkgutil.iter_modules`, custom `_CleanHelpFormatter`, and `_reorder_argv` for flexible flag positioning
+- `__init__.py` — Root `typer.Typer()` app with global `@app.callback()` for `--json`, `--workspace`, `--api-key`, `--quiet`. Explicitly registers all handler apps via `app.add_typer()`.
 - `_output.py` — `output(args, data, text)` for JSON/text output, `output_error(args, msg, hint, exit_code)` for structured errors, `suppress_sdk_output()` to silence SDK noise, `stub()` for unimplemented commands
+- `_compat.py` — `ctx_to_args(ctx, **kwargs)` bridge that converts `typer.Context` to the `SimpleNamespace` that output helpers expect
 - `_table.py` — `format_table(rows, columns)` for columnar list output
 - `_resolver.py` — `resolve_resource(shorthand)` for parsing `project`, `ws/project`, `ws/project/3`
-- `handlers/` — One file per command group (auto-discovered). `_aliases.py` registers backwards-compat top-level commands (loaded last)
+- `handlers/` — One file per command group, each exporting a `typer.Typer()` app. `_aliases.py` registers backwards-compat top-level commands via `register_aliases(app)`.
 
 **Adding a new command:**
 1. Create `roboflow/cli/handlers/mycommand.py`
-2. Export `register(subparsers)` — it will be auto-discovered
-3. Use lazy imports for heavy dependencies (inside handler functions, not at module top level)
-4. Use `output()` for all output, `output_error()` for all errors
-5. Wrap SDK calls in `with suppress_sdk_output():` to prevent "loading..." noise
-6. Add tests in `tests/cli/test_mycommand_handler.py`
+2. Create a module-level `mycommand_app = typer.Typer(help="...", no_args_is_help=True)`
+3. Add commands with `@mycommand_app.command("verb")` decorators
+4. Each command takes `ctx: typer.Context` + typed params, calls `ctx_to_args(ctx, **params)` to create args namespace
+5. Use `output()` for all output, `output_error()` for all errors
+6. Wrap SDK calls in `with suppress_sdk_output():` to prevent "loading..." noise
+7. Register in `roboflow/cli/__init__.py`: `app.add_typer(mycommand_app, name="mycommand")`
+8. Add tests using `typer.testing.CliRunner` in `tests/cli/test_mycommand_handler.py`
 
 **Agent experience requirements for all CLI commands:**
 - Support `--json` for structured output (stable schema)
@@ -119,16 +122,16 @@ The CLI is a modular package with auto-discovered handler modules. `roboflow/rob
 3. **Format Flexibility**: Supports multiple dataset formats (YOLO, COCO, Pascal VOC, etc.)
 4. **Batch Operations**: Upload and download operations support concurrent processing
 5. **CLI Noun-Verb Pattern**: Commands follow `roboflow <noun> <verb>` (e.g. `roboflow project list`). Common operations have top-level aliases (`login`, `upload`, `download`)
-6. **CLI Auto-Discovery**: Handler modules in `roboflow/cli/handlers/` are loaded automatically — no registration list to maintain
+6. **CLI Explicit Registration**: Handler apps are explicitly imported and registered via `app.add_typer()` in `__init__.py` — clear dependency chain, no runtime discovery
 7. **Backwards Compatibility**: Legacy command names and flag signatures are preserved as hidden aliases
 
 ## Project Configuration
 
-- **Python Version**: 3.8+
-- **Main Dependencies**: See `requirements.txt`
+- **Python Version**: 3.10+
+- **Main Dependencies**: See `requirements.txt` (includes `typer>=0.12.0`)
 - **Entry Point**: `roboflow=roboflow.roboflowpy:main` (shim delegates to `roboflow.cli.main`)
 - **Code Style**: Enforced by ruff with Google docstring convention
-- **Type Checking**: mypy configured for Python 3.8
+- **Type Checking**: mypy configured for Python 3.10
 
 ## Important Notes
 
