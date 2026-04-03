@@ -175,6 +175,41 @@ def build_parser() -> _LegacyParserShim:
 # ---------------------------------------------------------------------------
 
 
+def _reorder_argv(argv: list[str]) -> list[str]:
+    """Move known global flags that appear after the subcommand to the front.
+
+    Typer/Click only recognises parent-level options when they appear
+    *before* the subcommand.  Many users (and AI agents) naturally write
+    them at the end, e.g. ``roboflow project list --json``.  This helper
+    transparently re-orders the argv so those flags are consumed by the
+    root callback.
+    """
+    # Note: -w is intentionally excluded — it collides with deployment's
+    # -w/--wait_on_pending (boolean).  --workspace (long form) is safe.
+    global_flags_with_value = {"--api-key", "-k", "--workspace"}
+    global_flags_bool = {"--json", "-j", "--quiet", "-q", "--version"}
+
+    reordered: list[str] = []
+    rest: list[str] = []
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg in global_flags_bool:
+            reordered.append(arg)
+        elif arg in global_flags_with_value:
+            reordered.append(arg)
+            if i + 1 < len(argv):
+                i += 1
+                reordered.append(argv[i])
+        else:
+            rest.append(arg)
+        i += 1
+    return reordered + rest
+
+
 def main() -> None:
     """CLI entry point — called by ``roboflow`` console script."""
+    import sys
+
+    sys.argv[1:] = _reorder_argv(sys.argv[1:])
     app()
