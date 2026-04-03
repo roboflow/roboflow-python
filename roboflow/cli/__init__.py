@@ -88,8 +88,13 @@ def _root_callback(
 
 
 def _print_flattened_help() -> None:
-    """Print a custom help screen with all commands flattened and alphabetized."""
-    import shutil
+    """Print a Rich-formatted help screen with all commands flattened and alphabetized."""
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+    from rich.text import Text
+
+    console = Console()
 
     click_app = typer.main.get_command(app)
 
@@ -99,50 +104,45 @@ def _print_flattened_help() -> None:
     def _walk(group: Any, prefix: str = "") -> None:
         for name in sorted(group.list_commands(None) or []):  # type: ignore[arg-type]
             cmd = group.get_command(None, name)  # type: ignore[arg-type]
-            if cmd is None:
-                continue
-            # Skip hidden commands
-            if getattr(cmd, "hidden", False):
+            if cmd is None or getattr(cmd, "hidden", False):
                 continue
             full = f"{prefix} {name}".strip() if prefix else name
             if hasattr(cmd, "list_commands") and cmd.list_commands(None):
                 _walk(cmd, full)
             else:
-                help_text = cmd.get_short_help_str() or ""
-                commands.append((full, help_text))
+                commands.append((full, cmd.get_short_help_str() or ""))
 
     _walk(click_app)
     commands.sort(key=lambda x: x[0])
 
-    # Calculate column width
-    width = shutil.get_terminal_size((80, 24)).columns
-    name_width = max((len(c[0]) for c in commands), default=20) + 2
-    desc_width = max(width - name_width - 4, 20)
+    # Usage line
+    console.print()
+    console.print(" Usage: roboflow [OPTIONS] COMMAND [ARGS]...", highlight=False)
+    console.print()
+    console.print(f" {_DESCRIPTION}", highlight=False)
+    console.print()
 
-    # Print
-    print(f"\n  \033[1mroboflow\033[0m v{roboflow.__version__}")  # noqa: T201
-    print(f"  {_DESCRIPTION}\n")  # noqa: T201
+    # Options panel
+    opt_table = Table(show_header=False, box=None, padding=(0, 2))
+    opt_table.add_column(style="bold", no_wrap=True)
+    opt_table.add_column()
+    opt_table.add_row("--api-key    -k  TEXT", "API key override (default: $ROBOFLOW_API_KEY or config file)")
+    opt_table.add_row("--json       -j", "Output results as JSON (stable schema, for agents and piping)")
+    opt_table.add_row("--quiet      -q", "Suppress non-essential output (progress bars, status messages)")
+    opt_table.add_row("--version    -v", "Show package version and exit")
+    opt_table.add_row("--workspace  -w  TEXT", "Workspace URL or ID override (default: configured default)")
+    opt_table.add_row("--help       -h", "Show this message and exit.")
+    console.print(Panel(opt_table, title="Options", title_align="left", border_style="dim"))
 
-    print("  \033[1mUsage:\033[0m roboflow [OPTIONS] COMMAND [ARGS]\n")  # noqa: T201
-
-    print("  \033[1mOptions:\033[0m")  # noqa: T201
-    options = [
-        ("  --api-key, -k <KEY>", "API key override"),
-        ("  --json, -j", "Output as JSON (for agents and piping)"),
-        ("  --quiet, -q", "Suppress progress bars and status messages"),
-        ("  --version, -v", "Show version"),
-        ("  --workspace, -w <ID>", "Workspace override"),
-        ("  --help, -h", "Show this help"),
-    ]
-    opt_name_width = max(len(o[0]) for o in options) + 2
-    for opt_name, opt_help in options:
-        print(f"    {opt_name:<{opt_name_width}} {opt_help}")  # noqa: T201
-
-    print("\n  \033[1mCommands:\033[0m")  # noqa: T201
+    # Commands panel
+    cmd_table = Table(show_header=False, box=None, padding=(0, 2))
+    cmd_table.add_column(style="bold", no_wrap=True)
+    cmd_table.add_column()
     for cmd_name, help_text in commands:
-        truncated = help_text[:desc_width] if len(help_text) > desc_width else help_text
-        print(f"    {cmd_name:<{name_width}} {truncated}")  # noqa: T201
-    print()  # noqa: T201
+        cmd_table.add_column
+        cmd_table.add_row(cmd_name, help_text)
+    console.print(Panel(cmd_table, title="Commands", title_align="left", border_style="dim"))
+    console.print()
 
 
 # ---------------------------------------------------------------------------
@@ -206,9 +206,9 @@ register_hidden_aliases(app)
 
 # "roboflow help" command
 @app.command("help", hidden=True)
-def help_command(ctx: typer.Context) -> None:
+def help_command(ctx: typer.Context) -> None:  # noqa: ARG001
     """Show help information."""
-    print(ctx.parent.get_help() if ctx.parent else ctx.get_help())  # noqa: T201
+    _print_flattened_help()
 
 
 # ---------------------------------------------------------------------------
@@ -342,6 +342,16 @@ def main() -> None:
     import sys
 
     sys.argv[1:] = _reorder_argv(sys.argv[1:])
+
+    # Intercept root-level --help/-h: show our flattened help instead of typer's grouped view.
+    # Only for the ROOT command (not subcommands like 'roboflow project --help').
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        argv = sys.argv[1:]
+        help_idx = next((i for i, a in enumerate(argv) if a in ("--help", "-h")), -1)
+        pre_help = [a for a in argv[:help_idx] if not a.startswith("-")]
+        if not pre_help:
+            _print_flattened_help()
+            sys.exit(0)
 
     # In --json mode, intercept Click/typer validation errors and emit
     # structured JSON on stderr instead of Rich-formatted text.
