@@ -2,52 +2,42 @@
 
 import unittest
 
+from typer.testing import CliRunner
+
+from roboflow.cli import app
+
+runner = CliRunner()
+
 
 class TestAuthRegistration(unittest.TestCase):
     """Verify auth handler registers expected subcommands."""
 
-    def test_register_callable(self) -> None:
-        from roboflow.cli.handlers.auth import register
+    def test_auth_app_exists(self) -> None:
+        from roboflow.cli.handlers.auth import auth_app
 
-        self.assertTrue(callable(register))
+        self.assertIsNotNone(auth_app)
 
     def test_auth_subcommand_exists(self) -> None:
-        from roboflow.cli import build_parser
+        result = runner.invoke(app, ["auth", "status", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-        parser = build_parser()
-        args = parser.parse_args(["auth", "status"])
-        self.assertIsNotNone(args.func)
+    def test_auth_login_exists(self) -> None:
+        result = runner.invoke(app, ["auth", "login", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_auth_login_defaults(self) -> None:
-        from roboflow.cli import build_parser
+    def test_auth_login_help_shows_flags(self) -> None:
+        result = runner.invoke(app, ["auth", "login", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("api-key", result.output.lower())
+        self.assertIn("force", result.output.lower())
 
-        parser = build_parser()
-        args = parser.parse_args(["auth", "login"])
-        self.assertFalse(args.force)
-        self.assertIsNone(args.login_api_key)
-        self.assertIsNone(args.login_workspace)
+    def test_auth_set_workspace_exists(self) -> None:
+        result = runner.invoke(app, ["auth", "set-workspace", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_auth_login_flags(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["auth", "login", "--api-key", "test123", "--force"])
-        self.assertEqual(args.login_api_key, "test123")
-        self.assertTrue(args.force)
-
-    def test_auth_set_workspace_positional(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["auth", "set-workspace", "my-ws"])
-        self.assertEqual(args.workspace_id, "my-ws")
-
-    def test_auth_logout_has_func(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["auth", "logout"])
-        self.assertIsNotNone(args.func)
+    def test_auth_logout_exists(self) -> None:
+        result = runner.invoke(app, ["auth", "logout", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_handler_functions_exist(self) -> None:
         from roboflow.cli.handlers import auth

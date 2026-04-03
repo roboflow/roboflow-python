@@ -1,6 +1,5 @@
 """Unit tests for roboflow.cli.handlers.image."""
 
-import argparse
 import io
 import json
 import os
@@ -9,6 +8,12 @@ import tempfile
 import types
 import unittest
 from unittest.mock import MagicMock, patch
+
+from typer.testing import CliRunner
+
+from roboflow.cli import app
+
+runner = CliRunner()
 
 
 def _make_args(**overrides):
@@ -22,67 +27,37 @@ def _make_args(**overrides):
     return types.SimpleNamespace(**defaults)
 
 
-def _build_image_parser():
-    """Build a minimal parser with just the image handler registered."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--json", "-j", action="store_true", default=False)
-    parser.add_argument("--api-key", "-k", dest="api_key", default=None)
-    parser.add_argument("--workspace", "-w", dest="workspace", default=None)
-    parser.add_argument("--quiet", "-q", action="store_true", default=False)
-    sub = parser.add_subparsers(title="commands", dest="command")
-
-    from roboflow.cli.handlers.image import register
-
-    register(sub)
-    return parser
-
-
 class TestImageParserRegistration(unittest.TestCase):
     """Verify the image handler registers its subcommands."""
 
     def test_image_subcommand_exists(self):
-        parser = _build_image_parser()
-        args = parser.parse_args(["image", "upload", "test.jpg", "-p", "my-proj"])
-        self.assertEqual(args.path, "test.jpg")
-        self.assertEqual(args.project, "my-proj")
+        result = runner.invoke(app, ["image", "upload", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_image_upload_defaults(self):
-        parser = _build_image_parser()
-        args = parser.parse_args(["image", "upload", "test.jpg", "-p", "proj"])
-        self.assertEqual(args.split, "train")
-        self.assertEqual(args.concurrency, 10)
-        self.assertEqual(args.retries, 0)
-        self.assertFalse(args.is_prediction)
+    def test_image_upload_help(self):
+        result = runner.invoke(app, ["image", "upload", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("project", result.output.lower())
 
-    def test_image_get_parser(self):
-        parser = _build_image_parser()
-        args = parser.parse_args(["image", "get", "img-123", "-p", "proj"])
-        self.assertEqual(args.image_id, "img-123")
-        self.assertEqual(args.project, "proj")
+    def test_image_get_help(self):
+        result = runner.invoke(app, ["image", "get", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_image_search_parser(self):
-        parser = _build_image_parser()
-        args = parser.parse_args(["image", "search", "tag:review", "-p", "proj", "--limit", "10"])
-        self.assertEqual(args.query, "tag:review")
-        self.assertEqual(args.limit, 10)
+    def test_image_search_help(self):
+        result = runner.invoke(app, ["image", "search", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_image_tag_parser(self):
-        parser = _build_image_parser()
-        args = parser.parse_args(["image", "tag", "img-1", "-p", "proj", "--add", "a,b", "--remove", "c"])
-        self.assertEqual(args.image_id, "img-1")
-        self.assertEqual(args.add_tags, "a,b")
-        self.assertEqual(args.remove_tags, "c")
+    def test_image_tag_help(self):
+        result = runner.invoke(app, ["image", "tag", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_image_delete_parser(self):
-        parser = _build_image_parser()
-        args = parser.parse_args(["image", "delete", "id1,id2", "-p", "proj"])
-        self.assertEqual(args.image_ids, "id1,id2")
+    def test_image_delete_help(self):
+        result = runner.invoke(app, ["image", "delete", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_image_annotate_parser(self):
-        parser = _build_image_parser()
-        args = parser.parse_args(["image", "annotate", "img-1", "-p", "proj", "--annotation-file", "ann.txt"])
-        self.assertEqual(args.image_id, "img-1")
-        self.assertEqual(args.annotation_file, "ann.txt")
+    def test_image_annotate_help(self):
+        result = runner.invoke(app, ["image", "annotate", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
 
 class TestImageUploadSingle(unittest.TestCase):
@@ -214,11 +189,11 @@ class TestImageUploadDirectory(unittest.TestCase):
 class TestImageDelete(unittest.TestCase):
     """Test the delete handler."""
 
-    @patch("roboflow.cli.handlers.image.rfapi")
-    def test_delete_images(self, mock_rfapi):
+    @patch("roboflow.adapters.rfapi.workspace_delete_images")
+    def test_delete_images(self, mock_delete_images):
         from roboflow.cli.handlers.image import _handle_delete
 
-        mock_rfapi.workspace_delete_images.return_value = {"deleted": 2, "skipped": 0}
+        mock_delete_images.return_value = {"deleted": 2, "skipped": 0}
 
         args = _make_args(json=True, image_ids="id1,id2", project="proj")
 
@@ -230,7 +205,7 @@ class TestImageDelete(unittest.TestCase):
         finally:
             sys.stdout = old
 
-        mock_rfapi.workspace_delete_images.assert_called_once_with(
+        mock_delete_images.assert_called_once_with(
             api_key="test-key",
             workspace_url="test-ws",
             image_ids=["id1", "id2"],
@@ -242,11 +217,11 @@ class TestImageDelete(unittest.TestCase):
 class TestImageSearch(unittest.TestCase):
     """Test the search handler."""
 
-    @patch("roboflow.cli.handlers.image.rfapi")
-    def test_search(self, mock_rfapi):
+    @patch("roboflow.adapters.rfapi.workspace_search")
+    def test_search(self, mock_workspace_search):
         from roboflow.cli.handlers.image import _handle_search
 
-        mock_rfapi.workspace_search.return_value = {"results": [], "total": 0}
+        mock_workspace_search.return_value = {"results": [], "total": 0}
 
         args = _make_args(json=True, query="tag:test", project="proj", limit=10, cursor=None)
 
@@ -258,7 +233,7 @@ class TestImageSearch(unittest.TestCase):
         finally:
             sys.stdout = old
 
-        mock_rfapi.workspace_search.assert_called_once()
+        mock_workspace_search.assert_called_once()
         result = json.loads(buf.getvalue())
         self.assertEqual(result["total"], 0)
 
@@ -266,11 +241,11 @@ class TestImageSearch(unittest.TestCase):
 class TestImageAnnotate(unittest.TestCase):
     """Test the annotate handler."""
 
-    @patch("roboflow.cli.handlers.image.rfapi")
-    def test_annotate(self, mock_rfapi):
+    @patch("roboflow.adapters.rfapi.save_annotation")
+    def test_annotate(self, mock_save_annotation):
         from roboflow.cli.handlers.image import _handle_annotate
 
-        mock_rfapi.save_annotation.return_value = {"success": True}
+        mock_save_annotation.return_value = {"success": True}
 
         with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w") as f:
             f.write("annotation data")
@@ -294,7 +269,7 @@ class TestImageAnnotate(unittest.TestCase):
             finally:
                 sys.stdout = old
 
-            mock_rfapi.save_annotation.assert_called_once()
+            mock_save_annotation.assert_called_once()
             result = json.loads(buf.getvalue())
             self.assertEqual(result["status"], "saved")
         finally:

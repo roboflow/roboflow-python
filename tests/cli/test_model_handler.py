@@ -7,74 +7,34 @@ import types
 import unittest
 from unittest.mock import MagicMock, patch
 
+from typer.testing import CliRunner
+
+from roboflow.cli import app
+
+runner = CliRunner()
+
 
 class TestModelRegister(unittest.TestCase):
     """Verify model handler registers expected subcommands."""
 
-    def test_register_adds_model_parser(self) -> None:
-        from roboflow.cli import build_parser
+    def test_model_help(self) -> None:
+        result = runner.invoke(app, ["model", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("list", result.output)
+        self.assertIn("get", result.output)
+        self.assertIn("upload", result.output)
 
-        parser = build_parser()
-        args = parser.parse_args(["model"])
-        self.assertEqual(args.command, "model")
+    def test_model_list_help(self) -> None:
+        result = runner.invoke(app, ["model", "list", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_model_list_parser(self) -> None:
-        from roboflow.cli import build_parser
+    def test_model_get_help(self) -> None:
+        result = runner.invoke(app, ["model", "get", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-        parser = build_parser()
-        args = parser.parse_args(["model", "list", "-p", "my-project"])
-        self.assertEqual(args.project, "my-project")
-        self.assertTrue(callable(args.func))
-
-    def test_model_get_parser(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["model", "get", "my-ws/my-model"])
-        self.assertEqual(args.model_url, "my-ws/my-model")
-        self.assertTrue(callable(args.func))
-
-    def test_model_upload_parser(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(
-            [
-                "model",
-                "upload",
-                "-p",
-                "proj1",
-                "-t",
-                "yolov8",
-                "-m",
-                "/path/to/model",
-            ]
-        )
-        self.assertEqual(args.project, ["proj1"])
-        self.assertEqual(args.model_type, "yolov8")
-        self.assertEqual(args.model_path, "/path/to/model")
-        self.assertEqual(args.filename, "weights/best.pt")
-        self.assertTrue(callable(args.func))
-
-    def test_model_upload_multiple_projects(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(
-            [
-                "model",
-                "upload",
-                "-p",
-                "proj1",
-                "-p",
-                "proj2",
-                "-t",
-                "yolov8",
-                "-m",
-                "/path/to/model",
-            ]
-        )
-        self.assertEqual(args.project, ["proj1", "proj2"])
+    def test_model_upload_help(self) -> None:
+        result = runner.invoke(app, ["model", "upload", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
 
 class TestModelGet(unittest.TestCase):

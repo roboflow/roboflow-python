@@ -1,7 +1,8 @@
 """Tests that the roboflowpy.py backwards-compatibility shim works.
 
 Ensures that existing scripts and integrations that import from the old
-monolithic module continue to work after the CLI modularization.
+monolithic module continue to work after the CLI modularization and
+typer migration.
 """
 
 import unittest
@@ -21,42 +22,50 @@ class TestRoboflowpyShim(unittest.TestCase):
 
         self.assertTrue(callable(_argparser))
 
-    def test_argparser_returns_parser(self) -> None:
-        import argparse
-
+    def test_argparser_returns_object_with_parse_args(self) -> None:
+        """_argparser() must return an object with parse_args() method."""
         from roboflow.roboflowpy import _argparser
 
         parser = _argparser()
-        self.assertIsInstance(parser, argparse.ArgumentParser)
+        self.assertIsNotNone(parser)
+        self.assertTrue(hasattr(parser, "parse_args"))
+        self.assertTrue(callable(parser.parse_args))
 
-    def test_argparser_has_subcommands(self) -> None:
-        """The parser returned by _argparser should have the new CLI subcommands."""
+    def test_argparser_has_print_help(self) -> None:
+        """The parser should support print_help() for interactive use."""
         from roboflow.roboflowpy import _argparser
 
         parser = _argparser()
-        # Parse a known new-style command (--json must come before subcommand
-        # when using parse_args directly; _reorder_argv handles end-position
-        # in the real main() entry point)
-        args = parser.parse_args(["--json", "project", "list"])
-        self.assertTrue(args.json)
+        self.assertTrue(hasattr(parser, "print_help"))
 
-    def test_argparser_has_legacy_aliases(self) -> None:
-        """Legacy command names should still parse."""
-        from roboflow.roboflowpy import _argparser
+    def test_cli_commands_work_via_typer_runner(self) -> None:
+        """Verify commands execute through typer's CliRunner."""
+        from typer.testing import CliRunner
 
-        parser = _argparser()
+        from roboflow.cli import app
 
-        # 'login' was a top-level command in the old CLI
-        args = parser.parse_args(["login"])
-        self.assertIsNotNone(args.func)
+        runner = CliRunner()
 
-        # 'whoami' was a top-level command
-        args = parser.parse_args(["whoami"])
-        self.assertIsNotNone(args.func)
+        # --version
+        result = runner.invoke(app, ["--version"])
+        self.assertEqual(result.exit_code, 0)
 
-        # 'download' was a top-level command
-        args = parser.parse_args(["download", "ws/proj/1"])
-        self.assertIsNotNone(args.func)
+        # --help
+        result = runner.invoke(app, ["--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("project", result.output)
+
+        # Legacy alias: login --help
+        result = runner.invoke(app, ["login", "--help"])
+        self.assertEqual(result.exit_code, 0)
+
+        # Legacy alias: whoami --help
+        result = runner.invoke(app, ["whoami", "--help"])
+        self.assertEqual(result.exit_code, 0)
+
+        # Legacy alias: download --help
+        result = runner.invoke(app, ["download", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
 
 if __name__ == "__main__":

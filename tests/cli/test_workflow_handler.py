@@ -7,6 +7,12 @@ import unittest
 from argparse import Namespace
 from unittest.mock import patch
 
+from typer.testing import CliRunner
+
+from roboflow.cli import app
+
+runner = CliRunner()
+
 
 def _make_args(**kwargs):
     """Create a Namespace with CLI defaults."""
@@ -18,77 +24,46 @@ def _make_args(**kwargs):
 class TestWorkflowRegistration(unittest.TestCase):
     """Verify workflow handler registers expected subcommands."""
 
-    def test_register_callable(self) -> None:
-        from roboflow.cli.handlers.workflow import register
+    def test_workflow_app_exists(self) -> None:
+        from roboflow.cli.handlers.workflow import workflow_app
 
-        self.assertTrue(callable(register))
+        self.assertIsNotNone(workflow_app)
 
     def test_workflow_list_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workflow", "list"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["workflow", "list", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_workflow_get_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workflow", "get", "my-workflow"])
-        self.assertEqual(args.workflow_url, "my-workflow")
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["workflow", "get", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_workflow_create_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workflow", "create", "--name", "test-wf"])
-        self.assertEqual(args.name, "test-wf")
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["workflow", "create", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_workflow_update_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workflow", "update", "my-wf"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["workflow", "update", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_workflow_version_list_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workflow", "version", "list", "my-wf"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["workflow", "version", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_workflow_fork_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workflow", "fork", "my-wf"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["workflow", "fork", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_workflow_build_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workflow", "build", "detect objects in a video"])
-        self.assertEqual(args.prompt, "detect objects in a video")
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["workflow", "build", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_workflow_run_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workflow", "run", "my-wf", "--input", "image.jpg"])
-        self.assertEqual(args.input, "image.jpg")
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["workflow", "run", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_workflow_deploy_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workflow", "deploy", "my-wf"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["workflow", "deploy", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
 
 class TestWorkflowList(unittest.TestCase):

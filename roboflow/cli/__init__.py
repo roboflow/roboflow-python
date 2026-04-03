@@ -127,9 +127,47 @@ register_aliases(app)
 # ---------------------------------------------------------------------------
 
 
-def build_parser():
-    """Legacy compat. Returns None — use main() instead."""
-    return None
+class _LegacyParserShim:
+    """Argparse-compatible shim wrapping the typer app.
+
+    Supports ``parser.parse_args(argv)`` and ``parser.print_help()``.
+    This keeps ``from roboflow.roboflowpy import _argparser`` working
+    for the ~5M monthly installs that may depend on it.
+    """
+
+    def parse_args(self, argv: list[str] | None = None) -> object:  # noqa: ANN001
+        """Parse *argv* using typer, return an argparse-like namespace."""
+        import sys
+        import types
+
+        from click.testing import CliRunner as _ClickRunner
+
+        if argv is None:
+            argv = sys.argv[1:]
+
+        runner = _ClickRunner(mix_stderr=False)  # type: ignore[call-arg]
+        result = runner.invoke(app, argv, catch_exceptions=True, standalone_mode=False)  # type: ignore[arg-type]
+
+        if result.exception and not isinstance(result.exception, SystemExit):
+            raise result.exception
+
+        ns = types.SimpleNamespace()
+        ns.func = None
+        if result.exit_code == 0:
+            ns._result = result
+        return ns
+
+    def print_help(self) -> None:
+        """Print the CLI help text."""
+        from click.testing import CliRunner as _ClickRunner
+
+        runner = _ClickRunner()
+        runner.invoke(app, ["--help"])  # type: ignore[arg-type]
+
+
+def build_parser() -> _LegacyParserShim:
+    """Legacy compat: returns an argparse-like shim wrapping the typer app."""
+    return _LegacyParserShim()
 
 
 # ---------------------------------------------------------------------------

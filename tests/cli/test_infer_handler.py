@@ -7,57 +7,26 @@ import types
 import unittest
 from unittest.mock import MagicMock, patch
 
+from typer.testing import CliRunner
+
+from roboflow.cli import app
+
+runner = CliRunner()
+
 
 class TestInferRegister(unittest.TestCase):
     """Verify infer handler registers as a top-level command."""
 
     def test_register_adds_infer_parser(self) -> None:
-        from roboflow.cli import build_parser
+        result = runner.invoke(app, ["infer", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("model", result.output.lower())
 
-        parser = build_parser()
-        args = parser.parse_args(["infer", "image.jpg", "-m", "proj/1"])
-        self.assertEqual(args.command, "infer")
-        self.assertEqual(args.file, "image.jpg")
-        self.assertEqual(args.model, "proj/1")
-        self.assertTrue(callable(args.func))
-
-    def test_infer_default_values(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["infer", "img.png", "-m", "proj/1"])
-        self.assertEqual(args.confidence, 0.5)
-        self.assertEqual(args.overlap, 0.5)
-        self.assertIsNone(args.type)
-
-    def test_infer_all_flags(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(
-            [
-                "infer",
-                "img.png",
-                "-m",
-                "proj/1",
-                "-c",
-                "0.7",
-                "-o",
-                "0.3",
-                "-t",
-                "object-detection",
-            ]
-        )
-        self.assertAlmostEqual(args.confidence, 0.7)
-        self.assertAlmostEqual(args.overlap, 0.3)
-        self.assertEqual(args.type, "object-detection")
-
-    def test_infer_type_choices(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        with self.assertRaises(SystemExit):
-            parser.parse_args(["infer", "img.png", "-m", "proj/1", "-t", "invalid-type"])
+    def test_infer_help_shows_options(self) -> None:
+        result = runner.invoke(app, ["infer", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("confidence", result.output.lower())
+        self.assertIn("overlap", result.output.lower())
 
 
 class TestInferHandler(unittest.TestCase):

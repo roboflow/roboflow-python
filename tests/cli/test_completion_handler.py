@@ -2,35 +2,32 @@
 
 import unittest
 
+from typer.testing import CliRunner
+
+from roboflow.cli import app
+
+runner = CliRunner()
+
 
 class TestCompletionRegistration(unittest.TestCase):
     """Verify completion handler registers expected subcommands."""
 
-    def test_register_callable(self) -> None:
-        from roboflow.cli.handlers.completion import register
+    def test_completion_app_exists(self) -> None:
+        from roboflow.cli.handlers.completion import completion_app
 
-        self.assertTrue(callable(register))
+        self.assertIsNotNone(completion_app)
 
     def test_completion_bash_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["completion", "bash"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["completion", "bash", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_completion_zsh_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["completion", "zsh"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["completion", "zsh", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_completion_fish_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["completion", "fish"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["completion", "fish", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
 
 if __name__ == "__main__":
