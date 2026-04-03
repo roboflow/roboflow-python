@@ -122,6 +122,19 @@ roboflow video infer -p my-project -v 3 -f video.mp4 --fps 10
 roboflow video status <job-id>
 ```
 
+### Shell completion
+
+```bash
+# Zsh
+eval "$(roboflow completion zsh)"
+
+# Bash (requires bash >= 4.4)
+eval "$(roboflow completion bash)"
+
+# Fish
+roboflow completion fish | source
+```
+
 ## JSON output for agents
 
 Every command supports `--json` for structured output that's safe to pipe:
@@ -167,7 +180,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `universe` | Search Roboflow Universe |
 | `video` | Video inference |
 | `batch` | Batch processing jobs *(coming soon)* |
-| `completion` | Shell completion scripts *(coming soon)* |
+| `completion` | Generate shell completion scripts (bash, zsh, fish) |
 
 Run `roboflow <command> --help` for details on any command.
 
