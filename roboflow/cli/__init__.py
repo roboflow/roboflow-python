@@ -25,7 +25,6 @@ app = typer.Typer(
         "Manage datasets, train models, run inference, and deploy "
         "workflows \u2014 from the command line or via structured JSON for AI agents."
     ),
-    no_args_is_help=True,
     pretty_exceptions_enable=False,  # We handle errors ourselves via output_error
     rich_markup_mode="rich",
     add_completion=False,  # We have our own 'completion' subcommand
@@ -68,12 +67,17 @@ def _root_callback(
         typer.Option("--version", help="Show package version and exit", callback=_version_callback, is_eager=True),
     ] = None,
 ) -> None:
-    """Roboflow CLI: computer vision at your fingertips."""
+    """Build and deploy computer vision models with Roboflow."""
     ctx.ensure_object(dict)
     ctx.obj["json"] = json_output
     ctx.obj["api_key"] = api_key
     ctx.obj["workspace"] = workspace
     ctx.obj["quiet"] = quiet
+
+    # Show help and exit 0 when no subcommand is given
+    if ctx.invoked_subcommand is None:
+        print(ctx.get_help())  # noqa: T201
+        raise typer.Exit(code=0)
 
 
 # ---------------------------------------------------------------------------
@@ -98,16 +102,30 @@ from roboflow.cli.handlers.video import video_app  # noqa: E402
 from roboflow.cli.handlers.workflow import workflow_app  # noqa: E402
 from roboflow.cli.handlers.workspace import workspace_app  # noqa: E402
 
-# Register command groups (alphabetical order)
+# Register ALL commands in alphabetical order for clean --help output
 app.add_typer(annotation_app, name="annotation")
 app.add_typer(auth_app, name="auth")
 app.add_typer(batch_app, name="batch")
 app.add_typer(completion_app, name="completion")
 app.add_typer(deployment_app, name="deployment")
+
+# "download" alias — registered here alphabetically (visible shorthand)
+from roboflow.cli.handlers._aliases import register_download_alias  # noqa: E402
+
+register_download_alias(app)
+
 app.add_typer(folder_app, name="folder")
 app.add_typer(image_app, name="image")
+
+# "infer" — top-level command, registered alphabetically
+infer_command(app)
+
 app.add_typer(model_app, name="model")
 app.add_typer(project_app, name="project")
+
+# "search" — top-level command, registered alphabetically
+search_command(app)
+
 app.add_typer(train_app, name="train")
 app.add_typer(universe_app, name="universe")
 app.add_typer(version_app, name="version")
@@ -115,15 +133,10 @@ app.add_typer(video_app, name="video")
 app.add_typer(workflow_app, name="workflow")
 app.add_typer(workspace_app, name="workspace")
 
-# Top-level commands (not nested under a group)
-infer_command(app)
-search_command(app)
+# Hidden aliases (loaded last — still functional but not in --help)
+from roboflow.cli.handlers._aliases import register_hidden_aliases  # noqa: E402
 
-# "roboflow download" — visible shorthand (common enough to show)
-# "roboflow help" — alias for --help
-from roboflow.cli.handlers._aliases import register_aliases  # noqa: E402
-
-register_aliases(app)
+register_hidden_aliases(app)
 
 
 # "roboflow help" command
