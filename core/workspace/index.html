@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="https://media.roboflow.com/roboflow_logomark_white.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -592,10 +592,32 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.create_folder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_folder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.workspace.Workspace.create_project" class="md-nav__link">
     <span class="md-ellipsis">
       
         create_project
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.create_workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_workflow
       
     </span>
   </a>
@@ -625,10 +647,65 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.get_plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_plan
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.get_usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.get_workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.list_folders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        list_folders
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.workspace.Workspace.list_projects" class="md-nav__link">
     <span class="md-ellipsis">
       
         list_projects
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.list_workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        list_workflows
       
     </span>
   </a>
@@ -1095,10 +1172,32 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.create_folder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_folder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.workspace.Workspace.create_project" class="md-nav__link">
     <span class="md-ellipsis">
       
         create_project
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.create_workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_workflow
       
     </span>
   </a>
@@ -1128,10 +1227,65 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.get_plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_plan
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.get_usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.get_workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.list_folders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        list_folders
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.workspace.Workspace.list_projects" class="md-nav__link">
     <span class="md-ellipsis">
       
         list_projects
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.list_workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        list_workflows
       
     </span>
   </a>
@@ -1296,7 +1450,15 @@
 
 
 
-  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
 
 
 
@@ -1319,9 +1481,17 @@
     <div class="doc doc-contents ">
 
 
+
         <p>Manage a Roboflow workspace.</p>
 
-              <details class="quote">
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 29</span>
 <span class="normal"> 30</span>
@@ -2182,7 +2352,64 @@
 <span class="normal">885</span>
 <span class="normal">886</span>
 <span class="normal">887</span>
-<span class="normal">888</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
+<span class="normal">888</span>
+<span class="normal">889</span>
+<span class="normal">890</span>
+<span class="normal">891</span>
+<span class="normal">892</span>
+<span class="normal">893</span>
+<span class="normal">894</span>
+<span class="normal">895</span>
+<span class="normal">896</span>
+<span class="normal">897</span>
+<span class="normal">898</span>
+<span class="normal">899</span>
+<span class="normal">900</span>
+<span class="normal">901</span>
+<span class="normal">902</span>
+<span class="normal">903</span>
+<span class="normal">904</span>
+<span class="normal">905</span>
+<span class="normal">906</span>
+<span class="normal">907</span>
+<span class="normal">908</span>
+<span class="normal">909</span>
+<span class="normal">910</span>
+<span class="normal">911</span>
+<span class="normal">912</span>
+<span class="normal">913</span>
+<span class="normal">914</span>
+<span class="normal">915</span>
+<span class="normal">916</span>
+<span class="normal">917</span>
+<span class="normal">918</span>
+<span class="normal">919</span>
+<span class="normal">920</span>
+<span class="normal">921</span>
+<span class="normal">922</span>
+<span class="normal">923</span>
+<span class="normal">924</span>
+<span class="normal">925</span>
+<span class="normal">926</span>
+<span class="normal">927</span>
+<span class="normal">928</span>
+<span class="normal">929</span>
+<span class="normal">930</span>
+<span class="normal">931</span>
+<span class="normal">932</span>
+<span class="normal">933</span>
+<span class="normal">934</span>
+<span class="normal">935</span>
+<span class="normal">936</span>
+<span class="normal">937</span>
+<span class="normal">938</span>
+<span class="normal">939</span>
+<span class="normal">940</span>
+<span class="normal">941</span>
+<span class="normal">942</span>
+<span class="normal">943</span>
+<span class="normal">944</span>
+<span class="normal">945</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Manage a Roboflow workspace.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3037,6 +3264,63 @@
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Search export saved to </span><span class="si">{</span><span class="n">zip_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">zip_path</span>
 
+    <span class="c1"># -----------------------------------------------------------------</span>
+    <span class="c1"># Phase 2: Folder management</span>
+    <span class="c1"># -----------------------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_folders</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List project folders in this workspace.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_folders</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_folder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">parent_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">project_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a project folder in this workspace.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">parent_id</span><span class="o">=</span><span class="n">parent_id</span><span class="p">,</span> <span class="n">project_ids</span><span class="o">=</span><span class="n">project_ids</span><span class="p">)</span>
+
+    <span class="c1"># -----------------------------------------------------------------</span>
+    <span class="c1"># Phase 2: Workflow management</span>
+    <span class="c1"># -----------------------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_workflows</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List workflows in this workspace.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_workflows</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_workflow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">workflow_url</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get workflow details.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_workflow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">workflow_url</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_workflow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a new workflow.&quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+
+        <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">definition</span><span class="p">)</span> <span class="k">if</span> <span class="n">definition</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">create_workflow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="c1"># -----------------------------------------------------------------</span>
+    <span class="c1"># Phase 2: Workspace statistics</span>
+    <span class="c1"># -----------------------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_usage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get billing usage report for this workspace.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_billing_usage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get workspace plan info and limits.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_plan_info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">)</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">projects</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">projects</span><span class="p">()</span>
         <span class="n">json_value</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="s2">&quot;projects&quot;</span><span class="p">:</span> <span class="n">projects</span><span class="p">}</span>
@@ -3047,7 +3331,8 @@
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -3078,7 +3363,8 @@
     use_localhost: (bool) = determines if local http format used or remote endpoint
     local_server: (str) = local http address for inference server, use_localhost must be True for this to be used</p>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">443</span>
 <span class="normal">444</span>
@@ -3413,9 +3699,11 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>dir</code></td>
             <td>
-                  <code>str</code>
+                <code>dir</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3427,9 +3715,11 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>image_ext</code></td>
             <td>
-                  <code>str</code>
+                <code>image_ext</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3441,9 +3731,11 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>target_image</code></td>
             <td>
-                  <code>str</code>
+                <code>target_image</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3469,7 +3761,7 @@
       <tbody>
           <tr class="doc-section-item">
 <td></td>            <td>
-                  <code><span title="typing.List">List</span>[dict]</code>
+                  <code><span title="typing.List">List</span>[<span title="dict">dict</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3479,7 +3771,7 @@
           </tr>
           <tr class="doc-section-item">
 <td><code>dict</code></td>            <td>
-                  <code><span title="typing.List">List</span>[dict]</code>
+                  <code><span title="typing.List">List</span>[<span title="dict">dict</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3490,7 +3782,8 @@
       </tbody>
     </table>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">132</span>
 <span class="normal">133</span>
@@ -3548,6 +3841,37 @@
 <div class="doc doc-object doc-function">
 
 
+<h3 id="roboflow.core.workspace.Workspace.create_folder" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">create_folder</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">parent_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">project_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#roboflow.core.workspace.Workspace.create_folder" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a project folder in this workspace.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">894</span>
+<span class="normal">895</span>
+<span class="normal">896</span>
+<span class="normal">897</span>
+<span class="normal">898</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_folder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">parent_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">project_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a project folder in this workspace.&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">create_folder</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">parent_id</span><span class="o">=</span><span class="n">parent_id</span><span class="p">,</span> <span class="n">project_ids</span><span class="o">=</span><span class="n">project_ids</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="roboflow.core.workspace.Workspace.create_project" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">create_project</span><span class="p">(</span><span class="n">project_name</span><span class="p">,</span> <span class="n">project_type</span><span class="p">,</span> <span class="n">project_license</span><span class="p">,</span> <span class="n">annotation</span><span class="p">)</span></code>
 
@@ -3571,9 +3895,11 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>project_name</code></td>
             <td>
-                  <code>str</code>
+                <code>project_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3585,9 +3911,11 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>project_type</code></td>
             <td>
-                  <code>str</code>
+                <code>project_type</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3599,9 +3927,11 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>project_license</code></td>
             <td>
-                  <code>str</code>
+                <code>project_license</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3613,9 +3943,11 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>annotation</code></td>
             <td>
-                  <code>str</code>
+                <code>annotation</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3651,7 +3983,8 @@
       </tbody>
     </table>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">103</span>
 <span class="normal">104</span>
@@ -3717,6 +4050,43 @@
 <div class="doc doc-object doc-function">
 
 
+<h3 id="roboflow.core.workspace.Workspace.create_workflow" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">create_workflow</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#roboflow.core.workspace.Workspace.create_workflow" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a new workflow.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">916</span>
+<span class="normal">917</span>
+<span class="normal">918</span>
+<span class="normal">919</span>
+<span class="normal">920</span>
+<span class="normal">921</span>
+<span class="normal">922</span>
+<span class="normal">923</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_workflow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new workflow.&quot;&quot;&quot;</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+    <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">definition</span><span class="p">)</span> <span class="k">if</span> <span class="n">definition</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">create_workflow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="roboflow.core.workspace.Workspace.delete_images" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">delete_images</span><span class="p">(</span><span class="n">image_ids</span><span class="p">)</span></code>
 
@@ -3742,9 +4112,11 @@ Images still in projects are skipped.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>image_ids</code></td>
             <td>
-                  <code><span title="typing.List">List</span>[str]</code>
+                <code>image_ids</code>
+            </td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3770,7 +4142,7 @@ Images still in projects are skipped.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>dict</code>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3794,7 +4166,8 @@ print(result["deletedSources"])</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">710</span>
 <span class="normal">711</span>
@@ -3863,7 +4236,8 @@ Args:
     project_ids (list[str]): List of project IDs to deploy the model to.
     filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".</p>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">595</span>
 <span class="normal">596</span>
@@ -3937,6 +4311,130 @@ Args:
 <div class="doc doc-object doc-function">
 
 
+<h3 id="roboflow.core.workspace.Workspace.get_plan" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_plan</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.workspace.Workspace.get_plan" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get workspace plan info and limits.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">935</span>
+<span class="normal">936</span>
+<span class="normal">937</span>
+<span class="normal">938</span>
+<span class="normal">939</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get workspace plan info and limits.&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_plan_info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.workspace.Workspace.get_usage" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_usage</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.workspace.Workspace.get_usage" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get billing usage report for this workspace.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">929</span>
+<span class="normal">930</span>
+<span class="normal">931</span>
+<span class="normal">932</span>
+<span class="normal">933</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_usage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get billing usage report for this workspace.&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_billing_usage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.workspace.Workspace.get_workflow" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_workflow</span><span class="p">(</span><span class="n">workflow_url</span><span class="p">)</span></code>
+
+<a href="#roboflow.core.workspace.Workspace.get_workflow" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get workflow details.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">910</span>
+<span class="normal">911</span>
+<span class="normal">912</span>
+<span class="normal">913</span>
+<span class="normal">914</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_workflow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">workflow_url</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get workflow details.&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_workflow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">workflow_url</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.workspace.Workspace.list_folders" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">list_folders</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.workspace.Workspace.list_folders" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>List project folders in this workspace.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">888</span>
+<span class="normal">889</span>
+<span class="normal">890</span>
+<span class="normal">891</span>
+<span class="normal">892</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">list_folders</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;List project folders in this workspace.&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_folders</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="roboflow.core.workspace.Workspace.list_projects" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">list_projects</span><span class="p">()</span></code>
 
@@ -3947,7 +4445,8 @@ Args:
 
         <p>Print all projects in the workspace to the console.</p>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">54</span>
 <span class="normal">55</span>
@@ -3958,6 +4457,37 @@ Args:
 <span class="sd">    Print all projects in the workspace to the console.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_list</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.workspace.Workspace.list_workflows" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">list_workflows</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.workspace.Workspace.list_workflows" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>List workflows in this workspace.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">904</span>
+<span class="normal">905</span>
+<span class="normal">906</span>
+<span class="normal">907</span>
+<span class="normal">908</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">list_workflows</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;List workflows in this workspace.&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_workflows</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3991,9 +4521,11 @@ Args:
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>project_id</code></td>
             <td>
-                  <code>str</code>
+                <code>project_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4029,7 +4561,8 @@ Args:
       </tbody>
     </table>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 74</span>
 <span class="normal"> 75</span>
@@ -4127,7 +4660,8 @@ Args:
       </tbody>
     </table>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">60</span>
 <span class="normal">61</span>
@@ -4186,9 +4720,11 @@ Args:
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>query</code></td>
             <td>
-                  <code>str</code>
+                <code>query</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4201,9 +4737,11 @@ for orphan images, or free-text for semantic CLIP search).</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>page_size</code></td>
             <td>
-                  <code>int</code>
+                <code>page_size</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4215,9 +4753,11 @@ for orphan images, or free-text for semantic CLIP search).</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>fields</code></td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[str]]</code>
+                <code>fields</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[<span title="str">str</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4230,9 +4770,11 @@ Defaults to <code>["tags", "projects", "filename"]</code>.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>continuation_token</code></td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                <code>continuation_token</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4259,7 +4801,7 @@ the next page.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>dict</code>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4269,7 +4811,7 @@ the next page.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code>dict</code>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4295,7 +4837,8 @@ for img in page["results"]:
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">669</span>
 <span class="normal">670</span>
@@ -4410,9 +4953,11 @@ for img in page["results"]:
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>query</code></td>
             <td>
-                  <code>str</code>
+                <code>query</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4424,9 +4969,11 @@ for img in page["results"]:
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>page_size</code></td>
             <td>
-                  <code>int</code>
+                <code>page_size</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4438,9 +4985,11 @@ for img in page["results"]:
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>fields</code></td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[str]]</code>
+                <code>fields</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[<span title="str">str</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4467,7 +5016,7 @@ Defaults to <code>["tags", "projects", "filename"]</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.List">List</span>[dict]</code>
+                  <code><span title="typing.List">List</span>[<span title="dict">dict</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4492,7 +5041,8 @@ for page in ws.search_all("tag:review"):
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">733</span>
 <span class="normal">734</span>
@@ -4607,9 +5157,11 @@ for page in ws.search_all("tag:review"):
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>query</code></td>
             <td>
-                  <code>str</code>
+                <code>query</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4621,9 +5173,11 @@ for page in ws.search_all("tag:review"):
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>format</code></td>
             <td>
-                  <code>str</code>
+                <code>format</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4635,9 +5189,11 @@ for page in ws.search_all("tag:review"):
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>location</code></td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                <code>location</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4650,9 +5206,11 @@ Defaults to <code>./search-export-{format}</code>.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>dataset</code></td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                <code>dataset</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4664,9 +5222,11 @@ Defaults to <code>./search-export-{format}</code>.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>annotation_group</code></td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                <code>annotation_group</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4678,9 +5238,11 @@ Defaults to <code>./search-export-{format}</code>.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>name</code></td>
             <td>
-                  <code><span title="typing.Optional">Optional</span>[str]</code>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4692,9 +5254,11 @@ Defaults to <code>./search-export-{format}</code>.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>extract_zip</code></td>
             <td>
-                  <code>bool</code>
+                <code>extract_zip</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4721,7 +5285,7 @@ If False, keep the zip file as-is.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>str</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4744,7 +5308,7 @@ If False, keep the zip file as-is.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>ValueError</code>
+                  <code><span title="ValueError">ValueError</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4765,7 +5329,8 @@ If False, keep the zip file as-is.</p>
       </tbody>
     </table>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">775</span>
 <span class="normal">776</span>
@@ -5014,9 +5579,11 @@ If False, keep the zip file as-is.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>image</code></td>
             <td>
-                  <code>str</code>
+                <code>image</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5028,9 +5595,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>first_stage_model_name</code></td>
             <td>
-                  <code>str</code>
+                <code>first_stage_model_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5042,9 +5611,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>first_stage_model_version</code></td>
             <td>
-                  <code>int</code>
+                <code>first_stage_model_version</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5056,9 +5627,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>second_stage_mode</code></td>
             <td>
-                  <code>str</code>
+                <code>second_stage_mode</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5070,9 +5643,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>second_stage_model_version</code></td>
             <td>
-                  <code>int</code>
+                <code>second_stage_model_version</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5098,7 +5673,7 @@ If False, keep the zip file as-is.</p>
       <tbody>
           <tr class="doc-section-item">
 <td></td>            <td>
-                  <code><span title="typing.List">List</span>[dict]</code>
+                  <code><span title="typing.List">List</span>[<span title="dict">dict</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5108,7 +5683,7 @@ If False, keep the zip file as-is.</p>
           </tr>
           <tr class="doc-section-item">
 <td><code>dict</code></td>            <td>
-                  <code><span title="typing.List">List</span>[dict]</code>
+                  <code><span title="typing.List">List</span>[<span title="dict">dict</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5119,7 +5694,8 @@ If False, keep the zip file as-is.</p>
       </tbody>
     </table>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">157</span>
 <span class="normal">158</span>
@@ -5296,9 +5872,11 @@ If False, keep the zip file as-is.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>image</code></td>
             <td>
-                  <code>str</code>
+                <code>image</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5310,9 +5888,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>first_stage_model_name</code></td>
             <td>
-                  <code>str</code>
+                <code>first_stage_model_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5324,9 +5904,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>first_stage_model_version</code></td>
             <td>
-                  <code>int</code>
+                <code>first_stage_model_version</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5352,7 +5934,7 @@ If False, keep the zip file as-is.</p>
       <tbody>
           <tr class="doc-section-item">
 <td></td>            <td>
-                  <code><span title="typing.List">List</span>[dict]</code>
+                  <code><span title="typing.List">List</span>[<span title="dict">dict</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5362,7 +5944,7 @@ If False, keep the zip file as-is.</p>
           </tr>
           <tr class="doc-section-item">
 <td><code>dict</code></td>            <td>
-                  <code><span title="typing.List">List</span>[dict]</code>
+                  <code><span title="typing.List">List</span>[<span title="dict">dict</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5373,7 +5955,8 @@ If False, keep the zip file as-is.</p>
       </tbody>
     </table>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">230</span>
 <span class="normal">231</span>
@@ -5512,9 +6095,11 @@ If False, keep the zip file as-is.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>dataset_path</code></td>
             <td>
-                  <code>str</code>
+                <code>dataset_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5526,9 +6111,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>project_name</code></td>
             <td>
-                  <code>str</code>
+                <code>project_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5540,9 +6127,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>num_workers</code></td>
             <td>
-                  <code>int</code>
+                <code>num_workers</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5554,9 +6143,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>dataset_format</code></td>
             <td>
-                  <code>str</code>
+                <code>dataset_format</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5568,9 +6159,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>project_license</code></td>
             <td>
-                  <code>str</code>
+                <code>project_license</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5582,9 +6175,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>project_type</code></td>
             <td>
-                  <code>str</code>
+                <code>project_type</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5596,9 +6191,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>batch_name</code></td>
             <td>
-                  <code>str</code>
+                <code>batch_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5610,9 +6207,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>num_retries</code></td>
             <td>
-                  <code>int</code>
+                <code>num_retries</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5624,9 +6223,11 @@ If False, keep the zip file as-is.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>is_prediction</code></td>
             <td>
-                  <code>bool</code>
+                <code>is_prediction</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5640,7 +6241,8 @@ If False, keep the zip file as-is.</p>
       </tbody>
     </table>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">284</span>
 <span class="normal">285</span>

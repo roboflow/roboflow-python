@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="https://media.roboflow.com/roboflow_logomark_white.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -591,6 +591,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.get_annotation_job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_annotation_job
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.get_annotation_jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_annotation_jobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.project.Project.get_batch" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1132,6 +1154,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.get_annotation_job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_annotation_job
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.get_annotation_jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_annotation_jobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.project.Project.get_batch" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1316,7 +1360,15 @@
 
 
 
-  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
 
 
 
@@ -1339,9 +1391,17 @@
     <div class="doc doc-contents ">
 
 
+
         <p>A Roboflow Project.</p>
 
-              <details class="quote">
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>roboflow/core/project.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">  39</span>
 <span class="normal">  40</span>
@@ -2324,7 +2384,30 @@
 <span class="normal">1017</span>
 <span class="normal">1018</span>
 <span class="normal">1019</span>
-<span class="normal">1020</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Project</span><span class="p">:</span>
+<span class="normal">1020</span>
+<span class="normal">1021</span>
+<span class="normal">1022</span>
+<span class="normal">1023</span>
+<span class="normal">1024</span>
+<span class="normal">1025</span>
+<span class="normal">1026</span>
+<span class="normal">1027</span>
+<span class="normal">1028</span>
+<span class="normal">1029</span>
+<span class="normal">1030</span>
+<span class="normal">1031</span>
+<span class="normal">1032</span>
+<span class="normal">1033</span>
+<span class="normal">1034</span>
+<span class="normal">1035</span>
+<span class="normal">1036</span>
+<span class="normal">1037</span>
+<span class="normal">1038</span>
+<span class="normal">1039</span>
+<span class="normal">1040</span>
+<span class="normal">1041</span>
+<span class="normal">1042</span>
+<span class="normal">1043</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Project</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A Roboflow Project.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3160,6 +3243,29 @@
 
         <span class="k">return</span> <span class="n">image_details</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get a list of all annotation jobs in the project.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict: A dictionary containing the list of annotation jobs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_annotation_jobs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get information for a specific annotation job.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            job_id: The ID of the annotation job to retrieve.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict: A dictionary containing the job details.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_annotation_job</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">create_annotation_job</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">num_images</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">labeler_email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">reviewer_email</span><span class="p">:</span> <span class="nb">str</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
@@ -3311,7 +3417,8 @@
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
+
 
 
 
@@ -3347,9 +3454,11 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>api_key</code></td>
             <td>
-                  <code>str</code>
+                <code>api_key</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3361,9 +3470,11 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>a_project</code></td>
             <td>
-                  <code>dict</code>
+                <code>a_project</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3375,9 +3486,11 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>model_format</code></td>
             <td>
-                  <code>str</code>
+                <code>model_format</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3404,7 +3517,8 @@
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">44</span>
 <span class="normal">45</span>
@@ -3512,7 +3626,8 @@
 
         <p>Show a string representation of a Project object.</p>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">832</span>
 <span class="normal">833</span>
@@ -3561,9 +3676,11 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>image_path</code></td>
             <td>
-                  <code>str</code>
+                <code>image_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3589,7 +3706,7 @@
       <tbody>
           <tr class="doc-section-item">
 <td><code>bool</code></td>            <td>
-                  <code>bool</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3600,7 +3717,8 @@
       </tbody>
     </table>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">359</span>
 <span class="normal">360</span>
@@ -3675,9 +3793,11 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>name</code></td>
             <td>
-                  <code>str</code>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3689,9 +3809,11 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>batch_id</code></td>
             <td>
-                  <code>str</code>
+                <code>batch_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3703,9 +3825,11 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>num_images</code></td>
             <td>
-                  <code>int</code>
+                <code>num_images</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3717,9 +3841,11 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>labeler_email</code></td>
             <td>
-                  <code>str</code>
+                <code>labeler_email</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3731,9 +3857,11 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>reviewer_email</code></td>
             <td>
-                  <code>str</code>
+                <code>reviewer_email</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3790,32 +3918,10 @@
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">875</span>
-<span class="normal">876</span>
-<span class="normal">877</span>
-<span class="normal">878</span>
-<span class="normal">879</span>
-<span class="normal">880</span>
-<span class="normal">881</span>
-<span class="normal">882</span>
-<span class="normal">883</span>
-<span class="normal">884</span>
-<span class="normal">885</span>
-<span class="normal">886</span>
-<span class="normal">887</span>
-<span class="normal">888</span>
-<span class="normal">889</span>
-<span class="normal">890</span>
-<span class="normal">891</span>
-<span class="normal">892</span>
-<span class="normal">893</span>
-<span class="normal">894</span>
-<span class="normal">895</span>
-<span class="normal">896</span>
-<span class="normal">897</span>
-<span class="normal">898</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">898</span>
 <span class="normal">899</span>
 <span class="normal">900</span>
 <span class="normal">901</span>
@@ -3844,7 +3950,30 @@
 <span class="normal">924</span>
 <span class="normal">925</span>
 <span class="normal">926</span>
-<span class="normal">927</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_annotation_job</span><span class="p">(</span>
+<span class="normal">927</span>
+<span class="normal">928</span>
+<span class="normal">929</span>
+<span class="normal">930</span>
+<span class="normal">931</span>
+<span class="normal">932</span>
+<span class="normal">933</span>
+<span class="normal">934</span>
+<span class="normal">935</span>
+<span class="normal">936</span>
+<span class="normal">937</span>
+<span class="normal">938</span>
+<span class="normal">939</span>
+<span class="normal">940</span>
+<span class="normal">941</span>
+<span class="normal">942</span>
+<span class="normal">943</span>
+<span class="normal">944</span>
+<span class="normal">945</span>
+<span class="normal">946</span>
+<span class="normal">947</span>
+<span class="normal">948</span>
+<span class="normal">949</span>
+<span class="normal">950</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_annotation_job</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">num_images</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">labeler_email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">reviewer_email</span><span class="p">:</span> <span class="nb">str</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -3929,9 +4058,11 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>image_ids</code></td>
             <td>
-                  <code><span title="typing.List">List</span>[str]</code>
+                <code>image_ids</code>
+            </td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3959,35 +4090,36 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 994</span>
-<span class="normal"> 995</span>
-<span class="normal"> 996</span>
-<span class="normal"> 997</span>
-<span class="normal"> 998</span>
-<span class="normal"> 999</span>
-<span class="normal">1000</span>
-<span class="normal">1001</span>
-<span class="normal">1002</span>
-<span class="normal">1003</span>
-<span class="normal">1004</span>
-<span class="normal">1005</span>
-<span class="normal">1006</span>
-<span class="normal">1007</span>
-<span class="normal">1008</span>
-<span class="normal">1009</span>
-<span class="normal">1010</span>
-<span class="normal">1011</span>
-<span class="normal">1012</span>
-<span class="normal">1013</span>
-<span class="normal">1014</span>
-<span class="normal">1015</span>
-<span class="normal">1016</span>
-<span class="normal">1017</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1017</span>
 <span class="normal">1018</span>
 <span class="normal">1019</span>
-<span class="normal">1020</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<span class="normal">1020</span>
+<span class="normal">1021</span>
+<span class="normal">1022</span>
+<span class="normal">1023</span>
+<span class="normal">1024</span>
+<span class="normal">1025</span>
+<span class="normal">1026</span>
+<span class="normal">1027</span>
+<span class="normal">1028</span>
+<span class="normal">1029</span>
+<span class="normal">1030</span>
+<span class="normal">1031</span>
+<span class="normal">1032</span>
+<span class="normal">1033</span>
+<span class="normal">1034</span>
+<span class="normal">1035</span>
+<span class="normal">1036</span>
+<span class="normal">1037</span>
+<span class="normal">1038</span>
+<span class="normal">1039</span>
+<span class="normal">1040</span>
+<span class="normal">1041</span>
+<span class="normal">1042</span>
+<span class="normal">1043</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Delete images from a project.</span>
 
@@ -4046,7 +4178,9 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>settings</code></td>
+            <td>
+                <code>settings</code>
+            </td>
             <td>
             </td>
             <td>
@@ -4137,7 +4271,8 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">167</span>
 <span class="normal">168</span>
@@ -4325,6 +4460,167 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="roboflow.core.project.Project.get_annotation_job" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_annotation_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span></code>
+
+<a href="#roboflow.core.project.Project.get_annotation_job" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get information for a specific annotation job.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>job_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The ID of the annotation job to retrieve.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Dict</code></td>            <td>
+                  <code><span title="typing.Dict">Dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A dictionary containing the job details.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/project.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">885</span>
+<span class="normal">886</span>
+<span class="normal">887</span>
+<span class="normal">888</span>
+<span class="normal">889</span>
+<span class="normal">890</span>
+<span class="normal">891</span>
+<span class="normal">892</span>
+<span class="normal">893</span>
+<span class="normal">894</span>
+<span class="normal">895</span>
+<span class="normal">896</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get information for a specific annotation job.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        job_id: The ID of the annotation job to retrieve.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict: A dictionary containing the job details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_annotation_job</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.project.Project.get_annotation_jobs" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_annotation_jobs</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.project.Project.get_annotation_jobs" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get a list of all annotation jobs in the project.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Dict</code></td>            <td>
+                  <code><span title="typing.Dict">Dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A dictionary containing the list of annotation jobs.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/project.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">875</span>
+<span class="normal">876</span>
+<span class="normal">877</span>
+<span class="normal">878</span>
+<span class="normal">879</span>
+<span class="normal">880</span>
+<span class="normal">881</span>
+<span class="normal">882</span>
+<span class="normal">883</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get a list of all annotation jobs in the project.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict: A dictionary containing the list of annotation jobs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">rfapi</span>
+
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_annotation_jobs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="roboflow.core.project.Project.get_batch" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">get_batch</span><span class="p">(</span><span class="n">batch_id</span><span class="p">)</span></code>
 
@@ -4348,9 +4644,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>batch_id</code></td>
             <td>
-                  <code>str</code>
+                <code>batch_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4401,41 +4699,42 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">960</span>
-<span class="normal">961</span>
-<span class="normal">962</span>
-<span class="normal">963</span>
-<span class="normal">964</span>
-<span class="normal">965</span>
-<span class="normal">966</span>
-<span class="normal">967</span>
-<span class="normal">968</span>
-<span class="normal">969</span>
-<span class="normal">970</span>
-<span class="normal">971</span>
-<span class="normal">972</span>
-<span class="normal">973</span>
-<span class="normal">974</span>
-<span class="normal">975</span>
-<span class="normal">976</span>
-<span class="normal">977</span>
-<span class="normal">978</span>
-<span class="normal">979</span>
-<span class="normal">980</span>
-<span class="normal">981</span>
-<span class="normal">982</span>
-<span class="normal">983</span>
-<span class="normal">984</span>
-<span class="normal">985</span>
-<span class="normal">986</span>
-<span class="normal">987</span>
-<span class="normal">988</span>
-<span class="normal">989</span>
-<span class="normal">990</span>
-<span class="normal">991</span>
-<span class="normal">992</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 983</span>
+<span class="normal"> 984</span>
+<span class="normal"> 985</span>
+<span class="normal"> 986</span>
+<span class="normal"> 987</span>
+<span class="normal"> 988</span>
+<span class="normal"> 989</span>
+<span class="normal"> 990</span>
+<span class="normal"> 991</span>
+<span class="normal"> 992</span>
+<span class="normal"> 993</span>
+<span class="normal"> 994</span>
+<span class="normal"> 995</span>
+<span class="normal"> 996</span>
+<span class="normal"> 997</span>
+<span class="normal"> 998</span>
+<span class="normal"> 999</span>
+<span class="normal">1000</span>
+<span class="normal">1001</span>
+<span class="normal">1002</span>
+<span class="normal">1003</span>
+<span class="normal">1004</span>
+<span class="normal">1005</span>
+<span class="normal">1006</span>
+<span class="normal">1007</span>
+<span class="normal">1008</span>
+<span class="normal">1009</span>
+<span class="normal">1010</span>
+<span class="normal">1011</span>
+<span class="normal">1012</span>
+<span class="normal">1013</span>
+<span class="normal">1014</span>
+<span class="normal">1015</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get information for a specific batch in the project.</span>
 
@@ -4524,38 +4823,39 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">929</span>
-<span class="normal">930</span>
-<span class="normal">931</span>
-<span class="normal">932</span>
-<span class="normal">933</span>
-<span class="normal">934</span>
-<span class="normal">935</span>
-<span class="normal">936</span>
-<span class="normal">937</span>
-<span class="normal">938</span>
-<span class="normal">939</span>
-<span class="normal">940</span>
-<span class="normal">941</span>
-<span class="normal">942</span>
-<span class="normal">943</span>
-<span class="normal">944</span>
-<span class="normal">945</span>
-<span class="normal">946</span>
-<span class="normal">947</span>
-<span class="normal">948</span>
-<span class="normal">949</span>
-<span class="normal">950</span>
-<span class="normal">951</span>
-<span class="normal">952</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">952</span>
 <span class="normal">953</span>
 <span class="normal">954</span>
 <span class="normal">955</span>
 <span class="normal">956</span>
 <span class="normal">957</span>
-<span class="normal">958</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_batches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="normal">958</span>
+<span class="normal">959</span>
+<span class="normal">960</span>
+<span class="normal">961</span>
+<span class="normal">962</span>
+<span class="normal">963</span>
+<span class="normal">964</span>
+<span class="normal">965</span>
+<span class="normal">966</span>
+<span class="normal">967</span>
+<span class="normal">968</span>
+<span class="normal">969</span>
+<span class="normal">970</span>
+<span class="normal">971</span>
+<span class="normal">972</span>
+<span class="normal">973</span>
+<span class="normal">974</span>
+<span class="normal">975</span>
+<span class="normal">976</span>
+<span class="normal">977</span>
+<span class="normal">978</span>
+<span class="normal">979</span>
+<span class="normal">980</span>
+<span class="normal">981</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_batches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get a list of all batches in the project.</span>
 
@@ -4640,7 +4940,8 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 89</span>
 <span class="normal"> 90</span>
@@ -4725,9 +5026,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>image_id</code></td>
             <td>
-                  <code>str</code>
+                <code>image_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4778,7 +5081,8 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">841</span>
 <span class="normal">842</span>
@@ -4878,7 +5182,8 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">116</span>
 <span class="normal">117</span>
@@ -4941,9 +5246,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>like_image</code></td>
             <td>
-                  <code>str</code>
+                <code>like_image</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4955,9 +5262,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>prompt</code></td>
             <td>
-                  <code>str</code>
+                <code>prompt</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4969,9 +5278,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>offset</code></td>
             <td>
-                  <code>int</code>
+                <code>offset</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4983,9 +5294,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>limit</code></td>
             <td>
-                  <code>int</code>
+                <code>limit</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4997,9 +5310,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>tag</code></td>
             <td>
-                  <code>str</code>
+                <code>tag</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5011,9 +5326,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>class_name</code></td>
             <td>
-                  <code>str</code>
+                <code>class_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5025,9 +5342,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>in_dataset</code></td>
             <td>
-                  <code>str</code>
+                <code>in_dataset</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5039,9 +5358,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>batch</code></td>
             <td>
-                  <code>bool</code>
+                <code>batch</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5053,9 +5374,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>batch_id</code></td>
             <td>
-                  <code>str</code>
+                <code>batch_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5067,9 +5390,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>annotation_job</code></td>
             <td>
-                  <code>bool</code>
+                <code>annotation_job</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5081,9 +5406,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>annotation_job_id</code></td>
             <td>
-                  <code>str</code>
+                <code>annotation_job_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5095,9 +5422,11 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>fields</code></td>
             <td>
-                  <code>list</code>
+                <code>fields</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5155,7 +5484,8 @@ embedding, user_metadata.</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">655</span>
 <span class="normal">656</span>
@@ -5388,9 +5718,11 @@ embedding, user_metadata.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>like_image</code></td>
             <td>
-                  <code>str</code>
+                <code>like_image</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5402,9 +5734,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>prompt</code></td>
             <td>
-                  <code>str</code>
+                <code>prompt</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5416,9 +5750,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>offset</code></td>
             <td>
-                  <code>int</code>
+                <code>offset</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5430,9 +5766,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>limit</code></td>
             <td>
-                  <code>int</code>
+                <code>limit</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5444,9 +5782,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>tag</code></td>
             <td>
-                  <code>str</code>
+                <code>tag</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5458,9 +5798,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>class_name</code></td>
             <td>
-                  <code>str</code>
+                <code>class_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5472,9 +5814,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>in_dataset</code></td>
             <td>
-                  <code>str</code>
+                <code>in_dataset</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5486,9 +5830,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>batch</code></td>
             <td>
-                  <code>bool</code>
+                <code>batch</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5500,9 +5846,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>batch_id</code></td>
             <td>
-                  <code>str</code>
+                <code>batch_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5514,9 +5862,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>annotation_job</code></td>
             <td>
-                  <code>bool</code>
+                <code>annotation_job</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5528,9 +5878,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>annotation_job_id</code></td>
             <td>
-                  <code>str</code>
+                <code>annotation_job_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5542,9 +5894,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>fields</code></td>
             <td>
-                  <code>list</code>
+                <code>fields</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5598,7 +5952,8 @@ embedding, user_metadata.</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">756</span>
 <span class="normal">757</span>
@@ -5781,7 +6136,9 @@ embedding, user_metadata.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>speed</code></td>
+            <td>
+                <code>speed</code>
+            </td>
             <td>
             </td>
             <td>
@@ -5794,7 +6151,9 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>checkpoint</code></td>
+            <td>
+                <code>checkpoint</code>
+            </td>
             <td>
             </td>
             <td>
@@ -5807,7 +6166,9 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>plot</code></td>
+            <td>
+                <code>plot</code>
+            </td>
             <td>
             </td>
             <td>
@@ -5856,7 +6217,7 @@ embedding, user_metadata.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>RuntimeError</code>
+                  <code><span title="RuntimeError">RuntimeError</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5866,7 +6227,7 @@ embedding, user_metadata.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code>HTTPError</code>
+                  <code><span title="HTTPError">HTTPError</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5892,7 +6253,8 @@ embedding, user_metadata.</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">257</span>
 <span class="normal">258</span>
@@ -6021,9 +6383,11 @@ embedding, user_metadata.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>image_path</code></td>
             <td>
-                  <code>str</code>
+                <code>image_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6035,9 +6399,11 @@ embedding, user_metadata.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>annotation_path</code></td>
             <td>
-                  <code>str</code>
+                <code>annotation_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6050,9 +6416,11 @@ Special case: in classification projects, this can instead be a class name. e.g.
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>hosted_image</code></td>
             <td>
-                  <code>bool</code>
+                <code>hosted_image</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6064,9 +6432,11 @@ Special case: in classification projects, this can instead be a class name. e.g.
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>image_id</code></td>
             <td>
-                  <code>str</code>
+                <code>image_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6078,9 +6448,11 @@ Special case: in classification projects, this can instead be a class name. e.g.
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>split</code></td>
             <td>
-                  <code>str</code>
+                <code>split</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6092,9 +6464,11 @@ Special case: in classification projects, this can instead be a class name. e.g.
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>num_retry_uploads</code></td>
             <td>
-                  <code>int</code>
+                <code>num_retry_uploads</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6106,9 +6480,11 @@ Special case: in classification projects, this can instead be a class name. e.g.
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>batch_name</code></td>
             <td>
-                  <code>str</code>
+                <code>batch_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6120,9 +6496,11 @@ Special case: in classification projects, this can instead be a class name. e.g.
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>tag_names</code></td>
             <td>
-                  <code>list[str]</code>
+                <code>tag_names</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6134,9 +6512,11 @@ Special case: in classification projects, this can instead be a class name. e.g.
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>is_prediction</code></td>
             <td>
-                  <code>bool</code>
+                <code>is_prediction</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6148,9 +6528,11 @@ Special case: in classification projects, this can instead be a class name. e.g.
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>metadata</code></td>
             <td>
-                  <code>dict</code>
+                <code>metadata</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6179,7 +6561,8 @@ Example: {"camera_id": "cam001", "location": "warehouse"}</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">381</span>
 <span class="normal">382</span>
@@ -6418,9 +6801,11 @@ Example: {"camera_id": "cam001", "location": "warehouse"}</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>version_number</code></td>
             <td>
-                  <code>int</code>
+                <code>version_number</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6432,9 +6817,11 @@ Example: {"camera_id": "cam001", "location": "warehouse"}</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>local</code></td>
             <td>
-                  <code>str</code>
+                <code>local</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6470,7 +6857,8 @@ Example: {"camera_id": "cam001", "location": "warehouse"}</p>
       </tbody>
     </table>
 
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">306</span>
 <span class="normal">307</span>
@@ -6630,7 +7018,8 @@ Example: {"camera_id": "cam001", "location": "warehouse"}</p>
 </blockquote>
 </blockquote>
 </details>
-            <details class="quote">
+
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">132</span>
 <span class="normal">133</span>
