@@ -1,5 +1,6 @@
 """Tests for the auth CLI handler."""
 
+import re
 import unittest
 
 from typer.testing import CliRunner
@@ -7,6 +8,12 @@ from typer.testing import CliRunner
 from roboflow.cli import app
 
 runner = CliRunner()
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_RE.sub("", text)
 
 
 class TestAuthRegistration(unittest.TestCase):
@@ -28,8 +35,9 @@ class TestAuthRegistration(unittest.TestCase):
     def test_auth_login_help_shows_flags(self) -> None:
         result = runner.invoke(app, ["auth", "login", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("api-key", result.output.lower())
-        self.assertIn("force", result.output.lower())
+        output = _strip_ansi(result.output).lower()
+        self.assertIn("api-key", output)
+        self.assertIn("force", output)
 
     def test_auth_set_workspace_exists(self) -> None:
         result = runner.invoke(app, ["auth", "set-workspace", "--help"])

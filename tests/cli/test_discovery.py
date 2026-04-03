@@ -3,6 +3,7 @@
 Tests use typer.testing.CliRunner instead of argparse internals.
 """
 
+import re
 import unittest
 
 from typer.testing import CliRunner
@@ -10,6 +11,12 @@ from typer.testing import CliRunner
 from roboflow.cli import app
 
 runner = CliRunner()
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_RE.sub("", text)
 
 
 class TestCLIDiscovery(unittest.TestCase):
@@ -87,7 +94,7 @@ class TestAliases(unittest.TestCase):
     def test_login_alias(self) -> None:
         result = runner.invoke(app, ["login", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("login", result.output.lower())
+        self.assertIn("login", _strip_ansi(result.output).lower())
 
     def test_whoami_alias(self) -> None:
         result = runner.invoke(app, ["whoami", "--help"])
@@ -104,13 +111,14 @@ class TestAliases(unittest.TestCase):
     def test_download_alias(self) -> None:
         result = runner.invoke(app, ["download", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("dataseturl", result.output.lower())
+        self.assertIn("dataseturl", _strip_ansi(result.output).lower())
 
     def test_hidden_aliases_not_in_help(self) -> None:
         result = runner.invoke(app, ["--help"])
-        self.assertNotIn("upload_model", result.output)
-        self.assertNotIn("get_workspace_info", result.output)
-        self.assertNotIn("run_video_inference_api", result.output)
+        output = _strip_ansi(result.output)
+        self.assertNotIn("upload_model", output)
+        self.assertNotIn("get_workspace_info", output)
+        self.assertNotIn("run_video_inference_api", output)
 
     def test_hidden_alias_still_works(self) -> None:
         result = runner.invoke(app, ["upload_model", "--help"])
