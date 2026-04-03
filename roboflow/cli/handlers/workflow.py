@@ -6,15 +6,15 @@ from typing import Annotated, Optional
 
 import typer
 
-from roboflow.cli._compat import ctx_to_args
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-workflow_app = typer.Typer(help="Manage workflows", no_args_is_help=True)
+workflow_app = typer.Typer(cls=SortedGroup, help="Manage workflows", no_args_is_help=True)
 
 # ---------------------------------------------------------------------------
 # Sub-app for ``workflow version`` subcommands
 # ---------------------------------------------------------------------------
 
-_version_app = typer.Typer(help="Manage workflow versions", no_args_is_help=True)
+_version_app = typer.Typer(cls=SortedGroup, help="Manage workflow versions", no_args_is_help=True)
 workflow_app.add_typer(_version_app, name="version")
 
 

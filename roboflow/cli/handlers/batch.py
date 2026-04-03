@@ -6,9 +6,9 @@ from typing import Annotated, Optional
 
 import typer
 
-from roboflow.cli._compat import ctx_to_args
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-batch_app = typer.Typer(help="Batch processing operations", no_args_is_help=True)
+batch_app = typer.Typer(cls=SortedGroup, help="Batch processing operations", no_args_is_help=True)
 
 
 def _stub(args) -> None:  # noqa: ANN001

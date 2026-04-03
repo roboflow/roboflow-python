@@ -6,9 +6,9 @@ from typing import Annotated, Optional
 
 import typer
 
-from roboflow.cli._compat import ctx_to_args
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-image_app = typer.Typer(help="Image management commands", no_args_is_help=True)
+image_app = typer.Typer(cls=SortedGroup, help="Image management commands", no_args_is_help=True)
 
 
 @image_app.command("upload")

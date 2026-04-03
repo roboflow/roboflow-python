@@ -6,11 +6,11 @@ from typing import Annotated
 
 import typer
 
-from roboflow.cli._compat import ctx_to_args
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-annotation_app = typer.Typer(help="Annotation management commands", no_args_is_help=True)
-batch_app = typer.Typer(help="Annotation batch commands", no_args_is_help=True)
-job_app = typer.Typer(help="Annotation job commands", no_args_is_help=True)
+annotation_app = typer.Typer(cls=SortedGroup, help="Annotation management commands", no_args_is_help=True)
+batch_app = typer.Typer(cls=SortedGroup, help="Annotation batch commands", no_args_is_help=True)
+job_app = typer.Typer(cls=SortedGroup, help="Annotation job commands", no_args_is_help=True)
 
 annotation_app.add_typer(batch_app, name="batch")
 annotation_app.add_typer(job_app, name="job")

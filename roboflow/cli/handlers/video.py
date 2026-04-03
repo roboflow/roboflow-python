@@ -6,9 +6,9 @@ from typing import Annotated
 
 import typer
 
-from roboflow.cli._compat import ctx_to_args
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-video_app = typer.Typer(help="Video inference operations", no_args_is_help=True)
+video_app = typer.Typer(cls=SortedGroup, help="Video inference operations", no_args_is_help=True)
 
 
 @video_app.command("infer")

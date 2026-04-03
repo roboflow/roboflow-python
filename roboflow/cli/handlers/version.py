@@ -7,9 +7,9 @@ from typing import Annotated, Optional
 
 import typer
 
-from roboflow.cli._compat import ctx_to_args
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-version_app = typer.Typer(help="Manage dataset versions", no_args_is_help=True)
+version_app = typer.Typer(cls=SortedGroup, help="Manage dataset versions", no_args_is_help=True)
 
 
 @version_app.command("list")

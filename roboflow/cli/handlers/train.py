@@ -6,9 +6,9 @@ from typing import Annotated, Optional
 
 import typer
 
-from roboflow.cli._compat import ctx_to_args
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-train_app = typer.Typer(help="Train a model", invoke_without_command=True)
+train_app = typer.Typer(cls=SortedGroup, help="Train a model", invoke_without_command=True)
 
 
 @train_app.callback(invoke_without_command=True)

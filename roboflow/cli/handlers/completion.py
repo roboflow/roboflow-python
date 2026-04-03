@@ -12,7 +12,9 @@ import sys
 import click
 import typer
 
-completion_app = typer.Typer(help="Generate shell completions", no_args_is_help=True)
+from roboflow.cli._compat import SortedGroup
+
+completion_app = typer.Typer(cls=SortedGroup, help="Generate shell completions", no_args_is_help=True)
 
 
 def _generate_completion(shell: str) -> None:

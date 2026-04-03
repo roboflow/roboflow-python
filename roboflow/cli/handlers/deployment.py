@@ -13,7 +13,7 @@ from typing import Annotated, Any, Callable, Optional
 
 import typer
 
-from roboflow.cli._compat import ctx_to_args
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
 # ---------------------------------------------------------------------------
 # Wrapper that captures legacy handler stdout/exit and normalises output
@@ -69,7 +69,7 @@ def _wrap(func: Callable[..., Any]) -> Callable[..., None]:
     return _wrapped
 
 
-deployment_app = typer.Typer(help="Manage dedicated deployments", no_args_is_help=True)
+deployment_app = typer.Typer(cls=SortedGroup, help="Manage dedicated deployments", no_args_is_help=True)
 
 
 # ---------------------------------------------------------------------------

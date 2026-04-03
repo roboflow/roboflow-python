@@ -13,6 +13,7 @@ import click
 import typer
 
 import roboflow
+from roboflow.cli._compat import SortedGroup
 
 # ---------------------------------------------------------------------------
 # Root application
@@ -27,6 +28,7 @@ _DESCRIPTION = (
 app = typer.Typer(
     name="roboflow",
     help=_DESCRIPTION,
+    cls=SortedGroup,
     pretty_exceptions_enable=False,
     rich_markup_mode="rich",
     add_completion=False,

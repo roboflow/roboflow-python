@@ -7,7 +7,7 @@ from typing import Annotated, Optional
 
 import typer
 
-from roboflow.cli._compat import ctx_to_args
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
 
 class ProjectType(str, Enum):
@@ -21,7 +21,7 @@ class ProjectType(str, Enum):
     keypoint_detection = "keypoint-detection"
 
 
-project_app = typer.Typer(help="Manage projects", no_args_is_help=True)
+project_app = typer.Typer(cls=SortedGroup, help="Manage projects", no_args_is_help=True)
 
 
 @project_app.command("list")

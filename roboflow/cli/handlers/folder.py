@@ -6,9 +6,9 @@ from typing import Annotated, Optional
 
 import typer
 
-from roboflow.cli._compat import ctx_to_args
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-folder_app = typer.Typer(help="Manage workspace folders", no_args_is_help=True)
+folder_app = typer.Typer(cls=SortedGroup, help="Manage workspace folders", no_args_is_help=True)
 
 
 @folder_app.command("list")

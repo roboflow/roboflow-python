@@ -6,9 +6,9 @@ from typing import Annotated, Optional
 
 import typer
 
-from roboflow.cli._compat import ctx_to_args
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-universe_app = typer.Typer(help="Browse Roboflow Universe", no_args_is_help=True)
+universe_app = typer.Typer(cls=SortedGroup, help="Browse Roboflow Universe", no_args_is_help=True)
 
 
 @universe_app.command("search")
