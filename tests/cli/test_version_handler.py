@@ -1,8 +1,6 @@
 """Tests for the version CLI handler."""
 
-import io
 import json
-import sys
 import tempfile
 import unittest
 from unittest.mock import patch

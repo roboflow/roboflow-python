@@ -106,7 +106,7 @@ class TestBatchList(unittest.TestCase):
     @patch(_RESOLVE, return_value=None)
     def test_resolve_failure(self, _resolve):
         result = runner.invoke(app, ["annotation", "batch", "list", "-p", "bad"])
-            # Should not crash when resolve returns None
+        # Should not crash when resolve returns None
 
 
 class TestBatchGet(unittest.TestCase):
