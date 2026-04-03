@@ -7,7 +7,7 @@ Built on typer. Each command group is a separate Typer app in the
 from __future__ import annotations
 
 import json
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 import click
 import typer
@@ -18,16 +18,19 @@ import roboflow
 # Root application
 # ---------------------------------------------------------------------------
 
+_DESCRIPTION = (
+    "Build and deploy computer vision models with Roboflow. "
+    "Manage datasets, train models, run inference, and deploy "
+    "workflows \u2014 from the command line or via structured JSON for AI agents."
+)
+
 app = typer.Typer(
     name="roboflow",
-    help=(
-        "Build and deploy computer vision models with Roboflow. "
-        "Manage datasets, train models, run inference, and deploy "
-        "workflows \u2014 from the command line or via structured JSON for AI agents."
-    ),
-    pretty_exceptions_enable=False,  # We handle errors ourselves via output_error
+    help=_DESCRIPTION,
+    pretty_exceptions_enable=False,
     rich_markup_mode="rich",
-    add_completion=False,  # We have our own 'completion' subcommand
+    add_completion=False,
+    context_settings={"help_option_names": ["-h", "--help"]},
 )
 
 
@@ -35,7 +38,6 @@ def _version_callback(value: bool) -> None:
     if value:
         import sys
 
-        # Check if --json was passed (eager callback fires before other params are parsed)
         if "--json" in sys.argv or "-j" in sys.argv:
             print(json.dumps({"version": roboflow.__version__}))
         else:
@@ -46,25 +48,31 @@ def _version_callback(value: bool) -> None:
 @app.callback(invoke_without_command=True)
 def _root_callback(
     ctx: typer.Context,
-    json_output: Annotated[
-        bool,
-        typer.Option("--json", "-j", help="Output results as JSON (stable schema, for agents and piping)"),
-    ] = False,
     api_key: Annotated[
         Optional[str],
         typer.Option("--api-key", "-k", help="API key override (default: $ROBOFLOW_API_KEY or config file)"),
     ] = None,
-    workspace: Annotated[
-        Optional[str],
-        typer.Option("--workspace", "-w", help="Workspace URL or ID override (default: configured default)"),
-    ] = None,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", "-j", help="Output results as JSON (stable schema, for agents and piping)"),
+    ] = False,
     quiet: Annotated[
         bool,
         typer.Option("--quiet", "-q", help="Suppress non-essential output (progress bars, status messages)"),
     ] = False,
     version: Annotated[
         Optional[bool],
-        typer.Option("--version", help="Show package version and exit", callback=_version_callback, is_eager=True),
+        typer.Option(
+            "--version",
+            "-v",
+            help="Show package version and exit",
+            callback=_version_callback,
+            is_eager=True,
+        ),
+    ] = None,
+    workspace: Annotated[
+        Optional[str],
+        typer.Option("--workspace", "-w", help="Workspace URL or ID override (default: configured default)"),
     ] = None,
 ) -> None:
     """Build and deploy computer vision models with Roboflow."""
@@ -74,10 +82,67 @@ def _root_callback(
     ctx.obj["workspace"] = workspace
     ctx.obj["quiet"] = quiet
 
-    # Show help and exit 0 when no subcommand is given
     if ctx.invoked_subcommand is None:
-        print(ctx.get_help())  # noqa: T201
+        _print_flattened_help()
         raise typer.Exit(code=0)
+
+
+def _print_flattened_help() -> None:
+    """Print a custom help screen with all commands flattened and alphabetized."""
+    import shutil
+
+    click_app = typer.main.get_command(app)
+
+    # Collect all visible commands, flattened
+    commands: list[tuple[str, str]] = []
+
+    def _walk(group: Any, prefix: str = "") -> None:
+        for name in sorted(group.list_commands(None) or []):  # type: ignore[arg-type]
+            cmd = group.get_command(None, name)  # type: ignore[arg-type]
+            if cmd is None:
+                continue
+            # Skip hidden commands
+            if getattr(cmd, "hidden", False):
+                continue
+            full = f"{prefix} {name}".strip() if prefix else name
+            if hasattr(cmd, "list_commands") and cmd.list_commands(None):
+                _walk(cmd, full)
+            else:
+                help_text = cmd.get_short_help_str() or ""
+                commands.append((full, help_text))
+
+    _walk(click_app)
+    commands.sort(key=lambda x: x[0])
+
+    # Calculate column width
+    width = shutil.get_terminal_size((80, 24)).columns
+    name_width = max((len(c[0]) for c in commands), default=20) + 2
+    desc_width = max(width - name_width - 4, 20)
+
+    # Print
+    print(f"\n  \033[1mroboflow\033[0m v{roboflow.__version__}")  # noqa: T201
+    print(f"  {_DESCRIPTION}\n")  # noqa: T201
+
+    print("  \033[1mUsage:\033[0m roboflow [OPTIONS] COMMAND [ARGS]\n")  # noqa: T201
+
+    print("  \033[1mOptions:\033[0m")  # noqa: T201
+    options = [
+        ("  --api-key, -k <KEY>", "API key override"),
+        ("  --json, -j", "Output as JSON (for agents and piping)"),
+        ("  --quiet, -q", "Suppress progress bars and status messages"),
+        ("  --version, -v", "Show version"),
+        ("  --workspace, -w <ID>", "Workspace override"),
+        ("  --help, -h", "Show this help"),
+    ]
+    opt_name_width = max(len(o[0]) for o in options) + 2
+    for opt_name, opt_help in options:
+        print(f"    {opt_name:<{opt_name_width}} {opt_help}")  # noqa: T201
+
+    print("\n  \033[1mCommands:\033[0m")  # noqa: T201
+    for cmd_name, help_text in commands:
+        truncated = help_text[:desc_width] if len(help_text) > desc_width else help_text
+        print(f"    {cmd_name:<{name_width}} {truncated}")  # noqa: T201
+    print()  # noqa: T201
 
 
 # ---------------------------------------------------------------------------
