@@ -27,16 +27,10 @@ app = typer.Typer(
 
 def _version_callback(value: bool) -> None:
     if value:
-        print(roboflow.__version__)
-        raise typer.Exit
+        import sys
 
-
-def _json_version_callback(ctx: typer.Context, value: bool) -> None:
-    """Handle --version with --json awareness."""
-    if value:
-        # Check if --json was also passed (it may or may not be parsed yet)
-        json_mode = ctx.params.get("json_output", False)
-        if json_mode:
+        # Check if --json was passed (eager callback fires before other params are parsed)
+        if "--json" in sys.argv or "-j" in sys.argv:
             print(json.dumps({"version": roboflow.__version__}))
         else:
             print(roboflow.__version__)
@@ -197,10 +191,13 @@ def _reorder_argv(argv: list[str]) -> list[str]:
         if arg in global_flags_bool:
             reordered.append(arg)
         elif arg in global_flags_with_value:
-            reordered.append(arg)
             if i + 1 < len(argv):
+                reordered.append(arg)
                 i += 1
                 reordered.append(argv[i])
+            else:
+                # No value follows — leave in place so typer shows a proper error
+                rest.append(arg)
         else:
             rest.append(arg)
         i += 1
