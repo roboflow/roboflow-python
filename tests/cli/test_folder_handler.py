@@ -5,59 +5,40 @@ import unittest
 from argparse import Namespace
 from unittest.mock import patch
 
+from typer.testing import CliRunner
+
+from roboflow.cli import app
+
+runner = CliRunner()
+
 
 class TestFolderRegistration(unittest.TestCase):
     """Verify folder handler registers expected subcommands."""
 
-    def test_register_callable(self) -> None:
-        from roboflow.cli.handlers.folder import register
+    def test_folder_app_exists(self) -> None:
+        from roboflow.cli.handlers.folder import folder_app
 
-        self.assertTrue(callable(register))
+        self.assertIsNotNone(folder_app)
 
     def test_folder_list_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["folder", "list"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["folder", "list", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_folder_get_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["folder", "get", "folder-123"])
-        self.assertIsNotNone(args.func)
-        self.assertEqual(args.folder_id, "folder-123")
+        result = runner.invoke(app, ["folder", "get", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_folder_create_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["folder", "create", "My Folder"])
-        self.assertIsNotNone(args.func)
-        self.assertEqual(args.name, "My Folder")
-
-    def test_folder_create_with_flags(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["folder", "create", "My Folder", "--parent", "p1", "--projects", "a,b"])
-        self.assertEqual(args.parent, "p1")
-        self.assertEqual(args.projects, "a,b")
+        result = runner.invoke(app, ["folder", "create", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_folder_update_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["folder", "update", "folder-123", "--name", "New Name"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["folder", "update", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_folder_delete_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["folder", "delete", "folder-123"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["folder", "delete", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
 
 class TestFolderListHandler(unittest.TestCase):

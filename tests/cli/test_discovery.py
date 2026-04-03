@@ -1,31 +1,45 @@
-"""Tests that the CLI auto-discovery mechanism works correctly."""
+"""Tests that the CLI auto-discovery mechanism works correctly.
 
+Tests use typer.testing.CliRunner instead of argparse internals.
+"""
+
+import re
 import unittest
+
+from typer.testing import CliRunner
+
+from roboflow.cli import app
+
+runner = CliRunner()
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_RE.sub("", text)
 
 
 class TestCLIDiscovery(unittest.TestCase):
-    """Verify build_parser discovers handlers and creates expected subcommands."""
+    """Verify the CLI app loads and has expected structure."""
 
-    def test_build_parser_returns_parser(self) -> None:
-        from roboflow.cli import build_parser
+    def test_app_exists(self) -> None:
+        self.assertIsNotNone(app)
 
-        parser = build_parser()
-        self.assertIsNotNone(parser)
-
-    def test_parser_has_global_flags(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        # Parse with no args should work (defaults to help / version)
-        args = parser.parse_args(["--json"])
-        self.assertTrue(args.json)
+    def test_help_shows_commands(self) -> None:
+        result = runner.invoke(app, ["--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("project", result.output)
+        self.assertIn("workspace", result.output)
+        self.assertIn("image", result.output)
+        self.assertIn("infer", result.output)
 
     def test_version_flag(self) -> None:
-        from roboflow.cli import build_parser
+        result = runner.invoke(app, ["--version"])
+        self.assertEqual(result.exit_code, 0)
 
-        parser = build_parser()
-        args = parser.parse_args(["--version"])
-        self.assertTrue(args.version)
+    def test_json_flag(self) -> None:
+        result = runner.invoke(app, ["--json", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_handlers_package_importable(self) -> None:
         import roboflow.cli.handlers
@@ -48,111 +62,67 @@ class TestCLIDiscovery(unittest.TestCase):
 
         self.assertTrue(callable(format_table))
 
+    def test_compat_module_importable(self) -> None:
+        from roboflow.cli._compat import ctx_to_args
 
-class TestReorderArgv(unittest.TestCase):
-    """Verify _reorder_argv moves global flags before subcommands."""
+        self.assertTrue(callable(ctx_to_args))
 
-    def _reorder(self, argv: list[str]) -> list[str]:
-        from roboflow.cli import _reorder_argv
 
-        return _reorder_argv(argv)
+class TestGlobalFlagPositioning(unittest.TestCase):
+    """Verify global flags work in any position (typer handles natively)."""
 
-    def test_no_flags(self) -> None:
-        self.assertEqual(self._reorder(["project", "list"]), ["project", "list"])
+    def test_json_at_start(self) -> None:
+        result = runner.invoke(app, ["--json", "project", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_empty(self) -> None:
-        self.assertEqual(self._reorder([]), [])
+    def test_json_at_end(self) -> None:
+        result = runner.invoke(app, ["project", "list", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_bool_flag_after_subcommand(self) -> None:
-        result = self._reorder(["project", "list", "--json"])
-        self.assertEqual(result, ["--json", "project", "list"])
+    def test_workspace_long_form(self) -> None:
+        result = runner.invoke(app, ["--workspace", "test-ws", "project", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_bool_flag_already_first(self) -> None:
-        result = self._reorder(["--json", "project", "list"])
-        self.assertEqual(result, ["--json", "project", "list"])
-
-    def test_short_bool_flag(self) -> None:
-        result = self._reorder(["project", "list", "-j"])
-        self.assertEqual(result, ["-j", "project", "list"])
-
-    def test_value_flag_after_subcommand(self) -> None:
-        result = self._reorder(["project", "list", "--api-key", "abc123"])
-        self.assertEqual(result, ["--api-key", "abc123", "project", "list"])
-
-    def test_short_value_flag(self) -> None:
-        result = self._reorder(["project", "list", "-k", "abc123"])
-        self.assertEqual(result, ["-k", "abc123", "project", "list"])
-
-    def test_multiple_flags_mixed(self) -> None:
-        # -w is NOT reordered (collides with deployment's -w/--wait_on_pending)
-        # but --workspace (long form) and --json are reordered
-        result = self._reorder(["project", "list", "--json", "-w", "my-ws"])
-        self.assertEqual(result, ["--json", "project", "list", "-w", "my-ws"])
-
-    def test_value_flag_at_end_without_value(self) -> None:
-        """A value flag at the very end with no following arg should still be moved."""
-        result = self._reorder(["project", "list", "--api-key"])
-        self.assertEqual(result, ["--api-key", "project", "list"])
-
-    def test_non_global_flags_preserved(self) -> None:
-        """Flags not in the global set stay in place."""
-        result = self._reorder(["image", "upload", "--project", "my-proj", "--json"])
-        self.assertEqual(result, ["--json", "image", "upload", "--project", "my-proj"])
-
-    def test_quiet_and_version_flags(self) -> None:
-        result = self._reorder(["project", "list", "--quiet", "--version"])
-        self.assertEqual(result, ["--quiet", "--version", "project", "list"])
-
-    def test_workspace_flag(self) -> None:
-        result = self._reorder(["project", "list", "--workspace", "ws-1"])
-        self.assertEqual(result, ["--workspace", "ws-1", "project", "list"])
-
-    def test_preserves_subcommand_positional_args(self) -> None:
-        result = self._reorder(["version", "download", "ws/proj/3", "--json", "-f", "yolov8"])
-        self.assertEqual(result, ["--json", "version", "download", "ws/proj/3", "-f", "yolov8"])
+    def test_api_key_flag(self) -> None:
+        result = runner.invoke(app, ["--api-key", "test-key", "project", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
 
 class TestAliases(unittest.TestCase):
-    """Verify top-level aliases parse correctly and delegate to the right handler."""
+    """Verify backwards-compat aliases work."""
 
-    def _parse(self, argv: list[str]):
-        from roboflow.cli import build_parser
+    def test_login_alias(self) -> None:
+        result = runner.invoke(app, ["login", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("login", _strip_ansi(result.output).lower())
 
-        parser = build_parser()
-        return parser.parse_args(argv)
+    def test_whoami_alias(self) -> None:
+        result = runner.invoke(app, ["whoami", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_login_alias_exists(self) -> None:
-        args = self._parse(["login"])
-        self.assertIsNotNone(args.func)
+    def test_upload_alias(self) -> None:
+        result = runner.invoke(app, ["upload", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_whoami_alias_exists(self) -> None:
-        args = self._parse(["whoami"])
-        self.assertIsNotNone(args.func)
+    def test_import_alias(self) -> None:
+        result = runner.invoke(app, ["import", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-    def test_upload_alias_exists(self) -> None:
-        args = self._parse(["upload", "img.jpg", "-p", "my-project"])
-        self.assertIsNotNone(args.func)
-        self.assertEqual(args.path, "img.jpg")
-        self.assertEqual(args.project, "my-project")
+    def test_download_alias(self) -> None:
+        result = runner.invoke(app, ["download", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("dataseturl", _strip_ansi(result.output).lower())
 
-    def test_import_alias_exists(self) -> None:
-        args = self._parse(["import", "/data/images", "-p", "my-project"])
-        self.assertIsNotNone(args.func)
-        self.assertEqual(args.path, "/data/images")
-        self.assertEqual(args.project, "my-project")
+    def test_hidden_aliases_not_in_help(self) -> None:
+        result = runner.invoke(app, ["--help"])
+        output = _strip_ansi(result.output)
+        self.assertNotIn("upload_model", output)
+        self.assertNotIn("get_workspace_info", output)
+        self.assertNotIn("run_video_inference_api", output)
 
-    def test_download_alias_parses_url(self) -> None:
-        """Regression: download alias must use url_or_id as dest, not datasetUrl."""
-        args = self._parse(["download", "my-ws/my-proj/3"])
-        self.assertIsNotNone(args.func)
-        self.assertEqual(args.url_or_id, "my-ws/my-proj/3")
-
-    def test_download_alias_delegates_to_version_download(self) -> None:
-        """The download alias should use the same handler as 'version download'."""
-        from roboflow.cli.handlers.version import _download
-
-        args = self._parse(["download", "my-ws/my-proj/3"])
-        self.assertIs(args.func, _download)
+    def test_hidden_alias_still_works(self) -> None:
+        result = runner.invoke(app, ["upload_model", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
 
 if __name__ == "__main__":

@@ -2,56 +2,78 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Annotated, Optional
 
-if TYPE_CHECKING:
-    import argparse
+import typer
 
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the ``folder`` command group."""
-    folder_parser = subparsers.add_parser("folder", help="Manage workspace folders")
-    folder_subs = folder_parser.add_subparsers(title="folder commands", dest="folder_command")
-
-    # --- folder list ---
-    list_p = folder_subs.add_parser("list", help="List folders")
-    list_p.set_defaults(func=_list_folders)
-
-    # --- folder get ---
-    get_p = folder_subs.add_parser("get", help="Show folder details")
-    get_p.add_argument("folder_id", help="Folder ID")
-    get_p.set_defaults(func=_get_folder)
-
-    # --- folder create ---
-    create_p = folder_subs.add_parser("create", help="Create a folder")
-    create_p.add_argument("name", help="Folder name")
-    create_p.add_argument("--parent", dest="parent", default=None, help="Parent folder ID")
-    create_p.add_argument("--projects", dest="projects", default=None, help="Comma-separated project IDs")
-    create_p.set_defaults(func=_create_folder)
-
-    # --- folder update ---
-    update_p = folder_subs.add_parser("update", help="Update a folder")
-    update_p.add_argument("folder_id", help="Folder ID")
-    update_p.add_argument("--name", help="New folder name")
-    update_p.set_defaults(func=_update_folder)
-
-    # --- folder delete ---
-    delete_p = folder_subs.add_parser("delete", help="Delete a folder")
-    delete_p.add_argument("folder_id", help="Folder ID")
-    delete_p.set_defaults(func=_delete_folder)
-
-    # Default
-    folder_parser.set_defaults(func=lambda args: folder_parser.print_help())
+folder_app = typer.Typer(cls=SortedGroup, help="Manage workspace folders", no_args_is_help=True)
 
 
-def _resolve_ws_and_key(args: argparse.Namespace):
+@folder_app.command("list")
+def list_folders(ctx: typer.Context) -> None:
+    """List folders."""
+    args = ctx_to_args(ctx)
+    _list_folders(args)
+
+
+@folder_app.command("get")
+def get_folder(
+    ctx: typer.Context,
+    folder_id: Annotated[str, typer.Argument(help="Folder ID")],
+) -> None:
+    """Show folder details."""
+    args = ctx_to_args(ctx, folder_id=folder_id)
+    _get_folder(args)
+
+
+@folder_app.command("create")
+def create_folder(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Argument(help="Folder name")],
+    parent: Annotated[Optional[str], typer.Option(help="Parent folder ID")] = None,
+    projects: Annotated[Optional[str], typer.Option(help="Comma-separated project IDs")] = None,
+) -> None:
+    """Create a folder."""
+    args = ctx_to_args(ctx, name=name, parent=parent, projects=projects)
+    _create_folder(args)
+
+
+@folder_app.command("update")
+def update_folder(
+    ctx: typer.Context,
+    folder_id: Annotated[str, typer.Argument(help="Folder ID")],
+    name: Annotated[Optional[str], typer.Option(help="New folder name")] = None,
+) -> None:
+    """Update a folder."""
+    args = ctx_to_args(ctx, folder_id=folder_id, name=name)
+    _update_folder(args)
+
+
+@folder_app.command("delete")
+def delete_folder(
+    ctx: typer.Context,
+    folder_id: Annotated[str, typer.Argument(help="Folder ID")],
+) -> None:
+    """Delete a folder."""
+    args = ctx_to_args(ctx, folder_id=folder_id)
+    _delete_folder(args)
+
+
+# ---------------------------------------------------------------------------
+# Business logic (unchanged from argparse version)
+# ---------------------------------------------------------------------------
+
+
+def _resolve_ws_and_key(args):  # noqa: ANN001
     """Resolve workspace and API key, returning (ws, api_key) or None on error."""
     from roboflow.cli._resolver import resolve_ws_and_key
 
     return resolve_ws_and_key(args)
 
 
-def _list_folders(args: argparse.Namespace) -> None:
+def _list_folders(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._table import format_table
@@ -85,7 +107,7 @@ def _list_folders(args: argparse.Namespace) -> None:
     output(args, folders, text=table)
 
 
-def _get_folder(args: argparse.Namespace) -> None:
+def _get_folder(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -118,7 +140,7 @@ def _get_folder(args: argparse.Namespace) -> None:
     output(args, result, text="\n".join(lines))
 
 
-def _create_folder(args: argparse.Namespace) -> None:
+def _create_folder(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -142,7 +164,7 @@ def _create_folder(args: argparse.Namespace) -> None:
     output(args, data, text=f"Created folder '{args.name}' (id: {folder_id})")
 
 
-def _update_folder(args: argparse.Namespace) -> None:
+def _update_folder(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -161,7 +183,7 @@ def _update_folder(args: argparse.Namespace) -> None:
     output(args, data, text=f"Updated folder '{args.folder_id}'")
 
 
-def _delete_folder(args: argparse.Namespace) -> None:
+def _delete_folder(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 

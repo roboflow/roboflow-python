@@ -2,53 +2,67 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from enum import Enum
+from typing import Annotated, Optional
 
-if TYPE_CHECKING:
-    import argparse
+import typer
 
-
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register ``project`` subcommand and its verbs."""
-    project_parser = subparsers.add_parser("project", help="Manage projects")
-    project_subs = project_parser.add_subparsers(title="project commands", dest="project_command")
-
-    # --- project list ---
-    list_parser = project_subs.add_parser("list", help="List projects in a workspace")
-    list_parser.add_argument("--type", dest="type", default=None, help="Filter by project type")
-    list_parser.set_defaults(func=_list_projects)
-
-    # --- project get ---
-    get_parser = project_subs.add_parser("get", help="Show detailed info for a project")
-    get_parser.add_argument("project_id", help="Project ID or shorthand (e.g. my-ws/my-project)")
-    get_parser.set_defaults(func=_get_project)
-
-    # --- project create ---
-    create_parser = project_subs.add_parser("create", help="Create a new project")
-    create_parser.add_argument("name", help="Project name")
-    create_parser.add_argument(
-        "--type",
-        dest="type",
-        required=True,
-        choices=[
-            "object-detection",
-            "single-label-classification",
-            "multi-label-classification",
-            "instance-segmentation",
-            "semantic-segmentation",
-            "keypoint-detection",
-        ],
-        help="Project type",
-    )
-    create_parser.add_argument("--license", dest="license", default="Private", help="Project license")
-    create_parser.add_argument("--annotation", dest="annotation", default="", help="Annotation group name")
-    create_parser.set_defaults(func=_create_project)
-
-    # Default when no verb is given
-    project_parser.set_defaults(func=lambda args: project_parser.print_help())
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
 
-def _list_projects(args: argparse.Namespace) -> None:
+class ProjectType(str, Enum):
+    """Supported project types."""
+
+    object_detection = "object-detection"
+    single_label_classification = "single-label-classification"
+    multi_label_classification = "multi-label-classification"
+    instance_segmentation = "instance-segmentation"
+    semantic_segmentation = "semantic-segmentation"
+    keypoint_detection = "keypoint-detection"
+
+
+project_app = typer.Typer(cls=SortedGroup, help="Manage projects", no_args_is_help=True)
+
+
+@project_app.command("list")
+def list_projects(
+    ctx: typer.Context,
+    type: Annotated[Optional[str], typer.Option(help="Filter by project type")] = None,
+) -> None:
+    """List projects in a workspace."""
+    args = ctx_to_args(ctx, type=type)
+    _list_projects(args)
+
+
+@project_app.command("get")
+def get_project(
+    ctx: typer.Context,
+    project_id: Annotated[str, typer.Argument(help="Project ID or shorthand (e.g. my-ws/my-project)")],
+) -> None:
+    """Show detailed info for a project."""
+    args = ctx_to_args(ctx, project_id=project_id)
+    _get_project(args)
+
+
+@project_app.command("create")
+def create_project(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Argument(help="Project name")],
+    type: Annotated[ProjectType, typer.Option("--type", help="Project type")],
+    license: Annotated[str, typer.Option(help="Project license")] = "Private",
+    annotation: Annotated[str, typer.Option(help="Annotation group name")] = "",
+) -> None:
+    """Create a new project."""
+    args = ctx_to_args(ctx, name=name, type=type.value, license=license, annotation=annotation)
+    _create_project(args)
+
+
+# ---------------------------------------------------------------------------
+# Business logic (unchanged from argparse version)
+# ---------------------------------------------------------------------------
+
+
+def _list_projects(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._table import format_table
@@ -88,7 +102,7 @@ def _list_projects(args: argparse.Namespace) -> None:
     output(args, projects, text=table)
 
 
-def _get_project(args: argparse.Namespace) -> None:
+def _get_project(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._resolver import resolve_resource
@@ -142,7 +156,7 @@ def _get_project(args: argparse.Namespace) -> None:
     output(args, data, text=text)
 
 
-def _create_project(args: argparse.Namespace) -> None:
+def _create_project(args):  # noqa: ANN001
     import roboflow
     from roboflow.cli._output import output, output_error, suppress_sdk_output
 
@@ -166,7 +180,6 @@ def _create_project(args: argparse.Namespace) -> None:
     except Exception as exc:
         msg = str(exc)
         hint = None
-        # Try to extract a useful message from HTTP 422 responses
         if hasattr(exc, "response"):
             try:
                 body = exc.response.json()  # type: ignore[union-attr]

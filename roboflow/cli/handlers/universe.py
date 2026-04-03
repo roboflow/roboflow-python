@@ -2,29 +2,33 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Annotated, Optional
 
-if TYPE_CHECKING:
-    import argparse
+import typer
 
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the ``universe`` command group."""
-    uni_parser = subparsers.add_parser("universe", help="Browse Roboflow Universe")
-    uni_subs = uni_parser.add_subparsers(title="universe commands", dest="universe_command")
-
-    # --- universe search ---
-    search_p = uni_subs.add_parser("search", help="Search Roboflow Universe")
-    search_p.add_argument("query", help="Search query")
-    search_p.add_argument("--type", dest="type", choices=["dataset", "model"], default=None, help="Filter by type")
-    search_p.add_argument("--limit", type=int, default=12, help="Max results (default: 12)")
-    search_p.set_defaults(func=_search)
-
-    # Default
-    uni_parser.set_defaults(func=lambda args: uni_parser.print_help())
+universe_app = typer.Typer(cls=SortedGroup, help="Browse Roboflow Universe", no_args_is_help=True)
 
 
-def _search(args: argparse.Namespace) -> None:
+@universe_app.command("search")
+def search(
+    ctx: typer.Context,
+    query: Annotated[str, typer.Argument(help="Search query")],
+    type: Annotated[Optional[str], typer.Option(help="Filter by type (dataset or model)")] = None,
+    limit: Annotated[int, typer.Option(help="Max results")] = 12,
+) -> None:
+    """Search Roboflow Universe."""
+    args = ctx_to_args(ctx, query=query, type=type, limit=limit)
+    _search(args)
+
+
+# ---------------------------------------------------------------------------
+# Business logic (unchanged from argparse version)
+# ---------------------------------------------------------------------------
+
+
+def _search(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._table import format_table

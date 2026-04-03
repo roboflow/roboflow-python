@@ -2,45 +2,72 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Annotated, Optional
 
-if TYPE_CHECKING:
-    import argparse
+import typer
 
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the ``workspace`` command group."""
-    ws_parser = subparsers.add_parser("workspace", help="Manage workspaces")
-    ws_sub = ws_parser.add_subparsers(title="workspace commands", dest="workspace_command")
-
-    # --- workspace list ---
-    list_p = ws_sub.add_parser("list", help="List configured workspaces")
-    list_p.set_defaults(func=_list_workspaces)
-
-    # --- workspace get ---
-    get_p = ws_sub.add_parser("get", help="Get workspace details")
-    get_p.add_argument("workspace_id", help="Workspace URL or ID")
-    get_p.set_defaults(func=_get_workspace)
-
-    # --- workspace usage ---
-    usage_p = ws_sub.add_parser("usage", help="Show billing usage report")
-    usage_p.set_defaults(func=_workspace_usage)
-
-    # --- workspace plan ---
-    plan_p = ws_sub.add_parser("plan", help="Show workspace plan info and limits")
-    plan_p.set_defaults(func=_workspace_plan)
-
-    # --- workspace stats ---
-    stats_p = ws_sub.add_parser("stats", help="Show annotation/labeling statistics")
-    stats_p.add_argument("--start-date", dest="start_date", required=True, help="Start date (YYYY-MM-DD)")
-    stats_p.add_argument("--end-date", dest="end_date", required=True, help="End date (YYYY-MM-DD)")
-    stats_p.set_defaults(func=_workspace_stats)
-
-    # Default: show help
-    ws_parser.set_defaults(func=lambda args: ws_parser.print_help())
+workspace_app = typer.Typer(cls=SortedGroup, help="Manage workspaces", no_args_is_help=True)
 
 
-def _list_workspaces(args: argparse.Namespace) -> None:
+@workspace_app.command("list")
+def list_workspaces(ctx: typer.Context) -> None:
+    """List configured workspaces."""
+    args = ctx_to_args(ctx)
+    _list_workspaces(args)
+
+
+@workspace_app.command("get")
+def get_workspace(
+    ctx: typer.Context,
+    workspace_id: Annotated[
+        Optional[str], typer.Argument(help="Workspace URL or ID (defaults to current workspace)")
+    ] = None,
+) -> None:
+    """Get workspace details."""
+    # Default to current workspace if not specified
+    if not workspace_id:
+        from roboflow.cli._resolver import resolve_default_workspace
+
+        workspace_id = (ctx.obj or {}).get("workspace") or resolve_default_workspace(
+            api_key=(ctx.obj or {}).get("api_key")
+        )
+    args = ctx_to_args(ctx, workspace_id=workspace_id)
+    _get_workspace(args)
+
+
+@workspace_app.command("usage")
+def workspace_usage(ctx: typer.Context) -> None:
+    """Show billing usage report."""
+    args = ctx_to_args(ctx)
+    _workspace_usage(args)
+
+
+@workspace_app.command("plan")
+def workspace_plan(ctx: typer.Context) -> None:
+    """Show workspace plan info and limits."""
+    args = ctx_to_args(ctx)
+    _workspace_plan(args)
+
+
+@workspace_app.command("stats")
+def workspace_stats(
+    ctx: typer.Context,
+    start_date: Annotated[str, typer.Option("--start-date", help="Start date (YYYY-MM-DD)")],
+    end_date: Annotated[str, typer.Option("--end-date", help="End date (YYYY-MM-DD)")],
+) -> None:
+    """Show annotation/labeling statistics."""
+    args = ctx_to_args(ctx, start_date=start_date, end_date=end_date)
+    _workspace_stats(args)
+
+
+# ---------------------------------------------------------------------------
+# Business logic (unchanged from argparse version)
+# ---------------------------------------------------------------------------
+
+
+def _list_workspaces(args):  # noqa: ANN001
     import os
 
     from roboflow.cli._output import output
@@ -85,7 +112,7 @@ def _list_workspaces(args: argparse.Namespace) -> None:
     output(args, rows, text=table)
 
 
-def _get_workspace(args: argparse.Namespace) -> None:
+def _get_workspace(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.adapters.rfapi import RoboflowError
     from roboflow.cli._output import output, output_error
@@ -131,14 +158,14 @@ def _get_workspace(args: argparse.Namespace) -> None:
     output(args, workspace_json, text="\n".join(lines))
 
 
-def _resolve_ws_and_key(args: argparse.Namespace):
+def _resolve_ws_and_key(args):  # noqa: ANN001
     """Resolve workspace and API key for workspace subcommands."""
     from roboflow.cli._resolver import resolve_ws_and_key
 
     return resolve_ws_and_key(args)
 
 
-def _workspace_usage(args: argparse.Namespace) -> None:
+def _workspace_usage(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -163,7 +190,7 @@ def _workspace_usage(args: argparse.Namespace) -> None:
     output(args, result, text="\n".join(lines))
 
 
-def _workspace_plan(args: argparse.Namespace) -> None:
+def _workspace_plan(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -188,7 +215,7 @@ def _workspace_plan(args: argparse.Namespace) -> None:
     output(args, result, text="\n".join(lines))
 
 
-def _workspace_stats(args: argparse.Namespace) -> None:
+def _workspace_stats(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 

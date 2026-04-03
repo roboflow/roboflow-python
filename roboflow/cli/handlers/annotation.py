@@ -2,77 +2,93 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Annotated
 
-if TYPE_CHECKING:
-    import argparse
+import typer
 
+from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the ``annotation`` command group."""
-    ann_parser = subparsers.add_parser("annotation", help="Annotation management commands")
-    ann_sub = ann_parser.add_subparsers(title="annotation commands", dest="annotation_command")
+annotation_app = typer.Typer(cls=SortedGroup, help="Annotation management commands", no_args_is_help=True)
+batch_app = typer.Typer(cls=SortedGroup, help="Annotation batch commands", no_args_is_help=True)
+job_app = typer.Typer(cls=SortedGroup, help="Annotation job commands", no_args_is_help=True)
 
-    _add_batch(ann_sub)
-    _add_job(ann_sub)
-
-    ann_parser.set_defaults(func=lambda args: ann_parser.print_help())
+annotation_app.add_typer(batch_app, name="batch")
+annotation_app.add_typer(job_app, name="job")
 
 
 # ---------------------------------------------------------------------------
-# batch
+# batch commands
 # ---------------------------------------------------------------------------
 
 
-def _add_batch(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    batch_parser = sub.add_parser("batch", help="Annotation batch commands")
-    batch_sub = batch_parser.add_subparsers(title="batch commands", dest="batch_command")
+@batch_app.command("list")
+def batch_list(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+) -> None:
+    """List annotation batches."""
+    args = ctx_to_args(ctx, project=project)
+    _batch_list(args)
 
-    # batch list
-    p = batch_sub.add_parser("list", help="List annotation batches")
-    p.add_argument("-p", "--project", required=True, help="Project ID")
-    p.set_defaults(func=_batch_list)
 
-    # batch get
-    p = batch_sub.add_parser("get", help="Get annotation batch details")
-    p.add_argument("batch_id", help="Batch ID")
-    p.add_argument("-p", "--project", required=True, help="Project ID")
-    p.set_defaults(func=_batch_get)
-
-    batch_parser.set_defaults(func=lambda args: batch_parser.print_help())
+@batch_app.command("get")
+def batch_get(
+    ctx: typer.Context,
+    batch_id: Annotated[str, typer.Argument(help="Batch ID")],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+) -> None:
+    """Get annotation batch details."""
+    args = ctx_to_args(ctx, batch_id=batch_id, project=project)
+    _batch_get(args)
 
 
 # ---------------------------------------------------------------------------
-# job
+# job commands
 # ---------------------------------------------------------------------------
 
 
-def _add_job(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    job_parser = sub.add_parser("job", help="Annotation job commands")
-    job_sub = job_parser.add_subparsers(title="job commands", dest="job_command")
+@job_app.command("list")
+def job_list(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+) -> None:
+    """List annotation jobs."""
+    args = ctx_to_args(ctx, project=project)
+    _job_list(args)
 
-    # job list
-    p = job_sub.add_parser("list", help="List annotation jobs")
-    p.add_argument("-p", "--project", required=True, help="Project ID")
-    p.set_defaults(func=_job_list)
 
-    # job get
-    p = job_sub.add_parser("get", help="Get annotation job details")
-    p.add_argument("job_id", help="Job ID")
-    p.add_argument("-p", "--project", required=True, help="Project ID")
-    p.set_defaults(func=_job_get)
+@job_app.command("get")
+def job_get(
+    ctx: typer.Context,
+    job_id: Annotated[str, typer.Argument(help="Job ID")],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+) -> None:
+    """Get annotation job details."""
+    args = ctx_to_args(ctx, job_id=job_id, project=project)
+    _job_get(args)
 
-    # job create
-    p = job_sub.add_parser("create", help="Create an annotation job")
-    p.add_argument("-p", "--project", required=True, help="Project ID")
-    p.add_argument("--name", required=True, help="Job name")
-    p.add_argument("--batch", required=True, help="Batch ID")
-    p.add_argument("--num-images", required=True, type=int, help="Number of images")
-    p.add_argument("--labeler", required=True, help="Labeler email")
-    p.add_argument("--reviewer", required=True, help="Reviewer email")
-    p.set_defaults(func=_job_create)
 
-    job_parser.set_defaults(func=lambda args: job_parser.print_help())
+@job_app.command("create")
+def job_create(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+    name: Annotated[str, typer.Option(help="Job name")],
+    batch: Annotated[str, typer.Option(help="Batch ID")],
+    num_images: Annotated[int, typer.Option("--num-images", help="Number of images")],
+    labeler: Annotated[str, typer.Option(help="Labeler email")],
+    reviewer: Annotated[str, typer.Option(help="Reviewer email")],
+) -> None:
+    """Create an annotation job."""
+    args = ctx_to_args(
+        ctx,
+        project=project,
+        name=name,
+        batch=batch,
+        num_images=num_images,
+        labeler=labeler,
+        reviewer=reviewer,
+    )
+    _job_create(args)
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +96,7 @@ def _add_job(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
 # ---------------------------------------------------------------------------
 
 
-def _normalize_timestamps(obj):
+def _normalize_timestamps(obj):  # noqa: ANN001
     """Recursively convert Firestore timestamp dicts ({"_seconds": N, "_nanoseconds": N}) to ISO 8601 strings."""
     from datetime import datetime, timezone
 
@@ -93,12 +109,7 @@ def _normalize_timestamps(obj):
     return obj
 
 
-# ---------------------------------------------------------------------------
-# handlers
-# ---------------------------------------------------------------------------
-
-
-def _resolve_project_context(args: argparse.Namespace):  # type: ignore[return]
+def _resolve_project_context(args):  # noqa: ANN001
     """Resolve workspace/project from -p flag and return (api_key, ws, proj) or call output_error."""
     from roboflow.cli._output import output_error
     from roboflow.cli._resolver import resolve_resource
@@ -118,7 +129,12 @@ def _resolve_project_context(args: argparse.Namespace):  # type: ignore[return]
     return api_key, workspace_url, project_slug
 
 
-def _batch_list(args: argparse.Namespace) -> None:
+# ---------------------------------------------------------------------------
+# handler implementations
+# ---------------------------------------------------------------------------
+
+
+def _batch_list(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._table import format_table
@@ -145,7 +161,7 @@ def _batch_list(args: argparse.Namespace) -> None:
     output(args, batches, text=table)
 
 
-def _batch_get(args: argparse.Namespace) -> None:
+def _batch_get(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -172,7 +188,7 @@ def _batch_get(args: argparse.Namespace) -> None:
     output(args, data, text=text)
 
 
-def _job_list(args: argparse.Namespace) -> None:
+def _job_list(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._table import format_table
@@ -199,7 +215,7 @@ def _job_list(args: argparse.Namespace) -> None:
     output(args, jobs, text=table)
 
 
-def _job_get(args: argparse.Namespace) -> None:
+def _job_get(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -226,7 +242,7 @@ def _job_get(args: argparse.Namespace) -> None:
     output(args, data, text=text)
 
 
-def _job_create(args: argparse.Namespace) -> None:
+def _job_create(args):  # noqa: ANN001
     import roboflow
     from roboflow.cli._output import output, output_error, suppress_sdk_output
 

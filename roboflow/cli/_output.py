@@ -45,6 +45,22 @@ _PLAN_HINT_PATTERNS: list[tuple[str, str]] = [
     ("over_quota", "Your workspace has exceeded its quota. Visit https://roboflow.com/pricing to upgrade."),
 ]
 
+# Patterns to translate raw API hints into CLI-friendly hints
+_API_HINT_REPLACEMENTS: list[tuple[str, str]] = [
+    (
+        "You can see your active workspace by issuing a GET request to / with your api_key",
+        "Check available resources with 'roboflow project list' or 'roboflow workspace get'.",
+    ),
+    (
+        "You can find the API docs at https://docs.roboflow.com",
+        "Run the command with --help for usage information.",
+    ),
+    (
+        "You can see your available workspaces by issuing a GET request to /workspaces",
+        "List workspaces with 'roboflow workspace list'.",
+    ),
+]
+
 
 def _detect_plan_hint(message: str) -> Optional[str]:
     """Detect plan/billing-related errors and return an appropriate upgrade hint."""
@@ -53,6 +69,21 @@ def _detect_plan_hint(message: str) -> Optional[str]:
         if pattern.lower() in lower:
             return hint
     return None
+
+
+def _translate_api_hints(message: str) -> str:
+    """Replace raw API hints with CLI-friendly equivalents."""
+    for api_hint, cli_hint in _API_HINT_REPLACEMENTS:
+        message = message.replace(api_hint, cli_hint)
+    # Generic fallback: strip any remaining "issuing a GET/POST request" phrasing
+    import re
+
+    message = re.sub(
+        r"You can [^.]*(?:GET|POST|PUT|DELETE) request[^.]*\.",
+        "Run the command with --help for usage information.",
+        message,
+    )
+    return message
 
 
 def _sanitize_credentials(text: str) -> str:
@@ -70,7 +101,7 @@ def _parse_error_message(raw: str) -> tuple[Optional[dict[str, Any]], str]:
     otherwise ``None``.  The *human_readable_message* drills into nested
     ``error.message`` structures so the text-mode output is clean.
     """
-    text = _sanitize_credentials(raw.strip())
+    text = _translate_api_hints(_sanitize_credentials(raw.strip()))
     # Strip status-code prefix like "404: {...}"
     colon_idx = text.find(": {")
     if 0 < colon_idx < 5:
@@ -81,9 +112,12 @@ def _parse_error_message(raw: str) -> tuple[Optional[dict[str, Any]], str]:
             err = parsed.get("error", parsed)
             if isinstance(err, dict):
                 human = str(err.get("message") or err.get("hint") or err)
+                # Translate API hints in the parsed dict too
+                if "hint" in err and isinstance(err["hint"], str):
+                    err["hint"] = _translate_api_hints(err["hint"])
             else:
                 human = str(err)
-            return parsed, human
+            return parsed, _translate_api_hints(human)
     except (json.JSONDecodeError, TypeError, ValueError):
         pass
     return None, text  # Return sanitized text, not the original raw

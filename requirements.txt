@@ -19,3 +19,4 @@ tqdm>=4.41.0
 PyYAML>=5.3.1
 requests_toolbelt
 filetype
+typer>=0.12.0

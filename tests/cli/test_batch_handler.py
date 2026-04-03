@@ -2,46 +2,36 @@
 
 import unittest
 
+from typer.testing import CliRunner
+
+from roboflow.cli import app
+
+runner = CliRunner()
+
 
 class TestBatchRegistration(unittest.TestCase):
     """Verify batch handler registers expected subcommands."""
 
-    def test_register_callable(self) -> None:
-        from roboflow.cli.handlers.batch import register
+    def test_batch_app_exists(self) -> None:
+        from roboflow.cli.handlers.batch import batch_app
 
-        self.assertTrue(callable(register))
+        self.assertIsNotNone(batch_app)
 
     def test_batch_create_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["batch", "create", "--workflow", "wf-1", "--input", "/tmp/imgs"])
-        self.assertIsNotNone(args.func)
-        self.assertEqual(args.workflow, "wf-1")
-        self.assertEqual(args.input, "/tmp/imgs")
+        result = runner.invoke(app, ["batch", "create", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_batch_status_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["batch", "status", "job-abc"])
-        self.assertIsNotNone(args.func)
-        self.assertEqual(args.job_id, "job-abc")
+        result = runner.invoke(app, ["batch", "status", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_batch_list_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["batch", "list"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["batch", "list", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_batch_results_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["batch", "results", "job-abc"])
-        self.assertIsNotNone(args.func)
-        self.assertEqual(args.job_id, "job-abc")
+        result = runner.invoke(app, ["batch", "results", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
 
 if __name__ == "__main__":

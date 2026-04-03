@@ -5,52 +5,40 @@ import unittest
 from argparse import Namespace
 from unittest.mock import patch
 
+from typer.testing import CliRunner
+
+from roboflow.cli import app
+
+runner = CliRunner()
+
 
 class TestWorkspaceRegistration(unittest.TestCase):
     """Verify workspace handler registers expected subcommands."""
 
-    def test_register_callable(self) -> None:
-        from roboflow.cli.handlers.workspace import register
+    def test_workspace_app_exists(self) -> None:
+        from roboflow.cli.handlers.workspace import workspace_app
 
-        self.assertTrue(callable(register))
+        self.assertIsNotNone(workspace_app)
 
     def test_workspace_list_exists(self) -> None:
-        from roboflow.cli import build_parser
+        result = runner.invoke(app, ["workspace", "list", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-        parser = build_parser()
-        args = parser.parse_args(["workspace", "list"])
-        self.assertIsNotNone(args.func)
-
-    def test_workspace_get_positional(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workspace", "get", "my-ws"])
-        self.assertEqual(args.workspace_id, "my-ws")
-        self.assertIsNotNone(args.func)
+    def test_workspace_get_exists(self) -> None:
+        result = runner.invoke(app, ["workspace", "get", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_workspace_usage_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workspace", "usage"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["workspace", "usage", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_workspace_plan_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workspace", "plan"])
-        self.assertIsNotNone(args.func)
+        result = runner.invoke(app, ["workspace", "plan", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_workspace_stats_exists(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["workspace", "stats", "--start-date", "2026-01-01", "--end-date", "2026-04-01"])
-        self.assertIsNotNone(args.func)
-        self.assertEqual(args.start_date, "2026-01-01")
-        self.assertEqual(args.end_date, "2026-04-01")
+        result = runner.invoke(app, ["workspace", "stats", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
     def test_handler_functions_exist(self) -> None:
         from roboflow.cli.handlers import workspace

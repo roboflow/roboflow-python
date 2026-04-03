@@ -2,60 +2,38 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Annotated, Optional
 
-if TYPE_CHECKING:
-    import argparse
+import typer
 
-
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register the top-level ``infer`` command."""
-    infer_parser = subparsers.add_parser("infer", help="Run inference on an image")
-    infer_parser.add_argument(
-        "file",
-        help="Path to an image file",
-    )
-    infer_parser.add_argument(
-        "-m",
-        "--model",
-        dest="model",
-        required=True,
-        help="Model ID (project/version, e.g. my-project/3)",
-    )
-    infer_parser.add_argument(
-        "-c",
-        "--confidence",
-        dest="confidence",
-        type=float,
-        default=0.5,
-        help="Confidence threshold 0.0-1.0 (default: 0.5)",
-    )
-    infer_parser.add_argument(
-        "-o",
-        "--overlap",
-        dest="overlap",
-        type=float,
-        default=0.5,
-        help="Overlap threshold 0.0-1.0 (default: 0.5)",
-    )
-    infer_parser.add_argument(
-        "-t",
-        "--type",
-        dest="type",
-        default=None,
-        choices=[
-            "object-detection",
-            "classification",
-            "instance-segmentation",
-            "semantic-segmentation",
-            "keypoint-detection",
-        ],
-        help="Model type (auto-detected if not specified)",
-    )
-    infer_parser.set_defaults(func=_infer)
+from roboflow.cli._compat import ctx_to_args
 
 
-def _infer(args: argparse.Namespace) -> None:
+def infer_command(app: typer.Typer) -> None:
+    """Register the top-level ``infer`` command on *app*."""
+
+    @app.command("infer", hidden=True)
+    def infer(
+        ctx: typer.Context,
+        file: Annotated[str, typer.Argument(help="Path to an image file")],
+        model: Annotated[str, typer.Option("-m", "--model", help="Model ID (project/version, e.g. my-project/3)")],
+        confidence: Annotated[float, typer.Option("-c", "--confidence", help="Confidence threshold 0.0-1.0")] = 0.5,
+        overlap: Annotated[float, typer.Option("-o", "--overlap", help="Overlap threshold 0.0-1.0")] = 0.5,
+        type: Annotated[
+            Optional[str],
+            typer.Option(
+                "-t",
+                "--type",
+                help="Model type (auto-detected if not specified)",
+            ),
+        ] = None,
+    ) -> None:
+        """Run inference on an image."""
+        args = ctx_to_args(ctx, file=file, model=model, confidence=confidence, overlap=overlap, type=type)
+        _infer(args)
+
+
+def _infer(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._resolver import resolve_resource

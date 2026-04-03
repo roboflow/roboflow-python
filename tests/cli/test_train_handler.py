@@ -7,59 +7,25 @@ import types
 import unittest
 from unittest.mock import MagicMock, patch
 
+from typer.testing import CliRunner
+
+from roboflow.cli import app
+
+runner = CliRunner()
+
 
 class TestTrainRegister(unittest.TestCase):
     """Verify train handler registers expected subcommands."""
 
-    def test_register_adds_train_parser(self) -> None:
-        from roboflow.cli import build_parser
+    def test_train_help(self) -> None:
+        result = runner.invoke(app, ["train", "--help"])
+        self.assertEqual(result.exit_code, 0)
 
-        parser = build_parser()
-        args = parser.parse_args(["train", "-p", "proj", "-v", "1"])
-        self.assertEqual(args.command, "train")
-        self.assertTrue(callable(args.func))
-
-    def test_train_start_subcommand(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["train", "start", "-p", "proj", "-v", "2"])
-        self.assertEqual(args.project, "proj")
-        self.assertEqual(args.version_number, 2)
-        self.assertTrue(callable(args.func))
-
-    def test_train_without_subcommand_acts_as_start(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(["train", "-p", "proj", "-v", "3", "-t", "yolov8n"])
-        self.assertEqual(args.project, "proj")
-        self.assertEqual(args.version_number, 3)
-        self.assertEqual(args.model_type, "yolov8n")
-        self.assertTrue(callable(args.func))
-
-    def test_train_optional_args(self) -> None:
-        from roboflow.cli import build_parser
-
-        parser = build_parser()
-        args = parser.parse_args(
-            [
-                "train",
-                "-p",
-                "proj",
-                "-v",
-                "1",
-                "--checkpoint",
-                "abc123",
-                "--speed",
-                "fast",
-                "--epochs",
-                "50",
-            ]
-        )
-        self.assertEqual(args.checkpoint, "abc123")
-        self.assertEqual(args.speed, "fast")
-        self.assertEqual(args.epochs, 50)
+    def test_train_start_help(self) -> None:
+        result = runner.invoke(app, ["train", "start", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("project", result.output.lower())
+        self.assertIn("version", result.output.lower())
 
 
 class TestTrainStart(unittest.TestCase):

@@ -2,72 +2,88 @@
 
 from __future__ import annotations
 
-import argparse
 import re
+from typing import Annotated, Optional
+
+import typer
+
+from roboflow.cli._compat import SortedGroup, ctx_to_args
+
+version_app = typer.Typer(cls=SortedGroup, help="Manage dataset versions", no_args_is_help=True)
 
 
-class _RawEpilogFormatter(argparse.HelpFormatter):
-    """Formatter that preserves raw text in the epilog while wrapping everything else."""
-
-    def _fill_text(self, text: str, width: int, indent: str) -> str:
-        return text
-
-
-def register(subparsers: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
-    """Register ``version`` subcommand and its verbs."""
-    version_parser = subparsers.add_parser("version", help="Manage dataset versions")
-    version_subs = version_parser.add_subparsers(title="version commands", dest="version_command")
-
-    # --- version list ---
-    list_parser = version_subs.add_parser("list", help="List versions for a project")
-    list_parser.add_argument("-p", "--project", dest="project", required=True, help="Project ID")
-    list_parser.set_defaults(func=_list_versions)
-
-    # --- version get ---
-    get_parser = version_subs.add_parser("get", help="Show detailed info for a version")
-    get_parser.add_argument("version_num", help="Version number or shorthand (e.g. my-project/3)")
-    get_parser.add_argument("-p", "--project", dest="project", default=None, help="Project ID")
-    get_parser.set_defaults(func=_get_version)
-
-    # --- version download ---
-    dl_parser = version_subs.add_parser("download", help="Download a dataset version")
-    dl_parser.add_argument("url_or_id", help="Dataset URL or shorthand (e.g. ws/project/3)")
-    dl_parser.add_argument("-f", "--format", dest="format", default="voc", help="Export format (default: voc)")
-    dl_parser.add_argument("-l", "--location", dest="location", default=None, help="Download location")
-    dl_parser.set_defaults(func=_download)
-
-    # --- version export ---
-    export_parser = version_subs.add_parser("export", help="Trigger an async export")
-    export_parser.add_argument("version_num", help="Version number")
-    export_parser.add_argument("-p", "--project", dest="project", required=True, help="Project ID")
-    export_parser.add_argument("-f", "--format", dest="format", default="voc", help="Export format (default: voc)")
-    export_parser.set_defaults(func=_export)
-
-    # --- version create ---
-    create_parser = version_subs.add_parser(
-        "create",
-        help="Create a new dataset version",
-        epilog=(
-            "Settings JSON example:\n"
-            '  {"augmentation": {"flip": {"horizontal": true, "vertical": false},\n'
-            '    "rotate": {"degrees": 15}, "brightness": {"percent": 25}},\n'
-            '   "preprocessing": {"auto-orient": true, "resize": {"width": 640,\n'
-            '    "height": 640, "format": "Stretch to"}}}\n\n'
-            "See https://docs.roboflow.com/datasets/create-a-dataset-version for all options."
-        ),
-        formatter_class=_RawEpilogFormatter,
-    )
-    create_parser.add_argument("-p", "--project", dest="project", required=True, help="Project ID")
-    create_parser.add_argument(
-        "--settings", dest="settings", required=True, help="Path to JSON file with augmentation/preprocessing config"
-    )
-    create_parser.set_defaults(func=_create)
-
-    # Default when no verb is given
-    version_parser.set_defaults(func=lambda args: version_parser.print_help())
+@version_app.command("list")
+def list_versions(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")] = ...,  # type: ignore[assignment]
+) -> None:
+    """List versions for a project."""
+    args = ctx_to_args(ctx, project=project)
+    _list_versions(args)
 
 
-def _list_versions(args: argparse.Namespace) -> None:
+@version_app.command("get")
+def get_version(
+    ctx: typer.Context,
+    version_num: Annotated[str, typer.Argument(help="Version number or shorthand (e.g. my-project/3)")],
+    project: Annotated[Optional[str], typer.Option("-p", "--project", help="Project ID")] = None,
+) -> None:
+    """Show detailed info for a version."""
+    args = ctx_to_args(ctx, version_num=version_num, project=project)
+    _get_version(args)
+
+
+@version_app.command("download")
+def download(
+    ctx: typer.Context,
+    url_or_id: Annotated[str, typer.Argument(help="Dataset URL or shorthand (e.g. ws/project/3)")],
+    format: Annotated[str, typer.Option("-f", "--format", help="Export format (default: voc)")] = "voc",
+    location: Annotated[Optional[str], typer.Option("-l", "--location", help="Download location")] = None,
+) -> None:
+    """Download a dataset version."""
+    args = ctx_to_args(ctx, url_or_id=url_or_id, format=format, location=location)
+    _download(args)
+
+
+@version_app.command("export")
+def export(
+    ctx: typer.Context,
+    version_num: Annotated[str, typer.Argument(help="Version number")],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")] = ...,  # type: ignore[assignment]
+    format: Annotated[str, typer.Option("-f", "--format", help="Export format (default: voc)")] = "voc",
+) -> None:
+    """Trigger an async export."""
+    args = ctx_to_args(ctx, version_num=version_num, project=project, format=format)
+    _export(args)
+
+
+@version_app.command("create")
+def create(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")] = ...,  # type: ignore[assignment]
+    settings: Annotated[str, typer.Option(help="Path to JSON file with augmentation/preprocessing config")] = ...,  # type: ignore[assignment]
+) -> None:
+    """Create a new dataset version.
+
+    Settings JSON example::
+
+        {"augmentation": {"flip": {"horizontal": true, "vertical": false},
+          "rotate": {"degrees": 15}, "brightness": {"percent": 25}},
+         "preprocessing": {"auto-orient": true, "resize": {"width": 640,
+          "height": 640, "format": "Stretch to"}}}
+
+    See https://docs.roboflow.com/datasets/create-a-dataset-version for all options.
+    """
+    args = ctx_to_args(ctx, project=project, settings=settings)
+    _create(args)
+
+
+# ---------------------------------------------------------------------------
+# Business logic (unchanged from argparse version)
+# ---------------------------------------------------------------------------
+
+
+def _list_versions(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._resolver import resolve_resource
@@ -123,7 +139,7 @@ def _format_splits(splits: dict) -> str:
     return " ".join(parts)
 
 
-def _get_version(args: argparse.Namespace) -> None:
+def _get_version(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._resolver import resolve_resource
@@ -185,7 +201,7 @@ def _parse_url(url: str) -> tuple:
         return None, None, None
 
 
-def _download(args: argparse.Namespace) -> None:
+def _download(args):  # noqa: ANN001
     import roboflow
     from roboflow.cli._output import output, output_error, suppress_sdk_output
 
@@ -231,7 +247,7 @@ def _download(args: argparse.Namespace) -> None:
     output(args, data, text=f"Downloaded {w}/{p}/{data['version']} in {args.format} format")
 
 
-def _export(args: argparse.Namespace) -> None:
+def _export(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._resolver import resolve_resource
@@ -266,7 +282,7 @@ def _export(args: argparse.Namespace) -> None:
         output(args, data, text=f"Export ready for {project_slug}/{version_num} in {args.format} format")
 
 
-def _create(args: argparse.Namespace) -> None:
+def _create(args):  # noqa: ANN001
     import json
 
     import roboflow
