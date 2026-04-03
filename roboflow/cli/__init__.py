@@ -122,25 +122,45 @@ def _print_flattened_help() -> None:
     console.print(f" {_DESCRIPTION}", highlight=False)
     console.print()
 
-    # Options panel
-    opt_table = Table(show_header=False, box=None, padding=(0, 2))
-    opt_table.add_column(style="bold", no_wrap=True)
-    opt_table.add_column()
-    opt_table.add_row("--api-key    -k  TEXT", "API key override (default: $ROBOFLOW_API_KEY or config file)")
-    opt_table.add_row("--json       -j", "Output results as JSON (stable schema, for agents and piping)")
-    opt_table.add_row("--quiet      -q", "Suppress non-essential output (progress bars, status messages)")
-    opt_table.add_row("--version    -v", "Show package version and exit")
-    opt_table.add_row("--workspace  -w  TEXT", "Workspace URL or ID override (default: configured default)")
-    opt_table.add_row("--help       -h", "Show this message and exit.")
+    # Options panel — match typer's color scheme
+    options_data = [
+        ("--api-key", "-k", "TEXT", "API key override (default: $ROBOFLOW_API_KEY or config file)"),
+        ("--json", "-j", "", "Output results as JSON (stable schema, for agents and piping)"),
+        ("--quiet", "-q", "", "Suppress non-essential output (progress bars, status messages)"),
+        ("--version", "-v", "", "Show package version and exit"),
+        ("--workspace", "-w", "TEXT", "Workspace URL or ID override (default: configured default)"),
+        ("--help", "-h", "", "Show this message and exit."),
+    ]
+    opt_table = Table(show_header=False, box=None, padding=(0, 1))
+    opt_table.add_column(no_wrap=True)  # flags
+    opt_table.add_column()  # description
+    for long_flag, short_flag, metavar, desc in options_data:
+        flag_text = Text()
+        flag_text.append(long_flag, style="bold cyan")
+        flag_text.append("  ")
+        flag_text.append(short_flag, style="bold green")
+        if metavar:
+            flag_text.append("  ")
+            flag_text.append(metavar, style="bold yellow")
+        opt_table.add_row(flag_text, desc)
     console.print(Panel(opt_table, title="Options", title_align="left", border_style="dim"))
 
-    # Commands panel
-    cmd_table = Table(show_header=False, box=None, padding=(0, 2))
-    cmd_table.add_column(style="bold", no_wrap=True)
-    cmd_table.add_column()
+    # Commands panel — group name in dim cyan, verb in bold
+    cmd_table = Table(show_header=False, box=None, padding=(0, 1))
+    cmd_table.add_column(no_wrap=True)  # command name
+    cmd_table.add_column()  # description
     for cmd_name, help_text in commands:
-        cmd_table.add_column
-        cmd_table.add_row(cmd_name, help_text)
+        parts = cmd_name.split(" ", 1)
+        styled_name = Text()
+        if len(parts) == 1:
+            # Top-level command (no group): just bold
+            styled_name.append(parts[0], style="bold")
+        else:
+            # Group + verb: group in dim cyan, verb in bold
+            styled_name.append(parts[0], style="cyan")
+            styled_name.append(" ")
+            styled_name.append(parts[1], style="bold")
+        cmd_table.add_row(styled_name, help_text)
     console.print(Panel(cmd_table, title="Commands", title_align="left", border_style="dim"))
     console.print()
 
