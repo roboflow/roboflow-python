@@ -313,6 +313,45 @@ class TestVisionEvents(unittest.TestCase):
         with self.assertRaises(RoboflowError):
             ws.list_vision_event_use_cases()
 
+    # --- get_vision_event_metadata_schema ---
+
+    @responses.activate
+    def test_get_metadata_schema(self):
+        body = {
+            "useCaseId": "manufacturing-qa",
+            "fields": {
+                "temperature": {"types": ["number"]},
+                "zone": {"types": ["string"]},
+                "active": {"types": ["boolean"]},
+            },
+        }
+        responses.add(
+            responses.GET,
+            f"{_BASE}/custom-metadata-schema/manufacturing-qa",
+            json=body,
+            status=200,
+        )
+
+        ws = self._make_workspace()
+        result = ws.get_vision_event_metadata_schema("manufacturing-qa")
+
+        self.assertEqual(len(result["fields"]), 3)
+        self.assertEqual(result["fields"]["temperature"]["types"], ["number"])
+        self._assert_bearer_auth()
+
+    @responses.activate
+    def test_get_metadata_schema_error(self):
+        responses.add(
+            responses.GET,
+            f"{_BASE}/custom-metadata-schema/nonexistent",
+            json={"error": "not found"},
+            status=404,
+        )
+
+        ws = self._make_workspace()
+        with self.assertRaises(RoboflowError):
+            ws.get_vision_event_metadata_schema("nonexistent")
+
     # --- upload_vision_event_image ---
 
     @responses.activate

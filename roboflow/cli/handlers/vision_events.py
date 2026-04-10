@@ -219,6 +219,45 @@ def _use_cases(args) -> None:  # noqa: ANN001
 
 
 # ---------------------------------------------------------------------------
+# metadata-schema
+# ---------------------------------------------------------------------------
+
+
+@vision_events_app.command("metadata-schema")
+def metadata_schema(
+    ctx: typer.Context,
+    use_case: Annotated[str, typer.Argument(help="Use case identifier")],
+) -> None:
+    """Get the custom metadata schema for a use case."""
+    args = ctx_to_args(ctx, use_case=use_case)
+    _metadata_schema(args)
+
+
+def _metadata_schema(args) -> None:  # noqa: ANN001
+    from roboflow.adapters import vision_events_api
+    from roboflow.adapters.rfapi import RoboflowError
+    from roboflow.cli._output import output, output_error
+
+    api_key = _resolve(args)
+    if api_key is None:
+        return
+
+    try:
+        result = vision_events_api.get_custom_metadata_schema(api_key, args.use_case)
+    except RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+
+    fields = result.get("fields", {})
+    lines = [f"{len(fields)} field(s):"]
+    for name, info in fields.items():
+        types = ", ".join(info.get("types", []))
+        lines.append(f"  {name} ({types})")
+
+    output(args, result, text="\n".join(lines))
+
+
+# ---------------------------------------------------------------------------
 # upload-image
 # ---------------------------------------------------------------------------
 

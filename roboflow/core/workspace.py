@@ -1123,6 +1123,29 @@ class Workspace:
             result["useCases"] = result["solutions"]
         return result
 
+    def get_vision_event_metadata_schema(self, use_case: str) -> dict:
+        """Get the custom metadata schema for a vision event use case.
+
+        Returns discovered field names and their types, useful for building
+        queries with ``customMetadataFilters``.
+
+        Args:
+            use_case: Use case identifier.
+
+        Returns:
+            Dict with ``fields`` mapping field names to ``{"types": [...]}``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> schema = ws.get_vision_event_metadata_schema("manufacturing-qa")
+            >>> for field, info in schema["fields"].items():
+            ...     print(field, info["types"])
+        """
+        return vision_events_api.get_custom_metadata_schema(
+            api_key=self.__api_key,
+            use_case_id=use_case,
+        )
+
     def upload_vision_event_image(
         self,
         image_path: str,

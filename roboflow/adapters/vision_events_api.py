@@ -108,6 +108,28 @@ def list_use_cases(api_key: str, status: Optional[str] = None) -> dict:
     return response.json()
 
 
+def get_custom_metadata_schema(api_key: str, use_case_id: str) -> dict:
+    """Get the custom metadata schema for a use case.
+
+    Args:
+        api_key: Roboflow API key.
+        use_case_id: Use case identifier.
+
+    Returns:
+        Parsed JSON response with ``fields`` mapping field names to their types.
+
+    Raises:
+        RoboflowError: On non-200 response status codes.
+    """
+    response = requests.get(
+        f"{_BASE}/custom-metadata-schema/{use_case_id}",
+        headers=_auth_headers(api_key),
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
 def upload_image(
     api_key: str,
     image_path: str,
