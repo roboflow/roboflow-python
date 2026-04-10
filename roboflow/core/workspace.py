@@ -13,7 +13,7 @@ from PIL import Image
 from requests.exceptions import HTTPError
 from tqdm import tqdm
 
-from roboflow.adapters import rfapi
+from roboflow.adapters import rfapi, vision_events_api
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
 from roboflow.config import API_URL, APP_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
 from roboflow.core.project import Project
@@ -937,6 +937,219 @@ class Workspace:
         from roboflow.adapters import rfapi
 
         return rfapi.get_plan_info(self.__api_key)
+
+    # --- Vision Events ---
+
+    def write_vision_event(self, event: Dict[str, Any]) -> dict:
+        """Create a single vision event.
+
+        The event dict is passed directly to the server with no client-side
+        validation, so new event types and fields work without an SDK update.
+
+        Args:
+            event: Event payload containing at minimum ``eventId``,
+                ``eventType``, ``useCaseId``, and ``timestamp``.
+
+        Returns:
+            Dict with ``eventId`` and ``created``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> ws.write_vision_event({
+            ...     "eventId": "evt-001",
+            ...     "eventType": "quality_check",
+            ...     "useCaseId": "manufacturing-qa",
+            ...     "timestamp": "2024-01-15T10:30:00.000Z",
+            ...     "eventData": {"result": "pass"},
+            ... })
+        """
+        return vision_events_api.write_event(
+            api_key=self.__api_key,
+            event=event,
+        )
+
+    def write_vision_events_batch(self, events: List[Dict[str, Any]]) -> dict:
+        """Create multiple vision events in a single request.
+
+        Args:
+            events: List of event payload dicts (server enforces max 100).
+
+        Returns:
+            Dict with ``created`` count and ``eventIds`` list.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> ws.write_vision_events_batch([
+            ...     {"eventId": "e1", "eventType": "custom", "useCaseId": "uc", "timestamp": "2024-01-15T10:00:00Z"},
+            ...     {"eventId": "e2", "eventType": "custom", "useCaseId": "uc", "timestamp": "2024-01-15T10:01:00Z"},
+            ... ])
+        """
+        return vision_events_api.write_batch(
+            api_key=self.__api_key,
+            events=events,
+        )
+
+    def query_vision_events(
+        self,
+        use_case: str,
+        *,
+        event_type: Optional[str] = None,
+        event_types: Optional[List[str]] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        limit: Optional[int] = None,
+        cursor: Optional[str] = None,
+        **filters: Any,
+    ) -> dict:
+        """Query vision events with filters and pagination.
+
+        Common filter kwargs are passed through to the server as-is,
+        supporting ``deviceId``, ``streamId``, ``workflowId``,
+        ``customMetadataFilters``, ``eventFieldFilters``, etc.
+
+        Args:
+            use_case: Use case identifier to query.
+            event_type: Filter by a single event type.
+            event_types: Filter by multiple event types.
+            start_time: ISO 8601 start time filter.
+            end_time: ISO 8601 end time filter.
+            limit: Maximum number of events to return.
+            cursor: Pagination cursor from a previous response.
+            **filters: Additional filter parameters passed to the API.
+
+        Returns:
+            Dict with ``events``, ``nextCursor``, ``hasMore``, and ``lookbackDays``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> page = ws.query_vision_events("manufacturing-qa", event_type="quality_check", limit=50)
+            >>> for evt in page["events"]:
+            ...     print(evt["eventId"])
+        """
+        payload: Dict[str, Any] = {"useCaseId": use_case}
+        if event_type is not None:
+            payload["eventType"] = event_type
+        if event_types is not None:
+            payload["eventTypes"] = event_types
+        if start_time is not None:
+            payload["startTime"] = start_time
+        if end_time is not None:
+            payload["endTime"] = end_time
+        if limit is not None:
+            payload["limit"] = limit
+        if cursor is not None:
+            payload["cursor"] = cursor
+        payload.update(filters)
+
+        return vision_events_api.query(
+            api_key=self.__api_key,
+            query_params=payload,
+        )
+
+    def query_all_vision_events(
+        self,
+        use_case: str,
+        *,
+        event_type: Optional[str] = None,
+        event_types: Optional[List[str]] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        limit: Optional[int] = None,
+        **filters: Any,
+    ) -> Generator[List[dict], None, None]:
+        """Paginated query across vision events, yielding one page at a time.
+
+        Automatically follows ``nextCursor`` until all matching events have
+        been returned.
+
+        Args:
+            use_case: Use case identifier to query.
+            event_type: Filter by a single event type.
+            event_types: Filter by multiple event types.
+            start_time: ISO 8601 start time filter.
+            end_time: ISO 8601 end time filter.
+            limit: Maximum events per page.
+            **filters: Additional filter parameters passed to the API.
+
+        Yields:
+            A list of event dicts for each page.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> for page in ws.query_all_vision_events("manufacturing-qa"):
+            ...     for evt in page:
+            ...         print(evt["eventId"])
+        """
+        cursor = None
+        while True:
+            response = self.query_vision_events(
+                use_case,
+                event_type=event_type,
+                event_types=event_types,
+                start_time=start_time,
+                end_time=end_time,
+                limit=limit,
+                cursor=cursor,
+                **filters,
+            )
+            events = response.get("events", [])
+            if not events:
+                break
+            yield events
+            cursor = response.get("nextCursor")
+            if not cursor or not response.get("hasMore", False):
+                break
+
+    def list_vision_event_use_cases(self, status: Optional[str] = None) -> dict:
+        """List all vision event use cases for the workspace.
+
+        Args:
+            status: Optional status filter (e.g. "active", "inactive").
+
+        Returns:
+            Dict with ``useCases`` list and ``lookbackDays``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> result = ws.list_vision_event_use_cases()
+            >>> for uc in result["useCases"]:
+            ...     print(uc["name"], uc.get("status"))
+        """
+        result = vision_events_api.list_use_cases(
+            api_key=self.__api_key,
+            status=status,
+        )
+        if "useCases" not in result and "solutions" in result:
+            result["useCases"] = result["solutions"]
+        return result
+
+    def upload_vision_event_image(
+        self,
+        image_path: str,
+        name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> dict:
+        """Upload an image for use in vision events.
+
+        Args:
+            image_path: Local path to the image file.
+            name: Optional custom name for the image.
+            metadata: Optional flat dict of metadata to attach.
+
+        Returns:
+            Dict with ``sourceId`` for referencing in events.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> result = ws.upload_vision_event_image("photo.jpg")
+            >>> source_id = result["sourceId"]
+        """
+        return vision_events_api.upload_image(
+            api_key=self.__api_key,
+            image_path=image_path,
+            name=name,
+            metadata=metadata,
+        )
 
     def __str__(self):
         projects = self.projects()
