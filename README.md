@@ -52,6 +52,20 @@ pip install "roboflow[desktop]"
 
 
 <details>
+  <summary>Lightweight install (roboflow-slim)</summary>
+
+  If you only need vision events, workspace management, and the CLI (no image processing, inference, or training), install the lightweight package:
+
+  ```bash
+  pip install roboflow-slim
+  ```
+
+  This skips heavy dependencies like OpenCV, NumPy, Matplotlib, and Pillow, reducing install size from ~400MB to ~50MB. Useful for embedded devices, CI pipelines, and serverless environments.
+
+  Both packages share the same codebase and version. `pip install roboflow` includes everything.
+</details>
+
+<details>
   <summary>Install from source</summary>
 
   You can also install the Roboflow Python package from source using the following commands:
