@@ -447,7 +447,9 @@ class TestVisionEventsAdapter(unittest.TestCase):
         from roboflow.adapters import vision_events_api
 
         responses.add(responses.POST, _BASE, json={"eventId": "e1", "created": True}, status=201)
-        result = vision_events_api.write_event(self.API_KEY, {"eventId": "e1", "eventType": "custom", "useCaseId": "uc"})
+        result = vision_events_api.write_event(
+            self.API_KEY, {"eventId": "e1", "eventType": "custom", "useCaseId": "uc"}
+        )
         self.assertEqual(result["eventId"], "e1")
         self.assertEqual(responses.calls[0].request.headers["Authorization"], f"Bearer {self.API_KEY}")
 
