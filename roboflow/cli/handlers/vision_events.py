@@ -219,6 +219,139 @@ def _use_cases(args) -> None:  # noqa: ANN001
 
 
 # ---------------------------------------------------------------------------
+# create-use-case
+# ---------------------------------------------------------------------------
+
+
+@vision_events_app.command("create-use-case")
+def create_use_case(
+    ctx: typer.Context,
+    name: Annotated[str, typer.Argument(help="Name for the new use case")],
+) -> None:
+    """Create a new vision event use case."""
+    args = ctx_to_args(ctx, name=name)
+    _create_use_case(args)
+
+
+def _create_use_case(args) -> None:  # noqa: ANN001
+    from roboflow.adapters import vision_events_api
+    from roboflow.adapters.rfapi import RoboflowError
+    from roboflow.cli._output import output, output_error
+
+    api_key = _resolve(args)
+    if api_key is None:
+        return
+
+    try:
+        result = vision_events_api.create_use_case(api_key, args.name)
+    except RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+
+    output(args, result, text=f"Created use case {result.get('id', '')} ({result.get('name', '')})")
+
+
+# ---------------------------------------------------------------------------
+# rename-use-case
+# ---------------------------------------------------------------------------
+
+
+@vision_events_app.command("rename-use-case")
+def rename_use_case(
+    ctx: typer.Context,
+    use_case: Annotated[str, typer.Argument(help="Use case identifier")],
+    name: Annotated[str, typer.Option("-n", "--name", help="New name for the use case")],
+) -> None:
+    """Rename an existing vision event use case."""
+    args = ctx_to_args(ctx, use_case=use_case, name=name)
+    _rename_use_case(args)
+
+
+def _rename_use_case(args) -> None:  # noqa: ANN001
+    from roboflow.adapters import vision_events_api
+    from roboflow.adapters.rfapi import RoboflowError
+    from roboflow.cli._output import output, output_error
+
+    api_key = _resolve(args)
+    if api_key is None:
+        return
+
+    try:
+        result = vision_events_api.rename_use_case(api_key, args.use_case, args.name)
+    except RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+
+    output(args, result, text=f"Renamed use case {result.get('id', '')} to {result.get('name', '')}")
+
+
+# ---------------------------------------------------------------------------
+# archive-use-case
+# ---------------------------------------------------------------------------
+
+
+@vision_events_app.command("archive-use-case")
+def archive_use_case(
+    ctx: typer.Context,
+    use_case: Annotated[str, typer.Argument(help="Use case identifier")],
+) -> None:
+    """Archive a vision event use case."""
+    args = ctx_to_args(ctx, use_case=use_case)
+    _archive_use_case(args)
+
+
+def _archive_use_case(args) -> None:  # noqa: ANN001
+    from roboflow.adapters import vision_events_api
+    from roboflow.adapters.rfapi import RoboflowError
+    from roboflow.cli._output import output, output_error
+
+    api_key = _resolve(args)
+    if api_key is None:
+        return
+
+    try:
+        result = vision_events_api.archive_use_case(api_key, args.use_case)
+    except RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+
+    output(args, result, text=f"Archived use case {args.use_case}")
+
+
+# ---------------------------------------------------------------------------
+# unarchive-use-case
+# ---------------------------------------------------------------------------
+
+
+@vision_events_app.command("unarchive-use-case")
+def unarchive_use_case(
+    ctx: typer.Context,
+    use_case: Annotated[str, typer.Argument(help="Use case identifier")],
+) -> None:
+    """Unarchive a vision event use case."""
+    args = ctx_to_args(ctx, use_case=use_case)
+    _unarchive_use_case(args)
+
+
+def _unarchive_use_case(args) -> None:  # noqa: ANN001
+    from roboflow.adapters import vision_events_api
+    from roboflow.adapters.rfapi import RoboflowError
+    from roboflow.cli._output import output, output_error
+
+    api_key = _resolve(args)
+    if api_key is None:
+        return
+
+    try:
+        result = vision_events_api.unarchive_use_case(api_key, args.use_case)
+    except RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+
+    output(args, result, text=f"Unarchived use case {args.use_case}")
+
+
+# ---------------------------------------------------------------------------
 # metadata-schema
 # ---------------------------------------------------------------------------
 

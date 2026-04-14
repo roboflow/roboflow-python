@@ -313,6 +313,112 @@ class TestVisionEvents(unittest.TestCase):
         with self.assertRaises(RoboflowError):
             ws.list_vision_event_use_cases()
 
+    # --- create_vision_event_use_case ---
+
+    @responses.activate
+    def test_create_use_case(self):
+        responses.add(
+            responses.POST,
+            f"{_BASE}/use-cases",
+            json={"id": "new-uc", "name": "My Use Case"},
+            status=201,
+        )
+
+        ws = self._make_workspace()
+        result = ws.create_vision_event_use_case("My Use Case")
+
+        self.assertEqual(result["id"], "new-uc")
+        self.assertEqual(result["name"], "My Use Case")
+        self._assert_bearer_auth()
+        sent = json.loads(responses.calls[0].request.body)
+        self.assertEqual(sent["name"], "My Use Case")
+
+    @responses.activate
+    def test_create_use_case_error(self):
+        responses.add(responses.POST, f"{_BASE}/use-cases", json={"error": "duplicate name"}, status=409)
+
+        ws = self._make_workspace()
+        with self.assertRaises(RoboflowError):
+            ws.create_vision_event_use_case("Existing Name")
+
+    # --- rename_vision_event_use_case ---
+
+    @responses.activate
+    def test_rename_use_case(self):
+        responses.add(
+            responses.PUT,
+            f"{_BASE}/use-cases/uc-1",
+            json={"id": "uc-1", "name": "Renamed"},
+            status=200,
+        )
+
+        ws = self._make_workspace()
+        result = ws.rename_vision_event_use_case("uc-1", "Renamed")
+
+        self.assertEqual(result["id"], "uc-1")
+        self.assertEqual(result["name"], "Renamed")
+        self._assert_bearer_auth()
+        sent = json.loads(responses.calls[0].request.body)
+        self.assertEqual(sent["name"], "Renamed")
+
+    @responses.activate
+    def test_rename_use_case_error(self):
+        responses.add(responses.PUT, f"{_BASE}/use-cases/nonexistent", json={"error": "not found"}, status=404)
+
+        ws = self._make_workspace()
+        with self.assertRaises(RoboflowError):
+            ws.rename_vision_event_use_case("nonexistent", "New Name")
+
+    # --- archive_vision_event_use_case ---
+
+    @responses.activate
+    def test_archive_use_case(self):
+        responses.add(
+            responses.POST,
+            f"{_BASE}/use-cases/uc-1/archive",
+            json={"success": True},
+            status=200,
+        )
+
+        ws = self._make_workspace()
+        result = ws.archive_vision_event_use_case("uc-1")
+
+        self.assertTrue(result["success"])
+        self._assert_bearer_auth()
+
+    @responses.activate
+    def test_archive_use_case_error(self):
+        responses.add(responses.POST, f"{_BASE}/use-cases/nonexistent/archive", json={"error": "not found"}, status=404)
+
+        ws = self._make_workspace()
+        with self.assertRaises(RoboflowError):
+            ws.archive_vision_event_use_case("nonexistent")
+
+    # --- unarchive_vision_event_use_case ---
+
+    @responses.activate
+    def test_unarchive_use_case(self):
+        responses.add(
+            responses.POST,
+            f"{_BASE}/use-cases/uc-1/unarchive",
+            json={"success": True},
+            status=200,
+        )
+
+        ws = self._make_workspace()
+        result = ws.unarchive_vision_event_use_case("uc-1")
+
+        self.assertTrue(result["success"])
+        self._assert_bearer_auth()
+
+    @responses.activate
+    def test_unarchive_use_case_error(self):
+        responses.add(responses.POST, f"{_BASE}/use-cases/uc-1/unarchive", json={"error": "already active"}, status=400)
+
+        ws = self._make_workspace()
+        with self.assertRaises(RoboflowError):
+            ws.unarchive_vision_event_use_case("uc-1")
+
     # --- get_vision_event_metadata_schema ---
 
     @responses.activate
@@ -484,6 +590,38 @@ class TestVisionEventsAdapter(unittest.TestCase):
         responses.add(responses.GET, f"{_BASE}/custom-metadata-schema/uc-1", json=body, status=200)
         result = vision_events_api.get_custom_metadata_schema(self.API_KEY, "uc-1")
         self.assertEqual(result["fields"]["temp"]["types"], ["number"])
+
+    @responses.activate
+    def test_adapter_create_use_case(self):
+        from roboflow.adapters import vision_events_api
+
+        responses.add(responses.POST, f"{_BASE}/use-cases", json={"id": "uc-new", "name": "Test"}, status=201)
+        result = vision_events_api.create_use_case(self.API_KEY, "Test")
+        self.assertEqual(result["id"], "uc-new")
+
+    @responses.activate
+    def test_adapter_rename_use_case(self):
+        from roboflow.adapters import vision_events_api
+
+        responses.add(responses.PUT, f"{_BASE}/use-cases/uc-1", json={"id": "uc-1", "name": "New"}, status=200)
+        result = vision_events_api.rename_use_case(self.API_KEY, "uc-1", "New")
+        self.assertEqual(result["name"], "New")
+
+    @responses.activate
+    def test_adapter_archive_use_case(self):
+        from roboflow.adapters import vision_events_api
+
+        responses.add(responses.POST, f"{_BASE}/use-cases/uc-1/archive", json={"success": True}, status=200)
+        result = vision_events_api.archive_use_case(self.API_KEY, "uc-1")
+        self.assertTrue(result["success"])
+
+    @responses.activate
+    def test_adapter_unarchive_use_case(self):
+        from roboflow.adapters import vision_events_api
+
+        responses.add(responses.POST, f"{_BASE}/use-cases/uc-1/unarchive", json={"success": True}, status=200)
+        result = vision_events_api.unarchive_use_case(self.API_KEY, "uc-1")
+        self.assertTrue(result["success"])
 
     @responses.activate
     def test_adapter_error_raises_roboflow_error(self):

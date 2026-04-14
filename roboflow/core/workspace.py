@@ -1140,6 +1140,81 @@ class Workspace:
             result["useCases"] = result["solutions"]
         return result
 
+    def create_vision_event_use_case(self, name: str) -> dict:
+        """Create a new vision event use case.
+
+        Args:
+            name: Human-readable name for the use case.
+
+        Returns:
+            Dict with ``id`` and ``name``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> result = ws.create_vision_event_use_case("manufacturing-qa")
+            >>> use_case_id = result["id"]
+        """
+        return vision_events_api.create_use_case(
+            api_key=self.__api_key,
+            name=name,
+        )
+
+    def rename_vision_event_use_case(self, use_case: str, name: str) -> dict:
+        """Rename an existing vision event use case.
+
+        Args:
+            use_case: Use case identifier.
+            name: New name for the use case.
+
+        Returns:
+            Dict with ``id`` and ``name``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> ws.rename_vision_event_use_case("abc123", "new-name")
+        """
+        return vision_events_api.rename_use_case(
+            api_key=self.__api_key,
+            use_case_id=use_case,
+            name=name,
+        )
+
+    def archive_vision_event_use_case(self, use_case: str) -> dict:
+        """Archive a vision event use case.
+
+        Args:
+            use_case: Use case identifier.
+
+        Returns:
+            Dict with ``success``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> ws.archive_vision_event_use_case("abc123")
+        """
+        return vision_events_api.archive_use_case(
+            api_key=self.__api_key,
+            use_case_id=use_case,
+        )
+
+    def unarchive_vision_event_use_case(self, use_case: str) -> dict:
+        """Unarchive a vision event use case.
+
+        Args:
+            use_case: Use case identifier.
+
+        Returns:
+            Dict with ``success``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> ws.unarchive_vision_event_use_case("abc123")
+        """
+        return vision_events_api.unarchive_use_case(
+            api_key=self.__api_key,
+            use_case_id=use_case,
+        )
+
     def get_vision_event_metadata_schema(self, use_case: str) -> dict:
         """Get the custom metadata schema for a vision event use case.
 
