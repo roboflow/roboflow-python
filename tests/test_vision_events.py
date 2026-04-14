@@ -18,10 +18,7 @@ class TestVisionEvents(unittest.TestCase):
     WORKSPACE = "test-ws"
 
     def _make_workspace(self):
-        try:
-            from roboflow.core.workspace import Workspace
-        except ImportError:
-            self.skipTest("Workspace requires PIL (not available in slim install)")
+        from roboflow.core.workspace import Workspace
 
         info = {
             "workspace": {

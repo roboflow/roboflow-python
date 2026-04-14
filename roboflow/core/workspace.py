@@ -14,15 +14,7 @@ from tqdm import tqdm
 
 from roboflow.adapters import rfapi, vision_events_api
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
-from roboflow.config import API_URL, APP_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
-from roboflow.core.project import Project
-from roboflow.util import folderparser
-from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
-from roboflow.util.general import extract_zip as _extract_zip
-from roboflow.util.image_utils import load_labelmap
-from roboflow.util.model_processor import process
-from roboflow.util.two_stage_utils import ocr_infer
-from roboflow.util.versions import normalize_yolo_model_type
+from roboflow.config import API_URL, APP_URL, DEMO_KEYS
 
 
 class Workspace:
@@ -63,6 +55,8 @@ class Workspace:
         Returns:
             List of Project objects.
         """
+        from roboflow.core.project import Project
+
         projects_array = []
         for a_project in self.project_list:
             proj = Project(self.__api_key, a_project, self.model_format)
@@ -82,6 +76,8 @@ class Workspace:
         Returns:
             Project Object
         """
+        from roboflow.core.project import Project
+
         sys.stdout.write("\r" + "loading Roboflow project...")
         sys.stdout.write("\n")
         sys.stdout.flush()
@@ -112,6 +108,8 @@ class Workspace:
         Returns:
             Project Object
         """  # noqa: E501 // docs
+        from roboflow.core.project import Project
+
         data = {
             "name": project_name,
             "type": project_type,
@@ -141,6 +139,9 @@ class Workspace:
             # TODO: fix docs
             dict: a key:value mapping of image_name:comparison_score_to_target
         """  # noqa: E501 // docs
+
+        from roboflow.config import CLIP_FEATURIZE_URL
+        from roboflow.util.active_learning_utils import clip_encode
 
         # list to store comparison results in
         comparisons = []
@@ -248,6 +249,8 @@ class Workspace:
         """  # noqa: E501 // docs
         from PIL import Image
 
+        from roboflow.util.two_stage_utils import ocr_infer
+
         results = []
 
         # create PIL image for cropping
@@ -310,6 +313,9 @@ class Workspace:
             num_retries (int, optional): number of times to retry uploading an image if the upload fails. Defaults to 0.
             is_prediction (bool, optional): whether the annotations provided in the dataset are predictions and not ground truth. Defaults to False.
         """  # noqa: E501 // docs
+        from roboflow.util import folderparser
+        from roboflow.util.image_utils import load_labelmap
+
         if dataset_format != "NOT_USED":
             print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
         project, created = self._get_or_create_project(
@@ -463,6 +469,9 @@ class Workspace:
             use_localhost: (bool) = determines if local http format used or remote endpoint
             local_server: (str) = local http address for inference server, use_localhost must be True for this to be used
         """  # noqa: E501 // docs
+        from roboflow.config import CLIP_FEATURIZE_URL
+        from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
+
         if inference_endpoint is None:
             inference_endpoint = []
         if conditionals is None:
@@ -610,6 +619,9 @@ class Workspace:
             project_ids (list[str]): List of project IDs to deploy the model to.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
+
+        from roboflow.util.model_processor import process
+        from roboflow.util.versions import normalize_yolo_model_type
 
         if not project_ids:
             raise ValueError("At least one project ID must be provided")
@@ -805,6 +817,8 @@ class Workspace:
             ValueError: If both *dataset* and *annotation_group* are provided.
             RoboflowError: On API errors or export timeout.
         """
+        from roboflow.util.general import extract_zip as _extract_zip
+
         if dataset is not None and annotation_group is not None:
             raise ValueError("dataset and annotation_group are mutually exclusive; provide only one")
 

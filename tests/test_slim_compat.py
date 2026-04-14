@@ -51,31 +51,18 @@ class TestSlimGracefulDegradation(unittest.TestCase):
     In a full install they verify the guard exists but doesn't fire.
     """
 
-    def test_workspace_and_project_attributes_exist(self):
-        """Workspace and Project are either real classes or None sentinels."""
+    def test_workspace_always_available(self):
+        """Workspace imports cleanly even in slim mode."""
         import roboflow
 
-        # In full install these are classes; in slim they're None
-        ws = roboflow.Workspace
-        proj = roboflow.Project
-        self.assertTrue(ws is None or callable(ws))
-        self.assertTrue(proj is None or callable(proj))
+        self.assertIsNotNone(roboflow.Workspace)
+        self.assertTrue(callable(roboflow.Workspace))
 
-    def test_roboflow_workspace_guard(self):
-        """If Workspace is None (slim), calling workspace() raises ImportError."""
+    def test_project_guarded(self):
+        """Project is either a real class (full) or None (slim)."""
         import roboflow
 
-        if roboflow.Workspace is not None:
-            self.skipTest("Full install, Workspace is available")
-
-        rf = roboflow.Roboflow.__new__(roboflow.Roboflow)
-        rf.api_key = "test"
-        rf.current_workspace = "test"
-        rf.model_format = "yolov8"
-
-        with self.assertRaises(ImportError) as ctx:
-            rf.workspace()
-        self.assertIn("pip install roboflow", str(ctx.exception))
+        self.assertTrue(roboflow.Project is None or callable(roboflow.Project))
 
     def test_roboflow_project_guard(self):
         """If Project is None (slim), calling project() raises ImportError."""

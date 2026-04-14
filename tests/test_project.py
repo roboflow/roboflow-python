@@ -61,15 +61,15 @@ class TestProject(RoboflowTest):
 
         # Create the mock objects
         mocks = {
-            "parser": patch("roboflow.core.workspace.folderparser.parsefolder", return_value=test_dataset),
-            "upload": patch("roboflow.core.workspace.Project.upload_image", side_effect=upload_image_side_effect)
+            "parser": patch("roboflow.util.folderparser.parsefolder", return_value=test_dataset),
+            "upload": patch("roboflow.core.project.Project.upload_image", side_effect=upload_image_side_effect)
             if upload_image_side_effect
-            else patch("roboflow.core.workspace.Project.upload_image", return_value=image_return),
+            else patch("roboflow.core.project.Project.upload_image", return_value=image_return),
             "save_annotation": patch(
-                "roboflow.core.workspace.Project.save_annotation", side_effect=save_annotation_side_effect
+                "roboflow.core.project.Project.save_annotation", side_effect=save_annotation_side_effect
             )
             if save_annotation_side_effect
-            else patch("roboflow.core.workspace.Project.save_annotation", return_value=annotation_return),
+            else patch("roboflow.core.project.Project.save_annotation", return_value=annotation_return),
             "get_project": patch(
                 "roboflow.core.workspace.Workspace._get_or_create_project", return_value=(self.project, project_created)
             ),
@@ -348,7 +348,7 @@ class TestProject(RoboflowTest):
                 "extra_mocks": [
                     (
                         "load_labelmap",
-                        "roboflow.core.workspace.load_labelmap",
+                        "roboflow.util.image_utils.load_labelmap",
                         {"return_value": {"old_label": "new_label"}},
                     )
                 ],
@@ -650,13 +650,13 @@ class TestProject(RoboflowTest):
             return ({"success": True}, 0.1, 0)
 
         mocks = {
-            "parser": patch("roboflow.core.workspace.folderparser.parsefolder", return_value=parsed_dataset),
+            "parser": patch("roboflow.util.folderparser.parsefolder", return_value=parsed_dataset),
             "upload": patch(
-                "roboflow.core.workspace.Project.upload_image",
+                "roboflow.core.project.Project.upload_image",
                 return_value=({"id": "test-id", "success": True}, 0.1, 0),
             ),
             "save_annotation": patch(
-                "roboflow.core.workspace.Project.save_annotation", side_effect=capture_annotation_calls
+                "roboflow.core.project.Project.save_annotation", side_effect=capture_annotation_calls
             ),
             "get_project": patch(
                 "roboflow.core.workspace.Workspace._get_or_create_project", return_value=(self.project, False)
@@ -737,13 +737,13 @@ class TestProject(RoboflowTest):
             return ({"success": True}, 0.1, 0)
 
         mocks = {
-            "parser": patch("roboflow.core.workspace.folderparser.parsefolder", return_value=parsed_dataset),
+            "parser": patch("roboflow.util.folderparser.parsefolder", return_value=parsed_dataset),
             "upload": patch(
-                "roboflow.core.workspace.Project.upload_image",
+                "roboflow.core.project.Project.upload_image",
                 return_value=({"id": "test-id", "success": True}, 0.1, 0),
             ),
             "save_annotation": patch(
-                "roboflow.core.workspace.Project.save_annotation", side_effect=capture_annotation_calls
+                "roboflow.core.project.Project.save_annotation", side_effect=capture_annotation_calls
             ),
             "get_project": patch(
                 "roboflow.core.workspace.Workspace._get_or_create_project", return_value=(self.project, False)
