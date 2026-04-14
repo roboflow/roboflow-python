@@ -18,7 +18,10 @@ class TestVisionEvents(unittest.TestCase):
     WORKSPACE = "test-ws"
 
     def _make_workspace(self):
-        from roboflow.core.workspace import Workspace
+        try:
+            from roboflow.core.workspace import Workspace
+        except ImportError:
+            self.skipTest("Workspace requires PIL (not available in slim install)")
 
         info = {
             "workspace": {
@@ -432,6 +435,64 @@ class TestVisionEvents(unittest.TestCase):
                 ws.upload_vision_event_image(tmp_path)
         finally:
             os.unlink(tmp_path)
+
+
+class TestVisionEventsAdapter(unittest.TestCase):
+    """Tests that call the adapter directly (no Workspace). Work in slim installs."""
+
+    API_KEY = "test_key"
+
+    @responses.activate
+    def test_adapter_write_event(self):
+        from roboflow.adapters import vision_events_api
+
+        responses.add(responses.POST, _BASE, json={"eventId": "e1", "created": True}, status=201)
+        result = vision_events_api.write_event(self.API_KEY, {"eventId": "e1", "eventType": "custom", "useCaseId": "uc"})
+        self.assertEqual(result["eventId"], "e1")
+        self.assertEqual(responses.calls[0].request.headers["Authorization"], f"Bearer {self.API_KEY}")
+
+    @responses.activate
+    def test_adapter_write_batch(self):
+        from roboflow.adapters import vision_events_api
+
+        responses.add(responses.POST, f"{_BASE}/batch", json={"created": 1, "eventIds": ["e1"]}, status=201)
+        result = vision_events_api.write_batch(self.API_KEY, [{"eventId": "e1"}])
+        self.assertEqual(result["created"], 1)
+
+    @responses.activate
+    def test_adapter_query(self):
+        from roboflow.adapters import vision_events_api
+
+        body = {"events": [{"eventId": "e1"}], "nextCursor": None, "hasMore": False, "lookbackDays": 14}
+        responses.add(responses.POST, f"{_BASE}/query", json=body, status=200)
+        result = vision_events_api.query(self.API_KEY, {"useCaseId": "uc"})
+        self.assertEqual(len(result["events"]), 1)
+
+    @responses.activate
+    def test_adapter_list_use_cases(self):
+        from roboflow.adapters import vision_events_api
+
+        body = {"useCases": [{"id": "uc-1", "name": "QA"}], "lookbackDays": 14}
+        responses.add(responses.GET, f"{_BASE}/use-cases", json=body, status=200)
+        result = vision_events_api.list_use_cases(self.API_KEY)
+        self.assertEqual(len(result["useCases"]), 1)
+
+    @responses.activate
+    def test_adapter_get_metadata_schema(self):
+        from roboflow.adapters import vision_events_api
+
+        body = {"useCaseId": "uc-1", "fields": {"temp": {"types": ["number"]}}}
+        responses.add(responses.GET, f"{_BASE}/custom-metadata-schema/uc-1", json=body, status=200)
+        result = vision_events_api.get_custom_metadata_schema(self.API_KEY, "uc-1")
+        self.assertEqual(result["fields"]["temp"]["types"], ["number"])
+
+    @responses.activate
+    def test_adapter_error_raises_roboflow_error(self):
+        from roboflow.adapters import vision_events_api
+
+        responses.add(responses.POST, _BASE, json={"error": "forbidden"}, status=403)
+        with self.assertRaises(RoboflowError):
+            vision_events_api.write_event(self.API_KEY, {"eventId": "x"})
 
 
 if __name__ == "__main__":
