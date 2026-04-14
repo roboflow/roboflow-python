@@ -10,10 +10,17 @@ import requests
 
 from roboflow.adapters import rfapi
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS, load_roboflow_api_key
-from roboflow.core.project import Project
-from roboflow.core.workspace import Workspace
-from roboflow.models import CLIPModel, GazeModel  # noqa: F401
 from roboflow.util.general import write_line
+
+try:
+    from roboflow.core.project import Project
+    from roboflow.core.workspace import Workspace
+    from roboflow.models import CLIPModel, GazeModel  # noqa: F401
+except ImportError:
+    Project = None  # type: ignore[assignment,misc]
+    Workspace = None  # type: ignore[assignment,misc]
+    CLIPModel = None  # type: ignore[assignment,misc]
+    GazeModel = None  # type: ignore[assignment,misc]
 
 __version__ = "1.3.1"
 
@@ -226,6 +233,11 @@ class Roboflow:
             return self
 
     def workspace(self, the_workspace=None):
+        if Workspace is None:
+            raise ImportError(
+                "Workspace requires additional dependencies. Install the full package: pip install roboflow"
+            )
+
         sys.stdout.write("\r" + "loading Roboflow workspace...")
         sys.stdout.write("\n")
         sys.stdout.flush()
@@ -250,6 +262,10 @@ class Roboflow:
         :param the_workspace workspace name
         :return project object
         """
+        if Project is None:
+            raise ImportError(
+                "Project requires additional dependencies. Install the full package: pip install roboflow"
+            )
 
         if the_workspace is None:
             if "/" in project_name:

@@ -9,7 +9,6 @@ import time
 from typing import Any, Dict, Generator, List, Optional
 
 import requests
-from PIL import Image
 from requests.exceptions import HTTPError
 from tqdm import tqdm
 
@@ -176,6 +175,8 @@ class Workspace:
             # TODO: fix docs
             dict: a json obj containing the results of the second stage detection
         """  # noqa: E501 // docs
+        from PIL import Image
+
         results = []
 
         # create PIL image for cropping
@@ -245,6 +246,8 @@ class Workspace:
             # TODO: fix docs
             dict: a json obj containing the results of the second stage detection
         """  # noqa: E501 // docs
+        from PIL import Image
+
         results = []
 
         # create PIL image for cropping
