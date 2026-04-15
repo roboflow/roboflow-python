@@ -1,14 +1,13 @@
 import json
 import os
 import urllib
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 import requests
 from requests.exceptions import RequestException
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
-from roboflow.util import image_utils
 
 
 class RoboflowError(Exception):
@@ -58,6 +57,7 @@ def start_version_training(
     speed: Optional[str] = None,
     checkpoint: Optional[str] = None,
     model_type: Optional[str] = None,
+    epochs: Optional[int] = None,
 ):
     """
     Start a training job for a specific version.
@@ -66,7 +66,7 @@ def start_version_training(
     """
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}/train?api_key={api_key}&nocache=true"
 
-    data = {}
+    data: Dict[str, Union[str, int]] = {}
     if speed is not None:
         data["speed"] = speed
     if checkpoint is not None:
@@ -74,6 +74,8 @@ def start_version_training(
     if model_type is not None:
         # API expects camelCase
         data["modelType"] = model_type
+    if epochs is not None:
+        data["epochs"] = epochs
 
     response = requests.post(url, json=data)
     if not response.ok:
@@ -149,6 +151,118 @@ def get_version_export(
     return payload
 
 
+def start_search_export(
+    api_key: str,
+    workspace_url: str,
+    query: str,
+    format: str,
+    session: requests.Session,
+    dataset: Optional[str] = None,
+    annotation_group: Optional[str] = None,
+    name: Optional[str] = None,
+) -> str:
+    """Start a search export job.
+
+    Returns the export_id string used to poll for completion.
+
+    Raises RoboflowError on non-202 responses.
+    """
+    url = f"{API_URL}/{workspace_url}/search/export?api_key={api_key}"
+    body: Dict[str, str] = {"query": query, "format": format}
+    if dataset is not None:
+        body["dataset"] = dataset
+    if annotation_group is not None:
+        body["annotationGroup"] = annotation_group
+    if name is not None:
+        body["name"] = name
+
+    response = session.post(url, json=body)
+    if response.status_code != 202:
+        raise RoboflowError(response.text)
+
+    payload = response.json()
+    return payload["link"]
+
+
+def get_search_export(api_key: str, workspace_url: str, export_id: str, session: requests.Session) -> dict:
+    """Poll the status of a search export job.
+
+    Returns dict with ``ready`` (bool) and ``link`` (str, present when ready).
+
+    Raises RoboflowError on non-200 responses.
+    """
+    url = f"{API_URL}/{workspace_url}/search/export/{export_id}?api_key={api_key}"
+    response = session.get(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def workspace_search(
+    api_key: str,
+    workspace_url: str,
+    query: str,
+    page_size: int = 50,
+    fields: Optional[List[str]] = None,
+    continuation_token: Optional[str] = None,
+) -> dict:
+    """Search across all images in a workspace using RoboQL syntax.
+
+    Args:
+        api_key: Roboflow API key.
+        workspace_url: Workspace slug/url.
+        query: RoboQL search query (e.g. ``"tag:review"``, ``"project:false"``).
+        page_size: Number of results per page (default 50).
+        fields: Fields to include in each result.
+        continuation_token: Token for fetching the next page.
+
+    Returns:
+        Parsed JSON response with ``results``, ``total``, and ``continuationToken``.
+
+    Raises:
+        RoboflowError: On non-200 response status codes.
+    """
+    url = f"{API_URL}/{workspace_url}/search/v1?api_key={api_key}"
+    payload: Dict[str, Union[str, int, List[str]]] = {
+        "query": query,
+        "pageSize": page_size,
+    }
+    if fields is not None:
+        payload["fields"] = fields
+    if continuation_token is not None:
+        payload["continuationToken"] = continuation_token
+
+    response = requests.post(url, json=payload)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def workspace_delete_images(
+    api_key: str,
+    workspace_url: str,
+    image_ids: List[str],
+) -> dict:
+    """Delete orphan images from a workspace.
+
+    Args:
+        api_key: Roboflow API key.
+        workspace_url: Workspace slug/url.
+        image_ids: List of image IDs to delete.
+
+    Returns:
+        Parsed JSON response with deletion counts.
+
+    Raises:
+        RoboflowError: On non-200 response status codes.
+    """
+    url = f"{API_URL}/{workspace_url}/images?api_key={api_key}"
+    response = requests.delete(url, json={"images": image_ids})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
 def upload_image(
     api_key,
     project_url,
@@ -159,6 +273,7 @@ def upload_image(
     tag_names: Optional[List[str]] = None,
     sequence_number: Optional[int] = None,
     sequence_size: Optional[int] = None,
+    metadata: Optional[Dict] = None,
     **kwargs,
 ):
     """
@@ -168,6 +283,8 @@ def upload_image(
         image_path (str): path to image you'd like to upload
         hosted_image (bool): whether the image is hosted on Roboflow
         split (str): the dataset split the image to
+        metadata (dict, optional): custom key-value metadata to attach to the image.
+            Example: {"camera_id": "cam001", "location": "warehouse"}
     """
 
     coalesced_batch_name = batch_name or DEFAULT_BATCH_NAME
@@ -176,19 +293,22 @@ def upload_image(
 
     # If image is not a hosted image
     if not hosted_image:
+        from roboflow.util import image_utils
+
         image_name = os.path.basename(image_path)
         imgjpeg = image_utils.file2jpeg(image_path)
 
         upload_url = _local_upload_url(
             api_key, project_url, coalesced_batch_name, tag_names, sequence_number, sequence_size, kwargs
         )
-        m = MultipartEncoder(
-            fields={
-                "name": image_name,
-                "split": split,
-                "file": ("imageToUpload", imgjpeg, "image/jpeg"),
-            }
-        )
+        fields = {
+            "name": image_name,
+            "split": split,
+            "file": ("imageToUpload", imgjpeg, "image/jpeg"),
+        }
+        if metadata is not None:
+            fields["metadata"] = json.dumps(metadata)
+        m = MultipartEncoder(fields=fields)
 
         try:
             response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
@@ -197,7 +317,12 @@ def upload_image(
 
     else:
         # Hosted image upload url
-        upload_url = _hosted_upload_url(api_key, project_url, image_path, split, coalesced_batch_name, tag_names)
+        hosted_kwargs = dict(kwargs)
+        if metadata is not None:
+            hosted_kwargs["metadata"] = json.dumps(metadata)
+        upload_url = _hosted_upload_url(
+            api_key, project_url, image_path, split, coalesced_batch_name, tag_names, hosted_kwargs
+        )
 
         try:
             # Get response
@@ -280,7 +405,9 @@ def save_annotation(
     if response.status_code not in (200, 409):
         raise _save_annotation_error(response)
     if response.status_code == 409:
-        if "already annotated" in responsejson.get("error", {}).get("message"):
+        err_obj = responsejson.get("error", {})
+        err_message = err_obj.get("message", "") if isinstance(err_obj, dict) else str(err_obj)
+        if "already annotated" in err_message:
             return {"warn": "already annotated"}
         else:
             raise _save_annotation_error(response)
@@ -313,7 +440,8 @@ def _upload_url(api_key, project_url, **kwargs):
     return url
 
 
-def _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_names):
+def _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_names, kwargs=None):
+    extra = kwargs or {}
     return _upload_url(
         api_key,
         project_url,
@@ -322,6 +450,7 @@ def _hosted_upload_url(api_key, project_url, image_path, split, batch_name, tag_
         image=image_path,
         batch=batch_name,
         tag=tag_names,
+        **extra,
     )
 
 
@@ -346,8 +475,333 @@ def _save_annotation_error(response):
 
     if responsejson.get("error"):
         err_msg = responsejson["error"]
-        if err_msg.get("message"):
-            err_msg = err_msg["message"]
-        return AnnotationSaveError(err_msg, status_code=response.status_code)
+        if isinstance(err_msg, dict):
+            err_msg = err_msg.get("message", str(err_msg))
+        return AnnotationSaveError(str(err_msg), status_code=response.status_code)
 
     return AnnotationSaveError(str(responsejson), status_code=response.status_code)
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Annotation batch & job endpoints
+# ---------------------------------------------------------------------------
+
+
+def list_batches(api_key, workspace_url, project_url):
+    """GET /{ws}/{proj}/batches — list annotation batches."""
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches", params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_batch(api_key, workspace_url, project_url, batch_id):
+    """GET /{ws}/{proj}/batches/{batch_id} — get batch details."""
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches/{batch_id}", params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def list_annotation_jobs(api_key, workspace_url, project_url):
+    """GET /{ws}/{proj}/jobs — list annotation jobs."""
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs", params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_annotation_job(api_key, workspace_url, project_url, job_id):
+    """GET /{ws}/{proj}/jobs/{job_id} — get annotation job details."""
+    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs/{job_id}", params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def create_annotation_job(api_key, workspace_url, project_url, *, name, batch_id=None, assignees=None):
+    """POST /{ws}/{proj}/jobs — create an annotation job."""
+    payload = {"name": name}
+    if batch_id:
+        payload["batchId"] = batch_id
+    if assignees:
+        payload["assignees"] = assignees
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/jobs",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if response.status_code not in (200, 201):
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Folder (project group) endpoints
+# ---------------------------------------------------------------------------
+
+
+def list_folders(api_key, workspace_url):
+    """GET /{ws}/groups — list project folders."""
+    response = requests.get(f"{API_URL}/{workspace_url}/groups", params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_folder(api_key, workspace_url, group_id):
+    """GET /{ws}/groups?groupId={id} — get folder details."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/groups",
+        params={"api_key": api_key, "groupId": group_id},
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def create_folder(api_key, workspace_url, name, *, parent_id=None, project_ids=None):
+    """POST /{ws}/groups — create a project folder."""
+    payload: Dict[str, Union[str, List[str], None]] = {"name": name}
+    if parent_id:
+        payload["parent_id"] = parent_id
+    if project_ids:
+        payload["projects"] = project_ids
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/groups",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if response.status_code not in (200, 201):
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def update_folder(api_key, workspace_url, group_id, *, name=None):
+    """POST /{ws}/groups/{id} — update a project folder."""
+    payload: Dict[str, Optional[str]] = {}
+    if name:
+        payload["name"] = name
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/groups/{group_id}",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def delete_folder(api_key, workspace_url, group_id):
+    """DELETE /{ws}/groups/{id} — delete a project folder."""
+    response = requests.delete(
+        f"{API_URL}/{workspace_url}/groups/{group_id}",
+        params={"api_key": api_key},
+    )
+    if response.status_code not in (200, 204):
+        raise RoboflowError(response.text)
+    if response.status_code == 204 or not response.text.strip():
+        return {}
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Workflow endpoints
+# ---------------------------------------------------------------------------
+
+
+def list_workflows(api_key, workspace_url):
+    """GET /{ws}/workflows — list workflows."""
+    response = requests.get(f"{API_URL}/{workspace_url}/workflows", params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_workflow(api_key, workspace_url, workflow_url):
+    """GET /{ws}/workflows/{url} — get workflow details."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/workflows/{workflow_url}",
+        params={"api_key": api_key},
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def create_workflow(api_key, workspace_url, *, name, url=None, config=None, template=None):
+    """POST /{ws}/createWorkflow — create a workflow.
+
+    The API validates ``name``, ``url``, ``template``, and ``config`` as
+    query-string parameters (all required strings).
+
+    Args:
+        name: Display name for the workflow.
+        url: URL slug. Auto-generated from *name* when ``None``.
+        config: JSON string of the workflow config. Defaults to ``"{}"``.
+        template: JSON string of the workflow template. Defaults to ``"{}"``.
+    """
+    if url is None:
+        import re
+
+        url = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    if config is None:
+        config = "{}"
+    if template is None:
+        template = "{}"
+    # config/template must be strings (the API validates with Joi.string)
+    if not isinstance(config, str):
+        config = json.dumps(config)
+    if not isinstance(template, str):
+        template = json.dumps(template)
+    params: Dict[str, str] = {
+        "api_key": api_key,
+        "name": name,
+        "url": url,
+        "template": template,
+        "config": config,
+    }
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/createWorkflow",
+        params=params,
+    )
+    if response.status_code not in (200, 201):
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def update_workflow(api_key, workspace_url, *, workflow_id, workflow_name, workflow_url, config):
+    """POST /{ws}/updateWorkflow — update a workflow definition.
+
+    The API validates ``id``, ``name``, ``url``, and ``config`` in the
+    request body (all required strings).
+
+    Args:
+        workflow_id: The workflow's internal ID.
+        workflow_name: The workflow's display name.
+        workflow_url: The workflow's URL slug.
+        config: JSON string (or dict) of the workflow config.
+    """
+    if not isinstance(config, str):
+        config = json.dumps(config)
+    payload: Dict[str, str] = {
+        "id": workflow_id,
+        "name": workflow_name,
+        "url": workflow_url,
+        "config": config,
+    }
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/updateWorkflow",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def list_workflow_versions(api_key, workspace_url, workflow_url):
+    """GET /{ws}/workflows/{url}/versions — list workflow versions."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/workflows/{workflow_url}/versions",
+        params={"api_key": api_key},
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def fork_workflow(api_key, workspace_url, *, source_workspace, source_workflow, name=None, url=None):
+    """POST /{ws}/forkWorkflow — fork a workflow into this workspace.
+
+    Args:
+        workspace_url: Target workspace that will own the fork.
+        source_workspace: URL slug of the workspace that owns the source.
+        source_workflow: URL slug of the source workflow.
+        name: Optional display name for the fork.
+        url: Optional URL slug for the fork.
+    """
+    payload: Dict[str, str] = {
+        "source_workspace": source_workspace,
+        "source_workflow": source_workflow,
+    }
+    if name:
+        payload["name"] = name
+    if url:
+        payload["url"] = url
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/forkWorkflow",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if response.status_code not in (200, 201):
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Workspace statistics endpoints
+# ---------------------------------------------------------------------------
+
+
+def get_billing_usage(api_key, workspace_url):
+    """POST /{ws}/billing-usage-report — get billing usage report."""
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/billing-usage-report",
+        params={"api_key": api_key},
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_plan_info(api_key):
+    """GET /usage/plan — get workspace plan info and limits."""
+    response = requests.get(f"{API_URL}/usage/plan", params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_labeling_stats(api_key, workspace_url, *, start_date=None, end_date=None):
+    """GET /{ws}/stats — get annotation/labeling statistics."""
+    params: Dict[str, str] = {"api_key": api_key}
+    if start_date:
+        params["startDate"] = start_date
+    if end_date:
+        params["endDate"] = end_date
+    response = requests.get(f"{API_URL}/{workspace_url}/stats", params=params)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Video inference status
+# ---------------------------------------------------------------------------
+
+
+def get_video_job_status(api_key, job_id):
+    """GET /videoinfer?jobId={id} — check video inference job status."""
+    response = requests.get(f"{API_URL}/videoinfer", params={"api_key": api_key, "job_id": job_id})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: Universe search
+# ---------------------------------------------------------------------------
+
+
+def search_universe(query, *, api_key=None, project_type=None, limit=12, page=1):
+    """GET /universe/search — search Roboflow Universe."""
+    params: Dict[str, Union[str, int]] = {"q": query, "limit": limit, "page": page}
+    if api_key:
+        params["api_key"] = api_key
+    if project_type:
+        params["type"] = project_type
+    response = requests.get(f"{API_URL}/universe/search", params=params)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()

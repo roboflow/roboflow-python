@@ -5,21 +5,16 @@ import glob
 import json
 import os
 import sys
-from typing import Any, Dict, List, Optional
+import time
+from typing import Any, Dict, Generator, List, Optional
 
 import requests
-from PIL import Image
+from requests.exceptions import HTTPError
+from tqdm import tqdm
 
-from roboflow.adapters import rfapi
+from roboflow.adapters import rfapi, vision_events_api
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
-from roboflow.config import API_URL, APP_URL, CLIP_FEATURIZE_URL, DEMO_KEYS
-from roboflow.core.project import Project
-from roboflow.util import folderparser
-from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
-from roboflow.util.image_utils import load_labelmap
-from roboflow.util.model_processor import process
-from roboflow.util.two_stage_utils import ocr_infer
-from roboflow.util.versions import normalize_yolo_model_type
+from roboflow.config import API_URL, APP_URL, DEMO_KEYS
 
 
 class Workspace:
@@ -60,6 +55,8 @@ class Workspace:
         Returns:
             List of Project objects.
         """
+        from roboflow.core.project import Project
+
         projects_array = []
         for a_project in self.project_list:
             proj = Project(self.__api_key, a_project, self.model_format)
@@ -79,6 +76,8 @@ class Workspace:
         Returns:
             Project Object
         """
+        from roboflow.core.project import Project
+
         sys.stdout.write("\r" + "loading Roboflow project...")
         sys.stdout.write("\n")
         sys.stdout.flush()
@@ -109,6 +108,8 @@ class Workspace:
         Returns:
             Project Object
         """  # noqa: E501 // docs
+        from roboflow.core.project import Project
+
         data = {
             "name": project_name,
             "type": project_type,
@@ -138,6 +139,9 @@ class Workspace:
             # TODO: fix docs
             dict: a key:value mapping of image_name:comparison_score_to_target
         """  # noqa: E501 // docs
+
+        from roboflow.config import CLIP_FEATURIZE_URL
+        from roboflow.util.active_learning_utils import clip_encode
 
         # list to store comparison results in
         comparisons = []
@@ -172,6 +176,8 @@ class Workspace:
             # TODO: fix docs
             dict: a json obj containing the results of the second stage detection
         """  # noqa: E501 // docs
+        from PIL import Image
+
         results = []
 
         # create PIL image for cropping
@@ -241,6 +247,10 @@ class Workspace:
             # TODO: fix docs
             dict: a json obj containing the results of the second stage detection
         """  # noqa: E501 // docs
+        from PIL import Image
+
+        from roboflow.util.two_stage_utils import ocr_infer
+
         results = []
 
         # create PIL image for cropping
@@ -303,6 +313,9 @@ class Workspace:
             num_retries (int, optional): number of times to retry uploading an image if the upload fails. Defaults to 0.
             is_prediction (bool, optional): whether the annotations provided in the dataset are predictions and not ground truth. Defaults to False.
         """  # noqa: E501 // docs
+        from roboflow.util import folderparser
+        from roboflow.util.image_utils import load_labelmap
+
         if dataset_format != "NOT_USED":
             print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
         project, created = self._get_or_create_project(
@@ -456,6 +469,9 @@ class Workspace:
             use_localhost: (bool) = determines if local http format used or remote endpoint
             local_server: (str) = local http address for inference server, use_localhost must be True for this to be used
         """  # noqa: E501 // docs
+        from roboflow.config import CLIP_FEATURIZE_URL
+        from roboflow.util.active_learning_utils import check_box_size, clip_encode, count_comparisons
+
         if inference_endpoint is None:
             inference_endpoint = []
         if conditionals is None:
@@ -604,6 +620,9 @@ class Workspace:
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
 
+        from roboflow.util.model_processor import process
+        from roboflow.util.versions import normalize_yolo_model_type
+
         if not project_ids:
             raise ValueError("At least one project ID must be provided")
 
@@ -661,6 +680,591 @@ class Workspace:
 
         except Exception as e:
             print(f"An error occured when uploading the model: {e}")
+
+    def search(
+        self,
+        query: str,
+        page_size: int = 50,
+        fields: Optional[List[str]] = None,
+        continuation_token: Optional[str] = None,
+    ) -> dict:
+        """Search across all images in the workspace using RoboQL syntax.
+
+        Args:
+            query: RoboQL search query (e.g. ``"tag:review"``, ``"project:false"``
+                for orphan images, or free-text for semantic CLIP search).
+            page_size: Number of results per page (default 50).
+            fields: Fields to include in each result.
+                Defaults to ``["tags", "projects", "filename"]``.
+            continuation_token: Token returned by a previous call for fetching
+                the next page.
+
+        Returns:
+            Dict with ``results`` (list), ``total`` (int), and
+            ``continuationToken`` (str or None).
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> page = ws.search("tag:review", page_size=10)
+            >>> print(page["total"])
+            >>> for img in page["results"]:
+            ...     print(img["filename"])
+        """
+        if fields is None:
+            fields = ["tags", "projects", "filename"]
+
+        return rfapi.workspace_search(
+            api_key=self.__api_key,
+            workspace_url=self.url,
+            query=query,
+            page_size=page_size,
+            fields=fields,
+            continuation_token=continuation_token,
+        )
+
+    def delete_images(self, image_ids: List[str]) -> dict:
+        """Delete orphan images from the workspace.
+
+        Only deletes images not associated with any project.
+        Images still in projects are skipped.
+
+        Args:
+            image_ids: List of image IDs to delete.
+
+        Returns:
+            Dict with ``deletedSources`` and ``skippedSources`` counts.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> result = ws.delete_images(["img_id_1", "img_id_2"])
+            >>> print(result["deletedSources"])
+        """
+        return rfapi.workspace_delete_images(
+            api_key=self.__api_key,
+            workspace_url=self.url,
+            image_ids=image_ids,
+        )
+
+    def search_all(
+        self,
+        query: str,
+        page_size: int = 50,
+        fields: Optional[List[str]] = None,
+    ) -> Generator[List[dict], None, None]:
+        """Paginated search across all images in the workspace.
+
+        Yields one page of results at a time, automatically following
+        ``continuationToken`` until all results have been returned.
+
+        Args:
+            query: RoboQL search query.
+            page_size: Number of results per page (default 50).
+            fields: Fields to include in each result.
+                Defaults to ``["tags", "projects", "filename"]``.
+
+        Yields:
+            A list of result dicts for each page.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> for page in ws.search_all("tag:review"):
+            ...     for img in page:
+            ...         print(img["filename"])
+        """
+        token = None
+        while True:
+            response = self.search(
+                query=query,
+                page_size=page_size,
+                fields=fields,
+                continuation_token=token,
+            )
+            results = response.get("results", [])
+            if not results:
+                break
+            yield results
+            token = response.get("continuationToken")
+            if not token:
+                break
+
+    def search_export(
+        self,
+        query: str,
+        format: str = "coco",
+        location: Optional[str] = None,
+        dataset: Optional[str] = None,
+        annotation_group: Optional[str] = None,
+        name: Optional[str] = None,
+        extract_zip: bool = True,
+    ) -> str:
+        """Export search results as a downloaded dataset.
+
+        Args:
+            query: Search query string (e.g. ``"tag:annotate"`` or ``"class:apple"``).
+            format: Annotation format for the export (default ``"coco"``).
+            location: Local directory to save the exported dataset.
+                Defaults to ``./search-export-{format}``.
+            dataset: Limit export to a specific dataset (project) slug.
+            annotation_group: Limit export to a specific annotation group.
+            name: Optional name for the export.
+            extract_zip: If True (default), extract the zip and remove it.
+                If False, keep the zip file as-is.
+
+        Returns:
+            Absolute path to the extracted directory or the zip file.
+
+        Raises:
+            ValueError: If both *dataset* and *annotation_group* are provided.
+            RoboflowError: On API errors or export timeout.
+        """
+        from roboflow.util.general import extract_zip as _extract_zip
+
+        if dataset is not None and annotation_group is not None:
+            raise ValueError("dataset and annotation_group are mutually exclusive; provide only one")
+
+        if location is None:
+            location = f"./search-export-{format}"
+        location = os.path.abspath(location)
+
+        # 1. Start the export
+        session = requests.Session()
+        export_id = rfapi.start_search_export(
+            api_key=self.__api_key,
+            workspace_url=self.url,
+            query=query,
+            format=format,
+            dataset=dataset,
+            annotation_group=annotation_group,
+            name=name,
+            session=session,
+        )
+        print(f"Export started (id={export_id}). Polling for completion...")
+
+        status_url = f"{API_URL}/{self.url}/search/export/{export_id}?api_key=YOUR_API_KEY"
+        print(f"If this takes too long, you can check the export status at: {status_url}")
+
+        # 2. Poll until ready
+        timeout = 1800
+        poll_interval = 5
+        elapsed = 0
+
+        while elapsed < timeout:
+            status = rfapi.get_search_export(
+                api_key=self.__api_key,
+                workspace_url=self.url,
+                export_id=export_id,
+                session=session,
+            )
+            if status.get("ready"):
+                break
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+        else:
+            raise RoboflowError(f"Search export timed out after {timeout}s")
+
+        download_url = status["link"]
+
+        # 3. Download zip
+        if not os.path.exists(location):
+            os.makedirs(location)
+
+        zip_path = os.path.join(location, "roboflow.zip")
+        response = session.get(download_url, stream=True)
+        try:
+            response.raise_for_status()
+        except HTTPError as e:
+            raise RoboflowError(f"Failed to download search export: {e}")
+
+        total_length = response.headers.get("content-length")
+        try:
+            total_kib = int(total_length) // 1024 + 1 if total_length is not None else None
+        except (TypeError, ValueError):
+            total_kib = None
+        with open(zip_path, "wb") as f:
+            for chunk in tqdm(
+                response.iter_content(chunk_size=1024),
+                desc=f"Downloading search export to {location}",
+                total=total_kib,
+            ):
+                if chunk:
+                    f.write(chunk)
+                    f.flush()
+
+        if extract_zip:
+            _extract_zip(location, desc=f"Extracting search export to {location}")
+            print(f"Search export extracted to {location}")
+            return location
+        else:
+            print(f"Search export saved to {zip_path}")
+            return zip_path
+
+    # -----------------------------------------------------------------
+    # Phase 2: Folder management
+    # -----------------------------------------------------------------
+
+    def list_folders(self):
+        """List project folders in this workspace."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.list_folders(self.__api_key, self.url)
+
+    def create_folder(self, name, parent_id=None, project_ids=None):
+        """Create a project folder in this workspace."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.create_folder(self.__api_key, self.url, name, parent_id=parent_id, project_ids=project_ids)
+
+    # -----------------------------------------------------------------
+    # Phase 2: Workflow management
+    # -----------------------------------------------------------------
+
+    def list_workflows(self):
+        """List workflows in this workspace."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.list_workflows(self.__api_key, self.url)
+
+    def get_workflow(self, workflow_url):
+        """Get workflow details."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.get_workflow(self.__api_key, self.url, workflow_url)
+
+    def create_workflow(self, name, definition=None):
+        """Create a new workflow."""
+        import json
+
+        from roboflow.adapters import rfapi
+
+        config = json.dumps(definition) if definition else None
+        return rfapi.create_workflow(self.__api_key, self.url, name=name, config=config)
+
+    # -----------------------------------------------------------------
+    # Phase 2: Workspace statistics
+    # -----------------------------------------------------------------
+
+    def get_usage(self):
+        """Get billing usage report for this workspace."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.get_billing_usage(self.__api_key, self.url)
+
+    def get_plan(self):
+        """Get workspace plan info and limits."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.get_plan_info(self.__api_key)
+
+    # --- Vision Events ---
+
+    def write_vision_event(self, event: Dict[str, Any]) -> dict:
+        """Create a single vision event.
+
+        The event dict is passed directly to the server with no client-side
+        validation, so new event types and fields work without an SDK update.
+
+        Args:
+            event: Event payload containing at minimum ``eventId``,
+                ``eventType``, ``useCaseId``, and ``timestamp``.
+
+        Returns:
+            Dict with ``eventId`` and ``created``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> ws.write_vision_event({
+            ...     "eventId": "evt-001",
+            ...     "eventType": "quality_check",
+            ...     "useCaseId": "manufacturing-qa",
+            ...     "timestamp": "2024-01-15T10:30:00.000Z",
+            ...     "eventData": {"result": "pass"},
+            ... })
+        """
+        return vision_events_api.write_event(
+            api_key=self.__api_key,
+            event=event,
+        )
+
+    def write_vision_events_batch(self, events: List[Dict[str, Any]]) -> dict:
+        """Create multiple vision events in a single request.
+
+        Args:
+            events: List of event payload dicts (server enforces max 100).
+
+        Returns:
+            Dict with ``created`` count and ``eventIds`` list.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> ws.write_vision_events_batch([
+            ...     {"eventId": "e1", "eventType": "custom", "useCaseId": "uc", "timestamp": "2024-01-15T10:00:00Z"},
+            ...     {"eventId": "e2", "eventType": "custom", "useCaseId": "uc", "timestamp": "2024-01-15T10:01:00Z"},
+            ... ])
+        """
+        return vision_events_api.write_batch(
+            api_key=self.__api_key,
+            events=events,
+        )
+
+    def query_vision_events(
+        self,
+        use_case: str,
+        *,
+        event_type: Optional[str] = None,
+        event_types: Optional[List[str]] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        limit: Optional[int] = None,
+        cursor: Optional[str] = None,
+        **filters: Any,
+    ) -> dict:
+        """Query vision events with filters and pagination.
+
+        Common filter kwargs are passed through to the server as-is,
+        supporting ``deviceId``, ``streamId``, ``workflowId``,
+        ``customMetadataFilters``, ``eventFieldFilters``, etc.
+
+        Args:
+            use_case: Use case identifier to query.
+            event_type: Filter by a single event type.
+            event_types: Filter by multiple event types.
+            start_time: ISO 8601 start time filter.
+            end_time: ISO 8601 end time filter.
+            limit: Maximum number of events to return.
+            cursor: Pagination cursor from a previous response.
+            **filters: Additional filter parameters passed to the API.
+
+        Returns:
+            Dict with ``events``, ``nextCursor``, ``hasMore``, and ``lookbackDays``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> page = ws.query_vision_events("manufacturing-qa", event_type="quality_check", limit=50)
+            >>> for evt in page["events"]:
+            ...     print(evt["eventId"])
+        """
+        payload: Dict[str, Any] = {"useCaseId": use_case}
+        if event_type is not None:
+            payload["eventType"] = event_type
+        if event_types is not None:
+            payload["eventTypes"] = event_types
+        if start_time is not None:
+            payload["startTime"] = start_time
+        if end_time is not None:
+            payload["endTime"] = end_time
+        if limit is not None:
+            payload["limit"] = limit
+        if cursor is not None:
+            payload["cursor"] = cursor
+        payload.update(filters)
+
+        return vision_events_api.query(
+            api_key=self.__api_key,
+            query_params=payload,
+        )
+
+    def query_all_vision_events(
+        self,
+        use_case: str,
+        *,
+        event_type: Optional[str] = None,
+        event_types: Optional[List[str]] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        limit: Optional[int] = None,
+        **filters: Any,
+    ) -> Generator[List[dict], None, None]:
+        """Paginated query across vision events, yielding one page at a time.
+
+        Automatically follows ``nextCursor`` until all matching events have
+        been returned.
+
+        Args:
+            use_case: Use case identifier to query.
+            event_type: Filter by a single event type.
+            event_types: Filter by multiple event types.
+            start_time: ISO 8601 start time filter.
+            end_time: ISO 8601 end time filter.
+            limit: Maximum events per page.
+            **filters: Additional filter parameters passed to the API.
+
+        Yields:
+            A list of event dicts for each page.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> for page in ws.query_all_vision_events("manufacturing-qa"):
+            ...     for evt in page:
+            ...         print(evt["eventId"])
+        """
+        cursor = None
+        while True:
+            response = self.query_vision_events(
+                use_case,
+                event_type=event_type,
+                event_types=event_types,
+                start_time=start_time,
+                end_time=end_time,
+                limit=limit,
+                cursor=cursor,
+                **filters,
+            )
+            events = response.get("events", [])
+            if not events:
+                break
+            yield events
+            cursor = response.get("nextCursor")
+            if not cursor or not response.get("hasMore", False):
+                break
+
+    def list_vision_event_use_cases(self, status: Optional[str] = None) -> dict:
+        """List all vision event use cases for the workspace.
+
+        Args:
+            status: Optional status filter (e.g. "active", "inactive").
+
+        Returns:
+            Dict with ``useCases`` list and ``lookbackDays``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> result = ws.list_vision_event_use_cases()
+            >>> for uc in result["useCases"]:
+            ...     print(uc["name"], uc.get("status"))
+        """
+        result = vision_events_api.list_use_cases(
+            api_key=self.__api_key,
+            status=status,
+        )
+        if "useCases" not in result and "solutions" in result:
+            result["useCases"] = result["solutions"]
+        return result
+
+    def create_vision_event_use_case(self, name: str) -> dict:
+        """Create a new vision event use case.
+
+        Args:
+            name: Human-readable name for the use case.
+
+        Returns:
+            Dict with ``id`` and ``name``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> result = ws.create_vision_event_use_case("manufacturing-qa")
+            >>> use_case_id = result["id"]
+        """
+        return vision_events_api.create_use_case(
+            api_key=self.__api_key,
+            name=name,
+        )
+
+    def rename_vision_event_use_case(self, use_case: str, name: str) -> dict:
+        """Rename an existing vision event use case.
+
+        Args:
+            use_case: Use case identifier.
+            name: New name for the use case.
+
+        Returns:
+            Dict with ``id`` and ``name``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> ws.rename_vision_event_use_case("abc123", "new-name")
+        """
+        return vision_events_api.rename_use_case(
+            api_key=self.__api_key,
+            use_case_id=use_case,
+            name=name,
+        )
+
+    def archive_vision_event_use_case(self, use_case: str) -> dict:
+        """Archive a vision event use case.
+
+        Args:
+            use_case: Use case identifier.
+
+        Returns:
+            Dict with ``success``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> ws.archive_vision_event_use_case("abc123")
+        """
+        return vision_events_api.archive_use_case(
+            api_key=self.__api_key,
+            use_case_id=use_case,
+        )
+
+    def unarchive_vision_event_use_case(self, use_case: str) -> dict:
+        """Unarchive a vision event use case.
+
+        Args:
+            use_case: Use case identifier.
+
+        Returns:
+            Dict with ``success``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> ws.unarchive_vision_event_use_case("abc123")
+        """
+        return vision_events_api.unarchive_use_case(
+            api_key=self.__api_key,
+            use_case_id=use_case,
+        )
+
+    def get_vision_event_metadata_schema(self, use_case: str) -> dict:
+        """Get the custom metadata schema for a vision event use case.
+
+        Returns discovered field names and their types, useful for building
+        queries with ``customMetadataFilters``.
+
+        Args:
+            use_case: Use case identifier.
+
+        Returns:
+            Dict with ``fields`` mapping field names to ``{"types": [...]}``.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> schema = ws.get_vision_event_metadata_schema("manufacturing-qa")
+            >>> for field, info in schema["fields"].items():
+            ...     print(field, info["types"])
+        """
+        return vision_events_api.get_custom_metadata_schema(
+            api_key=self.__api_key,
+            use_case_id=use_case,
+        )
+
+    def upload_vision_event_image(
+        self,
+        image_path: str,
+        name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> dict:
+        """Upload an image for use in vision events.
+
+        Args:
+            image_path: Local path to the image file.
+            name: Optional custom name for the image.
+            metadata: Optional flat dict of metadata to attach.
+
+        Returns:
+            Dict with ``sourceId`` for referencing in events.
+
+        Example:
+            >>> ws = rf.workspace()
+            >>> result = ws.upload_vision_event_image("photo.jpg")
+            >>> source_id = result["sourceId"]
+        """
+        return vision_events_api.upload_image(
+            api_key=self.__api_key,
+            image_path=image_path,
+            name=name,
+            metadata=metadata,
+        )
 
     def __str__(self):
         projects = self.projects()

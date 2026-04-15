@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 import urllib
@@ -120,6 +121,56 @@ class TestUploadImage(unittest.TestCase):
 
                 result = upload_image(self.API_KEY, self.PROJECT_URL, self.IMAGE_PATH_HOSTED, **upload_image_payload)
                 self.assertTrue(result["success"], msg=f"Failed in scenario: {scenario['desc']}")
+
+    @responses.activate
+    @patch("roboflow.util.image_utils.file2jpeg")
+    def test_upload_image_local_with_metadata(self, mock_file2jpeg):
+        mock_file2jpeg.return_value = b"image_data"
+
+        metadata = {"camera_id": "cam001", "location": "warehouse"}
+        expected_url = (
+            f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
+            f"api_key={self.API_KEY}&batch={urllib.parse.quote_plus(DEFAULT_BATCH_NAME)}"
+            f"&tag=lonely-tag"
+        )
+        responses.add(responses.POST, expected_url, json={"success": True}, status=200)
+
+        result = upload_image(
+            self.API_KEY,
+            self.PROJECT_URL,
+            self.IMAGE_PATH_LOCAL,
+            tag_names=self.TAG_NAMES_LOCAL,
+            metadata=metadata,
+        )
+        self.assertTrue(result["success"])
+
+        # Verify metadata was sent as a multipart field
+        request_body = responses.calls[0].request.body
+        self.assertIn(b'"camera_id"', request_body)
+        self.assertIn(b'"warehouse"', request_body)
+
+    @responses.activate
+    def test_upload_image_hosted_with_metadata(self):
+        metadata = {"camera_id": "cam001", "location": "warehouse"}
+        metadata_encoded = urllib.parse.quote_plus(json.dumps(metadata))
+        expected_url = (
+            f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
+            f"api_key={self.API_KEY}&name={self.IMAGE_NAME_HOSTED}"
+            f"&split=train&image={urllib.parse.quote_plus(self.IMAGE_PATH_HOSTED)}"
+            f"&batch={urllib.parse.quote_plus(DEFAULT_BATCH_NAME)}"
+            f"&tag=tag1&tag=tag2&metadata={metadata_encoded}"
+        )
+        responses.add(responses.POST, expected_url, json={"success": True}, status=200)
+
+        result = upload_image(
+            self.API_KEY,
+            self.PROJECT_URL,
+            self.IMAGE_PATH_HOSTED,
+            hosted_image=True,
+            tag_names=self.TAG_NAMES_HOSTED,
+            metadata=metadata,
+        )
+        self.assertTrue(result["success"])
 
     def _reset_responses(self):
         responses.reset()

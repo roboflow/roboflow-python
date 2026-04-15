@@ -61,15 +61,15 @@ class TestProject(RoboflowTest):
 
         # Create the mock objects
         mocks = {
-            "parser": patch("roboflow.core.workspace.folderparser.parsefolder", return_value=test_dataset),
-            "upload": patch("roboflow.core.workspace.Project.upload_image", side_effect=upload_image_side_effect)
+            "parser": patch("roboflow.util.folderparser.parsefolder", return_value=test_dataset),
+            "upload": patch("roboflow.core.project.Project.upload_image", side_effect=upload_image_side_effect)
             if upload_image_side_effect
-            else patch("roboflow.core.workspace.Project.upload_image", return_value=image_return),
+            else patch("roboflow.core.project.Project.upload_image", return_value=image_return),
             "save_annotation": patch(
-                "roboflow.core.workspace.Project.save_annotation", side_effect=save_annotation_side_effect
+                "roboflow.core.project.Project.save_annotation", side_effect=save_annotation_side_effect
             )
             if save_annotation_side_effect
-            else patch("roboflow.core.workspace.Project.save_annotation", return_value=annotation_return),
+            else patch("roboflow.core.project.Project.save_annotation", return_value=annotation_return),
             "get_project": patch(
                 "roboflow.core.workspace.Workspace._get_or_create_project", return_value=(self.project, project_created)
             ),
@@ -348,7 +348,7 @@ class TestProject(RoboflowTest):
                 "extra_mocks": [
                     (
                         "load_labelmap",
-                        "roboflow.core.workspace.load_labelmap",
+                        "roboflow.util.image_utils.load_labelmap",
                         {"return_value": {"old_label": "new_label"}},
                     )
                 ],
@@ -591,6 +591,49 @@ class TestProject(RoboflowTest):
 
         self.assertEqual(str(context.exception), "Batch not found")
 
+    def test_delete_images_success(self):
+        image_ids = ["image1.jpg", "image2.jpg"]
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/images?api_key={ROBOFLOW_API_KEY}"
+
+        responses.add(
+            responses.DELETE,
+            expected_url,
+            status=204,
+            match=[
+                json_params_matcher(
+                    {
+                        "images": image_ids,
+                    }
+                )
+            ],
+        )
+
+        self.project.delete_images(image_ids=image_ids)
+
+    def test_delete_images_error(self):
+        image_ids = ["image1.jpg", "image2.jpg"]
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/images?api_key={ROBOFLOW_API_KEY}"
+        error_response = {"error": "Failed to delete images"}
+
+        responses.add(
+            responses.DELETE,
+            expected_url,
+            json=error_response,
+            status=400,
+            match=[
+                json_params_matcher(
+                    {
+                        "images": image_ids,
+                    }
+                )
+            ],
+        )
+
+        with self.assertRaises(RuntimeError) as context:
+            self.project.delete_images(image_ids=image_ids)
+
+        self.assertEqual(str(context.exception), "Failed to delete images")
+
     def test_classification_dataset_upload(self):
         from roboflow.util import folderparser
 
@@ -607,13 +650,13 @@ class TestProject(RoboflowTest):
             return ({"success": True}, 0.1, 0)
 
         mocks = {
-            "parser": patch("roboflow.core.workspace.folderparser.parsefolder", return_value=parsed_dataset),
+            "parser": patch("roboflow.util.folderparser.parsefolder", return_value=parsed_dataset),
             "upload": patch(
-                "roboflow.core.workspace.Project.upload_image",
+                "roboflow.core.project.Project.upload_image",
                 return_value=({"id": "test-id", "success": True}, 0.1, 0),
             ),
             "save_annotation": patch(
-                "roboflow.core.workspace.Project.save_annotation", side_effect=capture_annotation_calls
+                "roboflow.core.project.Project.save_annotation", side_effect=capture_annotation_calls
             ),
             "get_project": patch(
                 "roboflow.core.workspace.Workspace._get_or_create_project", return_value=(self.project, False)
@@ -694,13 +737,13 @@ class TestProject(RoboflowTest):
             return ({"success": True}, 0.1, 0)
 
         mocks = {
-            "parser": patch("roboflow.core.workspace.folderparser.parsefolder", return_value=parsed_dataset),
+            "parser": patch("roboflow.util.folderparser.parsefolder", return_value=parsed_dataset),
             "upload": patch(
-                "roboflow.core.workspace.Project.upload_image",
+                "roboflow.core.project.Project.upload_image",
                 return_value=({"id": "test-id", "success": True}, 0.1, 0),
             ),
             "save_annotation": patch(
-                "roboflow.core.workspace.Project.save_annotation", side_effect=capture_annotation_calls
+                "roboflow.core.project.Project.save_annotation", side_effect=capture_annotation_calls
             ),
             "get_project": patch(
                 "roboflow.core.workspace.Workspace._get_or_create_project", return_value=(self.project, False)

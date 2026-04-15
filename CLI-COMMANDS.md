@@ -1,247 +1,201 @@
-# The roboflow-python command line
-This has the same capabilities of the [roboflow node cli](https://www.npmjs.com/package/roboflow-cli) so that our users don't need to install two different tools.
+# Roboflow CLI
 
-## See available commands
+The `roboflow` command line tool provides access to the Roboflow platform for managing computer vision projects, datasets, models, and deployments. It's designed for both human developers and AI coding agents.
 
-```bash
-$ roboflow --help
-```
+> **Full reference:** [docs.roboflow.com/deploy/sdks/python-cli](https://docs.roboflow.com/deploy/sdks/python-cli)
 
-```
-usage: roboflow [-h] {login,download,upload,import,infer,project,workspace} ...
-
-Welcome to the roboflow CLI: computer vision at your fingertips 🪄
-
-options:
-  -h, --help            show this help message and exit
-
-subcommands:
-  {login,download,upload,import,infer,project,workspace}
-    login               Log in to Roboflow
-    download            Download a dataset version from your workspace or Roboflow Universe.
-    upload              Upload a single image to a dataset
-    import              Import a dataset from a local folder
-    infer               perform inference on an image
-    project             project related commands. type 'roboflow project' to see detailed command help
-    workspace           workspace related commands. type 'roboflow workspace' to see detailed command help
-```
-
-## Authentication
-
-You need to authenticate first
+## Install & authenticate
 
 ```bash
-$ roboflow login
+pip install roboflow
+export ROBOFLOW_API_KEY=rf_xxxxx    # recommended for scripts and agents
+roboflow auth login                  # or interactive login
 ```
 
-```
-visit https://app.roboflow.com/auth-cli to get your authentication token.
-Paste the authentication token here:
-```
-Open that link on your browser, get the token, paste it on the terminal.
-The credentials get saved to `~/.config/roboflow/config.json`
+## Global flags
 
-## Display help usage for other commands
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--json` | `-j` | Structured JSON output (for agents and piping) |
+| `--api-key` | `-k` | API key override |
+| `--workspace` | `-w` | Workspace override |
+| `--quiet` | `-q` | Suppress progress bars and status messages |
+| `--version` | | Show version |
 
-"How do I download stuff?"
+Flags work in any position: `roboflow project list --json` and `roboflow --json project list` are equivalent.
+
+## Quick examples
+
+### Create a project and upload images
 
 ```bash
-$ roboflow download --help
-```
-```
-usage: roboflow download [-h] [-f FORMAT] [-l LOCATION] datasetUrl
-
-positional arguments:
-  datasetUrl   Dataset URL (e.g., `roboflow-100/cells-uyemf/2`)
-
-options:
-  -h, --help   show this help message and exit
-  -f FORMAT    Specify the format to download the version. Available options: [coco, yolov5pytorch, yolov7pytorch, my-yolov6, darknet,
-               voc, tfrecord, createml, clip, multiclass, coco-segmentation, yolo5-obb, png-mask-semantic, yolov8, yolov9]
-  -l LOCATION  Location to download the dataset
+roboflow project create my-project --type object-detection
+roboflow image upload photo.jpg -p my-project
+roboflow image upload ./dataset-folder/ -p my-project   # smart: detects directory
 ```
 
-"How do I import a dataset into my workspace?"
+### Download a dataset
 
 ```bash
-$ roboflow import --help
+roboflow version download my-workspace/my-project/3 -f yolov8
+roboflow download my-workspace/my-project/3 -f coco   # alias
 ```
 
-```
-usage: roboflow import [-h] [-w WORKSPACE] [-p PROJECT] [-c CONCURRENCY] [-f FORMAT] folder
-
-positional arguments:
-  folder          filesystem path to a folder that contains your dataset
-
-options:
-  -h, --help      show this help message and exit
-  -w WORKSPACE    specify a workspace url or id (will use default workspace if not specified)
-  -p PROJECT      project will be created if it does not exist
-  -c CONCURRENCY  how many image uploads to perform concurrently (default: 10)
-  -n BATCH_NAME   name of batch to upload to within project
-```
-
-## Example: download dataset
-
-Download [Joseph's chess dataset](https://universe.roboflow.com/joseph-nelson/chess-pieces-new/dataset/25) from Roboflow Universe in VOC format:
+### Run inference
 
 ```bash
-$ roboflow download -f voc -l ~/tmp/chess joseph-nelson/chess-pieces-new/25
-```
-```
-loading Roboflow workspace...
-loading Roboflow project...
-Downloading Dataset Version Zip in /Users/tony/tmp/chess to voc:: 100%|██████████████████████████| 19178/19178 [00:01<00:00, 10424.62it/s]
-
-Extracting Dataset Version Zip to /Users/tony/tmp/chess in voc:: 100%|██████████████████████████████| 1391/1391 [00:00<00:00, 8992.30it/s]
-```
-```bash
-$ ls -lh ~/tmp/chess
-total 16
--rw-r--r--@    1 tony  staff   1.8K Jan  5 10:32 README.dataset.txt
--rw-r--r--@    1 tony  staff   562B Jan  5 10:32 README.roboflow.txt
-drwxr-xr-x@   60 tony  staff   1.9K Jan  5 10:32 test
-drwxr-xr-x@ 1214 tony  staff    38K Jan  5 10:32 train
-drwxr-xr-x@  118 tony  staff   3.7K Jan  5 10:32 valid
+roboflow infer photo.jpg -m my-project/3
 ```
 
-## Example: import a dataset
-
-Upload a dataset from a folder to a project in your workspace
+### Search and export
 
 ```bash
-roboflow import -w my-workspace -p my-chess ~/tmp/chess
+roboflow search "tag:reviewed" --limit 100
+roboflow search "class:person" --export -f coco -l ./export/
 ```
 
-```
-loading Roboflow workspace...
-loading Roboflow project...
-Uploading to existing project my-workspace/my-chess
-[UPLOADED] /home/jonny/tmp/chess/102_jpg.rf.205e2a0cb0fabbbf32b4a936e2d6f1e4.jpg (sFpTfnyLpLA8QcqPwdvf) / annotations = OK
-[UPLOADED] /home/jonny/tmp/chess/2_jpg.rf.c1a4ed4e0c3947743b22ede09f7e1212.jpg (wDA2yxnLJWY5YwYwO7dP) / annotations = OK
-[UPLOADED] /home/jonny/tmp/chess/221_jpg.rf.e841c9bbb31a135b8f6274643f522686.jpg (UCv7MeuvEqo7PYElatEn) / annotations = OK
-[UPLOADED] /home/jonny/tmp/chess/10_jpg.rf.841f3ccdfc4b93ee68566e602025c03f.jpg (HnkCpUcYzxStvQF49VQW) / annotations = OK
-[UPLOADED] /home/jonny/tmp/chess/130_jpg.rf.29f756d510d2e488eb5e12769c7707ff.jpg (WxrFIhfaJ9H1JvaXMgfF) / annotations = OK
-[UPLOADED] /home/jonny/tmp/chess/112_jpg.rf.1a6e7b87410fa3f787f10e82bd02b54e.jpg (7tWtAn573cKrefeg5pIO) / annotations = OK
-```
-
-## Example: list workspaces
-List the workspaces you have access to
+### Browse resources
 
 ```bash
-$ roboflow workspace list
+roboflow workspace list
+roboflow project list
+roboflow project get my-project
+roboflow version list -p my-project
+roboflow model list -p my-project
 ```
 
-```
-tonyprivate
-  link: https://app.roboflow.com/tonyprivate
-  id: tonyprivate
-
-wolfodorpythontests
-  link: https://app.roboflow.com/wolfodorpythontests
-  id: wolfodorpythontests
-
-test minimize
-  link: https://app.roboflow.com/test-minimize
-  id: test-minimize
-```
-
-## Example: get workspace details
+### Manage folders
 
 ```bash
-$ roboflow workspace get tonyprivate
+roboflow folder list
+roboflow folder create "Training Data" --projects proj1,proj2
+roboflow folder get <folder-id>
+roboflow folder update <folder-id> --name "New Name"
+roboflow folder delete <folder-id>
 ```
 
-```
-{
-  "workspace": {
-    "name": "tonyprivate",
-    "url": "tonyprivate",
-    "members": 4,
-    "projects": [
-      {
-        "id": "tonyprivate/annotation-upload",
-        "type": "object-detection",
-        "name": "annotation-upload",
-        "created": 1685199749.708,
-        "updated": 1695910515.48,
-        "images": 1,
-        (...)
-      }
-    ]
-  }
-}
-```
-
-## Example: list projects
+### Annotation batches and jobs
 
 ```bash
-roboflow project list -w tonyprivate
-```
-```
-annotation-upload
-  link: https://app.roboflow.com/tonyprivate/annotation-upload
-  id: tonyprivate/annotation-upload
-  type: object-detection
-  versions: 0
-  images: 1
-  classes: dict_keys(['0', 'Rabbits1', 'Rabbits2', 'minion1', 'minion0', '5075E'])
-
-hand-gestures
-  link: https://app.roboflow.com/tonyprivate/hand-gestures-fsph8
-  id: tonyprivate/hand-gestures-fsph8
-  type: object-detection
-  versions: 5
-  images: 387
-  classes: dict_keys(['zero', 'four', 'one', 'two', 'five', 'three', 'Guard'])
+roboflow annotation batch list -p my-project
+roboflow annotation batch get <batch-id> -p my-project
+roboflow annotation job list -p my-project
+roboflow annotation job create -p my-project --name "Label round 1" \
+  --batch <batch-id> --num-images 100 --labeler a@co.com --reviewer b@co.com
 ```
 
-## Example: get project details
+### Workflows
 
 ```bash
-roboflow project get -w tonyprivate annotation-upload
-```
-```
-{
-  "workspace": {
-    "name": "tonyprivate",
-    "url": "tonyprivate",
-    "members": 4
-  },
-  "project": {
-    "id": "tonyprivate/annotation-upload",
-    "type": "object-detection",
-    "name": "annotation-upload",
-    "created": 1685199749.708,
-    "updated": 1695910515.48,
-    "images": 1,
-    (...)
-  },
-  "versions": []
-}
+roboflow workflow list
+roboflow workflow get my-workflow
+roboflow workflow create --name "My Workflow" --definition workflow.json
+roboflow workflow update my-workflow --definition updated.json
+roboflow workflow version list my-workflow
+roboflow workflow fork other-ws/their-workflow
 ```
 
-## Example: run inference
-
-If your project has a trained model (or you are using a dataset from Roboflow Universe that has a trained model), you can run inference from the command line.
-
-Let's use [Rock-Paper-Scissors sample public dataset]([url](https://universe.roboflow.com/roboflow-58fyf/rock-paper-scissors-sxsw/model/11)) from Roboflow universe
-
-(In my case, `~/scissors.png` is me holding two fingers to the camera, you can use your own image file ;-))
+### Create a dataset version
 
 ```bash
-roboflow infer -w roboflow-58fyf -m rock-paper-scissors-sxsw/11 ~/scissors.png
+roboflow version create -p my-project --settings settings.json
 ```
+
+### Workspace stats and billing
+
+```bash
+roboflow workspace usage
+roboflow workspace plan
+roboflow workspace stats --start-date 2026-01-01 --end-date 2026-03-31
 ```
-{
-  "x": 1230.0,
-  "y": 814.5,
-  "width": 840.0,
-  "height": 1273.0,
-  "confidence": 0.8817358016967773,
-  "class": "Scissors",
-  "class_id": 2,
-  "image_path": "/Users/tony/scissors.png",
-  "prediction_type": "ObjectDetectionModel"
-}
+
+### Search Roboflow Universe
+
+```bash
+roboflow universe search "hard hats" --type dataset --limit 5
 ```
+
+### Video inference
+
+```bash
+roboflow video infer -p my-project -v 3 -f video.mp4 --fps 10
+roboflow video status <job-id>
+```
+
+### Shell completion
+
+```bash
+# Zsh
+eval "$(roboflow completion zsh)"
+
+# Bash (requires bash >= 4.4)
+eval "$(roboflow completion bash)"
+
+# Fish
+roboflow completion fish | source
+```
+
+## JSON output for agents
+
+Every command supports `--json` for structured output that's safe to pipe:
+
+```bash
+# stdout: JSON data, stderr: JSON errors, exit codes: 0/1/2/3
+roboflow --json project list | python3 -c "import sys,json; print(json.load(sys.stdin))"
+roboflow --json project get nonexistent 2>/dev/null   # stderr gets the error JSON
+```
+
+Error schema is consistent: `{"error": {"message": "...", "hint": "..."}}`
+
+## Resource shorthand
+
+Resources can be addressed with compact identifiers:
+
+| Shorthand | Resolves to |
+|-----------|-------------|
+| `my-project` | default workspace + project |
+| `my-ws/my-project` | explicit workspace + project |
+| `my-project/3` | default workspace + project + version 3 |
+| `my-ws/my-project/3` | explicit workspace + project + version 3 |
+
+Version numbers are always numeric — that's how `x/y` is disambiguated between `workspace/project` and `project/version`.
+
+## All command groups
+
+| Command | Description |
+|---------|-------------|
+| `auth` | Login, logout, status, set default workspace |
+| `workspace` | List and inspect workspaces |
+| `project` | List, get, create projects |
+| `version` | List, get, download, export dataset versions |
+| `image` | Upload, get, search, tag, delete, annotate images |
+| `model` | List, get, upload trained models |
+| `train` | Start model training |
+| `infer` | Run inference on images |
+| `search` | Search workspace images (RoboQL), export results |
+| `deployment` | Manage dedicated deployments |
+| `workflow` | Manage workflows |
+| `folder` | Manage workspace folders |
+| `annotation` | Annotation batches and jobs |
+| `universe` | Search Roboflow Universe |
+| `video` | Video inference |
+| `batch` | Batch processing jobs *(coming soon)* |
+| `completion` | Generate shell completion scripts (bash, zsh, fish) |
+
+Run `roboflow <command> --help` for details on any command.
+
+## Backwards compatibility
+
+All legacy command names still work:
+
+| Legacy | Current |
+|--------|---------|
+| `roboflow login` | `roboflow auth login` |
+| `roboflow whoami` | `roboflow auth status` |
+| `roboflow upload <file>` | `roboflow image upload <file>` |
+| `roboflow import <dir>` | `roboflow image upload <dir>` |
+| `roboflow download <url>` | `roboflow version download <url>` |
+| `roboflow search-export` | `roboflow search --export` |
+| `roboflow train` | `roboflow train start` |
+| `roboflow deployment add` | `roboflow deployment create` |
+| `roboflow deployment machine_type` | `roboflow deployment machine-type` |

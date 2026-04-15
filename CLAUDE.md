@@ -84,13 +84,36 @@ The Roboflow Python SDK follows a hierarchical object model that mirrors the Rob
 - **rfapi** (`roboflow/adapters/rfapi.py`) - Low-level API communication
 - **deploymentapi** (`roboflow/adapters/deploymentapi.py`) - Model deployment operations
 
-### CLI Interface
+### CLI Package (`roboflow/cli/`)
 
-The `roboflow` command line tool (`roboflow/roboflowpy.py`) provides:
-- Authentication: `roboflow login`
-- Dataset operations: `roboflow download`, `roboflow upload`, `roboflow import`
-- Inference: `roboflow infer`
-- Project/workspace management: `roboflow project`, `roboflow workspace`
+The CLI is built on [typer](https://typer.tiangolo.com/) (which uses Click under the hood). `roboflow/roboflowpy.py` is a backwards-compatibility shim that delegates to `roboflow.cli.main`.
+
+**Package structure:**
+- `__init__.py` — Root `typer.Typer()` app with global `@app.callback()` for `--json`, `--workspace`, `--api-key`, `--quiet`. Explicitly registers all handler apps via `app.add_typer()`.
+- `_output.py` — `output(args, data, text)` for JSON/text output, `output_error(args, msg, hint, exit_code)` for structured errors, `suppress_sdk_output()` to silence SDK noise, `stub()` for unimplemented commands
+- `_compat.py` — `ctx_to_args(ctx, **kwargs)` bridge that converts `typer.Context` to the `SimpleNamespace` that output helpers expect
+- `_table.py` — `format_table(rows, columns)` for columnar list output
+- `_resolver.py` — `resolve_resource(shorthand)` for parsing `project`, `ws/project`, `ws/project/3`
+- `handlers/` — One file per command group, each exporting a `typer.Typer()` app. `_aliases.py` registers backwards-compat top-level commands via `register_aliases(app)`.
+
+**Adding a new command:**
+1. Create `roboflow/cli/handlers/mycommand.py`
+2. Create a module-level `mycommand_app = typer.Typer(help="...", no_args_is_help=True)`
+3. Add commands with `@mycommand_app.command("verb")` decorators
+4. Each command takes `ctx: typer.Context` + typed params, calls `ctx_to_args(ctx, **params)` to create args namespace
+5. Use `output()` for all output, `output_error()` for all errors
+6. Wrap SDK calls in `with suppress_sdk_output():` to prevent "loading..." noise
+7. Register in `roboflow/cli/__init__.py`: `app.add_typer(mycommand_app, name="mycommand")`
+8. Add tests using `typer.testing.CliRunner` in `tests/cli/test_mycommand_handler.py`
+
+**Agent experience requirements for all CLI commands:**
+- Support `--json` for structured output (stable schema)
+- No interactive prompts when all required flags are provided
+- Structured error output: `{"error": {"message": "...", "hint": "..."}}` on stderr
+- Exit codes: 0 = success, 1 = error, 2 = auth error, 3 = not found
+- Actionable error messages: always tell the user what went wrong AND what to do
+
+**Documentation policy:** `CLI-COMMANDS.md` in this repo is a quickstart only. The full command reference lives in `roboflow-product-docs` (published to docs.roboflow.com). When adding commands, update both.
 
 ### Key Design Patterns
 
@@ -98,14 +121,17 @@ The `roboflow` command line tool (`roboflow/roboflowpy.py`) provides:
 2. **API Key Flow**: API key is passed down through the object hierarchy
 3. **Format Flexibility**: Supports multiple dataset formats (YOLO, COCO, Pascal VOC, etc.)
 4. **Batch Operations**: Upload and download operations support concurrent processing
+5. **CLI Noun-Verb Pattern**: Commands follow `roboflow <noun> <verb>` (e.g. `roboflow project list`). Common operations have top-level aliases (`login`, `upload`, `download`)
+6. **CLI Explicit Registration**: Handler apps are explicitly imported and registered via `app.add_typer()` in `__init__.py` — clear dependency chain, no runtime discovery
+7. **Backwards Compatibility**: Legacy command names and flag signatures are preserved as hidden aliases
 
 ## Project Configuration
 
-- **Python Version**: 3.8+
-- **Main Dependencies**: See `requirements.txt`
-- **Entry Point**: `roboflow=roboflow.roboflowpy:main`
+- **Python Version**: 3.10+
+- **Main Dependencies**: See `requirements.txt` (includes `typer>=0.12.0`)
+- **Entry Point**: `roboflow=roboflow.roboflowpy:main` (shim delegates to `roboflow.cli.main`)
 - **Code Style**: Enforced by ruff with Google docstring convention
-- **Type Checking**: mypy configured for Python 3.8
+- **Type Checking**: mypy configured for Python 3.10
 
 ## Important Notes
 
