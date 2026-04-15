@@ -21,7 +21,7 @@ except ImportError:
     CLIPModel = None  # type: ignore[assignment,misc]
     GazeModel = None  # type: ignore[assignment,misc]
 
-__version__ = "1.3.2"
+__version__ = "1.3.3"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
