@@ -22,7 +22,7 @@ class TestKeypointDetection(unittest.TestCase):
     dataset_id = os.getenv("PROJECT_NAME")
     version = "1"
 
-    api_url = f"https://detect.roboflow.com/{dataset_id}/{version}"
+    api_url = f"https://serverless.roboflow.com/{dataset_id}/{version}"
 
     _default_params = {"api_key": api_key, "confidence": "40", "name": "YOUR_IMAGE.jpg"}
 
@@ -35,7 +35,7 @@ class TestKeypointDetection(unittest.TestCase):
 
         self.assertEqual(instance.id, self.version_id)
         self.assertEqual(instance.version, self.version)
-        self.assertEqual(instance.base_url, "https://detect.roboflow.com/")
+        self.assertEqual(instance.base_url, "https://serverless.roboflow.com/")
 
     @responses.activate
     def test_predict_local_image(self):
