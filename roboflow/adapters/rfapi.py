@@ -8,7 +8,6 @@ from requests.exceptions import RequestException
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
-from roboflow.util import image_utils
 
 
 class RoboflowError(Exception):
@@ -294,6 +293,8 @@ def upload_image(
 
     # If image is not a hosted image
     if not hosted_image:
+        from roboflow.util import image_utils
+
         image_name = os.path.basename(image_path)
         imgjpeg = image_utils.file2jpeg(image_path)
 
