@@ -933,9 +933,7 @@ class TestZipUpload(RoboflowTest):
             started = {name: m.start() for name, m in mocks.items()}
             started["zip_dir"] = zip_dir_mock.start()
             try:
-                self.workspace.upload_dataset(
-                    dataset_path=src_dir, project_name=PROJECT_NAME, use_zip_upload=True
-                )
+                self.workspace.upload_dataset(dataset_path=src_dir, project_name=PROJECT_NAME, use_zip_upload=True)
                 started["zip_dir"].assert_called_once_with(src_dir)
                 started["init"].assert_called_once()
                 self.assertFalse(_os.path.exists(fake_zip), "temp zip was not cleaned up")
