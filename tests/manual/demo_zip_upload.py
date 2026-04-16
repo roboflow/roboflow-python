@@ -18,12 +18,12 @@ from roboflow.adapters import rfapi  # noqa: E402
 
 # ---- edit these -----------------------------------------------------------
 # Reads from env by default; set directly if you prefer.
-API_KEY = os.environ.get("ROBOFLOW_API_KEY", "YOUR_API_KEY")
-WORKSPACE = os.environ.get("ROBOFLOW_WORKSPACE", "your-workspace")
-PROJECT = os.environ.get("ROBOFLOW_PROJECT", "your-project")
+API_KEY = os.environ.get("ROBOFLOW_API_KEY", "<YOUR_API_KEY>")
+WORKSPACE = os.environ.get("ROBOFLOW_WORKSPACE", "rodrigo-xn5xn")
+PROJECT = os.environ.get("ROBOFLOW_PROJECT", "small-od")
 
-ZIP_PATH = os.path.expanduser("~/Downloads/COCO Dataset.v50i.coco.zip")
-DIR_PATH = os.path.expanduser("~/Downloads/some-dataset-dir")
+ZIP_PATH = os.path.expanduser("~/Downloads/instance-seg.coco-segmentation.zip")
+DIR_PATH = os.path.expanduser("~/Downloads/instance-seg.coco-segmentation")
 # For the `status` scenario, paste the task_id returned by the `no_wait` run
 TASK_ID = ""
 # ---------------------------------------------------------------------------
@@ -113,9 +113,9 @@ if __name__ == "__main__":
     workspace = rf.workspace(WORKSPACE)
 
     # Uncomment the scenario you want to run:
-    scenario_zip_path(workspace)
+    # scenario_zip_path(workspace)
     # scenario_dir_default(workspace)
-    # scenario_dir_zip_opt_in(workspace)
+    scenario_dir_zip_opt_in(workspace)
     # scenario_no_wait(workspace)
     # scenario_status(workspace)
     # scenario_with_tags_and_split(workspace)
