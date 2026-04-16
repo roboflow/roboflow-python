@@ -483,6 +483,49 @@ def _save_annotation_error(response):
 
 
 # ---------------------------------------------------------------------------
+# Zip upload endpoints
+# ---------------------------------------------------------------------------
+
+
+def init_zip_upload(api_key, workspace_url, project_url, split=None, tags=None, batch_name=None) -> dict:
+    """POST /{ws}/{proj}/upload/zip — initialize a zip upload and get a signed URL."""
+    url = f"{API_URL}/{workspace_url}/{project_url}/upload/zip"
+    body: Dict[str, Union[str, List[str]]] = {}
+    if split is not None:
+        body["split"] = split
+    if tags is not None:
+        body["tags"] = tags
+    if batch_name is not None:
+        body["batchName"] = batch_name
+    response = requests.post(url, params={"api_key": api_key}, json=body)
+    if response.status_code not in (200, 201):
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def upload_zip_to_signed_url(signed_url, zip_path) -> None:
+    """PUT the zip file to the GCS signed URL returned by init_zip_upload."""
+    with open(zip_path, "rb") as fh:
+        response = requests.put(
+            signed_url,
+            data=fh,
+            headers={"Content-Type": "application/zip"},
+            timeout=(60, 3600),
+        )
+    if not response.ok:
+        raise RoboflowError(f"Zip upload to signed URL failed ({response.status_code}): {response.text}")
+
+
+def get_zip_upload_status(api_key, workspace_url, task_id) -> dict:
+    """GET /{ws}/upload/zip/{task_id} — poll status of an async zip upload."""
+    url = f"{API_URL}/{workspace_url}/upload/zip/{task_id}"
+    response = requests.get(url, params={"api_key": api_key})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
 # Phase 2: Annotation batch & job endpoints
 # ---------------------------------------------------------------------------
 
