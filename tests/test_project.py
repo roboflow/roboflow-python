@@ -865,3 +865,215 @@ class TestProject(RoboflowTest):
         # specified keys match, it doesn't fail if additional keys are missing
         results = self.project.search()
         self.assertEqual(len(results), 2)
+
+
+class TestZipUpload(RoboflowTest):
+    def _rfapi_mocks(self, get_status_side_effect=None, get_status_return=None):
+        import_target = "roboflow.core.workspace.rfapi"
+        init_mock = patch(
+            f"{import_target}.init_zip_upload",
+            return_value={"signedUrl": "https://signed.example/upload", "taskId": "task-123"},
+        )
+        put_mock = patch(f"{import_target}.upload_zip_to_signed_url", return_value=None)
+        if get_status_side_effect is not None:
+            status_mock = patch(f"{import_target}.get_zip_upload_status", side_effect=get_status_side_effect)
+        else:
+            status_mock = patch(
+                f"{import_target}.get_zip_upload_status",
+                return_value=get_status_return or {"status": "completed", "result": {"ok": True}},
+            )
+        project_mock = patch(
+            "roboflow.core.workspace.Workspace._get_or_create_project",
+            return_value=(self.project, False),
+        )
+        return {"init": init_mock, "put": put_mock, "status": status_mock, "project": project_mock}
+
+    def test_zip_path_passthrough(self):
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as fh:
+            fh.write(b"fake zip")
+            zip_path = fh.name
+
+        mocks = self._rfapi_mocks()
+        zip_dir_mock = patch("roboflow.core.workspace._zip_directory")
+        started = {name: m.start() for name, m in mocks.items()}
+        started["zip_dir"] = zip_dir_mock.start()
+        try:
+            result = self.workspace.upload_dataset(dataset_path=zip_path, project_name=PROJECT_NAME)
+            self.assertEqual(result, {"status": "completed", "result": {"ok": True}})
+            started["init"].assert_called_once()
+            started["put"].assert_called_once()
+            started["zip_dir"].assert_not_called()
+            put_args, _ = started["put"].call_args
+            self.assertEqual(put_args[0], "https://signed.example/upload")
+            self.assertEqual(put_args[1], zip_path)
+        finally:
+            for m in list(mocks.values()) + [zip_dir_mock]:
+                m.stop()
+            import os as _os
+
+            if _os.path.exists(zip_path):
+                _os.unlink(zip_path)
+
+    def test_directory_with_use_zip_upload_zips_and_cleans_up(self):
+        import os as _os
+        import tempfile
+
+        # Pre-create a temp zip path to be returned by _zip_directory
+        fd, fake_zip = tempfile.mkstemp(suffix=".zip", prefix="roboflow-upload-")
+        _os.close(fd)
+        with open(fake_zip, "wb") as fh:
+            fh.write(b"fake zip payload")
+
+        src_dir = tempfile.mkdtemp()
+        try:
+            mocks = self._rfapi_mocks()
+            zip_dir_mock = patch("roboflow.core.workspace._zip_directory", return_value=fake_zip)
+            started = {name: m.start() for name, m in mocks.items()}
+            started["zip_dir"] = zip_dir_mock.start()
+            try:
+                self.workspace.upload_dataset(
+                    dataset_path=src_dir, project_name=PROJECT_NAME, use_zip_upload=True
+                )
+                started["zip_dir"].assert_called_once_with(src_dir)
+                started["init"].assert_called_once()
+                self.assertFalse(_os.path.exists(fake_zip), "temp zip was not cleaned up")
+            finally:
+                for m in list(mocks.values()) + [zip_dir_mock]:
+                    m.stop()
+        finally:
+            if _os.path.exists(fake_zip):
+                _os.unlink(fake_zip)
+            if _os.path.isdir(src_dir):
+                _os.rmdir(src_dir)
+
+    def test_directory_default_stays_on_per_image(self):
+        import tempfile
+
+        src_dir = tempfile.mkdtemp()
+        try:
+            rfapi_mocks = self._rfapi_mocks()
+            per_image = {
+                "parser": patch(
+                    "roboflow.util.folderparser.parsefolder",
+                    return_value={"location": "/tmp/", "images": []},
+                ),
+            }
+            started = {name: m.start() for name, m in {**rfapi_mocks, **per_image}.items()}
+            try:
+                result = self.workspace.upload_dataset(dataset_path=src_dir, project_name=PROJECT_NAME)
+                self.assertIsNone(result)
+                started["init"].assert_not_called()
+                started["parser"].assert_called_once()
+            finally:
+                for m in list(rfapi_mocks.values()) + list(per_image.values()):
+                    m.stop()
+        finally:
+            import os as _os
+
+            _os.rmdir(src_dir)
+
+    def test_use_zip_upload_with_is_prediction_raises(self):
+        import tempfile
+
+        from roboflow.adapters.rfapi import RoboflowError
+
+        src_dir = tempfile.mkdtemp()
+        try:
+            mocks = self._rfapi_mocks()
+            started = {name: m.start() for name, m in mocks.items()}
+            try:
+                with self.assertRaises(RoboflowError):
+                    self.workspace.upload_dataset(
+                        dataset_path=src_dir,
+                        project_name=PROJECT_NAME,
+                        use_zip_upload=True,
+                        is_prediction=True,
+                    )
+                started["init"].assert_not_called()
+            finally:
+                for m in mocks.values():
+                    m.stop()
+        finally:
+            import os as _os
+
+            _os.rmdir(src_dir)
+
+    def test_wait_false_returns_task_id_without_polling(self):
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as fh:
+            fh.write(b"fake")
+            zip_path = fh.name
+
+        mocks = self._rfapi_mocks()
+        started = {name: m.start() for name, m in mocks.items()}
+        try:
+            result = self.workspace.upload_dataset(dataset_path=zip_path, project_name=PROJECT_NAME, wait=False)
+            self.assertEqual(result, {"task_id": "task-123", "status": "pending"})
+            started["status"].assert_not_called()
+        finally:
+            for m in mocks.values():
+                m.stop()
+            import os as _os
+
+            if _os.path.exists(zip_path):
+                _os.unlink(zip_path)
+
+    def test_poll_loop_completes(self):
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as fh:
+            fh.write(b"fake")
+            zip_path = fh.name
+
+        responses_seq = [
+            {"status": "running", "progress": {"current": "10%"}},
+            {"status": "completed", "result": {"imageCount": 5}},
+        ]
+        mocks = self._rfapi_mocks(get_status_side_effect=responses_seq)
+        sleep_mock = patch("roboflow.core.workspace.time.sleep", return_value=None)
+        started = {name: m.start() for name, m in mocks.items()}
+        started["sleep"] = sleep_mock.start()
+        try:
+            result = self.workspace.upload_dataset(dataset_path=zip_path, project_name=PROJECT_NAME, poll_interval=0.0)
+            self.assertEqual(result, {"status": "completed", "result": {"imageCount": 5}})
+            self.assertEqual(started["status"].call_count, 2)
+        finally:
+            for m in list(mocks.values()) + [sleep_mock]:
+                m.stop()
+            import os as _os
+
+            if _os.path.exists(zip_path):
+                _os.unlink(zip_path)
+
+    def test_poll_loop_timeout(self):
+        import tempfile
+
+        from roboflow.adapters.rfapi import RoboflowError
+
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as fh:
+            fh.write(b"fake")
+            zip_path = fh.name
+
+        mocks = self._rfapi_mocks(get_status_return={"status": "running"})
+        # Make time.monotonic advance past the deadline on the second call.
+        monotonic_values = iter([1000.0, 1000.0, 9999.0])
+        monotonic_mock = patch("roboflow.core.workspace.time.monotonic", side_effect=lambda: next(monotonic_values))
+        sleep_mock = patch("roboflow.core.workspace.time.sleep", return_value=None)
+        started = {name: m.start() for name, m in mocks.items()}
+        started["monotonic"] = monotonic_mock.start()
+        started["sleep"] = sleep_mock.start()
+        try:
+            with self.assertRaises(RoboflowError):
+                self.workspace.upload_dataset(
+                    dataset_path=zip_path, project_name=PROJECT_NAME, poll_timeout=1.0, poll_interval=0.0
+                )
+        finally:
+            for m in list(mocks.values()) + [monotonic_mock, sleep_mock]:
+                m.stop()
+            import os as _os
+
+            if _os.path.exists(zip_path):
+                _os.unlink(zip_path)
