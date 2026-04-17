@@ -67,7 +67,8 @@ DEDICATED_DEPLOYMENT_URL = get_conditional_configuration_variable("DEDICATED_DEP
 
 DEMO_KEYS = ["coco-128-sample", "chess-sample-only-api-key"]
 
-TYPE_CLASSICATION = "classification"
+TYPE_CLASSIFICATION = "classification"
+TYPE_CLASSICATION = TYPE_CLASSIFICATION  # backwards-compat alias (typo'd name)
 TYPE_OBJECT_DETECTION = "object-detection"
 TYPE_INSTANCE_SEGMENTATION = "instance-segmentation"
 TYPE_SEMANTIC_SEGMENTATION = "semantic-segmentation"

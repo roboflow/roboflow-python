@@ -2,14 +2,79 @@ import json
 import os
 import shutil
 import zipfile
-from typing import Callable
+from typing import Callable, Optional
 
 import yaml
 
 from roboflow.util.versions import print_warn_for_wrong_dependencies_versions
 
+_TASK_TOKENS = (
+    ("seg", "segment"),  # matches SegmentationModel, -seg, rfdetr-seg-*
+    ("pose", "pose"),  # matches PoseModel, -pose
+    ("classif", "classify"),  # matches ClassificationModel
+    ("cls", "classify"),  # matches -cls
+    ("obb", "obb"),  # matches OBBModel, -obb
+    ("detect", "detect"),  # matches DetectionModel
+)
 
-def process(model_type: str, model_path: str, filename: str) -> str:
+_TASK_TO_SUFFIX = {
+    "segment": "-seg",
+    "pose": "-pose",
+    "classify": "-cls",
+    "obb": "-obb",
+}
+
+
+def _task_from_substring(s: str) -> Optional[str]:
+    """Scan a string for a known task token. Returns canonical task or None."""
+    s = s.lower()
+    for token, task in _TASK_TOKENS:
+        if token in s:
+            return task
+    return None
+
+
+def task_of_model_type(model_type: str) -> str:
+    """Canonical task for a deploy model_type string.
+
+    'yolov11' / 'rfdetr-base' -> 'detect';
+    'yolov11-seg' / 'rfdetr-seg-medium' -> 'segment';
+    future 'rfdetr-pose-medium' / 'rfdetr-obb-large' -> 'pose' / 'obb'.
+    """
+    return _task_from_substring(model_type) or "detect"
+
+
+def _detect_task_from_pt(model_dict, model_instance) -> Optional[str]:
+    """Detect the training task from a loaded .pt checkpoint.
+
+    Returns 'detect' | 'segment' | 'pose' | 'classify' | 'obb', or None if
+    the checkpoint schema is not recognized.
+    """
+    # 1. Ultralytics class-name convention: DetectionModel / SegmentationModel /
+    #    ClassificationModel / PoseModel / OBBModel. Works across yolov8/v10/v11/v12/yolo26.
+    if model_instance is not None:
+        found = _task_from_substring(type(model_instance).__name__)
+        if found:
+            return found
+    # 2. RF-DETR (and future): args.task string, or today's args.segmentation_head bool.
+    args = model_dict.get("args") if isinstance(model_dict, dict) else None
+    if args is not None:
+        if isinstance(args, dict):
+            task = args.get("task")
+            seg_head = args.get("segmentation_head")
+        else:
+            task = getattr(args, "task", None)
+            seg_head = getattr(args, "segmentation_head", None)
+        if isinstance(task, str):
+            return _task_from_substring(task)
+        if seg_head is True:
+            return "segment"
+        if seg_head is False:
+            return "detect"
+    return None
+
+
+def process(model_type: str, model_path: str, filename: str) -> tuple[str, str]:
     processor = _get_processor_function(model_type)
     return processor(model_type, model_path, filename)
 
@@ -66,7 +131,7 @@ def _get_processor_function(model_type: str) -> Callable:
     return _process_yolo
 
 
-def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
+def _process_yolo(model_type: str, model_path: str, filename: str) -> tuple[str, str]:
     if "yolov8" in model_type:
         try:
             import torch
@@ -147,6 +212,17 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
     model = torch.load(os.path.join(model_path, filename), weights_only=False)
 
     model_instance = model["model"] if "model" in model and model["model"] is not None else model["ema"]
+
+    detected_task = _detect_task_from_pt(model, model_instance)
+    if detected_task:
+        existing_task = task_of_model_type(model_type)
+        if existing_task == "detect" and detected_task != "detect":
+            model_type = model_type + _TASK_TO_SUFFIX[detected_task]
+        elif existing_task != detected_task:
+            raise ValueError(
+                f"model_type '{model_type}' implies task '{existing_task}' but the "
+                f".pt file is a '{detected_task}' checkpoint. Use a matching model_type."
+            )
 
     if isinstance(model_instance.names, list):
         class_names = model_instance.names
@@ -241,10 +317,10 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> str:
                 if file in ["model_artifacts.json", "state_dict.pt"]:
                     raise (ValueError(f"File {file} not found. Please make sure to provide a valid model path."))
 
-    return zip_file_name
+    return zip_file_name, model_type
 
 
-def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
+def _process_rfdetr(model_type: str, model_path: str, filename: str) -> tuple[str, str]:
     _supported_types = [
         # Detection models
         "rfdetr-base",
@@ -274,7 +350,20 @@ def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
     if pt_file is None:
         raise RuntimeError("No .pt or .pth model file found in the provided path")
 
-    get_classnames_txt_for_rfdetr(model_path, pt_file)
+    import torch
+
+    checkpoint = torch.load(os.path.join(model_path, pt_file), map_location="cpu", weights_only=False)
+
+    detected_task = _detect_task_from_pt(checkpoint, None)
+    if detected_task:
+        implied_task = task_of_model_type(model_type)
+        if detected_task != implied_task:
+            raise ValueError(
+                f"model_type '{model_type}' implies task '{implied_task}' but the "
+                f".pt is a '{detected_task}' rfdetr checkpoint. Use a matching model_type."
+            )
+
+    get_classnames_txt_for_rfdetr(model_path, pt_file, checkpoint=checkpoint)
 
     # Copy the .pt file to weights.pt if not already named weights.pt
     if pt_file != "weights.pt":
@@ -293,19 +382,20 @@ def _process_rfdetr(model_type: str, model_path: str, filename: str) -> str:
             if os.path.exists(os.path.join(model_path, file)):
                 zipMe.write(os.path.join(model_path, file), arcname=file, compress_type=zipfile.ZIP_DEFLATED)
 
-    return zip_file_name
+    return zip_file_name, model_type
 
 
-def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str):
+def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str, checkpoint=None):
     class_names_path = os.path.join(model_path, "class_names.txt")
     if os.path.exists(class_names_path):
         maybe_prepend_dummy_class(class_names_path)
         return class_names_path
 
-    import torch
+    if checkpoint is None:
+        import torch
 
-    model = torch.load(os.path.join(model_path, pt_file), map_location="cpu", weights_only=False)
-    args = vars(model["args"])
+        checkpoint = torch.load(os.path.join(model_path, pt_file), map_location="cpu", weights_only=False)
+    args = vars(checkpoint["args"])
     if "class_names" in args:
         with open(class_names_path, "w") as f:
             for class_name in args["class_names"]:
@@ -335,7 +425,7 @@ def maybe_prepend_dummy_class(class_name_file: str):
 
 def _process_huggingface(
     model_type: str, model_path: str, filename: str = "fine-tuned-paligemma-3b-pt-224.f16.npz"
-) -> str:
+) -> tuple[str, str]:
     # Check if model_path exists
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model path {model_path} does not exist.")
@@ -382,10 +472,10 @@ def _process_huggingface(
 
     print("Uploading to Roboflow... May take several minutes.")
 
-    return tar_file_name
+    return tar_file_name, model_type
 
 
-def _process_yolonas(model_type: str, model_path: str, filename: str = "weights/best.pt") -> str:
+def _process_yolonas(model_type: str, model_path: str, filename: str = "weights/best.pt") -> tuple[str, str]:
     try:
         import torch
     except ImportError:
@@ -449,4 +539,4 @@ def _process_yolonas(model_type: str, model_path: str, filename: str = "weights/
                 if file in ["model_artifacts.json", filename]:
                     raise (ValueError(f"File {file} not found. Please make sure to provide a valid model path."))
 
-    return zip_file_name
+    return zip_file_name, model_type
