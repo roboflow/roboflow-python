@@ -18,6 +18,7 @@ from roboflow.config import (
     DEMO_KEYS,
     TQDM_DISABLE,
     TYPE_CLASSICATION,
+    TYPE_CLASSIFICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_KEYPOINT_DETECTION,
     TYPE_OBJECT_DETECTION,
@@ -32,7 +33,7 @@ from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import extract_zip, write_line
-from roboflow.util.model_processor import process
+from roboflow.util.model_processor import process, task_of_model_type
 from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions, normalize_yolo_model_type
 
 if TYPE_CHECKING:
@@ -476,6 +477,14 @@ class Version:
         assert self.model
         return self.model
 
+    _PROJECT_TYPE_TO_TASK = {
+        TYPE_OBJECT_DETECTION: "detect",
+        TYPE_INSTANCE_SEGMENTATION: "segment",
+        TYPE_KEYPOINT_DETECTION: "pose",
+        TYPE_CLASSIFICATION: "classify",
+        # TYPE_SEMANTIC_SEGMENTATION intentionally omitted — no uploader emits it.
+    }
+
     # @warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])
     def deploy(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
         """Uploads provided weights file to Roboflow.
@@ -486,12 +495,24 @@ class Version:
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
         model_type = normalize_yolo_model_type(model_type)
-        zip_file_name = process(model_type, model_path, filename)
+        zip_file_name, model_type = process(model_type, model_path, filename)
 
         if zip_file_name is None:
             raise RuntimeError("Failed to process model")
 
+        self._validate_against_project_type(model_type)
         self._upload_zip(model_type, model_path, zip_file_name)
+
+    def _validate_against_project_type(self, model_type: str) -> None:
+        expected = self._PROJECT_TYPE_TO_TASK.get(self.type)
+        if expected is None:
+            return
+        actual = task_of_model_type(model_type)
+        if actual != expected:
+            raise ValueError(
+                f"Project '{self.project}' is type '{self.type}' (task '{expected}') "
+                f"but model_type '{model_type}' implies task '{actual}'."
+            )
 
     def _upload_zip(self, model_type: str, model_path: str, model_file_name: str):
         res = requests.get(

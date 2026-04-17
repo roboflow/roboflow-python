@@ -633,7 +633,7 @@ class Workspace:
                 raise ValueError(f"Project {project_id} is not accessible in this workspace")
 
         model_type = normalize_yolo_model_type(model_type)
-        zip_file_name = process(model_type, model_path, filename)
+        zip_file_name, model_type = process(model_type, model_path, filename)
 
         if zip_file_name is None:
             raise RuntimeError("Failed to process model")
