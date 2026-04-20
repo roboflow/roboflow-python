@@ -32,7 +32,6 @@ setuptools.setup(
             "mypy",
             "responses",
             "ruff",
-            "twine",
             "types-pyyaml",
             "types-requests",
             "types-setuptools",

@@ -1,4 +1,4 @@
-.PHONY: style check_code_quality publish publish-slim
+.PHONY: style check_code_quality
 
 export PYTHONPATH = .
 check_dirs := roboflow
@@ -11,14 +11,3 @@ check_code_quality:
 	ruff format $(check_dirs) --check
 	ruff check $(check_dirs)
 	mypy $(check_dirs)
-
-publish:
-	python setup.py sdist bdist_wheel
-	twine check dist/*
-	twine upload dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} --verbose
-
-publish-slim:
-	rm -rf dist/ build/ *.egg-info
-	python setup_slim.py sdist bdist_wheel
-	twine check dist/*
-	twine upload dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} --verbose
