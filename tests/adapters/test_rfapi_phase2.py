@@ -1,7 +1,10 @@
 """Unit tests for Phase 2 rfapi functions."""
 
+import json
 import unittest
 from unittest.mock import MagicMock, patch
+
+from roboflow.adapters.rfapi import _normalize_workflow_config
 
 
 class TestListBatches(unittest.TestCase):
@@ -387,25 +390,61 @@ class TestCreateWorkflow(unittest.TestCase):
 
 
 class TestNormalizeWorkflowConfig(unittest.TestCase):
-    def test_none_returns_empty_object(self):
-        from roboflow.adapters.rfapi import _normalize_workflow_config
+    """Direct unit tests for the private ``_normalize_workflow_config`` helper.
 
+    Imported from the private API intentionally — whitebox tests lock the
+    behavior contract that ``create_workflow``/``update_workflow`` rely on.
+    """
+
+    def test_none_returns_empty_object(self):
         self.assertEqual(_normalize_workflow_config(None), "{}")
 
-    def test_empty_dict_preserved(self):
-        from roboflow.adapters.rfapi import _normalize_workflow_config
-
+    def test_empty_dict_serialized_to_empty_json(self):
+        # Empty dict has no workflow keys, so it falls through the wrap check
+        # and serializes to ``"{}"`` — coincidentally matching the legacy
+        # ``None -> "{}"`` default.
         self.assertEqual(_normalize_workflow_config({}), "{}")
 
     def test_string_without_workflow_keys_preserved_byte_for_byte(self):
-        from roboflow.adapters.rfapi import _normalize_workflow_config
-
         self.assertEqual(_normalize_workflow_config('{"a":1}'), '{"a":1}')
 
     def test_non_json_string_passthrough(self):
-        from roboflow.adapters.rfapi import _normalize_workflow_config
-
         self.assertEqual(_normalize_workflow_config("not json"), "not json")
+
+    def test_already_wrapped_json_string_preserved_byte_for_byte(self):
+        wrapped = '{"specification": {"version": "1.0"}}'
+        self.assertEqual(_normalize_workflow_config(wrapped), wrapped)
+
+    def test_partial_workflow_dict_is_wrapped(self):
+        # Single workflow-shaped key at top level is enough to classify as a
+        # bare spec; users often build definitions incrementally.
+        result = _normalize_workflow_config({"steps": [{"id": "s1"}]})
+        self.assertEqual(json.loads(result), {"specification": {"steps": [{"id": "s1"}]}})
+
+    def test_json_array_input_preserved(self):
+        # ``isinstance(parsed, dict)`` guards against calling ``.keys()`` on
+        # non-dict JSON; pinning the no-wrap behavior here protects that.
+        self.assertEqual(_normalize_workflow_config("[1,2,3]"), "[1,2,3]")
+
+    def test_json_scalar_inputs_preserved(self):
+        self.assertEqual(_normalize_workflow_config("42"), "42")
+        self.assertEqual(_normalize_workflow_config("true"), "true")
+        self.assertEqual(_normalize_workflow_config("null"), "null")
+
+    def test_utf8_bom_stripped_before_parse(self):
+        # Windows editors frequently prepend a UTF-8 BOM. Without the strip,
+        # ``json.loads`` raises and the raw (unwrapped) string would ship —
+        # reproducing the exact 502 this PR is meant to fix.
+        bom_str = '\ufeff{"version":"1.0","steps":[]}'
+        result = _normalize_workflow_config(bom_str)
+        self.assertEqual(json.loads(result), {"specification": {"version": "1.0", "steps": []}})
+
+    def test_wrapped_output_uses_compact_separators(self):
+        # Matches the shape the web UI writes via ``JSON.stringify``, so
+        # Firestore audit/diff tooling sees SDK- and UI-written rows as
+        # byte-identical when the logical content matches.
+        result = _normalize_workflow_config({"version": "1.0", "steps": []})
+        self.assertEqual(result, '{"specification":{"version":"1.0","steps":[]}}')
 
 
 class TestUpdateWorkflow(unittest.TestCase):
