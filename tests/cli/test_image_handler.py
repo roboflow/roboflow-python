@@ -185,6 +185,166 @@ class TestImageUploadDirectory(unittest.TestCase):
             self.assertEqual(result["status"], "imported")
             self.assertEqual(result["count"], 2)  # .jpg and .png only
 
+    @patch("roboflow.Roboflow")
+    def test_upload_zip_file_routes_to_directory_handler(self, mock_rf_cls):
+        from roboflow.cli.handlers.image import _handle_upload
+
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as f:
+            f.write(b"fake zip")
+            zip_path = f.name
+
+        try:
+            mock_ws = MagicMock()
+            mock_ws.upload_dataset.return_value = {"status": "completed", "task_id": "t1"}
+            mock_project = MagicMock()
+            mock_rf_cls.return_value.workspace.return_value = mock_ws
+            mock_ws.project.return_value = mock_project
+
+            args = _make_args(
+                json=True,
+                path=zip_path,
+                project="proj",
+                annotation=None,
+                split="train",
+                batch=None,
+                tag=None,
+                metadata=None,
+                concurrency=10,
+                retries=0,
+                labelmap=None,
+                is_prediction=False,
+                no_wait=False,
+            )
+
+            buf = io.StringIO()
+            old = sys.stdout
+            sys.stdout = buf
+            try:
+                _handle_upload(args)
+            finally:
+                sys.stdout = old
+
+            mock_ws.upload_dataset.assert_called_once()
+            mock_project.single_upload.assert_not_called()
+        finally:
+            os.unlink(zip_path)
+
+    @patch("roboflow.Roboflow")
+    def test_no_wait_forwarded(self, mock_rf_cls):
+        from roboflow.cli.handlers.image import _handle_upload
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mock_ws = MagicMock()
+            mock_ws.upload_dataset.return_value = {"status": "pending", "task_id": "t9"}
+            mock_rf_cls.return_value.workspace.return_value = mock_ws
+
+            args = _make_args(
+                json=True,
+                path=tmpdir,
+                project="proj",
+                annotation=None,
+                split="train",
+                batch=None,
+                tag=None,
+                metadata=None,
+                concurrency=10,
+                retries=0,
+                labelmap=None,
+                is_prediction=False,
+                zip_upload=True,
+                no_wait=True,
+            )
+
+            buf = io.StringIO()
+            old = sys.stdout
+            sys.stdout = buf
+            try:
+                _handle_upload(args)
+            finally:
+                sys.stdout = old
+
+            _, kwargs = mock_ws.upload_dataset.call_args
+            self.assertEqual(kwargs.get("wait"), False)
+            self.assertEqual(kwargs.get("use_zip_upload"), True)
+
+    @patch("roboflow.Roboflow")
+    def test_zip_flow_uses_server_result_in_output(self, mock_rf_cls):
+        from roboflow.cli.handlers.image import _handle_upload
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mock_ws = MagicMock()
+            mock_ws.upload_dataset.return_value = {"status": "completed", "task_id": "t1"}
+            mock_rf_cls.return_value.workspace.return_value = mock_ws
+
+            args = _make_args(
+                json=True,
+                path=tmpdir,
+                project="proj",
+                annotation=None,
+                split="train",
+                batch=None,
+                tag="foo,bar",
+                metadata=None,
+                concurrency=10,
+                retries=0,
+                labelmap=None,
+                is_prediction=False,
+                zip_upload=True,
+                no_wait=False,
+            )
+
+            buf = io.StringIO()
+            old = sys.stdout
+            sys.stdout = buf
+            try:
+                _handle_upload(args)
+            finally:
+                sys.stdout = old
+
+            result = json.loads(buf.getvalue())
+            self.assertEqual(result["task_id"], "t1")
+            self.assertEqual(result["status"], "completed")
+
+            _, kwargs = mock_ws.upload_dataset.call_args
+            self.assertEqual(kwargs.get("tags"), ["foo", "bar"])
+            self.assertEqual(kwargs.get("use_zip_upload"), True)
+
+    @patch("roboflow.Roboflow")
+    def test_zip_upload_flag_defaults_false(self, mock_rf_cls):
+        from roboflow.cli.handlers.image import _handle_upload
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mock_ws = MagicMock()
+            # MagicMock return → not a dict → per-image output branch
+            mock_ws.upload_dataset.return_value = None
+            mock_rf_cls.return_value.workspace.return_value = mock_ws
+
+            args = _make_args(
+                json=True,
+                path=tmpdir,
+                project="proj",
+                annotation=None,
+                split="train",
+                batch=None,
+                tag=None,
+                metadata=None,
+                concurrency=10,
+                retries=0,
+                labelmap=None,
+                is_prediction=False,
+            )
+
+            buf = io.StringIO()
+            old = sys.stdout
+            sys.stdout = buf
+            try:
+                _handle_upload(args)
+            finally:
+                sys.stdout = old
+
+            _, kwargs = mock_ws.upload_dataset.call_args
+            self.assertEqual(kwargs.get("use_zip_upload"), False)
+
 
 class TestImageDelete(unittest.TestCase):
     """Test the delete handler."""

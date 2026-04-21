@@ -29,6 +29,14 @@ def upload_image(
     retries: Annotated[int, typer.Option("-r", "--retries", help="Retry failed uploads N times")] = 0,
     labelmap: Annotated[Optional[str], typer.Option(help="Path to labelmap file")] = None,
     is_prediction: Annotated[bool, typer.Option("--is-prediction", help="Mark upload as prediction")] = False,
+    zip_upload: Annotated[
+        bool,
+        typer.Option("--zip-upload", help="Zip the directory client-side and use the async zip upload flow"),
+    ] = False,
+    no_wait: Annotated[
+        bool,
+        typer.Option("--no-wait", help="Zip flow: return immediately with task_id instead of polling"),
+    ] = False,
 ) -> None:
     """Upload an image file or import a directory."""
     args = ctx_to_args(
@@ -44,6 +52,8 @@ def upload_image(
         retries=retries,
         labelmap=labelmap,
         is_prediction=is_prediction,
+        zip_upload=zip_upload,
+        no_wait=no_wait,
     )
     _handle_upload(args)
 
@@ -191,7 +201,7 @@ def _handle_upload(args):  # noqa: ANN001
         return
 
     path = args.path
-    if os.path.isdir(path):
+    if os.path.isdir(path) or (os.path.isfile(path) and path.lower().endswith(".zip")):
         _handle_upload_directory(args, api_key, path)
     elif os.path.isfile(path):
         _handle_upload_single(args, api_key, path)
@@ -262,20 +272,40 @@ def _handle_upload_directory(args, api_key: str, path: str) -> None:  # noqa: AN
             return
 
     retries = getattr(args, "retries", None) or getattr(args, "num_retries", 0) or 0
+    tag_raw = getattr(args, "tag", None)
+    tags = [t.strip() for t in tag_raw.split(",") if t.strip()] if tag_raw else None
+    wait = not getattr(args, "no_wait", False)
 
     try:
-        workspace.upload_dataset(
+        result = workspace.upload_dataset(
             dataset_path=path,
             project_name=args.project,
             num_workers=args.concurrency,
             batch_name=getattr(args, "batch", None),
             num_retries=retries,
+            is_prediction=getattr(args, "is_prediction", False),
+            use_zip_upload=getattr(args, "zip_upload", False),
+            split=getattr(args, "split", None),
+            tags=tags,
+            wait=wait,
         )
     except Exception as exc:
         output_error(args, str(exc))
         return
 
-    # Count files uploaded (approximate via image extensions)
+    if isinstance(result, dict):
+        status = result.get("status", "unknown")
+        data = {
+            "status": status,
+            "task_id": result.get("task_id") or result.get("taskId"),
+            "path": path,
+            "project": args.project,
+            "result": result,
+        }
+        output(args, data, text=f"Imported {path} to {args.project} (zip upload, status={status})")
+        return
+
+    # Per-image fallback — count files via image extensions
     count = 0
     image_exts = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"}
     for root, _dirs, files in os.walk(path):
