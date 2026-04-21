@@ -5,6 +5,12 @@ from unittest.mock import patch
 import responses
 
 from roboflow.adapters import rfapi
+from roboflow.config import (
+    TYPE_CLASSICATION,
+    TYPE_INSTANCE_SEGMENTATION,
+    TYPE_KEYPOINT_DETECTION,
+    TYPE_OBJECT_DETECTION,
+)
 from roboflow.core.version import Version, unwrap_version_id
 from tests.helpers import get_version
 
@@ -197,3 +203,46 @@ def test_unwrap_version_id_when_only_version_id_is_given() -> None:
 
     # then
     assert result == "3"
+
+
+class TestValidateAgainstProjectType(unittest.TestCase):
+    def _version(self, project_type):
+        return get_version(type=project_type)
+
+    def test_detection_project_accepts_plain_yolo(self):
+        self._version(TYPE_OBJECT_DETECTION)._validate_against_project_type("yolov11")
+
+    def test_detection_project_accepts_rfdetr_detection(self):
+        self._version(TYPE_OBJECT_DETECTION)._validate_against_project_type("rfdetr-medium")
+
+    def test_detection_project_rejects_seg_model(self):
+        with self.assertRaises(ValueError):
+            self._version(TYPE_OBJECT_DETECTION)._validate_against_project_type("yolov11-seg")
+
+    def test_detection_project_rejects_rfdetr_seg(self):
+        with self.assertRaises(ValueError):
+            self._version(TYPE_OBJECT_DETECTION)._validate_against_project_type("rfdetr-seg-medium")
+
+    def test_instance_seg_project_accepts_seg_model(self):
+        self._version(TYPE_INSTANCE_SEGMENTATION)._validate_against_project_type("yolov11-seg")
+
+    def test_instance_seg_project_accepts_rfdetr_seg(self):
+        self._version(TYPE_INSTANCE_SEGMENTATION)._validate_against_project_type("rfdetr-seg-medium")
+
+    def test_instance_seg_project_rejects_detection(self):
+        with self.assertRaises(ValueError):
+            self._version(TYPE_INSTANCE_SEGMENTATION)._validate_against_project_type("yolov11")
+
+    def test_keypoint_project_accepts_pose_model(self):
+        self._version(TYPE_KEYPOINT_DETECTION)._validate_against_project_type("yolov11-pose")
+
+    def test_keypoint_project_rejects_detection(self):
+        with self.assertRaises(ValueError):
+            self._version(TYPE_KEYPOINT_DETECTION)._validate_against_project_type("yolov11")
+
+    def test_classification_project_accepts_cls(self):
+        self._version(TYPE_CLASSICATION)._validate_against_project_type("yolov11-cls")
+
+    def test_classification_project_rejects_detection(self):
+        with self.assertRaises(ValueError):
+            self._version(TYPE_CLASSICATION)._validate_against_project_type("yolov11")
