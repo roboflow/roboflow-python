@@ -73,6 +73,12 @@ TYPE_INSTANCE_SEGMENTATION = "instance-segmentation"
 TYPE_SEMANTIC_SEGMENTATION = "semantic-segmentation"
 TYPE_KEYPOINT_DETECTION = "keypoint-detection"
 
+TASK_DET = "det"
+TASK_SEG = "seg"
+TASK_POSE = "pose"
+TASK_CLS = "cls"
+TASK_OBB = "obb"
+
 DEFAULT_BATCH_NAME = "Pip Package Upload"
 DEFAULT_JOB_NAME = "Annotated via API"
 
