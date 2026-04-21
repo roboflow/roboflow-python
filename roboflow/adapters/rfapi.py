@@ -653,6 +653,46 @@ def delete_folder(api_key, workspace_url, group_id):
 # ---------------------------------------------------------------------------
 
 
+_WORKFLOW_SPEC_KEYS = frozenset({"version", "inputs", "steps", "outputs"})
+
+
+def _normalize_workflow_config(config):
+    """Return a JSON string suitable for the backend's ``config`` field.
+
+    The backend stores the ``config`` value verbatim, and the Roboflow inference
+    server expects to parse it to ``{"specification": {...}}`` (see
+    ``inference.core.roboflow_api.get_workflow_specification``). User-facing
+    Workflows JSON — as published in docs.roboflow.com/workflows,
+    ``inference/development/workflows_examples/*``, and the web UI's "View JSON"
+    export — is the flat shape ``{"version", "inputs", "steps", "outputs"}``.
+    The web app silently wraps it in ``{"specification": ...}`` before POSTing;
+    this helper does the same for SDK/CLI callers so that users don't need to
+    know the backend's storage convention.
+
+    Behavior:
+    - ``None`` -> ``"{}"`` (preserves legacy "empty workflow" default).
+    - Anything already wrapped (``{"specification": ...}``) is passed through.
+    - Dicts or JSON strings that look like a bare workflow spec — i.e., contain
+      any of ``version``/``inputs``/``steps``/``outputs`` at the top level —
+      get wrapped.
+    - Any other input is preserved as-is (stringified if needed) so callers who
+      intentionally send custom payloads aren't second-guessed.
+    """
+    if config is None:
+        return "{}"
+    if isinstance(config, str):
+        try:
+            parsed = json.loads(config)
+        except (ValueError, TypeError):
+            return config
+        if isinstance(parsed, dict) and "specification" not in parsed and _WORKFLOW_SPEC_KEYS & parsed.keys():
+            return json.dumps({"specification": parsed})
+        return config  # preserve user-supplied string unchanged when no wrap needed
+    if isinstance(config, dict) and "specification" not in config and _WORKFLOW_SPEC_KEYS & config.keys():
+        config = {"specification": config}
+    return json.dumps(config)
+
+
 def list_workflows(api_key, workspace_url):
     """GET /{ws}/workflows — list workflows."""
     response = requests.get(f"{API_URL}/{workspace_url}/workflows", params={"api_key": api_key})
@@ -688,13 +728,11 @@ def create_workflow(api_key, workspace_url, *, name, url=None, config=None, temp
         import re
 
         url = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
-    if config is None:
-        config = "{}"
     if template is None:
         template = "{}"
-    # config/template must be strings (the API validates with Joi.string)
-    if not isinstance(config, str):
-        config = json.dumps(config)
+    # config must be the backend's stored shape (`{"specification": ...}`);
+    # auto-wrap bare workflow definitions so docs-shaped JSON works unchanged.
+    config = _normalize_workflow_config(config)
     if not isinstance(template, str):
         template = json.dumps(template)
     params: Dict[str, str] = {
@@ -723,10 +761,12 @@ def update_workflow(api_key, workspace_url, *, workflow_id, workflow_name, workf
         workflow_id: The workflow's internal ID.
         workflow_name: The workflow's display name.
         workflow_url: The workflow's URL slug.
-        config: JSON string (or dict) of the workflow config.
+        config: JSON string (or dict) of the workflow config. Bare workflow
+            definitions (``{"version", "inputs", "steps", "outputs"}``) are
+            auto-wrapped in ``{"specification": ...}`` to match the backend's
+            stored shape; see ``_normalize_workflow_config``.
     """
-    if not isinstance(config, str):
-        config = json.dumps(config)
+    config = _normalize_workflow_config(config)
     payload: Dict[str, str] = {
         "id": workflow_id,
         "name": workflow_name,

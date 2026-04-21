@@ -332,6 +332,81 @@ class TestCreateWorkflow(unittest.TestCase):
         with self.assertRaises(RoboflowError):
             create_workflow("key", "ws", name="Bad")
 
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_bare_spec_dict_is_auto_wrapped(self, mock_post):
+        """Docs-shaped workflow definitions get wrapped in {"specification": ...}
+        so they match the backend's stored format and the inference server's
+        expectation. See `_normalize_workflow_config`."""
+        import json as _json
+
+        from roboflow.adapters.rfapi import create_workflow
+
+        mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "wf"}})
+        bare = {"version": "1.0", "inputs": [], "steps": [], "outputs": []}
+        create_workflow("key", "ws", name="WF", config=bare)
+        sent_config = _json.loads(mock_post.call_args[1]["params"]["config"])
+        self.assertEqual(sent_config, {"specification": bare})
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_already_wrapped_config_is_not_double_wrapped(self, mock_post):
+        import json as _json
+
+        from roboflow.adapters.rfapi import create_workflow
+
+        mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "wf"}})
+        wrapped = {"specification": {"version": "1.0", "inputs": [], "steps": [], "outputs": []}}
+        create_workflow("key", "ws", name="WF", config=wrapped)
+        sent_config = _json.loads(mock_post.call_args[1]["params"]["config"])
+        self.assertEqual(sent_config, wrapped)
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_bare_spec_json_string_is_auto_wrapped(self, mock_post):
+        """JSON strings are parsed, wrapped if bare, and re-serialized."""
+        import json as _json
+
+        from roboflow.adapters.rfapi import create_workflow
+
+        mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "wf"}})
+        bare_str = '{"version": "1.0", "steps": []}'
+        create_workflow("key", "ws", name="WF", config=bare_str)
+        sent_config = _json.loads(mock_post.call_args[1]["params"]["config"])
+        self.assertEqual(sent_config, {"specification": {"version": "1.0", "steps": []}})
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_non_workflow_dict_is_not_wrapped(self, mock_post):
+        """Dicts that don't look like a workflow spec (no version/inputs/steps/outputs)
+        are passed through unchanged to avoid second-guessing custom payloads."""
+        import json as _json
+
+        from roboflow.adapters.rfapi import create_workflow
+
+        mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "wf"}})
+        create_workflow("key", "ws", name="WF", config={"a": 1})
+        sent_config = _json.loads(mock_post.call_args[1]["params"]["config"])
+        self.assertEqual(sent_config, {"a": 1})
+
+
+class TestNormalizeWorkflowConfig(unittest.TestCase):
+    def test_none_returns_empty_object(self):
+        from roboflow.adapters.rfapi import _normalize_workflow_config
+
+        self.assertEqual(_normalize_workflow_config(None), "{}")
+
+    def test_empty_dict_preserved(self):
+        from roboflow.adapters.rfapi import _normalize_workflow_config
+
+        self.assertEqual(_normalize_workflow_config({}), "{}")
+
+    def test_string_without_workflow_keys_preserved_byte_for_byte(self):
+        from roboflow.adapters.rfapi import _normalize_workflow_config
+
+        self.assertEqual(_normalize_workflow_config('{"a":1}'), '{"a":1}')
+
+    def test_non_json_string_passthrough(self):
+        from roboflow.adapters.rfapi import _normalize_workflow_config
+
+        self.assertEqual(_normalize_workflow_config("not json"), "not json")
+
 
 class TestUpdateWorkflow(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.requests.post")
@@ -359,6 +434,18 @@ class TestUpdateWorkflow(unittest.TestCase):
         update_workflow("key", "ws", workflow_id="id-1", workflow_name="WF1", workflow_url="wf1", config='{"a":1}')
         payload = mock_post.call_args[1]["json"]
         self.assertEqual(payload["config"], '{"a":1}')
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_bare_spec_dict_is_auto_wrapped_on_update(self, mock_post):
+        import json as _json
+
+        from roboflow.adapters.rfapi import update_workflow
+
+        mock_post.return_value = MagicMock(status_code=200, json=lambda: {"status": "ok"})
+        bare = {"version": "1.0", "inputs": [], "steps": [], "outputs": []}
+        update_workflow("key", "ws", workflow_id="id-1", workflow_name="WF1", workflow_url="wf1", config=bare)
+        sent_config = _json.loads(mock_post.call_args[1]["json"]["config"])
+        self.assertEqual(sent_config, {"specification": bare})
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_error(self, mock_post):
