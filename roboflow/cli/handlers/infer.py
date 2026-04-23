@@ -65,6 +65,7 @@ def _infer(args):  # noqa: ANN001
     from roboflow.models.keypoint_detection import KeypointDetectionModel
     from roboflow.models.object_detection import ObjectDetectionModel
     from roboflow.models.semantic_segmentation import SemanticSegmentationModel
+    from roboflow.models.vlm import VLMModel
 
     model_class_map = {
         "object-detection": ObjectDetectionModel,
@@ -72,6 +73,7 @@ def _infer(args):  # noqa: ANN001
         "instance-segmentation": InstanceSegmentationModel,
         "semantic-segmentation": SemanticSegmentationModel,
         "keypoint-detection": KeypointDetectionModel,
+        "text-image-pairs": VLMModel,
     }
 
     model_cls = model_class_map.get(project_type)
@@ -97,15 +99,25 @@ def _infer(args):  # noqa: ANN001
         kwargs["overlap"] = int(args.overlap * 100)
 
     try:
-        group = model.predict(args.file, **kwargs)
+        result = model.predict(args.file, **kwargs)
     except Exception as exc:
         output_error(args, f"Inference failed: {exc}")
+        return
+
+    # VLM models return raw dict response; pass through as-is.
+    if isinstance(result, dict):
+        if getattr(args, "json", False):
+            output(args, result)
+        else:
+            import json as _json
+
+            output(args, None, text=_json.dumps(result, indent=2))
         return
 
     # Serialize predictions for JSON output
     if getattr(args, "json", False):
         predictions = []
-        for pred in group:
+        for pred in result:
             if hasattr(pred, "json"):
                 predictions.append(pred.json())
             elif hasattr(pred, "__dict__"):
@@ -114,4 +126,4 @@ def _infer(args):  # noqa: ANN001
                 predictions.append(str(pred))
         output(args, predictions)
     else:
-        output(args, None, text=str(group))
+        output(args, None, text=str(result))
