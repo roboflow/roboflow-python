@@ -860,7 +860,7 @@ def delete_project(api_key, workspace_url, project_url):
 
     Any in-flight training jobs for the project will be cancelled automatically.
     The project can be restored via `restore_trash_item` within the retention
-    window, or permanently deleted via `trash_delete_immediately`.
+    window; after 30 days the cleanup cron permanently removes it.
     """
     url = f"{API_URL}/{workspace_url}/{project_url}?api_key={api_key}"
     response = requests.delete(url)
