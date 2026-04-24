@@ -403,9 +403,7 @@ class TestWorkflowDeleteHandler(unittest.TestCase):
         from roboflow.cli.handlers.workflow import _delete_workflow
 
         args = _make_args(workflow_url="slow-webhooks", yes=True)
-        with patch(
-            "roboflow.adapters.rfapi.delete_workflow", return_value={"deleted": True}
-        ) as mock_del:
+        with patch("roboflow.adapters.rfapi.delete_workflow", return_value={"deleted": True}) as mock_del:
             _delete_workflow(args)
             mock_del.assert_called_once_with("test-key", "test-ws", "slow-webhooks")
 
@@ -416,13 +414,7 @@ class TestWorkflowRestoreHandler(unittest.TestCase):
     def test_restore_found_by_url(self) -> None:
         from roboflow.cli.handlers.workflow import _restore_workflow
 
-        trash = {
-            "sections": {
-                "workflows": [
-                    {"id": "wf_abc123", "url": "slow-webhooks", "name": "Slow Webhooks"}
-                ]
-            }
-        }
+        trash = {"sections": {"workflows": [{"id": "wf_abc123", "url": "slow-webhooks", "name": "Slow Webhooks"}]}}
         args = _make_args(workflow_url="slow-webhooks")
         with (
             patch("roboflow.adapters.rfapi.list_trash", return_value=trash),
@@ -439,13 +431,7 @@ class TestWorkflowRestoreHandler(unittest.TestCase):
         # still resolve, via the id fallback.
         from roboflow.cli.handlers.workflow import _restore_workflow
 
-        trash = {
-            "sections": {
-                "workflows": [
-                    {"id": "wf_abc123", "url": "slow-webhooks", "name": "Slow Webhooks"}
-                ]
-            }
-        }
+        trash = {"sections": {"workflows": [{"id": "wf_abc123", "url": "slow-webhooks", "name": "Slow Webhooks"}]}}
         args = _make_args(workflow_url="wf_abc123")
         with (
             patch("roboflow.adapters.rfapi.list_trash", return_value=trash),

@@ -437,8 +437,7 @@ def _delete_workflow(args) -> None:  # noqa: ANN001
 
     if not getattr(args, "yes", False) and not getattr(args, "json", False):
         confirmed = typer.confirm(
-            f"Move workflow '{workspace_url}/{args.workflow_url}' to Trash? "
-            "(Retained for 30 days.)",
+            f"Move workflow '{workspace_url}/{args.workflow_url}' to Trash? (Retained for 30 days.)",
             default=False,
         )
         if not confirmed:
