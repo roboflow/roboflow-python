@@ -113,5 +113,116 @@ class TestParseUrl(unittest.TestCase):
         self.assertIsNone(v)
 
 
+class TestVersionDeleteRestoreRegistration(unittest.TestCase):
+    """Verify delete/restore commands register under `version`."""
+
+    def test_version_delete_exists(self) -> None:
+        result = runner.invoke(app, ["version", "delete", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("trash", result.output.lower())
+
+    def test_version_restore_exists(self) -> None:
+        result = runner.invoke(app, ["version", "restore", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("trash", result.output.lower())
+
+
+class TestVersionDeleteHandler(unittest.TestCase):
+    """version delete calls rfapi.delete_version and honors --yes."""
+
+    def _args(self, version_ref="my-ws/my-proj/3"):
+        from argparse import Namespace
+
+        return Namespace(
+            json=False,
+            workspace=None,
+            api_key="fake-key",
+            quiet=False,
+            version_ref=version_ref,
+            yes=True,
+        )
+
+    def test_delete_calls_rfapi(self) -> None:
+        from unittest.mock import patch
+
+        from roboflow.cli.handlers.version import _delete_version
+
+        with patch(
+            "roboflow.adapters.rfapi.delete_version", return_value={"deleted": True}
+        ) as mock_del:
+            _delete_version(self._args())
+            mock_del.assert_called_once_with("fake-key", "my-ws", "my-proj", 3)
+
+
+class TestVersionRestoreHandler(unittest.TestCase):
+    """version restore looks up by (parentUrl, version id) in Trash."""
+
+    def _args(self, version_ref="my-ws/my-proj/3"):
+        from argparse import Namespace
+
+        return Namespace(
+            json=False,
+            workspace=None,
+            api_key="fake-key",
+            quiet=False,
+            version_ref=version_ref,
+        )
+
+    def test_restore_found(self) -> None:
+        from unittest.mock import patch
+
+        from roboflow.cli.handlers.version import _restore_version
+
+        trash = {
+            "sections": {
+                "versions": [
+                    {
+                        "id": "3",
+                        "parentId": "proj-id-123",
+                        "parentUrl": "my-proj",
+                        "name": "v3",
+                    }
+                ]
+            }
+        }
+        with (
+            patch("roboflow.adapters.rfapi.list_trash", return_value=trash),
+            patch(
+                "roboflow.adapters.rfapi.restore_trash_item",
+                return_value={"restored": True, "type": "version", "id": "3"},
+            ) as mock_restore,
+        ):
+            _restore_version(self._args())
+            mock_restore.assert_called_once_with(
+                "fake-key", "my-ws", "version", "3", parent_id="proj-id-123"
+            )
+
+    def test_restore_wrong_project_not_found(self) -> None:
+        from unittest.mock import patch
+
+        from roboflow.cli.handlers.version import _restore_version
+
+        # version id matches but parentUrl doesn't — must not restore.
+        trash = {
+            "sections": {
+                "versions": [
+                    {
+                        "id": "3",
+                        "parentId": "other-id",
+                        "parentUrl": "other-proj",
+                        "name": "v3",
+                    }
+                ]
+            }
+        }
+        with (
+            patch("roboflow.adapters.rfapi.list_trash", return_value=trash),
+            patch("roboflow.adapters.rfapi.restore_trash_item") as mock_restore,
+            patch("sys.exit"),
+        ):
+            _restore_version(self._args())
+            mock_restore.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
