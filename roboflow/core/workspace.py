@@ -1367,19 +1367,10 @@ class Workspace:
         """
         return rfapi.restore_trash_item(self.__api_key, self.url, item_type, item_id, parent_id)
 
-    def delete_from_trash(self, item_type: str, item_id: str, parent_id: Optional[str] = None):
-        """
-        Permanently delete a Trash item (cannot be undone). The item must
-        already be in Trash.
-        """
-        return rfapi.trash_delete_immediately(self.__api_key, self.url, item_type, item_id, parent_id)
-
-    def empty_trash(self):
-        """
-        Dispatch async cleanup for everything currently in the workspace
-        Trash. Returns immediately; cleanup happens in the background.
-        """
-        return rfapi.empty_trash(self.__api_key, self.url)
+    # Permanent-delete actions (empty trash / delete a single trash item
+    # immediately) are intentionally not exposed in the SDK — they destroy
+    # data irrecoverably and are only available through the web UI's Trash
+    # view. Items left in Trash are cleaned up automatically after 30 days.
 
     def __str__(self):
         projects = self.projects()

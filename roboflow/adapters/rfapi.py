@@ -911,26 +911,6 @@ def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=Non
     return response.json()
 
 
-def trash_delete_immediately(api_key, workspace_url, item_type, item_id, parent_id=None):
-    """POST /{workspace}/trash/deleteImmediately — permanently delete a Trash
-    item (cannot be undone). The item must already be in Trash.
-    """
-    url = f"{API_URL}/{workspace_url}/trash/deleteImmediately?api_key={api_key}"
-    payload = {"type": item_type, "id": item_id}
-    if parent_id is not None:
-        payload["parentId"] = parent_id
-    response = requests.post(url, json=payload)
-    if response.status_code != 200:
-        raise RoboflowError(response.text)
-    return response.json()
-
-
-def empty_trash(api_key, workspace_url):
-    """POST /{workspace}/trash/empty — dispatch async cleanup for everything
-    in workspace Trash. Returns immediately; cleanup happens in the background.
-    """
-    url = f"{API_URL}/{workspace_url}/trash/empty?api_key={api_key}"
-    response = requests.post(url, json={})
-    if response.status_code != 200:
-        raise RoboflowError(response.text)
-    return response.json()
+# Note: permanent-delete from Trash (deleteImmediately / empty) is
+# intentionally not exposed on the public API — those actions destroy data
+# irrecoverably and are only available through the web UI's Trash view.

@@ -113,14 +113,17 @@ roboflow project restore my-workspace/my-project
 roboflow version delete my-workspace/my-project/3
 roboflow version restore my-workspace/my-project/3
 
-# List, empty, or permanently delete a single item in Trash.
+# Inspect what's currently in Trash.
 roboflow trash list
-roboflow trash empty
-roboflow trash delete version <version-id> --parent-id <project-id>
 
 # Skip the confirmation prompt for scripts.
 roboflow project delete my-workspace/my-project --yes
 ```
+
+Permanent deletion (emptying Trash or skipping the retention window for a
+single item) is intentionally not available from the SDK or CLI — those
+actions destroy data irrecoverably and live only in the web UI's Trash
+view. Items left in Trash are cleaned up automatically after 30 days.
 
 ### Workspace stats and billing
 
@@ -198,7 +201,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `workflow` | Manage workflows |
 | `folder` | Manage workspace folders |
 | `annotation` | Annotation batches and jobs |
-| `trash` | List, empty, or permanently delete items in Trash |
+| `trash` | List items in Trash |
 | `universe` | Search Roboflow Universe |
 | `video` | Video inference |
 | `batch` | Batch processing jobs *(coming soon)* |

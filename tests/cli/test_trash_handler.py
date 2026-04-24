@@ -23,20 +23,20 @@ class TestTrashRegistration(unittest.TestCase):
         result = runner.invoke(app, ["trash", "list", "--help"])
         self.assertEqual(result.exit_code, 0)
 
-    def test_trash_empty_exists(self) -> None:
-        result = runner.invoke(app, ["trash", "empty", "--help"])
-        self.assertEqual(result.exit_code, 0)
-
-    def test_trash_delete_exists(self) -> None:
-        result = runner.invoke(app, ["trash", "delete", "--help"])
-        self.assertEqual(result.exit_code, 0)
+    def test_permanent_delete_commands_not_exposed(self) -> None:
+        # empty / delete immediately are intentionally not available on the
+        # SDK/CLI — they exist only in the web UI. Guard against regression.
+        empty_result = runner.invoke(app, ["trash", "empty", "--help"])
+        self.assertNotEqual(empty_result.exit_code, 0)
+        delete_result = runner.invoke(app, ["trash", "delete", "--help"])
+        self.assertNotEqual(delete_result.exit_code, 0)
 
     def test_subcommands_visible(self) -> None:
         result = runner.invoke(app, ["trash", "--help"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn("list", result.output)
-        self.assertIn("empty", result.output)
-        self.assertIn("delete", result.output)
+        # empty / delete should NOT appear in the command group
+        self.assertNotIn("empty", result.output.lower())
 
 
 def _args(**overrides):
@@ -45,7 +45,6 @@ def _args(**overrides):
         "workspace": None,
         "api_key": "fake-key",
         "quiet": False,
-        "yes": True,
     }
     base.update(overrides)
     return Namespace(**base)
@@ -110,54 +109,32 @@ class TestTrashListHandler(unittest.TestCase):
             self.assertIn("empty", printed.lower())
 
 
-class TestTrashEmptyHandler(unittest.TestCase):
-    """trash empty calls rfapi.empty_trash and honors --yes."""
+class TestRfapiSurface(unittest.TestCase):
+    """Guard: rfapi must not expose permanent-delete wrappers."""
 
-    def test_empty_calls_rfapi(self) -> None:
-        from roboflow.cli.handlers.trash import _empty_trash
+    def test_no_trash_delete_immediately(self) -> None:
+        from roboflow.adapters import rfapi
 
-        with (
-            patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws"),
-            patch("roboflow.config.load_roboflow_api_key", return_value="fake-key"),
-            patch("roboflow.adapters.rfapi.empty_trash", return_value={"dispatched": 5}) as mock_empty,
-            patch("builtins.print"),
-        ):
-            _empty_trash(_args())
-            mock_empty.assert_called_once_with("fake-key", "test-ws")
+        self.assertFalse(hasattr(rfapi, "trash_delete_immediately"))
+
+    def test_no_empty_trash(self) -> None:
+        from roboflow.adapters import rfapi
+
+        self.assertFalse(hasattr(rfapi, "empty_trash"))
 
 
-class TestTrashDeleteImmediatelyHandler(unittest.TestCase):
-    """trash delete calls rfapi.trash_delete_immediately."""
+class TestWorkspaceSurface(unittest.TestCase):
+    """Guard: Workspace must not expose permanent-delete helpers."""
 
-    def test_delete_dataset(self) -> None:
-        from roboflow.cli.handlers.trash import _delete_immediately
+    def test_no_delete_from_trash(self) -> None:
+        from roboflow.core.workspace import Workspace
 
-        with (
-            patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws"),
-            patch("roboflow.config.load_roboflow_api_key", return_value="fake-key"),
-            patch(
-                "roboflow.adapters.rfapi.trash_delete_immediately",
-                return_value={"deleted": True},
-            ) as mock_del,
-            patch("builtins.print"),
-        ):
-            _delete_immediately(_args(item_type="dataset", item_id="abc123", parent_id=None))
-            mock_del.assert_called_once_with("fake-key", "test-ws", "dataset", "abc123", None)
+        self.assertFalse(hasattr(Workspace, "delete_from_trash"))
 
-    def test_delete_version_with_parent(self) -> None:
-        from roboflow.cli.handlers.trash import _delete_immediately
+    def test_no_empty_trash(self) -> None:
+        from roboflow.core.workspace import Workspace
 
-        with (
-            patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws"),
-            patch("roboflow.config.load_roboflow_api_key", return_value="fake-key"),
-            patch(
-                "roboflow.adapters.rfapi.trash_delete_immediately",
-                return_value={"deleted": True},
-            ) as mock_del,
-            patch("builtins.print"),
-        ):
-            _delete_immediately(_args(item_type="version", item_id="3", parent_id="dataset-123"))
-            mock_del.assert_called_once_with("fake-key", "test-ws", "version", "3", "dataset-123")
+        self.assertFalse(hasattr(Workspace, "empty_trash"))
 
 
 if __name__ == "__main__":

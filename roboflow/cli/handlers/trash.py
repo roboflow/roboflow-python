@@ -1,8 +1,12 @@
-"""Trash management commands: list, empty, delete-immediately."""
+"""Trash management commands.
+
+Only `list` is exposed here — permanent-delete actions (empty Trash, delete a
+single Trash item immediately) destroy data irrecoverably and are available
+only through the web UI's Trash view. Items left in Trash are cleaned up
+automatically after 30 days.
+"""
 
 from __future__ import annotations
-
-from typing import Annotated, Optional
 
 import typer
 
@@ -16,32 +20,6 @@ def list_trash_cmd(ctx: typer.Context) -> None:
     """List projects, versions, and workflows currently in Trash."""
     args = ctx_to_args(ctx)
     _list_trash(args)
-
-
-@trash_app.command("empty")
-def empty_trash_cmd(
-    ctx: typer.Context,
-    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation prompt.")] = False,
-) -> None:
-    """Permanently delete everything in Trash. Cannot be undone."""
-    args = ctx_to_args(ctx, yes=yes)
-    _empty_trash(args)
-
-
-@trash_app.command("delete")
-def delete_immediately_cmd(
-    ctx: typer.Context,
-    item_type: Annotated[str, typer.Argument(help="dataset, version, or workflow")],
-    item_id: Annotated[str, typer.Argument(help="Firestore id of the item in Trash")],
-    parent_id: Annotated[
-        Optional[str],
-        typer.Option("--parent-id", help="Parent dataset id (required for versions)."),
-    ] = None,
-    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation prompt.")] = False,
-) -> None:
-    """Permanently delete a single Trash item. Cannot be undone."""
-    args = ctx_to_args(ctx, item_type=item_type, item_id=item_id, parent_id=parent_id, yes=yes)
-    _delete_immediately(args)
 
 
 # ---------------------------------------------------------------------------
@@ -113,63 +91,3 @@ def _list_trash(args):  # noqa: ANN001
     if not rows:
         table = "(Trash is empty)"
     output(args, trash, text=table)
-
-
-def _empty_trash(args):  # noqa: ANN001
-    from roboflow.adapters import rfapi
-    from roboflow.cli._output import output, output_error
-
-    workspace_url, api_key = _resolve_workspace(args)
-    if not workspace_url:
-        return
-
-    if not getattr(args, "yes", False) and not getattr(args, "json", False):
-        import typer as _typer
-
-        confirmed = _typer.confirm(
-            f"Permanently delete ALL items in '{workspace_url}' Trash? This cannot be undone.",
-            default=False,
-        )
-        if not confirmed:
-            output(args, {"cancelled": True}, text="Cancelled.")
-            return
-
-    try:
-        data = rfapi.empty_trash(api_key, workspace_url)
-    except rfapi.RoboflowError as exc:
-        output_error(args, str(exc), exit_code=3)
-        return
-
-    output(
-        args,
-        data,
-        text=f"Emptying Trash — {data.get('dispatched', 0)} cleanup tasks dispatched.",
-    )
-
-
-def _delete_immediately(args):  # noqa: ANN001
-    from roboflow.adapters import rfapi
-    from roboflow.cli._output import output, output_error
-
-    workspace_url, api_key = _resolve_workspace(args)
-    if not workspace_url:
-        return
-
-    if not getattr(args, "yes", False) and not getattr(args, "json", False):
-        import typer as _typer
-
-        confirmed = _typer.confirm(
-            f"Permanently delete {args.item_type} '{args.item_id}'? This cannot be undone.",
-            default=False,
-        )
-        if not confirmed:
-            output(args, {"cancelled": True}, text="Cancelled.")
-            return
-
-    try:
-        data = rfapi.trash_delete_immediately(api_key, workspace_url, args.item_type, args.item_id, args.parent_id)
-    except rfapi.RoboflowError as exc:
-        output_error(args, str(exc), exit_code=3)
-        return
-
-    output(args, data, text=f"Permanently deleted {args.item_type} {args.item_id}.")
