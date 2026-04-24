@@ -668,6 +668,53 @@ class Version:
         if format in ["yolov5pytorch", "mt-yolov6", "yolov7pytorch", "yolov8", "yolov9"]:
             amend_data_yaml(path=data_path, callback=data_yaml_callback)
 
+    def delete(self):
+        """
+        Move this version to Trash (soft delete).
+
+        Any in-flight training job on the version is cancelled. The version is
+        retained for 30 days and can be restored via `Version.restore()` or the
+        Trash UI.
+
+        Returns:
+            dict: Server response with `{deleted: True, type: "version", ...}`.
+        """
+        return rfapi.delete_version(self.__api_key, self.workspace, self.project, self.version)
+
+    def restore(self):
+        """
+        Restore this version from Trash.
+
+        Looks up the version in the workspace Trash by (project, version id).
+        Raises RuntimeError if it isn't currently in Trash. The parent project
+        must not itself be in Trash.
+
+        Returns:
+            dict: Server response with `{restored: True, type: "version", ...}`.
+        """
+        trash = rfapi.list_trash(self.__api_key, self.workspace)
+        versions = trash.get("sections", {}).get("versions", [])
+        match = next(
+            (
+                v
+                for v in versions
+                if str(v.get("id")) == str(self.version)
+                and (v.get("parentUrl") == self.project or v.get("parentId") == self.project)
+            ),
+            None,
+        )
+        if not match:
+            raise RuntimeError(
+                f"Version '{self.project}/{self.version}' is not in Trash — nothing to restore."
+            )
+        return rfapi.restore_trash_item(
+            self.__api_key,
+            self.workspace,
+            "version",
+            match["id"],
+            parent_id=match.get("parentId"),
+        )
+
     def __str__(self):
         """
         String representation of version object.

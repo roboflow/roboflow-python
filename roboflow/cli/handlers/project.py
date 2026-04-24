@@ -57,6 +57,27 @@ def create_project(
     _create_project(args)
 
 
+@project_app.command("delete")
+def delete_project(
+    ctx: typer.Context,
+    project_id: Annotated[str, typer.Argument(help="Project ID or shorthand (e.g. my-ws/my-project)")],
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation prompt.")] = False,
+) -> None:
+    """Move a project to Trash (30-day retention; cancels in-flight trainings)."""
+    args = ctx_to_args(ctx, project_id=project_id, yes=yes)
+    _delete_project(args)
+
+
+@project_app.command("restore")
+def restore_project(
+    ctx: typer.Context,
+    project_id: Annotated[str, typer.Argument(help="Project ID or shorthand (e.g. my-ws/my-project)")],
+) -> None:
+    """Restore a project from Trash."""
+    args = ctx_to_args(ctx, project_id=project_id)
+    _restore_project(args)
+
+
 # ---------------------------------------------------------------------------
 # Business logic (unchanged from argparse version)
 # ---------------------------------------------------------------------------
@@ -198,3 +219,102 @@ def _create_project(args):  # noqa: ANN001
         "type": project.type,
     }
     output(args, data, text=f"Created project: {project.name} ({project.id})")
+
+
+def _delete_project(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.cli._resolver import resolve_resource
+    from roboflow.config import load_roboflow_api_key
+
+    try:
+        workspace_url, project_slug, _version = resolve_resource(
+            args.project_id, workspace_override=args.workspace
+        )
+    except ValueError as exc:
+        output_error(args, str(exc))
+        return
+
+    api_key = args.api_key or load_roboflow_api_key(workspace_url)
+    if not api_key:
+        output_error(
+            args,
+            "No API key found.",
+            hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.",
+            exit_code=2,
+        )
+        return
+
+    if not getattr(args, "yes", False) and not getattr(args, "json", False):
+        import typer
+
+        confirmed = typer.confirm(
+            f"Move '{workspace_url}/{project_slug}' to Trash? "
+            "(Retained for 30 days. Any in-flight trainings will be cancelled.)",
+            default=False,
+        )
+        if not confirmed:
+            output(args, {"cancelled": True}, text="Cancelled.")
+            return
+
+    try:
+        data = rfapi.delete_project(api_key, workspace_url, project_slug)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    output(
+        args,
+        data,
+        text=f"Moved {workspace_url}/{project_slug} to Trash (30-day retention).",
+    )
+
+
+def _restore_project(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.cli._resolver import resolve_resource
+    from roboflow.config import load_roboflow_api_key
+
+    try:
+        workspace_url, project_slug, _version = resolve_resource(
+            args.project_id, workspace_override=args.workspace
+        )
+    except ValueError as exc:
+        output_error(args, str(exc))
+        return
+
+    api_key = args.api_key or load_roboflow_api_key(workspace_url)
+    if not api_key:
+        output_error(
+            args,
+            "No API key found.",
+            hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.",
+            exit_code=2,
+        )
+        return
+
+    try:
+        trash = rfapi.list_trash(api_key, workspace_url)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    datasets = trash.get("sections", {}).get("datasets", [])
+    match = next((d for d in datasets if d.get("url") == project_slug), None)
+    if not match:
+        output_error(
+            args,
+            f"Project '{workspace_url}/{project_slug}' is not in Trash.",
+            hint="Use 'roboflow trash list' to see what can be restored.",
+            exit_code=3,
+        )
+        return
+
+    try:
+        data = rfapi.restore_trash_item(api_key, workspace_url, "dataset", match["id"])
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    output(args, data, text=f"Restored {workspace_url}/{project_slug} from Trash.")

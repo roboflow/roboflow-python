@@ -848,3 +848,89 @@ def search_universe(query, *, api_key=None, project_type=None, limit=12, page=1)
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Soft-delete / Trash operations
+# ---------------------------------------------------------------------------
+
+
+def delete_project(api_key, workspace_url, project_url):
+    """DELETE /{workspace}/{project} — move a project to Trash (30-day retention).
+
+    Any in-flight training jobs for the project will be cancelled automatically.
+    The project can be restored via `restore_trash_item` within the retention
+    window, or permanently deleted via `trash_delete_immediately`.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}?api_key={api_key}"
+    response = requests.delete(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def delete_version(api_key, workspace_url, project_url, version):
+    """DELETE /{workspace}/{project}/{version} — move a version to Trash.
+
+    Any in-flight training on the version will be cancelled automatically.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}?api_key={api_key}"
+    response = requests.delete(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def list_trash(api_key, workspace_url):
+    """GET /{workspace}/trash — list items currently in Trash.
+
+    Returns a dict with `items` (flat list) and `sections` (grouped by type:
+    `datasets`, `versions`, `workflows`). Each item includes `id`, `type`,
+    `name`, `deletedAt`, `scheduledCleanupAt`, and (for versions) `parentId`.
+    """
+    url = f"{API_URL}/{workspace_url}/trash?api_key={api_key}"
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=None):
+    """POST /{workspace}/trash/restore — restore an item from Trash.
+
+    `item_type` must be one of "dataset", "version", "workflow".
+    `parent_id` is required when restoring a version (the dataset id).
+    """
+    url = f"{API_URL}/{workspace_url}/trash/restore?api_key={api_key}"
+    payload = {"type": item_type, "id": item_id}
+    if parent_id is not None:
+        payload["parentId"] = parent_id
+    response = requests.post(url, json=payload)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def trash_delete_immediately(api_key, workspace_url, item_type, item_id, parent_id=None):
+    """POST /{workspace}/trash/deleteImmediately — permanently delete a Trash
+    item (cannot be undone). The item must already be in Trash.
+    """
+    url = f"{API_URL}/{workspace_url}/trash/deleteImmediately?api_key={api_key}"
+    payload = {"type": item_type, "id": item_id}
+    if parent_id is not None:
+        payload["parentId"] = parent_id
+    response = requests.post(url, json=payload)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def empty_trash(api_key, workspace_url):
+    """POST /{workspace}/trash/empty — dispatch async cleanup for everything
+    in workspace Trash. Returns immediately; cleanup happens in the background.
+    """
+    url = f"{API_URL}/{workspace_url}/trash/empty?api_key={api_key}"
+    response = requests.post(url, json={})
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()

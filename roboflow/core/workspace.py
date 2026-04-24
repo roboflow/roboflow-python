@@ -1333,6 +1333,56 @@ class Workspace:
             metadata=metadata,
         )
 
+    def trash(self) -> dict:
+        """
+        List items currently in the workspace Trash.
+
+        Returns a dict with:
+          - `items`: flat list of everything in Trash
+          - `sections`: grouped by `datasets`, `versions`, `workflows`
+        Each item includes `id`, `type`, `name`, `deletedAt`,
+        `scheduledCleanupAt`, and — for versions — `parentId` / `parentUrl`.
+
+        Example:
+            >>> import roboflow
+            >>> rf = roboflow.Roboflow(api_key="")
+            >>> ws = rf.workspace()
+            >>> trash = ws.trash()
+            >>> for item in trash["items"]:
+            ...     print(item["type"], item["name"])
+        """
+        return rfapi.list_trash(self.__api_key, self.url)
+
+    def restore_from_trash(self, item_type: str, item_id: str, parent_id: Optional[str] = None):
+        """
+        Restore an item from Trash.
+
+        Args:
+            item_type: one of "dataset", "version", "workflow"
+            item_id: the item's Firestore id (found via `trash()`)
+            parent_id: required when restoring a version — the parent dataset id
+
+        Returns:
+            dict: Server response with `{restored: True, type, id}`.
+        """
+        return rfapi.restore_trash_item(self.__api_key, self.url, item_type, item_id, parent_id)
+
+    def delete_from_trash(self, item_type: str, item_id: str, parent_id: Optional[str] = None):
+        """
+        Permanently delete a Trash item (cannot be undone). The item must
+        already be in Trash.
+        """
+        return rfapi.trash_delete_immediately(
+            self.__api_key, self.url, item_type, item_id, parent_id
+        )
+
+    def empty_trash(self):
+        """
+        Dispatch async cleanup for everything currently in the workspace
+        Trash. Returns immediately; cleanup happens in the background.
+        """
+        return rfapi.empty_trash(self.__api_key, self.url)
+
     def __str__(self):
         projects = self.projects()
         json_value = {"name": self.name, "url": self.url, "projects": projects}
