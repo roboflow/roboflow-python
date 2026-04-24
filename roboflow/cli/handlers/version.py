@@ -363,11 +363,19 @@ def _delete_version(args):  # noqa: ANN001
     try:
         workspace_url, project_slug, version_num = resolve_resource(args.version_ref, workspace_override=args.workspace)
     except ValueError as exc:
-        output_error(args, str(exc))
+        output_error(
+            args,
+            str(exc),
+            hint="Use 'workspace/project/3' or 'project/3' (version must be a number).",
+        )
         return
 
     if version_num is None:
-        output_error(args, "Version number is required (e.g. project/3 or ws/project/3).")
+        output_error(
+            args,
+            "Version number is required.",
+            hint="Pass 'project/3' or 'workspace/project/3' — the trailing segment must be the numeric version id.",
+        )
         return
 
     api_key = args.api_key or load_roboflow_api_key(workspace_url)
@@ -395,7 +403,12 @@ def _delete_version(args):  # noqa: ANN001
     try:
         data = rfapi.delete_version(api_key, workspace_url, project_slug, version_num)
     except rfapi.RoboflowError as exc:
-        output_error(args, str(exc), exit_code=3)
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'version:update' scope and the version exists.",
+            exit_code=3,
+        )
         return
 
     output(
@@ -414,11 +427,19 @@ def _restore_version(args):  # noqa: ANN001
     try:
         workspace_url, project_slug, version_num = resolve_resource(args.version_ref, workspace_override=args.workspace)
     except ValueError as exc:
-        output_error(args, str(exc))
+        output_error(
+            args,
+            str(exc),
+            hint="Use 'workspace/project/3' or 'project/3' (version must be a number).",
+        )
         return
 
     if version_num is None:
-        output_error(args, "Version number is required (e.g. project/3 or ws/project/3).")
+        output_error(
+            args,
+            "Version number is required.",
+            hint="Pass 'project/3' or 'workspace/project/3' — the trailing segment must be the numeric version id.",
+        )
         return
 
     api_key = args.api_key or load_roboflow_api_key(workspace_url)
@@ -434,7 +455,12 @@ def _restore_version(args):  # noqa: ANN001
     try:
         trash = rfapi.list_trash(api_key, workspace_url)
     except rfapi.RoboflowError as exc:
-        output_error(args, str(exc), exit_code=3)
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'project:read' scope on this workspace.",
+            exit_code=3,
+        )
         return
 
     versions = trash.get("sections", {}).get("versions", [])
@@ -447,7 +473,8 @@ def _restore_version(args):  # noqa: ANN001
         output_error(
             args,
             f"Version '{workspace_url}/{project_slug}/{version_num}' is not in Trash.",
-            hint="Use 'roboflow trash list' to see what can be restored.",
+            hint="Run 'roboflow trash list' to see what can be restored. "
+            "If the parent project is also in Trash, restore the project first.",
             exit_code=3,
         )
         return
@@ -461,7 +488,12 @@ def _restore_version(args):  # noqa: ANN001
             parent_id=match.get("parentId"),
         )
     except rfapi.RoboflowError as exc:
-        output_error(args, str(exc), exit_code=3)
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'project:update' scope on this workspace.",
+            exit_code=3,
+        )
         return
 
     output(

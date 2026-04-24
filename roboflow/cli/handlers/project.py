@@ -230,7 +230,11 @@ def _delete_project(args):  # noqa: ANN001
     try:
         workspace_url, project_slug, _version = resolve_resource(args.project_id, workspace_override=args.workspace)
     except ValueError as exc:
-        output_error(args, str(exc))
+        output_error(
+            args,
+            str(exc),
+            hint="Use 'my-workspace/my-project' or set --workspace and pass 'my-project'.",
+        )
         return
 
     api_key = args.api_key or load_roboflow_api_key(workspace_url)
@@ -258,7 +262,12 @@ def _delete_project(args):  # noqa: ANN001
     try:
         data = rfapi.delete_project(api_key, workspace_url, project_slug)
     except rfapi.RoboflowError as exc:
-        output_error(args, str(exc), exit_code=3)
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'project:update' scope on this workspace.",
+            exit_code=3,
+        )
         return
 
     output(
@@ -277,7 +286,11 @@ def _restore_project(args):  # noqa: ANN001
     try:
         workspace_url, project_slug, _version = resolve_resource(args.project_id, workspace_override=args.workspace)
     except ValueError as exc:
-        output_error(args, str(exc))
+        output_error(
+            args,
+            str(exc),
+            hint="Use 'my-workspace/my-project' or set --workspace and pass 'my-project'.",
+        )
         return
 
     api_key = args.api_key or load_roboflow_api_key(workspace_url)
@@ -293,7 +306,12 @@ def _restore_project(args):  # noqa: ANN001
     try:
         trash = rfapi.list_trash(api_key, workspace_url)
     except rfapi.RoboflowError as exc:
-        output_error(args, str(exc), exit_code=3)
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'project:read' scope on this workspace.",
+            exit_code=3,
+        )
         return
 
     datasets = trash.get("sections", {}).get("datasets", [])
@@ -302,7 +320,7 @@ def _restore_project(args):  # noqa: ANN001
         output_error(
             args,
             f"Project '{workspace_url}/{project_slug}' is not in Trash.",
-            hint="Use 'roboflow trash list' to see what can be restored.",
+            hint="Run 'roboflow trash list' to see what can be restored.",
             exit_code=3,
         )
         return
@@ -310,7 +328,12 @@ def _restore_project(args):  # noqa: ANN001
     try:
         data = rfapi.restore_trash_item(api_key, workspace_url, "dataset", match["id"])
     except rfapi.RoboflowError as exc:
-        output_error(args, str(exc), exit_code=3)
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'project:update' scope on this workspace.",
+            exit_code=3,
+        )
         return
 
     output(args, data, text=f"Restored {workspace_url}/{project_slug} from Trash.")
