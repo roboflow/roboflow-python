@@ -147,9 +147,7 @@ class TestVersionDeleteHandler(unittest.TestCase):
 
         from roboflow.cli.handlers.version import _delete_version
 
-        with patch(
-            "roboflow.adapters.rfapi.delete_version", return_value={"deleted": True}
-        ) as mock_del:
+        with patch("roboflow.adapters.rfapi.delete_version", return_value={"deleted": True}) as mock_del:
             _delete_version(self._args())
             mock_del.assert_called_once_with("fake-key", "my-ws", "my-proj", 3)
 
@@ -193,9 +191,7 @@ class TestVersionRestoreHandler(unittest.TestCase):
             ) as mock_restore,
         ):
             _restore_version(self._args())
-            mock_restore.assert_called_once_with(
-                "fake-key", "my-ws", "version", "3", parent_id="proj-id-123"
-            )
+            mock_restore.assert_called_once_with("fake-key", "my-ws", "version", "3", parent_id="proj-id-123")
 
     def test_restore_wrong_project_not_found(self) -> None:
         from unittest.mock import patch

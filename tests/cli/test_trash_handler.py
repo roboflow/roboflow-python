@@ -119,9 +119,7 @@ class TestTrashEmptyHandler(unittest.TestCase):
         with (
             patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws"),
             patch("roboflow.config.load_roboflow_api_key", return_value="fake-key"),
-            patch(
-                "roboflow.adapters.rfapi.empty_trash", return_value={"dispatched": 5}
-            ) as mock_empty,
+            patch("roboflow.adapters.rfapi.empty_trash", return_value={"dispatched": 5}) as mock_empty,
             patch("builtins.print"),
         ):
             _empty_trash(_args())
@@ -143,12 +141,8 @@ class TestTrashDeleteImmediatelyHandler(unittest.TestCase):
             ) as mock_del,
             patch("builtins.print"),
         ):
-            _delete_immediately(
-                _args(item_type="dataset", item_id="abc123", parent_id=None)
-            )
-            mock_del.assert_called_once_with(
-                "fake-key", "test-ws", "dataset", "abc123", None
-            )
+            _delete_immediately(_args(item_type="dataset", item_id="abc123", parent_id=None))
+            mock_del.assert_called_once_with("fake-key", "test-ws", "dataset", "abc123", None)
 
     def test_delete_version_with_parent(self) -> None:
         from roboflow.cli.handlers.trash import _delete_immediately
@@ -162,12 +156,8 @@ class TestTrashDeleteImmediatelyHandler(unittest.TestCase):
             ) as mock_del,
             patch("builtins.print"),
         ):
-            _delete_immediately(
-                _args(item_type="version", item_id="3", parent_id="dataset-123")
-            )
-            mock_del.assert_called_once_with(
-                "fake-key", "test-ws", "version", "3", "dataset-123"
-            )
+            _delete_immediately(_args(item_type="version", item_id="3", parent_id="dataset-123"))
+            mock_del.assert_called_once_with("fake-key", "test-ws", "version", "3", "dataset-123")
 
 
 if __name__ == "__main__":

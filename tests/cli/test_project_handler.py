@@ -70,9 +70,7 @@ class TestProjectDeleteHandler(unittest.TestCase):
 
         from roboflow.cli.handlers.project import _delete_project
 
-        with patch(
-            "roboflow.adapters.rfapi.delete_project", return_value={"deleted": True}
-        ) as mock_del:
+        with patch("roboflow.adapters.rfapi.delete_project", return_value={"deleted": True}) as mock_del:
             _delete_project(self._args())
             mock_del.assert_called_once_with("fake-key", "my-ws", "my-proj")
 
@@ -96,11 +94,7 @@ class TestProjectRestoreHandler(unittest.TestCase):
 
         from roboflow.cli.handlers.project import _restore_project
 
-        trash = {
-            "sections": {
-                "datasets": [{"id": "abc123", "url": "my-proj", "name": "My Project"}]
-            }
-        }
+        trash = {"sections": {"datasets": [{"id": "abc123", "url": "my-proj", "name": "My Project"}]}}
         with (
             patch("roboflow.adapters.rfapi.list_trash", return_value=trash),
             patch(
