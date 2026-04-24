@@ -881,6 +881,17 @@ def delete_version(api_key, workspace_url, project_url, version):
     return response.json()
 
 
+def delete_workflow(api_key, workspace_url, workflow_url):
+    """DELETE /{workspace}/workflows/{workflowUrl} — move a workflow to Trash
+    (30-day retention). Restore via `restore_trash_item(..., "workflow", ...)`.
+    """
+    url = f"{API_URL}/{workspace_url}/workflows/{workflow_url}?api_key={api_key}"
+    response = requests.delete(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
 def list_trash(api_key, workspace_url):
     """GET /{workspace}/trash — list items currently in Trash.
 
