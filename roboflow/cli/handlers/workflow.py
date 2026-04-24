@@ -109,6 +109,27 @@ def deploy_workflow(
     _stub_deploy(args)
 
 
+@workflow_app.command("delete")
+def delete_workflow(
+    ctx: typer.Context,
+    workflow_url: Annotated[str, typer.Argument(help="Workflow URL or ID")],
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation prompt.")] = False,
+) -> None:
+    """Move a workflow to Trash (30-day retention)."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url, yes=yes)
+    _delete_workflow(args)
+
+
+@workflow_app.command("restore")
+def restore_workflow_cmd(
+    ctx: typer.Context,
+    workflow_url: Annotated[str, typer.Argument(help="Workflow URL or ID")],
+) -> None:
+    """Restore a workflow from Trash."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url)
+    _restore_workflow(args)
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -403,3 +424,89 @@ def _stub_deploy(args) -> None:  # noqa: ANN001
         "This command is not yet implemented.",
         hint="Coming in a future release.",
     )
+
+
+def _delete_workflow(args) -> None:  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_workspace_and_key(args)
+    if resolved is None:
+        return
+    workspace_url, api_key = resolved
+
+    if not getattr(args, "yes", False) and not getattr(args, "json", False):
+        confirmed = typer.confirm(
+            f"Move workflow '{workspace_url}/{args.workflow_url}' to Trash? "
+            "(Retained for 30 days.)",
+            default=False,
+        )
+        if not confirmed:
+            output(args, {"cancelled": True}, text="Cancelled.")
+            return
+
+    try:
+        data = rfapi.delete_workflow(api_key, workspace_url, args.workflow_url)
+    except rfapi.RoboflowError as exc:
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'workflow:update' scope on this workspace.",
+            exit_code=3,
+        )
+        return
+
+    output(
+        args,
+        data,
+        text=f"Moved {workspace_url}/{args.workflow_url} to Trash (30-day retention).",
+    )
+
+
+def _restore_workflow(args) -> None:  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_workspace_and_key(args)
+    if resolved is None:
+        return
+    workspace_url, api_key = resolved
+
+    try:
+        trash = rfapi.list_trash(api_key, workspace_url)
+    except rfapi.RoboflowError as exc:
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'project:read' scope on this workspace.",
+            exit_code=3,
+        )
+        return
+
+    workflows = trash.get("sections", {}).get("workflows", [])
+    # Match on URL first, fall back to id for callers who pass a Firestore id.
+    match = next(
+        (w for w in workflows if w.get("url") == args.workflow_url or w.get("id") == args.workflow_url),
+        None,
+    )
+    if not match:
+        output_error(
+            args,
+            f"Workflow '{workspace_url}/{args.workflow_url}' is not in Trash.",
+            hint="Run 'roboflow trash list' to see what can be restored.",
+            exit_code=3,
+        )
+        return
+
+    try:
+        data = rfapi.restore_trash_item(api_key, workspace_url, "workflow", match["id"])
+    except rfapi.RoboflowError as exc:
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'project:update' scope on this workspace.",
+            exit_code=3,
+        )
+        return
+
+    output(args, data, text=f"Restored {workspace_url}/{args.workflow_url} from Trash.")

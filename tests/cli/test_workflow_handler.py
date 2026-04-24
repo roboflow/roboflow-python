@@ -53,6 +53,16 @@ class TestWorkflowRegistration(unittest.TestCase):
         result = runner.invoke(app, ["workflow", "fork", "--help"])
         self.assertEqual(result.exit_code, 0)
 
+    def test_workflow_delete_exists(self) -> None:
+        result = runner.invoke(app, ["workflow", "delete", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("trash", result.output.lower())
+
+    def test_workflow_restore_exists(self) -> None:
+        result = runner.invoke(app, ["workflow", "restore", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("trash", result.output.lower())
+
     def test_workflow_build_exists(self) -> None:
         result = runner.invoke(app, ["workflow", "build", "--help"])
         self.assertEqual(result.exit_code, 0)
@@ -384,6 +394,83 @@ class TestWorkflowNoWorkspace(unittest.TestCase):
         with self.assertRaises(SystemExit) as ctx:
             _list_workflows(args)
         self.assertEqual(ctx.exception.code, 2)
+
+
+class TestWorkflowDeleteHandler(unittest.TestCase):
+    """workflow delete calls rfapi.delete_workflow and honors --yes."""
+
+    def test_delete_calls_rfapi(self) -> None:
+        from roboflow.cli.handlers.workflow import _delete_workflow
+
+        args = _make_args(workflow_url="slow-webhooks", yes=True)
+        with patch(
+            "roboflow.adapters.rfapi.delete_workflow", return_value={"deleted": True}
+        ) as mock_del:
+            _delete_workflow(args)
+            mock_del.assert_called_once_with("test-key", "test-ws", "slow-webhooks")
+
+
+class TestWorkflowRestoreHandler(unittest.TestCase):
+    """workflow restore looks up by URL (or id) in Trash, then restores."""
+
+    def test_restore_found_by_url(self) -> None:
+        from roboflow.cli.handlers.workflow import _restore_workflow
+
+        trash = {
+            "sections": {
+                "workflows": [
+                    {"id": "wf_abc123", "url": "slow-webhooks", "name": "Slow Webhooks"}
+                ]
+            }
+        }
+        args = _make_args(workflow_url="slow-webhooks")
+        with (
+            patch("roboflow.adapters.rfapi.list_trash", return_value=trash),
+            patch(
+                "roboflow.adapters.rfapi.restore_trash_item",
+                return_value={"restored": True},
+            ) as mock_restore,
+        ):
+            _restore_workflow(args)
+            mock_restore.assert_called_once_with("test-key", "test-ws", "workflow", "wf_abc123")
+
+    def test_restore_found_by_id(self) -> None:
+        # Callers who pass a Firestore id (e.g. copy/paste from `trash list`)
+        # still resolve, via the id fallback.
+        from roboflow.cli.handlers.workflow import _restore_workflow
+
+        trash = {
+            "sections": {
+                "workflows": [
+                    {"id": "wf_abc123", "url": "slow-webhooks", "name": "Slow Webhooks"}
+                ]
+            }
+        }
+        args = _make_args(workflow_url="wf_abc123")
+        with (
+            patch("roboflow.adapters.rfapi.list_trash", return_value=trash),
+            patch(
+                "roboflow.adapters.rfapi.restore_trash_item",
+                return_value={"restored": True},
+            ) as mock_restore,
+        ):
+            _restore_workflow(args)
+            mock_restore.assert_called_once_with("test-key", "test-ws", "workflow", "wf_abc123")
+
+    def test_restore_not_in_trash(self) -> None:
+        from roboflow.cli.handlers.workflow import _restore_workflow
+
+        args = _make_args(workflow_url="slow-webhooks")
+        with (
+            patch(
+                "roboflow.adapters.rfapi.list_trash",
+                return_value={"sections": {"workflows": []}},
+            ),
+            patch("roboflow.adapters.rfapi.restore_trash_item") as mock_restore,
+        ):
+            with self.assertRaises(SystemExit):
+                _restore_workflow(args)
+            mock_restore.assert_not_called()
 
 
 if __name__ == "__main__":

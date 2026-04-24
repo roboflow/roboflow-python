@@ -113,6 +113,10 @@ roboflow project restore my-workspace/my-project
 roboflow version delete my-workspace/my-project/3
 roboflow version restore my-workspace/my-project/3
 
+# Same flow for workflows.
+roboflow workflow delete my-workflow
+roboflow workflow restore my-workflow
+
 # Inspect what's currently in Trash.
 roboflow trash list
 
