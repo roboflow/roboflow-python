@@ -167,9 +167,7 @@ def _delete_immediately(args):  # noqa: ANN001
             return
 
     try:
-        data = rfapi.trash_delete_immediately(
-            api_key, workspace_url, args.item_type, args.item_id, args.parent_id
-        )
+        data = rfapi.trash_delete_immediately(api_key, workspace_url, args.item_type, args.item_id, args.parent_id)
     except rfapi.RoboflowError as exc:
         output_error(args, str(exc), exit_code=3)
         return

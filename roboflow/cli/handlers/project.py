@@ -228,9 +228,7 @@ def _delete_project(args):  # noqa: ANN001
     from roboflow.config import load_roboflow_api_key
 
     try:
-        workspace_url, project_slug, _version = resolve_resource(
-            args.project_id, workspace_override=args.workspace
-        )
+        workspace_url, project_slug, _version = resolve_resource(args.project_id, workspace_override=args.workspace)
     except ValueError as exc:
         output_error(args, str(exc))
         return
@@ -277,9 +275,7 @@ def _restore_project(args):  # noqa: ANN001
     from roboflow.config import load_roboflow_api_key
 
     try:
-        workspace_url, project_slug, _version = resolve_resource(
-            args.project_id, workspace_override=args.workspace
-        )
+        workspace_url, project_slug, _version = resolve_resource(args.project_id, workspace_override=args.workspace)
     except ValueError as exc:
         output_error(args, str(exc))
         return

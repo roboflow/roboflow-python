@@ -361,9 +361,7 @@ def _delete_version(args):  # noqa: ANN001
     from roboflow.config import load_roboflow_api_key
 
     try:
-        workspace_url, project_slug, version_num = resolve_resource(
-            args.version_ref, workspace_override=args.workspace
-        )
+        workspace_url, project_slug, version_num = resolve_resource(args.version_ref, workspace_override=args.workspace)
     except ValueError as exc:
         output_error(args, str(exc))
         return
@@ -414,9 +412,7 @@ def _restore_version(args):  # noqa: ANN001
     from roboflow.config import load_roboflow_api_key
 
     try:
-        workspace_url, project_slug, version_num = resolve_resource(
-            args.version_ref, workspace_override=args.workspace
-        )
+        workspace_url, project_slug, version_num = resolve_resource(args.version_ref, workspace_override=args.workspace)
     except ValueError as exc:
         output_error(args, str(exc))
         return
@@ -444,11 +440,7 @@ def _restore_version(args):  # noqa: ANN001
     versions = trash.get("sections", {}).get("versions", [])
     target = str(version_num)
     match = next(
-        (
-            v
-            for v in versions
-            if str(v.get("id")) == target and v.get("parentUrl") == project_slug
-        ),
+        (v for v in versions if str(v.get("id")) == target and v.get("parentUrl") == project_slug),
         None,
     )
     if not match:

@@ -1082,9 +1082,5 @@ class Project:
         datasets = trash.get("sections", {}).get("datasets", [])
         match = next((d for d in datasets if d.get("url") == self.__project_name), None)
         if not match:
-            raise RuntimeError(
-                f"Project '{self.__project_name}' is not in Trash — nothing to restore."
-            )
-        return rfapi.restore_trash_item(
-            self.__api_key, self.__workspace, "dataset", match["id"]
-        )
+            raise RuntimeError(f"Project '{self.__project_name}' is not in Trash — nothing to restore.")
+        return rfapi.restore_trash_item(self.__api_key, self.__workspace, "dataset", match["id"])

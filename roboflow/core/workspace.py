@@ -1372,9 +1372,7 @@ class Workspace:
         Permanently delete a Trash item (cannot be undone). The item must
         already be in Trash.
         """
-        return rfapi.trash_delete_immediately(
-            self.__api_key, self.url, item_type, item_id, parent_id
-        )
+        return rfapi.trash_delete_immediately(self.__api_key, self.url, item_type, item_id, parent_id)
 
     def empty_trash(self):
         """

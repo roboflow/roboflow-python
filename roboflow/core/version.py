@@ -704,9 +704,7 @@ class Version:
             None,
         )
         if not match:
-            raise RuntimeError(
-                f"Version '{self.project}/{self.version}' is not in Trash — nothing to restore."
-            )
+            raise RuntimeError(f"Version '{self.project}/{self.version}' is not in Trash — nothing to restore.")
         return rfapi.restore_trash_item(
             self.__api_key,
             self.workspace,
