@@ -855,6 +855,23 @@ def search_universe(query, *, api_key=None, project_type=None, limit=12, page=1)
 # ---------------------------------------------------------------------------
 
 
+def _raise_for_trash_response(response):
+    """Raise RoboflowError with the cleanest message available.
+
+    Backend trash endpoints return `{"error": "..."}` JSON on non-2xx.
+    Surface that string to the caller instead of the raw response body so
+    error messages are agent-friendly. Falls back to the raw text if the
+    body isn't JSON or doesn't contain an `error` field.
+    """
+    try:
+        body = response.json()
+        if isinstance(body, dict) and body.get("error"):
+            raise RoboflowError(body["error"])
+    except (ValueError, AttributeError):
+        pass
+    raise RoboflowError(response.text)
+
+
 def delete_project(api_key, workspace_url, project_url):
     """DELETE /{workspace}/{project} — move a project to Trash (30-day retention).
 
@@ -865,7 +882,7 @@ def delete_project(api_key, workspace_url, project_url):
     url = f"{API_URL}/{workspace_url}/{project_url}?api_key={api_key}"
     response = requests.delete(url)
     if response.status_code != 200:
-        raise RoboflowError(response.text)
+        _raise_for_trash_response(response)
     return response.json()
 
 
@@ -877,7 +894,7 @@ def delete_version(api_key, workspace_url, project_url, version):
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}?api_key={api_key}"
     response = requests.delete(url)
     if response.status_code != 200:
-        raise RoboflowError(response.text)
+        _raise_for_trash_response(response)
     return response.json()
 
 
@@ -888,7 +905,7 @@ def delete_workflow(api_key, workspace_url, workflow_url):
     url = f"{API_URL}/{workspace_url}/workflows/{workflow_url}?api_key={api_key}"
     response = requests.delete(url)
     if response.status_code != 200:
-        raise RoboflowError(response.text)
+        _raise_for_trash_response(response)
     return response.json()
 
 
@@ -902,7 +919,7 @@ def list_trash(api_key, workspace_url):
     url = f"{API_URL}/{workspace_url}/trash?api_key={api_key}"
     response = requests.get(url)
     if response.status_code != 200:
-        raise RoboflowError(response.text)
+        _raise_for_trash_response(response)
     return response.json()
 
 
@@ -918,7 +935,7 @@ def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=Non
         payload["parentId"] = parent_id
     response = requests.post(url, json=payload)
     if response.status_code != 200:
-        raise RoboflowError(response.text)
+        _raise_for_trash_response(response)
     return response.json()
 
 
