@@ -862,14 +862,19 @@ def _raise_for_trash_response(response):
     Surface that string to the caller instead of the raw response body so
     error messages are agent-friendly. Falls back to the raw text if the
     body isn't JSON or doesn't contain an `error` field.
+
+    The single `raise` at the end means we can't accidentally swallow the
+    intended error if a future refactor widens the except clause.
     """
+    msg = None
     try:
         body = response.json()
-        if isinstance(body, dict) and body.get("error"):
-            raise RoboflowError(body["error"])
-    except (ValueError, AttributeError):
+        if isinstance(body, dict):
+            msg = body.get("error")
+    except ValueError:
+        # Body wasn't JSON — fall through to response.text.
         pass
-    raise RoboflowError(response.text)
+    raise RoboflowError(msg or response.text)
 
 
 def delete_project(api_key, workspace_url, project_url):
