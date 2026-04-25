@@ -101,6 +101,34 @@ roboflow workflow fork other-ws/their-workflow
 roboflow version create -p my-project --settings settings.json
 ```
 
+### Delete and restore (soft delete / Trash)
+
+```bash
+# Move a project to Trash — any in-flight training jobs are cancelled automatically.
+# Items stay in Trash for 30 days, then are permanently cleaned up.
+roboflow project delete my-workspace/my-project
+roboflow project restore my-workspace/my-project
+
+# Same flow for versions (also cancels in-flight training on the version).
+roboflow version delete my-workspace/my-project/3
+roboflow version restore my-workspace/my-project/3
+
+# Same flow for workflows.
+roboflow workflow delete my-workflow
+roboflow workflow restore my-workflow
+
+# Inspect what's currently in Trash.
+roboflow trash list
+
+# Skip the confirmation prompt for scripts.
+roboflow project delete my-workspace/my-project --yes
+```
+
+Permanent deletion (emptying Trash or skipping the retention window for a
+single item) is intentionally not available from the SDK or CLI — those
+actions destroy data irrecoverably and live only in the web UI's Trash
+view. Items left in Trash are cleaned up automatically after 30 days.
+
 ### Workspace stats and billing
 
 ```bash
@@ -177,6 +205,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `workflow` | Manage workflows |
 | `folder` | Manage workspace folders |
 | `annotation` | Annotation batches and jobs |
+| `trash` | List items in Trash |
 | `universe` | Search Roboflow Universe |
 | `video` | Video inference |
 | `batch` | Batch processing jobs *(coming soon)* |

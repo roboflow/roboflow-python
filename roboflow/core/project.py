@@ -1041,3 +1041,46 @@ class Project:
                 raise RuntimeError(response.text)
             except ValueError:
                 raise RuntimeError(f"Failed to delete images: {response.text}")
+
+    def delete(self):
+        """
+        Move this project to Trash (soft delete).
+
+        The project is hidden from the workspace but retained for 30 days. Any
+        in-flight training jobs for the project are cancelled. Within the 30-day
+        window you can restore it via `Project.restore()` or from the Trash UI.
+
+        Returns:
+            dict: Server response with `{deleted: True, type: "project", ...}`.
+
+        Example:
+            >>> import roboflow
+            >>> rf = roboflow.Roboflow(api_key="")
+            >>> project = rf.workspace().project("PROJECT_ID")
+            >>> project.delete()
+        """
+        return rfapi.delete_project(self.__api_key, self.__workspace, self.__project_name)
+
+    def restore(self):
+        """
+        Restore this project from Trash.
+
+        Looks up the project in the workspace Trash by its slug. Raises
+        RuntimeError if the project isn't currently in Trash.
+
+        Returns:
+            dict: Server response with `{restored: True, type: "dataset", ...}`.
+
+        Example:
+            >>> import roboflow
+            >>> rf = roboflow.Roboflow(api_key="")
+            >>> project = rf.workspace().project("PROJECT_ID")
+            >>> project.delete()
+            >>> project.restore()
+        """
+        trash = rfapi.list_trash(self.__api_key, self.__workspace)
+        datasets = trash.get("sections", {}).get("datasets", [])
+        match = next((d for d in datasets if d.get("url") == self.__project_name), None)
+        if not match:
+            raise RuntimeError(f"Project '{self.__project_name}' is not in Trash — nothing to restore.")
+        return rfapi.restore_trash_item(self.__api_key, self.__workspace, "dataset", match["id"])

@@ -78,6 +78,33 @@ def create(
     _create(args)
 
 
+@version_app.command("delete")
+def delete_version(
+    ctx: typer.Context,
+    version_ref: Annotated[
+        str,
+        typer.Argument(help="Version shorthand (e.g. ws/project/3 or project/3)"),
+    ],
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation prompt.")] = False,
+) -> None:
+    """Move a version to Trash (30-day retention; cancels its in-flight training)."""
+    args = ctx_to_args(ctx, version_ref=version_ref, yes=yes)
+    _delete_version(args)
+
+
+@version_app.command("restore")
+def restore_version_cmd(
+    ctx: typer.Context,
+    version_ref: Annotated[
+        str,
+        typer.Argument(help="Version shorthand (e.g. ws/project/3 or project/3)"),
+    ],
+) -> None:
+    """Restore a version from Trash (parent project must be active)."""
+    args = ctx_to_args(ctx, version_ref=version_ref)
+    _restore_version(args)
+
+
 # ---------------------------------------------------------------------------
 # Business logic (unchanged from argparse version)
 # ---------------------------------------------------------------------------
@@ -325,3 +352,152 @@ def _create(args):  # noqa: ANN001
 
     data = {"status": "created", "project": project_slug, "version": version_num}
     output(args, data, text=f"Created version {version_num} for project {project_slug}")
+
+
+def _delete_version(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.cli._resolver import resolve_resource
+    from roboflow.config import load_roboflow_api_key
+
+    try:
+        workspace_url, project_slug, version_num = resolve_resource(args.version_ref, workspace_override=args.workspace)
+    except ValueError as exc:
+        output_error(
+            args,
+            str(exc),
+            hint="Use 'workspace/project/3' or 'project/3' (version must be a number).",
+        )
+        return
+
+    if version_num is None:
+        output_error(
+            args,
+            "Version number is required.",
+            hint="Pass 'project/3' or 'workspace/project/3' — the trailing segment must be the numeric version id.",
+        )
+        return
+
+    api_key = args.api_key or load_roboflow_api_key(workspace_url)
+    if not api_key:
+        output_error(
+            args,
+            "No API key found.",
+            hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.",
+            exit_code=2,
+        )
+        return
+
+    if not getattr(args, "yes", False) and not getattr(args, "json", False):
+        import typer
+
+        confirmed = typer.confirm(
+            f"Move version '{workspace_url}/{project_slug}/{version_num}' to Trash? "
+            "(Retained for 30 days. Any in-flight training will be cancelled.)",
+            default=False,
+        )
+        if not confirmed:
+            output(args, {"cancelled": True}, text="Cancelled.")
+            return
+
+    try:
+        data = rfapi.delete_version(api_key, workspace_url, project_slug, version_num)
+    except rfapi.RoboflowError as exc:
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'version:update' scope and the version exists.",
+            exit_code=3,
+        )
+        return
+
+    output(
+        args,
+        data,
+        text=f"Moved {workspace_url}/{project_slug}/{version_num} to Trash.",
+    )
+
+
+def _restore_version(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.cli._resolver import resolve_resource
+    from roboflow.config import load_roboflow_api_key
+
+    try:
+        workspace_url, project_slug, version_num = resolve_resource(args.version_ref, workspace_override=args.workspace)
+    except ValueError as exc:
+        output_error(
+            args,
+            str(exc),
+            hint="Use 'workspace/project/3' or 'project/3' (version must be a number).",
+        )
+        return
+
+    if version_num is None:
+        output_error(
+            args,
+            "Version number is required.",
+            hint="Pass 'project/3' or 'workspace/project/3' — the trailing segment must be the numeric version id.",
+        )
+        return
+
+    api_key = args.api_key or load_roboflow_api_key(workspace_url)
+    if not api_key:
+        output_error(
+            args,
+            "No API key found.",
+            hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.",
+            exit_code=2,
+        )
+        return
+
+    try:
+        trash = rfapi.list_trash(api_key, workspace_url)
+    except rfapi.RoboflowError as exc:
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'project:read' scope on this workspace.",
+            exit_code=3,
+        )
+        return
+
+    versions = trash.get("sections", {}).get("versions", [])
+    target = str(version_num)
+    match = next(
+        (v for v in versions if str(v.get("id")) == target and v.get("parentUrl") == project_slug),
+        None,
+    )
+    if not match:
+        output_error(
+            args,
+            f"Version '{workspace_url}/{project_slug}/{version_num}' is not in Trash.",
+            hint="Run 'roboflow trash list' to see what can be restored. "
+            "If the parent project is also in Trash, restore the project first.",
+            exit_code=3,
+        )
+        return
+
+    try:
+        data = rfapi.restore_trash_item(
+            api_key,
+            workspace_url,
+            "version",
+            match["id"],
+            parent_id=match.get("parentId"),
+        )
+    except rfapi.RoboflowError as exc:
+        output_error(
+            args,
+            str(exc),
+            hint="Check your API key has 'version:update' scope on this workspace.",
+            exit_code=3,
+        )
+        return
+
+    output(
+        args,
+        data,
+        text=f"Restored {workspace_url}/{project_slug}/{version_num} from Trash.",
+    )
