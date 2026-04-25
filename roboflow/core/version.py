@@ -706,13 +706,12 @@ class Version:
         """
         trash = rfapi.list_trash(self.__api_key, self.workspace)
         versions = trash.get("sections", {}).get("versions", [])
+        # `self.project` is the project URL slug (set by Project at init time
+        # from `a_project["id"].rsplit("/")[1]`), so we match against
+        # `parentUrl`. The trash payload's `parentId` is the Firestore doc id,
+        # which the SDK never holds — no need for a fallback.
         match = next(
-            (
-                v
-                for v in versions
-                if str(v.get("id")) == str(self.version)
-                and (v.get("parentUrl") == self.project or v.get("parentId") == self.project)
-            ),
+            (v for v in versions if str(v.get("id")) == str(self.version) and v.get("parentUrl") == self.project),
             None,
         )
         if not match:

@@ -491,7 +491,7 @@ def _restore_version(args):  # noqa: ANN001
         output_error(
             args,
             str(exc),
-            hint="Check your API key has 'project:update' scope on this workspace.",
+            hint="Check your API key has 'version:update' scope on this workspace.",
             exit_code=3,
         )
         return

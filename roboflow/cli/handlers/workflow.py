@@ -503,7 +503,7 @@ def _restore_workflow(args) -> None:  # noqa: ANN001
         output_error(
             args,
             str(exc),
-            hint="Check your API key has 'project:update' scope on this workspace.",
+            hint="Check your API key has 'workflow:update' scope on this workspace.",
             exit_code=3,
         )
         return
