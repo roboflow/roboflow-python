@@ -2,7 +2,7 @@ import json
 import os
 import unittest
 import urllib
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 
 import responses
 
@@ -18,14 +18,13 @@ class TestUploadImage(unittest.TestCase):
     TAG_NAMES_LOCAL = ["lonely-tag"]
     TAG_NAMES_HOSTED = ["tag1", "tag2"]
     IMAGE_PATH_LOCAL = "test_image.jpg"
+    IMAGE_PATH_LOCAL_PNG = "test_image.png"
     IMAGE_PATH_HOSTED = "http://example.com/test_image.jpg"
     IMAGE_NAME_HOSTED = os.path.basename(IMAGE_PATH_HOSTED)
 
     @responses.activate
-    @patch("roboflow.util.image_utils.file2jpeg")
-    def test_upload_image_local(self, mock_file2jpeg):
-        mock_file2jpeg.return_value = b"image_data"
-
+    @patch("roboflow.adapters.rfapi.open", new_callable=mock_open, read_data=b"image_data", create=True)
+    def test_upload_image_local(self, mock_image_file):
         scenarios = [
             {
                 "desc": "with batch_name",
@@ -71,6 +70,10 @@ class TestUploadImage(unittest.TestCase):
 
                 result = upload_image(self.API_KEY, self.PROJECT_URL, self.IMAGE_PATH_LOCAL, **upload_image_payload)
                 self.assertTrue(result["success"], msg=f"Failed in scenario: {scenario['desc']}")
+                self.assertIn(b"image_data", responses.calls[0].request.body)
+                self.assertIn(b"Content-Type: image/jpeg", responses.calls[0].request.body)
+
+        self.assertEqual(mock_image_file.call_count, len(scenarios))
 
     @responses.activate
     def test_upload_image_hosted(self):
@@ -123,10 +126,8 @@ class TestUploadImage(unittest.TestCase):
                 self.assertTrue(result["success"], msg=f"Failed in scenario: {scenario['desc']}")
 
     @responses.activate
-    @patch("roboflow.util.image_utils.file2jpeg")
-    def test_upload_image_local_with_metadata(self, mock_file2jpeg):
-        mock_file2jpeg.return_value = b"image_data"
-
+    @patch("roboflow.adapters.rfapi.open", new_callable=mock_open, read_data=b"image_data", create=True)
+    def test_upload_image_local_with_metadata(self, mock_image_file):
         metadata = {"camera_id": "cam001", "location": "warehouse"}
         expected_url = (
             f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
@@ -143,11 +144,30 @@ class TestUploadImage(unittest.TestCase):
             metadata=metadata,
         )
         self.assertTrue(result["success"])
+        mock_image_file.assert_called_once_with(self.IMAGE_PATH_LOCAL, "rb")
 
         # Verify metadata was sent as a multipart field
         request_body = responses.calls[0].request.body
         self.assertIn(b'"camera_id"', request_body)
         self.assertIn(b'"warehouse"', request_body)
+
+    @responses.activate
+    @patch("roboflow.adapters.rfapi.open", new_callable=mock_open, read_data=b"png_image_data", create=True)
+    def test_upload_image_local_preserves_original_file_type(self, mock_image_file):
+        expected_url = (
+            f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
+            f"api_key={self.API_KEY}&batch={urllib.parse.quote_plus(DEFAULT_BATCH_NAME)}"
+        )
+        responses.add(responses.POST, expected_url, json={"success": True}, status=200)
+
+        result = upload_image(self.API_KEY, self.PROJECT_URL, self.IMAGE_PATH_LOCAL_PNG)
+
+        self.assertTrue(result["success"])
+        mock_image_file.assert_called_once_with(self.IMAGE_PATH_LOCAL_PNG, "rb")
+        request_body = responses.calls[0].request.body
+        self.assertIn(b"png_image_data", request_body)
+        self.assertIn(b'filename="test_image.png"', request_body)
+        self.assertIn(b"Content-Type: image/png", request_body)
 
     @responses.activate
     def test_upload_image_hosted_with_metadata(self):

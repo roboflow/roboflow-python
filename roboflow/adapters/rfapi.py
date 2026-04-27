@@ -1,4 +1,5 @@
 import json
+import mimetypes
 import os
 import urllib
 from typing import Dict, List, Optional, Union
@@ -293,10 +294,11 @@ def upload_image(
 
     # If image is not a hosted image
     if not hosted_image:
-        from roboflow.util import image_utils
-
         image_name = os.path.basename(image_path)
-        imgjpeg = image_utils.file2jpeg(image_path)
+        content_type = mimetypes.guess_type(image_path)[0] or "application/octet-stream"
+
+        with open(image_path, "rb") as image_file:
+            image_bytes = image_file.read()
 
         upload_url = _local_upload_url(
             api_key, project_url, coalesced_batch_name, tag_names, sequence_number, sequence_size, kwargs
@@ -304,7 +306,7 @@ def upload_image(
         fields = {
             "name": image_name,
             "split": split,
-            "file": ("imageToUpload", imgjpeg, "image/jpeg"),
+            "file": (image_name, image_bytes, content_type),
         }
         if metadata is not None:
             fields["metadata"] = json.dumps(metadata)
