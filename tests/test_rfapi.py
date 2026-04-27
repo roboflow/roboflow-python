@@ -2,7 +2,7 @@ import json
 import os
 import unittest
 import urllib
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 
 import responses
 
@@ -22,10 +22,8 @@ class TestUploadImage(unittest.TestCase):
     IMAGE_NAME_HOSTED = os.path.basename(IMAGE_PATH_HOSTED)
 
     @responses.activate
-    @patch("roboflow.util.image_utils.file2jpeg")
-    def test_upload_image_local(self, mock_file2jpeg):
-        mock_file2jpeg.return_value = b"image_data"
-
+    @patch("roboflow.adapters.rfapi.open", new_callable=mock_open, read_data=b"image_data")
+    def test_upload_image_local(self, _mock_file):
         scenarios = [
             {
                 "desc": "with batch_name",
@@ -123,10 +121,8 @@ class TestUploadImage(unittest.TestCase):
                 self.assertTrue(result["success"], msg=f"Failed in scenario: {scenario['desc']}")
 
     @responses.activate
-    @patch("roboflow.util.image_utils.file2jpeg")
-    def test_upload_image_local_with_metadata(self, mock_file2jpeg):
-        mock_file2jpeg.return_value = b"image_data"
-
+    @patch("roboflow.adapters.rfapi.open", new_callable=mock_open, read_data=b"image_data")
+    def test_upload_image_local_with_metadata(self, _mock_file):
         metadata = {"camera_id": "cam001", "location": "warehouse"}
         expected_url = (
             f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
@@ -171,6 +167,32 @@ class TestUploadImage(unittest.TestCase):
             metadata=metadata,
         )
         self.assertTrue(result["success"])
+
+    @responses.activate
+    def test_upload_image_local_uploads_original_bytes(self):
+        """Server-side dedup relies on the SDK uploading the file bytes exactly as-is."""
+        import tempfile
+
+        raw_bytes = b"\x89PNG\r\n\x1a\nfake-png-bytes-not-decodable-as-jpeg"
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
+            tf.write(raw_bytes)
+            tmp_path = tf.name
+
+        try:
+            expected_url = (
+                f"{API_URL}/dataset/{self.PROJECT_URL}/upload?"
+                f"api_key={self.API_KEY}&batch={urllib.parse.quote_plus(DEFAULT_BATCH_NAME)}"
+            )
+            responses.add(responses.POST, expected_url, json={"success": True}, status=200)
+
+            result = upload_image(self.API_KEY, self.PROJECT_URL, tmp_path)
+            self.assertTrue(result["success"])
+
+            request_body = responses.calls[0].request.body
+            self.assertIn(raw_bytes, request_body)
+            self.assertIn(b"image/png", request_body)
+        finally:
+            os.unlink(tmp_path)
 
     def _reset_responses(self):
         responses.reset()
