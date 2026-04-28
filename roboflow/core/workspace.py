@@ -1339,7 +1339,7 @@ class Workspace:
 
         Returns a dict with:
           - `items`: flat list of everything in Trash
-          - `sections`: grouped by `datasets`, `versions`, `workflows`
+          - `sections`: grouped by `projects`, `versions`, `workflows`
         Each item includes `id`, `type`, `name`, `deletedAt`,
         `scheduledCleanupAt`, and — for versions — `parentId` / `parentUrl`.
 
@@ -1358,9 +1358,9 @@ class Workspace:
         Restore an item from Trash.
 
         Args:
-            item_type: one of "dataset", "version", "workflow"
+            item_type: one of "project", "version", "workflow"
             item_id: the item's Firestore id (found via `trash()`)
-            parent_id: required when restoring a version — the parent dataset id
+            parent_id: required when restoring a version — the parent project id
 
         Returns:
             dict: Server response with `{restored: True, type, id}`.

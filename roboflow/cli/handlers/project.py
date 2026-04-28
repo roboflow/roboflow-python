@@ -314,8 +314,8 @@ def _restore_project(args):  # noqa: ANN001
         )
         return
 
-    datasets = trash.get("sections", {}).get("datasets", [])
-    match = next((d for d in datasets if d.get("url") == project_slug), None)
+    projects = trash.get("sections", {}).get("projects", [])
+    match = next((p for p in projects if p.get("url") == project_slug), None)
     if not match:
         output_error(
             args,
@@ -326,7 +326,7 @@ def _restore_project(args):  # noqa: ANN001
         return
 
     try:
-        data = rfapi.restore_trash_item(api_key, workspace_url, "dataset", match["id"])
+        data = rfapi.restore_trash_item(api_key, workspace_url, "project", match["id"])
     except rfapi.RoboflowError as exc:
         output_error(
             args,

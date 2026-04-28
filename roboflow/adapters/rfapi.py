@@ -931,8 +931,8 @@ def list_trash(api_key, workspace_url):
 def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=None):
     """POST /{workspace}/trash/restore — restore an item from Trash.
 
-    `item_type` must be one of "dataset", "version", "workflow".
-    `parent_id` is required when restoring a version (the dataset id).
+    `item_type` must be one of "project", "version", "workflow".
+    `parent_id` is required when restoring a version (the parent project id).
     """
     url = f"{API_URL}/{workspace_url}/trash/restore?api_key={api_key}"
     payload = {"type": item_type, "id": item_id}

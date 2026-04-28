@@ -94,16 +94,16 @@ class TestProjectRestoreHandler(unittest.TestCase):
 
         from roboflow.cli.handlers.project import _restore_project
 
-        trash = {"sections": {"datasets": [{"id": "abc123", "url": "my-proj", "name": "My Project"}]}}
+        trash = {"sections": {"projects": [{"id": "abc123", "url": "my-proj", "name": "My Project"}]}}
         with (
             patch("roboflow.adapters.rfapi.list_trash", return_value=trash),
             patch(
                 "roboflow.adapters.rfapi.restore_trash_item",
-                return_value={"restored": True, "type": "dataset", "id": "abc123"},
+                return_value={"restored": True, "type": "project", "id": "abc123"},
             ) as mock_restore,
         ):
             _restore_project(self._args())
-            mock_restore.assert_called_once_with("fake-key", "my-ws", "dataset", "abc123")
+            mock_restore.assert_called_once_with("fake-key", "my-ws", "project", "abc123")
 
     def test_restore_not_in_trash(self) -> None:
         from unittest.mock import patch
@@ -115,7 +115,7 @@ class TestProjectRestoreHandler(unittest.TestCase):
         with (
             patch(
                 "roboflow.adapters.rfapi.list_trash",
-                return_value={"sections": {"datasets": []}},
+                return_value={"sections": {"projects": []}},
             ),
             patch("roboflow.adapters.rfapi.restore_trash_item") as mock_restore,
             patch("sys.exit"),

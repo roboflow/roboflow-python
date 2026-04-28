@@ -1069,7 +1069,7 @@ class Project:
         RuntimeError if the project isn't currently in Trash.
 
         Returns:
-            dict: Server response with `{restored: True, type: "dataset", ...}`.
+            dict: Server response with `{restored: True, type: "project", ...}`.
 
         Example:
             >>> import roboflow
@@ -1079,8 +1079,8 @@ class Project:
             >>> project.restore()
         """
         trash = rfapi.list_trash(self.__api_key, self.__workspace)
-        datasets = trash.get("sections", {}).get("datasets", [])
-        match = next((d for d in datasets if d.get("url") == self.__project_name), None)
+        projects = trash.get("sections", {}).get("projects", [])
+        match = next((p for p in projects if p.get("url") == self.__project_name), None)
         if not match:
             raise RuntimeError(f"Project '{self.__project_name}' is not in Trash — nothing to restore.")
-        return rfapi.restore_trash_item(self.__api_key, self.__workspace, "dataset", match["id"])
+        return rfapi.restore_trash_item(self.__api_key, self.__workspace, "project", match["id"])

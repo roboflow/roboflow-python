@@ -59,7 +59,7 @@ class TestTrashListHandler(unittest.TestCase):
         trash_response = {
             "items": [
                 {
-                    "type": "dataset",
+                    "type": "project",
                     "id": "d1",
                     "name": "My Project",
                     "deletedAt": "2026-04-01",
