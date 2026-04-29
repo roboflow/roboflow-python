@@ -39,6 +39,25 @@ those actions are not exposed on the SDK or CLI — they live only in the
 Roboflow app's Trash view, which has an explicit confirmation dialog.
 Items left in Trash are cleaned up automatically after 30 days.
 
+### Fixed — Workflows created via SDK/CLI now execute successfully
+
+`Workspace.create_workflow()` and `roboflow workflow create --definition`
+auto-wrap bare workflow definitions in `{"specification": ...}` before
+POSTing to the backend, matching what the web app does
+([#460](https://github.com/roboflow/roboflow-python/pull/460)). Previously,
+the user-facing flat shape (`{version, inputs, steps, outputs}`) was sent
+verbatim, so `POST /infer/workflows/...` against the resulting workflow
+returned `HTTP 502` with `MalformedWorkflowResponseError: Workflow
+specification not found in Roboflow API response`.
+
+Workflows already wrapped (top-level `specification` key) are passed
+through unchanged. Non-workflow dicts and non-JSON strings are also
+passed through verbatim so custom payloads aren't second-guessed.
+
+> **Note:** workflows that were stored with the bare shape *before* this
+> fix will still 502 until re-saved. Run `roboflow workflow update
+> <url> --definition <file>` once per affected workflow to migrate.
+
 ### Changed — Image upload no longer re-encodes images
 
 `upload_image` now uploads original image bytes instead of re-encoding to
