@@ -12,7 +12,18 @@ from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
 
 
 class RoboflowError(Exception):
-    pass
+    """Generic API error.
+
+    Optional `status_code` is the HTTP status from the upstream response
+    when available — set by helpers like `_raise_for_trash_response` so
+    callers can branch on auth (401) vs not-found (404) without string
+    matching the message. Existing call sites that pass only a message
+    still work; the attribute defaults to `None`.
+    """
+
+    def __init__(self, message, status_code=None):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 class ImageUploadError(RoboflowError):
@@ -911,8 +922,11 @@ def _raise_for_trash_response(response):
     error messages are agent-friendly. Falls back to the raw text if the
     body isn't JSON or doesn't contain an `error` field.
 
-    The single `raise` at the end means we can't accidentally swallow the
-    intended error if a future refactor widens the except clause.
+    Carries the HTTP status code on the raised exception so callers (e.g.
+    the CLI) can map auth failures (401) to the right exit code without
+    string-matching. The single `raise` at the end means we can't
+    accidentally swallow the intended error if a future refactor widens
+    the except clause.
     """
     msg = None
     try:
@@ -922,7 +936,7 @@ def _raise_for_trash_response(response):
     except ValueError:
         # Body wasn't JSON — fall through to response.text.
         pass
-    raise RoboflowError(msg or response.text)
+    raise RoboflowError(msg or response.text, status_code=response.status_code)
 
 
 def delete_project(api_key, workspace_url, project_url):

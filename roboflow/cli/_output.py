@@ -176,6 +176,93 @@ def output_error(
     sys.exit(exit_code)
 
 
+def confirm_destructive(args: Any, prompt: str) -> bool:
+    """Gate a destructive action on either ``--yes`` or an interactive TTY confirmation.
+
+    Returns ``True`` if the action is approved (caller should proceed) or
+    ``False`` if the user declined at the prompt (caller should bail
+    cleanly via ``output(args, {"cancelled": True}, ...)``).
+
+    Calls ``output_error`` and exits with code 1 when *no* TTY is available
+    and ``--yes`` wasn't passed, rather than prompting on a closed stdin
+    (which would either hang or — worse — silently default to a permissive
+    behavior).
+
+    The previous logic gated on ``--json`` ("if --json is set, skip the
+    prompt") which conflated *output formatting* with *destructive intent*.
+    Anyone piping ``roboflow project delete X --json`` into ``jq`` for
+    parsing got their project nuked without any confirmation. Now ``--json``
+    is purely a formatting flag; the kill-switch is ``--yes``/``-y``.
+    """
+    if getattr(args, "yes", False):
+        return True
+
+    # Either explicit `--yes` is required or we need an interactive TTY to
+    # ask. typer.confirm() reads from stdin; if stdin is closed (CI, piped
+    # input, agent) we'd hang — bail with a useful hint instead.
+    if not sys.stdin.isatty():
+        output_error(
+            args,
+            "This is a destructive action and requires confirmation.",
+            hint=(
+                "Re-run with --yes / -y to confirm, or run interactively. "
+                "(--json is a formatting flag and does not bypass this.)"
+            ),
+            exit_code=1,
+        )
+        return False  # unreachable: output_error sys.exits
+
+    import typer
+
+    confirmed = typer.confirm(prompt, default=False)
+    if not confirmed:
+        # Caller renders the cancelled state.
+        output(args, {"cancelled": True}, text="Cancelled.")
+    return confirmed
+
+
+def output_api_error(
+    args: Any,
+    exc: Exception,
+    *,
+    hint: Optional[str] = None,
+    auth_hint: Optional[str] = None,
+    not_found_hint: Optional[str] = None,
+) -> None:
+    """Render a server-side error and exit with the correct code.
+
+    Maps an exception's HTTP status (carried as ``exc.status_code`` when the
+    raiser sets it — see ``_raise_for_trash_response`` in ``adapters.rfapi``)
+    to the per-CONTRIBUTING.md exit-code contract:
+
+    * **401** → exit code 2 ("auth error"). ``auth_hint`` overrides ``hint``
+      so we can surface a key-specific suggestion ("check ROBOFLOW_API_KEY"
+      etc.) regardless of what the caller passes.
+    * **404** → exit code 3 ("not found"). ``not_found_hint`` overrides
+      ``hint`` similarly. Useful for resources that may legitimately be
+      absent (deleted, mis-typed slug, etc.).
+    * **anything else / no status_code attached** → exit code 1 ("error"),
+      using ``hint`` verbatim.
+
+    Without this helper every handler had to either string-match the message
+    (brittle) or fall back to a single ``exit_code=3`` for both 401 and 404,
+    which broke the ``$? == 2`` contract that scripts rely on to decide
+    whether to retry vs. re-auth.
+    """
+    status = getattr(exc, "status_code", None)
+    if status == 401:
+        output_error(
+            args,
+            str(exc),
+            hint=auth_hint or hint or "Check that ROBOFLOW_API_KEY is set and not revoked.",
+            exit_code=2,
+        )
+    elif status == 404:
+        output_error(args, str(exc), hint=not_found_hint or hint, exit_code=3)
+    else:
+        output_error(args, str(exc), hint=hint, exit_code=1)
+
+
 def stub(args: Any) -> None:
     """Placeholder handler for not-yet-implemented commands."""
     output_error(args, "This command is not yet implemented.", hint="Coming soon.", exit_code=1)
