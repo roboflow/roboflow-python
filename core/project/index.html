@@ -569,6 +569,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        delete
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.project.Project.delete_images" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -661,6 +672,17 @@
     <span class="md-ellipsis">
       
         list_versions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        restore
       
     </span>
   </a>
@@ -1132,6 +1154,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        delete
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.project.Project.delete_images" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1224,6 +1257,17 @@
     <span class="md-ellipsis">
       
         list_versions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        restore
       
     </span>
   </a>
@@ -2407,7 +2451,50 @@
 <span class="normal">1040</span>
 <span class="normal">1041</span>
 <span class="normal">1042</span>
-<span class="normal">1043</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Project</span><span class="p">:</span>
+<span class="normal">1043</span>
+<span class="normal">1044</span>
+<span class="normal">1045</span>
+<span class="normal">1046</span>
+<span class="normal">1047</span>
+<span class="normal">1048</span>
+<span class="normal">1049</span>
+<span class="normal">1050</span>
+<span class="normal">1051</span>
+<span class="normal">1052</span>
+<span class="normal">1053</span>
+<span class="normal">1054</span>
+<span class="normal">1055</span>
+<span class="normal">1056</span>
+<span class="normal">1057</span>
+<span class="normal">1058</span>
+<span class="normal">1059</span>
+<span class="normal">1060</span>
+<span class="normal">1061</span>
+<span class="normal">1062</span>
+<span class="normal">1063</span>
+<span class="normal">1064</span>
+<span class="normal">1065</span>
+<span class="normal">1066</span>
+<span class="normal">1067</span>
+<span class="normal">1068</span>
+<span class="normal">1069</span>
+<span class="normal">1070</span>
+<span class="normal">1071</span>
+<span class="normal">1072</span>
+<span class="normal">1073</span>
+<span class="normal">1074</span>
+<span class="normal">1075</span>
+<span class="normal">1076</span>
+<span class="normal">1077</span>
+<span class="normal">1078</span>
+<span class="normal">1079</span>
+<span class="normal">1080</span>
+<span class="normal">1081</span>
+<span class="normal">1082</span>
+<span class="normal">1083</span>
+<span class="normal">1084</span>
+<span class="normal">1085</span>
+<span class="normal">1086</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Project</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A Roboflow Project.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3412,6 +3499,49 @@
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to delete images: </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Move this project to Trash (soft delete).</span>
+
+<span class="sd">        The project is hidden from the workspace but retained for 30 days. Any</span>
+<span class="sd">        in-flight training jobs for the project are cancelled. Within the 30-day</span>
+<span class="sd">        window you can restore it via `Project.restore()` or from the Trash UI.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Server response with `{deleted: True, type: &quot;project&quot;, ...}`.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; import roboflow</span>
+<span class="sd">            &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; project = rf.workspace().project(&quot;PROJECT_ID&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; project.delete()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">delete_project</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Restore this project from Trash.</span>
+
+<span class="sd">        Looks up the project in the workspace Trash by its slug. Raises</span>
+<span class="sd">        RuntimeError if the project isn&#39;t currently in Trash.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Server response with `{restored: True, type: &quot;project&quot;, ...}`.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; import roboflow</span>
+<span class="sd">            &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; project = rf.workspace().project(&quot;PROJECT_ID&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; project.delete()</span>
+<span class="sd">            &gt;&gt;&gt; project.restore()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">trash</span> <span class="o">=</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_trash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">)</span>
+        <span class="n">projects</span> <span class="o">=</span> <span class="n">trash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sections&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;projects&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">projects</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;url&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="si">}</span><span class="s2">&#39; is not in Trash — nothing to restore.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">restore_trash_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="s2">&quot;project&quot;</span><span class="p">,</span> <span class="n">match</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -4026,6 +4156,102 @@
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to create annotation job: </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.project.Project.delete" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">delete</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.project.Project.delete" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Move this project to Trash (soft delete).</p>
+<p>The project is hidden from the workspace but retained for 30 days. Any
+in-flight training jobs for the project are cancelled. Within the 30-day
+window you can restore it via <code>Project.restore()</code> or from the Trash UI.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Server response with <code>{deleted: True, type: "project", ...}</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <blockquote>
+<blockquote>
+<blockquote>
+<p>import roboflow
+rf = roboflow.Roboflow(api_key="")
+project = rf.workspace().project("PROJECT_ID")
+project.delete()</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</details>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/project.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1045</span>
+<span class="normal">1046</span>
+<span class="normal">1047</span>
+<span class="normal">1048</span>
+<span class="normal">1049</span>
+<span class="normal">1050</span>
+<span class="normal">1051</span>
+<span class="normal">1052</span>
+<span class="normal">1053</span>
+<span class="normal">1054</span>
+<span class="normal">1055</span>
+<span class="normal">1056</span>
+<span class="normal">1057</span>
+<span class="normal">1058</span>
+<span class="normal">1059</span>
+<span class="normal">1060</span>
+<span class="normal">1061</span>
+<span class="normal">1062</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Move this project to Trash (soft delete).</span>
+
+<span class="sd">    The project is hidden from the workspace but retained for 30 days. Any</span>
+<span class="sd">    in-flight training jobs for the project are cancelled. Within the 30-day</span>
+<span class="sd">    window you can restore it via `Project.restore()` or from the Trash UI.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Server response with `{deleted: True, type: &quot;project&quot;, ...}`.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; import roboflow</span>
+<span class="sd">        &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; project = rf.workspace().project(&quot;PROJECT_ID&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; project.delete()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">delete_project</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5214,6 +5440,112 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">version_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_version_information</span><span class="p">()</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">version_info</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.project.Project.restore" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">restore</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.project.Project.restore" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Restore this project from Trash.</p>
+<p>Looks up the project in the workspace Trash by its slug. Raises
+RuntimeError if the project isn't currently in Trash.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Server response with <code>{restored: True, type: "project", ...}</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <blockquote>
+<blockquote>
+<blockquote>
+<p>import roboflow
+rf = roboflow.Roboflow(api_key="")
+project = rf.workspace().project("PROJECT_ID")
+project.delete()
+project.restore()</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</details>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/project.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1064</span>
+<span class="normal">1065</span>
+<span class="normal">1066</span>
+<span class="normal">1067</span>
+<span class="normal">1068</span>
+<span class="normal">1069</span>
+<span class="normal">1070</span>
+<span class="normal">1071</span>
+<span class="normal">1072</span>
+<span class="normal">1073</span>
+<span class="normal">1074</span>
+<span class="normal">1075</span>
+<span class="normal">1076</span>
+<span class="normal">1077</span>
+<span class="normal">1078</span>
+<span class="normal">1079</span>
+<span class="normal">1080</span>
+<span class="normal">1081</span>
+<span class="normal">1082</span>
+<span class="normal">1083</span>
+<span class="normal">1084</span>
+<span class="normal">1085</span>
+<span class="normal">1086</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Restore this project from Trash.</span>
+
+<span class="sd">    Looks up the project in the workspace Trash by its slug. Raises</span>
+<span class="sd">    RuntimeError if the project isn&#39;t currently in Trash.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Server response with `{restored: True, type: &quot;project&quot;, ...}`.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; import roboflow</span>
+<span class="sd">        &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; project = rf.workspace().project(&quot;PROJECT_ID&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; project.delete()</span>
+<span class="sd">        &gt;&gt;&gt; project.restore()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">trash</span> <span class="o">=</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_trash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">)</span>
+    <span class="n">projects</span> <span class="o">=</span> <span class="n">trash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sections&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;projects&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">projects</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;url&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="si">}</span><span class="s2">&#39; is not in Trash — nothing to restore.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">restore_trash_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="s2">&quot;project&quot;</span><span class="p">,</span> <span class="n">match</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

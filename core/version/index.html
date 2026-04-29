@@ -658,6 +658,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.version.Version.delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        delete
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.version.Version.deploy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -684,6 +695,17 @@
     <span class="md-ellipsis">
       
         export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.version.Version.restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        restore
       
     </span>
   </a>
@@ -1049,6 +1071,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.version.Version.delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        delete
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.version.Version.deploy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1075,6 +1108,17 @@
     <span class="md-ellipsis">
       
         export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.version.Version.restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        restore
       
     </span>
   </a>
@@ -1820,7 +1864,51 @@
 <span class="normal">694</span>
 <span class="normal">695</span>
 <span class="normal">696</span>
-<span class="normal">697</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Version</span><span class="p">:</span>
+<span class="normal">697</span>
+<span class="normal">698</span>
+<span class="normal">699</span>
+<span class="normal">700</span>
+<span class="normal">701</span>
+<span class="normal">702</span>
+<span class="normal">703</span>
+<span class="normal">704</span>
+<span class="normal">705</span>
+<span class="normal">706</span>
+<span class="normal">707</span>
+<span class="normal">708</span>
+<span class="normal">709</span>
+<span class="normal">710</span>
+<span class="normal">711</span>
+<span class="normal">712</span>
+<span class="normal">713</span>
+<span class="normal">714</span>
+<span class="normal">715</span>
+<span class="normal">716</span>
+<span class="normal">717</span>
+<span class="normal">718</span>
+<span class="normal">719</span>
+<span class="normal">720</span>
+<span class="normal">721</span>
+<span class="normal">722</span>
+<span class="normal">723</span>
+<span class="normal">724</span>
+<span class="normal">725</span>
+<span class="normal">726</span>
+<span class="normal">727</span>
+<span class="normal">728</span>
+<span class="normal">729</span>
+<span class="normal">730</span>
+<span class="normal">731</span>
+<span class="normal">732</span>
+<span class="normal">733</span>
+<span class="normal">734</span>
+<span class="normal">735</span>
+<span class="normal">736</span>
+<span class="normal">737</span>
+<span class="normal">738</span>
+<span class="normal">739</span>
+<span class="normal">740</span>
+<span class="normal">741</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Version</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class representing a Roboflow dataset version.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2454,6 +2542,50 @@
 
         <span class="k">if</span> <span class="nb">format</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;yolov5pytorch&quot;</span><span class="p">,</span> <span class="s2">&quot;mt-yolov6&quot;</span><span class="p">,</span> <span class="s2">&quot;yolov7pytorch&quot;</span><span class="p">,</span> <span class="s2">&quot;yolov8&quot;</span><span class="p">,</span> <span class="s2">&quot;yolov9&quot;</span><span class="p">]:</span>
             <span class="n">amend_data_yaml</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">data_path</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">data_yaml_callback</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Move this version to Trash (soft delete).</span>
+
+<span class="sd">        Any in-flight training job on the version is cancelled. The version is</span>
+<span class="sd">        retained for 30 days and can be restored via `Version.restore()` or the</span>
+<span class="sd">        Trash UI.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Server response with `{deleted: True, type: &quot;version&quot;, ...}`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">delete_version</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Restore this version from Trash.</span>
+
+<span class="sd">        Looks up the version in the workspace Trash by (project, version id).</span>
+<span class="sd">        Raises RuntimeError if it isn&#39;t currently in Trash. The parent project</span>
+<span class="sd">        must not itself be in Trash.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Server response with `{restored: True, type: &quot;version&quot;, ...}`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">trash</span> <span class="o">=</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_trash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">)</span>
+        <span class="n">versions</span> <span class="o">=</span> <span class="n">trash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sections&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;versions&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="c1"># `self.project` is the project URL slug (set by Project at init time</span>
+        <span class="c1"># from `a_project[&quot;id&quot;].rsplit(&quot;/&quot;)[1]`), so we match against</span>
+        <span class="c1"># `parentUrl`. The trash payload&#39;s `parentId` is the Firestore doc id,</span>
+        <span class="c1"># which the SDK never holds — no need for a fallback.</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">versions</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">))</span> <span class="o">==</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentUrl&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">),</span>
+            <span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Version &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">&#39; is not in Trash — nothing to restore.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">restore_trash_item</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span>
+            <span class="s2">&quot;version&quot;</span><span class="p">,</span>
+            <span class="k">match</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+            <span class="n">parent_id</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentId&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -3336,21 +3468,21 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">683</span>
-<span class="normal">684</span>
-<span class="normal">685</span>
-<span class="normal">686</span>
-<span class="normal">687</span>
-<span class="normal">688</span>
-<span class="normal">689</span>
-<span class="normal">690</span>
-<span class="normal">691</span>
-<span class="normal">692</span>
-<span class="normal">693</span>
-<span class="normal">694</span>
-<span class="normal">695</span>
-<span class="normal">696</span>
-<span class="normal">697</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">727</span>
+<span class="normal">728</span>
+<span class="normal">729</span>
+<span class="normal">730</span>
+<span class="normal">731</span>
+<span class="normal">732</span>
+<span class="normal">733</span>
+<span class="normal">734</span>
+<span class="normal">735</span>
+<span class="normal">736</span>
+<span class="normal">737</span>
+<span class="normal">738</span>
+<span class="normal">739</span>
+<span class="normal">740</span>
+<span class="normal">741</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    String representation of version object.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3365,6 +3497,76 @@
         <span class="s2">&quot;workspace&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span>
     <span class="p">}</span>
     <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">json_value</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.version.Version.delete" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">delete</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.version.Version.delete" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Move this version to Trash (soft delete).</p>
+<p>Any in-flight training job on the version is cancelled. The version is
+retained for 30 days and can be restored via <code>Version.restore()</code> or the
+Trash UI.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Server response with <code>{deleted: True, type: "version", ...}</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/version.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">683</span>
+<span class="normal">684</span>
+<span class="normal">685</span>
+<span class="normal">686</span>
+<span class="normal">687</span>
+<span class="normal">688</span>
+<span class="normal">689</span>
+<span class="normal">690</span>
+<span class="normal">691</span>
+<span class="normal">692</span>
+<span class="normal">693</span>
+<span class="normal">694</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Move this version to Trash (soft delete).</span>
+
+<span class="sd">    Any in-flight training job on the version is cancelled. The version is</span>
+<span class="sd">    retained for 30 days and can be restored via `Version.restore()` or the</span>
+<span class="sd">    Trash UI.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Server response with `{deleted: True, type: &quot;version&quot;, ...}`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">delete_version</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3954,6 +4156,112 @@
         <span class="k">return</span> <span class="kc">True</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected export </span><span class="si">{</span><span class="n">export_info</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.version.Version.restore" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">restore</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.version.Version.restore" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Restore this version from Trash.</p>
+<p>Looks up the version in the workspace Trash by (project, version id).
+Raises RuntimeError if it isn't currently in Trash. The parent project
+must not itself be in Trash.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Server response with <code>{restored: True, type: "version", ...}</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/version.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">696</span>
+<span class="normal">697</span>
+<span class="normal">698</span>
+<span class="normal">699</span>
+<span class="normal">700</span>
+<span class="normal">701</span>
+<span class="normal">702</span>
+<span class="normal">703</span>
+<span class="normal">704</span>
+<span class="normal">705</span>
+<span class="normal">706</span>
+<span class="normal">707</span>
+<span class="normal">708</span>
+<span class="normal">709</span>
+<span class="normal">710</span>
+<span class="normal">711</span>
+<span class="normal">712</span>
+<span class="normal">713</span>
+<span class="normal">714</span>
+<span class="normal">715</span>
+<span class="normal">716</span>
+<span class="normal">717</span>
+<span class="normal">718</span>
+<span class="normal">719</span>
+<span class="normal">720</span>
+<span class="normal">721</span>
+<span class="normal">722</span>
+<span class="normal">723</span>
+<span class="normal">724</span>
+<span class="normal">725</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Restore this version from Trash.</span>
+
+<span class="sd">    Looks up the version in the workspace Trash by (project, version id).</span>
+<span class="sd">    Raises RuntimeError if it isn&#39;t currently in Trash. The parent project</span>
+<span class="sd">    must not itself be in Trash.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Server response with `{restored: True, type: &quot;version&quot;, ...}`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">trash</span> <span class="o">=</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_trash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">)</span>
+    <span class="n">versions</span> <span class="o">=</span> <span class="n">trash</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sections&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;versions&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="c1"># `self.project` is the project URL slug (set by Project at init time</span>
+    <span class="c1"># from `a_project[&quot;id&quot;].rsplit(&quot;/&quot;)[1]`), so we match against</span>
+    <span class="c1"># `parentUrl`. The trash payload&#39;s `parentId` is the Firestore doc id,</span>
+    <span class="c1"># which the SDK never holds — no need for a fallback.</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">versions</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">))</span> <span class="o">==</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentUrl&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">),</span>
+        <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Version &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">&#39; is not in Trash — nothing to restore.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">restore_trash_item</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span>
+        <span class="s2">&quot;version&quot;</span><span class="p">,</span>
+        <span class="k">match</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+        <span class="n">parent_id</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parentId&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

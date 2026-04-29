@@ -812,6 +812,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.restore_from_trash" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        restore_from_trash
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.workspace.Workspace.search" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -838,6 +849,17 @@
     <span class="md-ellipsis">
       
         search_export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.trash" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trash
       
     </span>
   </a>
@@ -1513,6 +1535,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.restore_from_trash" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        restore_from_trash
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.workspace.Workspace.search" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1539,6 +1572,17 @@
     <span class="md-ellipsis">
       
         search_export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.trash" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trash
       
     </span>
   </a>
@@ -3053,7 +3097,46 @@
 <span class="normal">1337</span>
 <span class="normal">1338</span>
 <span class="normal">1339</span>
-<span class="normal">1340</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
+<span class="normal">1340</span>
+<span class="normal">1341</span>
+<span class="normal">1342</span>
+<span class="normal">1343</span>
+<span class="normal">1344</span>
+<span class="normal">1345</span>
+<span class="normal">1346</span>
+<span class="normal">1347</span>
+<span class="normal">1348</span>
+<span class="normal">1349</span>
+<span class="normal">1350</span>
+<span class="normal">1351</span>
+<span class="normal">1352</span>
+<span class="normal">1353</span>
+<span class="normal">1354</span>
+<span class="normal">1355</span>
+<span class="normal">1356</span>
+<span class="normal">1357</span>
+<span class="normal">1358</span>
+<span class="normal">1359</span>
+<span class="normal">1360</span>
+<span class="normal">1361</span>
+<span class="normal">1362</span>
+<span class="normal">1363</span>
+<span class="normal">1364</span>
+<span class="normal">1365</span>
+<span class="normal">1366</span>
+<span class="normal">1367</span>
+<span class="normal">1368</span>
+<span class="normal">1369</span>
+<span class="normal">1370</span>
+<span class="normal">1371</span>
+<span class="normal">1372</span>
+<span class="normal">1373</span>
+<span class="normal">1374</span>
+<span class="normal">1375</span>
+<span class="normal">1376</span>
+<span class="normal">1377</span>
+<span class="normal">1378</span>
+<span class="normal">1379</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Manage a Roboflow workspace.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -4366,6 +4449,45 @@
             <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
             <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
         <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">trash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        List items currently in the workspace Trash.</span>
+
+<span class="sd">        Returns a dict with:</span>
+<span class="sd">          - `items`: flat list of everything in Trash</span>
+<span class="sd">          - `sections`: grouped by `projects`, `versions`, `workflows`</span>
+<span class="sd">        Each item includes `id`, `type`, `name`, `deletedAt`,</span>
+<span class="sd">        `scheduledCleanupAt`, and — for versions — `parentId` / `parentUrl`.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; import roboflow</span>
+<span class="sd">            &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; ws = rf.workspace()</span>
+<span class="sd">            &gt;&gt;&gt; trash = ws.trash()</span>
+<span class="sd">            &gt;&gt;&gt; for item in trash[&quot;items&quot;]:</span>
+<span class="sd">            ...     print(item[&quot;type&quot;], item[&quot;name&quot;])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_trash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">restore_from_trash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">item_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parent_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Restore an item from Trash.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            item_type: one of &quot;project&quot;, &quot;version&quot;, &quot;workflow&quot;</span>
+<span class="sd">            item_id: the item&#39;s Firestore id (found via `trash()`)</span>
+<span class="sd">            parent_id: required when restoring a version — the parent project id</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Server response with `{restored: True, type, id}`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">restore_trash_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">item_type</span><span class="p">,</span> <span class="n">item_id</span><span class="p">,</span> <span class="n">parent_id</span><span class="p">)</span>
+
+    <span class="c1"># Permanent-delete actions (empty trash / delete a single trash item</span>
+    <span class="c1"># immediately) are intentionally not exposed in the SDK — they destroy</span>
+    <span class="c1"># data irrecoverably and are only available through the web UI&#39;s Trash</span>
+    <span class="c1"># view. Items left in Trash are cleaned up automatically after 30 days.</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">projects</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">projects</span><span class="p">()</span>
@@ -7044,6 +7166,138 @@ ws.rename_vision_event_use_case("abc123", "new-name")</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="roboflow.core.workspace.Workspace.restore_from_trash" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">restore_from_trash</span><span class="p">(</span><span class="n">item_type</span><span class="p">,</span> <span class="n">item_id</span><span class="p">,</span> <span class="n">parent_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#roboflow.core.workspace.Workspace.restore_from_trash" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Restore an item from Trash.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>item_type</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>one of "project", "version", "workflow"</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>item_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the item's Firestore id (found via <code>trash()</code>)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>parent_id</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>required when restoring a version — the parent project id</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Server response with <code>{restored: True, type, id}</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1356</span>
+<span class="normal">1357</span>
+<span class="normal">1358</span>
+<span class="normal">1359</span>
+<span class="normal">1360</span>
+<span class="normal">1361</span>
+<span class="normal">1362</span>
+<span class="normal">1363</span>
+<span class="normal">1364</span>
+<span class="normal">1365</span>
+<span class="normal">1366</span>
+<span class="normal">1367</span>
+<span class="normal">1368</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">restore_from_trash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">item_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parent_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Restore an item from Trash.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        item_type: one of &quot;project&quot;, &quot;version&quot;, &quot;workflow&quot;</span>
+<span class="sd">        item_id: the item&#39;s Firestore id (found via `trash()`)</span>
+<span class="sd">        parent_id: required when restoring a version — the parent project id</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Server response with `{restored: True, type, id}`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">restore_trash_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">item_type</span><span class="p">,</span> <span class="n">item_id</span><span class="p">,</span> <span class="n">parent_id</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="roboflow.core.workspace.Workspace.search" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">page_size</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">continuation_token</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
@@ -7898,6 +8152,91 @@ If False, keep the zip file as-is.</p>
     <span class="k">else</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Search export saved to </span><span class="si">{</span><span class="n">zip_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">zip_path</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.workspace.Workspace.trash" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">trash</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.workspace.Workspace.trash" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>List items currently in the workspace Trash.</p>
+
+
+<details class="returns-a-dict-with" open>
+  <summary>Returns a dict with</summary>
+  <ul>
+<li><code>items</code>: flat list of everything in Trash</li>
+<li><code>sections</code>: grouped by <code>projects</code>, <code>versions</code>, <code>workflows</code></li>
+</ul>
+</details>        <p>Each item includes <code>id</code>, <code>type</code>, <code>name</code>, <code>deletedAt</code>,
+<code>scheduledCleanupAt</code>, and — for versions — <code>parentId</code> / <code>parentUrl</code>.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <blockquote>
+<blockquote>
+<blockquote>
+<p>import roboflow
+rf = roboflow.Roboflow(api_key="")
+ws = rf.workspace()
+trash = ws.trash()
+for item in trash["items"]:
+...     print(item["type"], item["name"])</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</details>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1336</span>
+<span class="normal">1337</span>
+<span class="normal">1338</span>
+<span class="normal">1339</span>
+<span class="normal">1340</span>
+<span class="normal">1341</span>
+<span class="normal">1342</span>
+<span class="normal">1343</span>
+<span class="normal">1344</span>
+<span class="normal">1345</span>
+<span class="normal">1346</span>
+<span class="normal">1347</span>
+<span class="normal">1348</span>
+<span class="normal">1349</span>
+<span class="normal">1350</span>
+<span class="normal">1351</span>
+<span class="normal">1352</span>
+<span class="normal">1353</span>
+<span class="normal">1354</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">trash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    List items currently in the workspace Trash.</span>
+
+<span class="sd">    Returns a dict with:</span>
+<span class="sd">      - `items`: flat list of everything in Trash</span>
+<span class="sd">      - `sections`: grouped by `projects`, `versions`, `workflows`</span>
+<span class="sd">    Each item includes `id`, `type`, `name`, `deletedAt`,</span>
+<span class="sd">    `scheduledCleanupAt`, and — for versions — `parentId` / `parentUrl`.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; import roboflow</span>
+<span class="sd">        &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; ws = rf.workspace()</span>
+<span class="sd">        &gt;&gt;&gt; trash = ws.trash()</span>
+<span class="sd">        &gt;&gt;&gt; for item in trash[&quot;items&quot;]:</span>
+<span class="sd">        ...     print(item[&quot;type&quot;], item[&quot;name&quot;])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_trash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
