@@ -52,7 +52,7 @@ def _resolve_workspace(args):
 
 def _list_trash(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import output, output_api_error
     from roboflow.cli._table import format_table
 
     workspace_url, api_key = _resolve_workspace(args)
@@ -62,11 +62,10 @@ def _list_trash(args):  # noqa: ANN001
     try:
         trash = rfapi.list_trash(api_key, workspace_url)
     except rfapi.RoboflowError as exc:
-        output_error(
+        output_api_error(
             args,
-            str(exc),
+            exc,
             hint="Check your API key has 'project:read' scope on this workspace.",
-            exit_code=3,
         )
         return
 

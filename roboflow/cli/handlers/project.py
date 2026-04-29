@@ -223,7 +223,7 @@ def _create_project(args):  # noqa: ANN001
 
 def _delete_project(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import confirm_destructive, output, output_api_error, output_error
     from roboflow.cli._resolver import resolve_resource
     from roboflow.config import load_roboflow_api_key
 
@@ -247,26 +247,52 @@ def _delete_project(args):  # noqa: ANN001
         )
         return
 
-    if not getattr(args, "yes", False) and not getattr(args, "json", False):
-        import typer
-
-        confirmed = typer.confirm(
-            f"Move '{workspace_url}/{project_slug}' to Trash? "
-            "(Retained for 30 days. Any in-flight trainings will be cancelled.)",
-            default=False,
-        )
-        if not confirmed:
-            output(args, {"cancelled": True}, text="Cancelled.")
-            return
+    if not confirm_destructive(
+        args,
+        f"Move '{workspace_url}/{project_slug}' to Trash? "
+        "(Retained for 30 days. Any in-flight trainings will be cancelled.)",
+    ):
+        return
 
     try:
         data = rfapi.delete_project(api_key, workspace_url, project_slug)
     except rfapi.RoboflowError as exc:
-        output_error(
+        # Idempotent re-delete: when the project is already in Trash the
+        # public API's URL filter excludes it, so the DELETE returns 404
+        # with a generic "endpoint does not exist" message. That looks like
+        # a permissions error to the user. Probe Trash explicitly — if the
+        # slug is there, treat the call as a no-op success so scripts can
+        # safely retry without special-casing the second attempt.
+        if getattr(exc, "status_code", None) == 404:
+            try:
+                trash = rfapi.list_trash(api_key, workspace_url)
+            except rfapi.RoboflowError:
+                trash = None
+            if trash is not None:
+                already = next(
+                    (p for p in trash.get("sections", {}).get("projects", []) if p.get("url") == project_slug),
+                    None,
+                )
+                if already is not None:
+                    data = {
+                        "deleted": True,
+                        "type": "project",
+                        "workspace": workspace_url,
+                        "project": project_slug,
+                        "projectId": already.get("id"),
+                        "trash": True,
+                        "alreadyInTrash": True,
+                    }
+                    output(
+                        args,
+                        data,
+                        text=f"{workspace_url}/{project_slug} is already in Trash (no-op).",
+                    )
+                    return
+        output_api_error(
             args,
-            str(exc),
+            exc,
             hint="Check your API key has 'project:update' scope on this workspace.",
-            exit_code=3,
         )
         return
 
@@ -279,7 +305,7 @@ def _delete_project(args):  # noqa: ANN001
 
 def _restore_project(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import output, output_api_error, output_error
     from roboflow.cli._resolver import resolve_resource
     from roboflow.config import load_roboflow_api_key
 
@@ -306,11 +332,11 @@ def _restore_project(args):  # noqa: ANN001
     try:
         trash = rfapi.list_trash(api_key, workspace_url)
     except rfapi.RoboflowError as exc:
-        output_error(
+        output_api_error(
             args,
-            str(exc),
+            exc,
+            auth_hint="Check that ROBOFLOW_API_KEY is valid for this workspace.",
             hint="Check your API key has 'project:read' scope on this workspace.",
-            exit_code=3,
         )
         return
 
@@ -328,11 +354,10 @@ def _restore_project(args):  # noqa: ANN001
     try:
         data = rfapi.restore_trash_item(api_key, workspace_url, "project", match["id"])
     except rfapi.RoboflowError as exc:
-        output_error(
+        output_api_error(
             args,
-            str(exc),
+            exc,
             hint="Check your API key has 'project:update' scope on this workspace.",
-            exit_code=3,
         )
         return
 
