@@ -1,7 +1,10 @@
 """Unit tests for Phase 2 rfapi functions."""
 
+import json
 import unittest
 from unittest.mock import MagicMock, patch
+
+from roboflow.adapters.rfapi import _normalize_workflow_config
 
 
 class TestListBatches(unittest.TestCase):
@@ -332,6 +335,140 @@ class TestCreateWorkflow(unittest.TestCase):
         with self.assertRaises(RoboflowError):
             create_workflow("key", "ws", name="Bad")
 
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_bare_spec_dict_is_auto_wrapped(self, mock_post):
+        """Docs-shaped workflow definitions get wrapped in {"specification": ...}
+        so they match the backend's stored format and the inference server's
+        expectation. See `_normalize_workflow_config`."""
+        import json as _json
+
+        from roboflow.adapters.rfapi import create_workflow
+
+        mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "wf"}})
+        bare = {"version": "1.0", "inputs": [], "steps": [], "outputs": []}
+        create_workflow("key", "ws", name="WF", config=bare)
+        sent_config = _json.loads(mock_post.call_args[1]["params"]["config"])
+        self.assertEqual(sent_config, {"specification": bare})
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_already_wrapped_config_is_not_double_wrapped(self, mock_post):
+        import json as _json
+
+        from roboflow.adapters.rfapi import create_workflow
+
+        mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "wf"}})
+        wrapped = {"specification": {"version": "1.0", "inputs": [], "steps": [], "outputs": []}}
+        create_workflow("key", "ws", name="WF", config=wrapped)
+        sent_config = _json.loads(mock_post.call_args[1]["params"]["config"])
+        self.assertEqual(sent_config, wrapped)
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_bare_spec_json_string_is_auto_wrapped(self, mock_post):
+        """JSON strings are parsed, wrapped if bare, and re-serialized."""
+        import json as _json
+
+        from roboflow.adapters.rfapi import create_workflow
+
+        mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "wf"}})
+        bare_str = '{"version": "1.0", "steps": []}'
+        create_workflow("key", "ws", name="WF", config=bare_str)
+        sent_config = _json.loads(mock_post.call_args[1]["params"]["config"])
+        self.assertEqual(sent_config, {"specification": {"version": "1.0", "steps": []}})
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_non_workflow_dict_is_not_wrapped(self, mock_post):
+        """Dicts that don't look like a workflow spec (no version/inputs/steps/outputs)
+        are passed through unchanged to avoid second-guessing custom payloads."""
+        import json as _json
+
+        from roboflow.adapters.rfapi import create_workflow
+
+        mock_post.return_value = MagicMock(status_code=201, json=lambda: {"workflow": {"url": "wf"}})
+        create_workflow("key", "ws", name="WF", config={"a": 1})
+        sent_config = _json.loads(mock_post.call_args[1]["params"]["config"])
+        self.assertEqual(sent_config, {"a": 1})
+
+
+class TestNormalizeWorkflowConfig(unittest.TestCase):
+    """Direct unit tests for the private ``_normalize_workflow_config`` helper.
+
+    Imported from the private API intentionally — whitebox tests lock the
+    behavior contract that ``create_workflow``/``update_workflow`` rely on.
+    """
+
+    def test_none_returns_empty_object(self):
+        self.assertEqual(_normalize_workflow_config(None), "{}")
+
+    def test_empty_dict_serialized_to_empty_json(self):
+        # Empty dict has no workflow keys, so it falls through the wrap check
+        # and serializes to ``"{}"`` — coincidentally matching the legacy
+        # ``None -> "{}"`` default.
+        self.assertEqual(_normalize_workflow_config({}), "{}")
+
+    def test_string_without_workflow_keys_preserved_byte_for_byte(self):
+        self.assertEqual(_normalize_workflow_config('{"a":1}'), '{"a":1}')
+
+    def test_non_json_string_passthrough(self):
+        self.assertEqual(_normalize_workflow_config("not json"), "not json")
+
+    def test_already_wrapped_json_string_preserved_byte_for_byte(self):
+        wrapped = '{"specification": {"version": "1.0"}}'
+        self.assertEqual(_normalize_workflow_config(wrapped), wrapped)
+
+    def test_partial_workflow_dict_is_wrapped(self):
+        # Single workflow-shaped key at top level is enough to classify as a
+        # bare spec; users often build definitions incrementally.
+        result = _normalize_workflow_config({"steps": [{"id": "s1"}]})
+        self.assertEqual(json.loads(result), {"specification": {"steps": [{"id": "s1"}]}})
+
+    def test_json_array_input_preserved(self):
+        # ``isinstance(parsed, dict)`` guards against calling ``.keys()`` on
+        # non-dict JSON; pinning the no-wrap behavior here protects that.
+        self.assertEqual(_normalize_workflow_config("[1,2,3]"), "[1,2,3]")
+
+    def test_json_scalar_inputs_preserved(self):
+        self.assertEqual(_normalize_workflow_config("42"), "42")
+        self.assertEqual(_normalize_workflow_config("true"), "true")
+        self.assertEqual(_normalize_workflow_config("null"), "null")
+
+    def test_utf8_bom_stripped_before_parse(self):
+        # Windows editors frequently prepend a UTF-8 BOM. Without the strip,
+        # ``json.loads`` raises and the raw (unwrapped) string would ship —
+        # reproducing the exact 502 this PR is meant to fix.
+        bom_str = '\ufeff{"version":"1.0","steps":[]}'
+        result = _normalize_workflow_config(bom_str)
+        self.assertEqual(json.loads(result), {"specification": {"version": "1.0", "steps": []}})
+
+    def test_utf8_bom_stripped_when_already_wrapped(self):
+        # Already-wrapped JSON saved from a Windows editor would otherwise
+        # ship the BOM through to the backend, where the inference server's
+        # ``json.loads`` rejects it ("Unexpected UTF-8 BOM") \u2014 same 502 in
+        # a different shape.
+        bom_wrapped = '\ufeff{"specification": {"version": "1.0"}}'
+        self.assertEqual(
+            _normalize_workflow_config(bom_wrapped),
+            '{"specification": {"version": "1.0"}}',
+        )
+
+    def test_utf8_bom_stripped_for_non_workflow_dict_string(self):
+        # A custom JSON payload (not a workflow spec) with a leading BOM
+        # also gets the BOM removed so the backend stores parseable JSON.
+        bom_custom = '\ufeff{"a":1}'
+        self.assertEqual(_normalize_workflow_config(bom_custom), '{"a":1}')
+
+    def test_utf8_bom_stripped_for_non_json_string(self):
+        # Non-JSON string with a BOM: still strip the BOM, since shipping
+        # it verbatim has no upside and would only produce a downstream
+        # decode error if anything ever tries to parse it.
+        self.assertEqual(_normalize_workflow_config("\ufeffnot json"), "not json")
+
+    def test_wrapped_output_uses_compact_separators(self):
+        # Matches the shape the web UI writes via ``JSON.stringify``, so
+        # Firestore audit/diff tooling sees SDK- and UI-written rows as
+        # byte-identical when the logical content matches.
+        result = _normalize_workflow_config({"version": "1.0", "steps": []})
+        self.assertEqual(result, '{"specification":{"version":"1.0","steps":[]}}')
+
 
 class TestUpdateWorkflow(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.requests.post")
@@ -359,6 +496,18 @@ class TestUpdateWorkflow(unittest.TestCase):
         update_workflow("key", "ws", workflow_id="id-1", workflow_name="WF1", workflow_url="wf1", config='{"a":1}')
         payload = mock_post.call_args[1]["json"]
         self.assertEqual(payload["config"], '{"a":1}')
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_bare_spec_dict_is_auto_wrapped_on_update(self, mock_post):
+        import json as _json
+
+        from roboflow.adapters.rfapi import update_workflow
+
+        mock_post.return_value = MagicMock(status_code=200, json=lambda: {"status": "ok"})
+        bare = {"version": "1.0", "inputs": [], "steps": [], "outputs": []}
+        update_workflow("key", "ws", workflow_id="id-1", workflow_name="WF1", workflow_url="wf1", config=bare)
+        sent_config = _json.loads(mock_post.call_args[1]["json"]["config"])
+        self.assertEqual(sent_config, {"specification": bare})
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_error(self, mock_post):
