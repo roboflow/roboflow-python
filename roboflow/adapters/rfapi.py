@@ -1,4 +1,5 @@
 import json
+import mimetypes
 import os
 import urllib
 from typing import Dict, List, Optional, Union
@@ -293,10 +294,10 @@ def upload_image(
 
     # If image is not a hosted image
     if not hosted_image:
-        from roboflow.util import image_utils
-
         image_name = os.path.basename(image_path)
-        imgjpeg = image_utils.file2jpeg(image_path)
+        with open(image_path, "rb") as fh:
+            image_bytes = fh.read()
+        content_type = mimetypes.guess_type(image_path)[0] or "application/octet-stream"
 
         upload_url = _local_upload_url(
             api_key, project_url, coalesced_batch_name, tag_names, sequence_number, sequence_size, kwargs
@@ -304,7 +305,7 @@ def upload_image(
         fields = {
             "name": image_name,
             "split": split,
-            "file": ("imageToUpload", imgjpeg, "image/jpeg"),
+            "file": (image_name, image_bytes, content_type),
         }
         if metadata is not None:
             fields["metadata"] = json.dumps(metadata)
@@ -894,3 +895,102 @@ def search_universe(query, *, api_key=None, project_type=None, limit=12, page=1)
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Soft-delete / Trash operations
+# ---------------------------------------------------------------------------
+
+
+def _raise_for_trash_response(response):
+    """Raise RoboflowError with the cleanest message available.
+
+    Backend trash endpoints return `{"error": "..."}` JSON on non-2xx.
+    Surface that string to the caller instead of the raw response body so
+    error messages are agent-friendly. Falls back to the raw text if the
+    body isn't JSON or doesn't contain an `error` field.
+
+    The single `raise` at the end means we can't accidentally swallow the
+    intended error if a future refactor widens the except clause.
+    """
+    msg = None
+    try:
+        body = response.json()
+        if isinstance(body, dict):
+            msg = body.get("error")
+    except ValueError:
+        # Body wasn't JSON — fall through to response.text.
+        pass
+    raise RoboflowError(msg or response.text)
+
+
+def delete_project(api_key, workspace_url, project_url):
+    """DELETE /{workspace}/{project} — move a project to Trash (30-day retention).
+
+    Any in-flight training jobs for the project will be cancelled automatically.
+    The project can be restored via `restore_trash_item` within the retention
+    window; after 30 days the cleanup cron permanently removes it.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}?api_key={api_key}"
+    response = requests.delete(url)
+    if response.status_code != 200:
+        _raise_for_trash_response(response)
+    return response.json()
+
+
+def delete_version(api_key, workspace_url, project_url, version):
+    """DELETE /{workspace}/{project}/{version} — move a version to Trash.
+
+    Any in-flight training on the version will be cancelled automatically.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}?api_key={api_key}"
+    response = requests.delete(url)
+    if response.status_code != 200:
+        _raise_for_trash_response(response)
+    return response.json()
+
+
+def delete_workflow(api_key, workspace_url, workflow_url):
+    """DELETE /{workspace}/workflows/{workflowUrl} — move a workflow to Trash
+    (30-day retention). Restore via `restore_trash_item(..., "workflow", ...)`.
+    """
+    url = f"{API_URL}/{workspace_url}/workflows/{workflow_url}?api_key={api_key}"
+    response = requests.delete(url)
+    if response.status_code != 200:
+        _raise_for_trash_response(response)
+    return response.json()
+
+
+def list_trash(api_key, workspace_url):
+    """GET /{workspace}/trash — list items currently in Trash.
+
+    Returns a dict with `items` (flat list) and `sections` (grouped by type:
+    `datasets`, `versions`, `workflows`). Each item includes `id`, `type`,
+    `name`, `deletedAt`, `scheduledCleanupAt`, and (for versions) `parentId`.
+    """
+    url = f"{API_URL}/{workspace_url}/trash?api_key={api_key}"
+    response = requests.get(url)
+    if response.status_code != 200:
+        _raise_for_trash_response(response)
+    return response.json()
+
+
+def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=None):
+    """POST /{workspace}/trash/restore — restore an item from Trash.
+
+    `item_type` must be one of "project", "version", "workflow".
+    `parent_id` is required when restoring a version (the parent project id).
+    """
+    url = f"{API_URL}/{workspace_url}/trash/restore?api_key={api_key}"
+    payload = {"type": item_type, "id": item_id}
+    if parent_id is not None:
+        payload["parentId"] = parent_id
+    response = requests.post(url, json=payload)
+    if response.status_code != 200:
+        _raise_for_trash_response(response)
+    return response.json()
+
+
+# Note: permanent-delete from Trash (deleteImmediately / empty) is
+# intentionally not exposed on the public API — those actions destroy data
+# irrecoverably and are only available through the web UI's Trash view.

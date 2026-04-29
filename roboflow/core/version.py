@@ -22,6 +22,7 @@ from roboflow.config import (
     TYPE_KEYPOINT_DETECTION,
     TYPE_OBJECT_DETECTION,
     TYPE_SEMANTIC_SEGMENTATION,
+    TYPE_TEXT_IMAGE_PAIRS,
     UNIVERSE_URL,
 )
 from roboflow.core.dataset import Dataset
@@ -30,6 +31,7 @@ from roboflow.models.instance_segmentation import InstanceSegmentationModel
 from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
+from roboflow.models.vlm import VLMModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import extract_zip, write_line
 from roboflow.util.model_processor import process, validate_model_type_for_project
@@ -133,6 +135,16 @@ class Version:
                 self.model = SemanticSegmentationModel(self.__api_key, self.id)
             elif self.type == TYPE_KEYPOINT_DETECTION:
                 self.model = KeypointDetectionModel(self.__api_key, self.id, version=version_without_workspace)
+            elif self.type == TYPE_TEXT_IMAGE_PAIRS:
+                self.model = VLMModel(
+                    self.__api_key,
+                    self.id,
+                    self.name,
+                    version_without_workspace,
+                    local=local,
+                    colors=self.colors,
+                    preprocessing=self.preprocessing,
+                )
             else:
                 self.model = None
 
@@ -667,6 +679,50 @@ class Version:
 
         if format in ["yolov5pytorch", "mt-yolov6", "yolov7pytorch", "yolov8", "yolov9"]:
             amend_data_yaml(path=data_path, callback=data_yaml_callback)
+
+    def delete(self):
+        """
+        Move this version to Trash (soft delete).
+
+        Any in-flight training job on the version is cancelled. The version is
+        retained for 30 days and can be restored via `Version.restore()` or the
+        Trash UI.
+
+        Returns:
+            dict: Server response with `{deleted: True, type: "version", ...}`.
+        """
+        return rfapi.delete_version(self.__api_key, self.workspace, self.project, self.version)
+
+    def restore(self):
+        """
+        Restore this version from Trash.
+
+        Looks up the version in the workspace Trash by (project, version id).
+        Raises RuntimeError if it isn't currently in Trash. The parent project
+        must not itself be in Trash.
+
+        Returns:
+            dict: Server response with `{restored: True, type: "version", ...}`.
+        """
+        trash = rfapi.list_trash(self.__api_key, self.workspace)
+        versions = trash.get("sections", {}).get("versions", [])
+        # `self.project` is the project URL slug (set by Project at init time
+        # from `a_project["id"].rsplit("/")[1]`), so we match against
+        # `parentUrl`. The trash payload's `parentId` is the Firestore doc id,
+        # which the SDK never holds — no need for a fallback.
+        match = next(
+            (v for v in versions if str(v.get("id")) == str(self.version) and v.get("parentUrl") == self.project),
+            None,
+        )
+        if not match:
+            raise RuntimeError(f"Version '{self.project}/{self.version}' is not in Trash — nothing to restore.")
+        return rfapi.restore_trash_item(
+            self.__api_key,
+            self.workspace,
+            "version",
+            match["id"],
+            parent_id=match.get("parentId"),
+        )
 
     def __str__(self):
         """

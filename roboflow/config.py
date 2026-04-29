@@ -72,6 +72,7 @@ TYPE_OBJECT_DETECTION = "object-detection"
 TYPE_INSTANCE_SEGMENTATION = "instance-segmentation"
 TYPE_SEMANTIC_SEGMENTATION = "semantic-segmentation"
 TYPE_KEYPOINT_DETECTION = "keypoint-detection"
+TYPE_TEXT_IMAGE_PAIRS = "text-image-pairs"
 
 TASK_DET = "det"
 TASK_SEG = "seg"
