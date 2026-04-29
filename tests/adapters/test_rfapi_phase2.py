@@ -439,6 +439,29 @@ class TestNormalizeWorkflowConfig(unittest.TestCase):
         result = _normalize_workflow_config(bom_str)
         self.assertEqual(json.loads(result), {"specification": {"version": "1.0", "steps": []}})
 
+    def test_utf8_bom_stripped_when_already_wrapped(self):
+        # Already-wrapped JSON saved from a Windows editor would otherwise
+        # ship the BOM through to the backend, where the inference server's
+        # ``json.loads`` rejects it ("Unexpected UTF-8 BOM") \u2014 same 502 in
+        # a different shape.
+        bom_wrapped = '\ufeff{"specification": {"version": "1.0"}}'
+        self.assertEqual(
+            _normalize_workflow_config(bom_wrapped),
+            '{"specification": {"version": "1.0"}}',
+        )
+
+    def test_utf8_bom_stripped_for_non_workflow_dict_string(self):
+        # A custom JSON payload (not a workflow spec) with a leading BOM
+        # also gets the BOM removed so the backend stores parseable JSON.
+        bom_custom = '\ufeff{"a":1}'
+        self.assertEqual(_normalize_workflow_config(bom_custom), '{"a":1}')
+
+    def test_utf8_bom_stripped_for_non_json_string(self):
+        # Non-JSON string with a BOM: still strip the BOM, since shipping
+        # it verbatim has no upside and would only produce a downstream
+        # decode error if anything ever tries to parse it.
+        self.assertEqual(_normalize_workflow_config("\ufeffnot json"), "not json")
+
     def test_wrapped_output_uses_compact_separators(self):
         # Matches the shape the web UI writes via ``JSON.stringify``, so
         # Firestore audit/diff tooling sees SDK- and UI-written rows as

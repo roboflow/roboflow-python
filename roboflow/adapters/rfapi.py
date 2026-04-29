@@ -676,8 +676,9 @@ def _normalize_workflow_config(config):
     - Dicts or JSON strings that look like a bare workflow spec — i.e., contain
       any of ``version``/``inputs``/``steps``/``outputs`` at the top level —
       get wrapped.
-    - A leading UTF-8 BOM on string input is stripped before parsing so files
-      saved from Windows editors still get wrapped correctly.
+    - A leading UTF-8 BOM on string input is stripped before parsing AND on
+      the returned value, so files saved from Windows editors don't ship a
+      BOM to the backend (the inference server's ``json.loads`` rejects it).
     - When a wrap happens, the result is serialized with compact separators
       (``","``, ``":"``) to match the shape the web app writes, so audit /
       diff tools don't see SDK-written and UI-written rows as different.
@@ -691,10 +692,10 @@ def _normalize_workflow_config(config):
         try:
             parsed = json.loads(stripped)
         except (ValueError, TypeError):
-            return config
+            return stripped
         if isinstance(parsed, dict) and "specification" not in parsed and _WORKFLOW_SPEC_KEYS & parsed.keys():
             return json.dumps({"specification": parsed}, separators=(",", ":"))
-        return config  # preserve user-supplied string unchanged when no wrap needed
+        return stripped  # preserve user-supplied string when no wrap needed (BOM stripped)
     if isinstance(config, dict) and "specification" not in config and _WORKFLOW_SPEC_KEYS & config.keys():
         return json.dumps({"specification": config}, separators=(",", ":"))
     return json.dumps(config)
