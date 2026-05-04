@@ -173,6 +173,22 @@ class TestDevicesApiErrors(unittest.TestCase):
     def test_500_generic(self) -> None:
         self._expect(500, DeviceApiError)
 
+    def test_500_truncates_huge_response_body(self) -> None:
+        # Server-side 500s sometimes return a multi-KB HTML stack trace. The
+        # adapter must cap that before it lands in str(exc).
+        huge_body = "X" * 10_000  # 10x the cap
+        with patch("roboflow.adapters.devicesapi.requests.get") as mock_get:
+            response = MagicMock()
+            response.status_code = 500
+            response.json.side_effect = ValueError("not JSON")
+            response.text = huge_body
+            mock_get.return_value = response
+            with self.assertRaises(DeviceApiError) as ctx:
+                devicesapi.get_device(API_KEY, WORKSPACE, DEVICE_ID)
+            msg = str(ctx.exception)
+            self.assertLess(len(msg), len(huge_body))
+            self.assertTrue(msg.endswith("…[truncated]"))
+
 
 class TestDeviceClass(unittest.TestCase):
     """Device exposes the per-device sub-resources."""

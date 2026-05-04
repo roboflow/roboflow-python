@@ -337,6 +337,8 @@ def _create(args) -> None:  # noqa: ANN001
 
 
 def _config(args) -> None:  # noqa: ANN001
+    import sys
+
     from roboflow.adapters import devicesapi
     from roboflow.cli._output import output, output_error
 
@@ -351,6 +353,19 @@ def _config(args) -> None:  # noqa: ANN001
         output_error(args, str(exc), hint=_hint_for(exc), exit_code=_exit_code_for(exc))
         return
 
+    # `GET .../config` is a documented passthrough of the Firestore config doc — it can
+    # contain `environment_variables` and integration credentials. We deliberately do
+    # NOT redact: that would silently corrupt round-trips (backup/restore/diff) and
+    # diverge from what the API contract returns. Instead, surface a stderr warning
+    # in interactive (non-JSON, non-quiet) mode so a human running `roboflow device
+    # config <id>` is reminded before they paste the output anywhere. JSON mode stays
+    # byte-identical to the API response.
+    if not getattr(args, "json", False) and not getattr(args, "quiet", False):
+        sys.stderr.write(
+            "WARNING: Device config may contain environment variables, API keys, "
+            "and integration credentials. Do not paste this output into chats, "
+            "tickets, screenshots, or shared logs.\n"
+        )
     output(args, config)
 
 

@@ -20,6 +20,19 @@ from roboflow.config import API_URL
 
 DEFAULT_TIMEOUT = (10, 60)
 
+# Cap on raw error-body bytes surfaced through exception messages. Server-side
+# 500s sometimes return a multi-KB HTML stack trace; without a cap the whole
+# blob would land in `str(exc)` and wreck terminals/log lines.
+_MAX_ERROR_BODY_CHARS = 1024
+
+
+def _truncate(text: str) -> str:
+    if not text:
+        return text
+    if len(text) <= _MAX_ERROR_BODY_CHARS:
+        return text
+    return text[:_MAX_ERROR_BODY_CHARS] + "…[truncated]"
+
 
 class DeviceApiError(RoboflowError):
     """Raised when a device API call returns a non-success status."""
@@ -78,6 +91,7 @@ def _raise_for_status(response: requests.Response) -> None:
             message = response.text
     except Exception:  # noqa: BLE001
         message = response.text
+    message = _truncate(message)
     code = response.status_code
     if code == 400:
         raise DeviceBadRequestError(message or "Bad request", status_code=code)

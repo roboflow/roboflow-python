@@ -90,7 +90,10 @@ def _sanitize_credentials(text: str) -> str:
     """Strip API keys from URLs and other sensitive patterns in error messages."""
     import re
 
-    return re.sub(r"api_key=[A-Za-z0-9_]+", "api_key=***", text)
+    # Match api_key=... up to the next whitespace, query separator, quote, or backslash.
+    # Older patterns missed keys containing '-' or other URL-safe characters and would
+    # echo them to the terminal when an exception bubbled up from `requests`.
+    return re.sub(r"api_key=[^\s&\"'\\<>]+", "api_key=***", text)
 
 
 def _parse_error_message(raw: str) -> tuple[Optional[dict[str, Any]], str]:
