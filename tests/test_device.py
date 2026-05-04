@@ -112,6 +112,28 @@ class TestDevicesApiUrlBuilding(unittest.TestCase):
         # Body field is camelCase per docs/api/deployments/overview.md
         self.assertEqual(body["sourceDeviceId"], "other")
 
+    @patch("roboflow.adapters.devicesapi.requests.post")
+    @patch("roboflow.adapters.devicesapi.requests.get")
+    def test_requests_use_default_timeout(self, mock_get, mock_post):
+        mock_get.return_value = _mock_response(200, {"data": [], "pagination": {}})
+        mock_post.return_value = _mock_response(201, {"deviceId": "d1", "installId": "i1"})
+
+        devicesapi.list_devices(API_KEY, WORKSPACE)
+        devicesapi.create_device(API_KEY, WORKSPACE, device_name="Cam 1")
+        devicesapi.get_device(API_KEY, WORKSPACE, DEVICE_ID)
+        devicesapi.get_device_config(API_KEY, WORKSPACE, DEVICE_ID)
+        devicesapi.get_device_config_history(API_KEY, WORKSPACE, DEVICE_ID)
+        devicesapi.list_device_streams(API_KEY, WORKSPACE, DEVICE_ID)
+        devicesapi.get_device_stream(API_KEY, WORKSPACE, DEVICE_ID, "s1")
+        devicesapi.get_device_logs(API_KEY, WORKSPACE, DEVICE_ID)
+        devicesapi.get_device_telemetry(API_KEY, WORKSPACE, DEVICE_ID)
+        devicesapi.get_device_events(API_KEY, WORKSPACE, DEVICE_ID)
+
+        for call in mock_get.call_args_list:
+            self.assertEqual(call.kwargs["timeout"], devicesapi.DEFAULT_TIMEOUT)
+        for call in mock_post.call_args_list:
+            self.assertEqual(call.kwargs["timeout"], devicesapi.DEFAULT_TIMEOUT)
+
 
 class TestDevicesApiErrors(unittest.TestCase):
     """Each non-2xx HTTP status maps to a typed exception."""

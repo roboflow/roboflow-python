@@ -18,6 +18,8 @@ import requests
 from roboflow.adapters.rfapi import RoboflowError
 from roboflow.config import API_URL
 
+DEFAULT_TIMEOUT = (10, 60)
+
 
 class DeviceApiError(RoboflowError):
     """Raised when a device API call returns a non-success status."""
@@ -96,7 +98,7 @@ def _raise_for_status(response: requests.Response) -> None:
 
 def list_devices(api_key: str, workspace: str) -> Dict[str, Any]:
     """``GET /:workspace/devices/v2`` — returns the parsed JSON response."""
-    response = requests.get(_build_url(workspace, "", api_key))
+    response = requests.get(_build_url(workspace, "", api_key), timeout=DEFAULT_TIMEOUT)
     _raise_for_status(response)
     return response.json()
 
@@ -125,14 +127,18 @@ def create_device(
     if source_device_id is not None:
         # Body field is camelCase per docs/api/deployments/overview.md
         body["sourceDeviceId"] = source_device_id
-    response = requests.post(_build_url(workspace, "", api_key), json=body)
+    response = requests.post(
+        _build_url(workspace, "", api_key),
+        json=body,
+        timeout=DEFAULT_TIMEOUT,
+    )
     _raise_for_status(response)
     return response.json()
 
 
 def get_device(api_key: str, workspace: str, device_id: str) -> Dict[str, Any]:
     """``GET /:workspace/devices/v2/:deviceId``."""
-    response = requests.get(_build_url(workspace, f"/{device_id}", api_key))
+    response = requests.get(_build_url(workspace, f"/{device_id}", api_key), timeout=DEFAULT_TIMEOUT)
     _raise_for_status(response)
     return response.json()
 
@@ -144,7 +150,7 @@ def get_device_config(api_key: str, workspace: str, device_id: str) -> Dict[str,
         The response can include ``environment_variables`` and integration
         credentials. Treat the returned dict as sensitive.
     """
-    response = requests.get(_build_url(workspace, f"/{device_id}/config", api_key))
+    response = requests.get(_build_url(workspace, f"/{device_id}/config", api_key), timeout=DEFAULT_TIMEOUT)
     _raise_for_status(response)
     return response.json()
 
@@ -164,7 +170,8 @@ def get_device_config_history(
             f"/{device_id}/config/history",
             api_key,
             query={"limit": limit, "cursor": cursor},
-        )
+        ),
+        timeout=DEFAULT_TIMEOUT,
     )
     _raise_for_status(response)
     return response.json()
@@ -172,14 +179,17 @@ def get_device_config_history(
 
 def list_device_streams(api_key: str, workspace: str, device_id: str) -> Dict[str, Any]:
     """``GET /:workspace/devices/v2/:deviceId/streams``."""
-    response = requests.get(_build_url(workspace, f"/{device_id}/streams", api_key))
+    response = requests.get(_build_url(workspace, f"/{device_id}/streams", api_key), timeout=DEFAULT_TIMEOUT)
     _raise_for_status(response)
     return response.json()
 
 
 def get_device_stream(api_key: str, workspace: str, device_id: str, stream_id: str) -> Dict[str, Any]:
     """``GET /:workspace/devices/v2/:deviceId/streams/:streamId``."""
-    response = requests.get(_build_url(workspace, f"/{device_id}/streams/{stream_id}", api_key))
+    response = requests.get(
+        _build_url(workspace, f"/{device_id}/streams/{stream_id}", api_key),
+        timeout=DEFAULT_TIMEOUT,
+    )
     _raise_for_status(response)
     return response.json()
 
@@ -210,7 +220,8 @@ def get_device_logs(
                 "limit": limit,
                 "cursor": cursor,
             },
-        )
+        ),
+        timeout=DEFAULT_TIMEOUT,
     )
     _raise_for_status(response)
     return response.json()
@@ -230,7 +241,8 @@ def get_device_telemetry(
             f"/{device_id}/telemetry",
             api_key,
             query={"time_period": time_period},
-        )
+        ),
+        timeout=DEFAULT_TIMEOUT,
     )
     _raise_for_status(response)
     return response.json()
@@ -266,7 +278,8 @@ def get_device_events(
                 "cursor": cursor,
                 "direction": direction,
             },
-        )
+        ),
+        timeout=DEFAULT_TIMEOUT,
     )
     _raise_for_status(response)
     return response.json()
