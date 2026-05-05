@@ -8,7 +8,7 @@ import sys
 import tempfile
 import time
 import zipfile
-from typing import Any, Dict, Generator, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional
 
 import requests
 from requests.exceptions import HTTPError
@@ -17,6 +17,9 @@ from tqdm import tqdm
 from roboflow.adapters import rfapi, vision_events_api
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS
+
+if TYPE_CHECKING:
+    from roboflow.core.device import Device
 
 
 class Workspace:
@@ -127,6 +130,76 @@ class Workspace:
             raise RuntimeError(r.json()["error"])
 
         return Project(self.__api_key, r.json(), self.model_format)
+
+    def devices(self) -> List["Device"]:
+        """List v2 devices registered in this workspace.
+
+        Returns:
+            List of :class:`roboflow.core.device.Device` objects. Each
+            wraps the entity returned by ``GET /:workspace/devices/v2``
+            (id, name, status, last_heartbeat, hardware, tags, …).
+        """
+        from roboflow.adapters import devicesapi
+        from roboflow.core.device import Device
+
+        rows = devicesapi.list_devices(self.__api_key, self.url).get("data", [])
+        return [Device(self.__api_key, self.url, row) for row in rows]
+
+    def device(self, device_id: str) -> "Device":
+        """Get a single device by id.
+
+        Args:
+            device_id: The device id (as returned by :meth:`devices` or by
+                :meth:`create_device`).
+
+        Returns:
+            A :class:`roboflow.core.device.Device` instance.
+        """
+        from roboflow.adapters import devicesapi
+        from roboflow.core.device import Device
+
+        info = devicesapi.get_device(self.__api_key, self.url, device_id)
+        return Device(self.__api_key, self.url, info)
+
+    def create_device(
+        self,
+        device_name: str,
+        device_type: Optional[str] = None,
+        *,
+        workflow_id: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        offline_mode: Optional[bool] = None,
+        source_device_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create a new v2 device in the workspace.
+
+        Args:
+            device_name: Human-readable device name (required).
+            device_type: ``"ai1"``, ``"edge"``, or any custom string.
+            workflow_id: Optional initial workflow assignment. For AI1 devices
+                this seeds the default ``aione`` stream.
+            tags: Optional list of string tags.
+            offline_mode: Boolean; only valid for AI1 devices on workspaces
+                with the ``roboflowLiteMode`` feature.
+            source_device_id: When set, duplicates the named existing
+                device's config instead of generating a fresh one.
+
+        Returns:
+            Dict with ``deviceId`` and ``installId`` (the short-lived install
+            token to feed into ``GET /devices/v2/:installId/install.sh``).
+        """
+        from roboflow.adapters import devicesapi
+
+        return devicesapi.create_device(
+            self.__api_key,
+            self.url,
+            device_name=device_name,
+            device_type=device_type,
+            workflow_id=workflow_id,
+            tags=tags,
+            offline_mode=offline_mode,
+            source_device_id=source_device_id,
+        )
 
     def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> List[dict]:
         """

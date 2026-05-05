@@ -175,6 +175,7 @@ from roboflow.cli.handlers.auth import auth_app  # noqa: E402
 from roboflow.cli.handlers.batch import batch_app  # noqa: E402
 from roboflow.cli.handlers.completion import completion_app  # noqa: E402
 from roboflow.cli.handlers.deployment import deployment_app  # noqa: E402
+from roboflow.cli.handlers.device import device_app  # noqa: E402
 from roboflow.cli.handlers.folder import folder_app  # noqa: E402
 from roboflow.cli.handlers.image import image_app  # noqa: E402
 from roboflow.cli.handlers.infer import infer_command  # noqa: E402
@@ -196,6 +197,7 @@ app.add_typer(auth_app, name="auth")
 app.add_typer(batch_app, name="batch", hidden=True)  # All stubs — hidden until implemented
 app.add_typer(completion_app, name="completion")
 app.add_typer(deployment_app, name="deployment")
+app.add_typer(device_app, name="device")
 app.add_typer(folder_app, name="folder")
 app.add_typer(image_app, name="image")
 

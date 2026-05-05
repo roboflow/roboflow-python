@@ -84,6 +84,33 @@ roboflow annotation job create -p my-project --name "Label round 1" \
   --batch <batch-id> --num-images 100 --labeler a@co.com --reviewer b@co.com
 ```
 
+### RFDM devices (v2 deployments)
+
+Workspace-scoped device management — backed by the external Deployments API
+(`/:workspace/devices/v2/*`). Read commands need the `device:read` scope on
+your api_key; `create` needs `device:update`.
+
+```bash
+roboflow device list
+roboflow device get <device-id>
+roboflow device create "Factory floor cam" --type edge --tags floor-1,vision
+
+# Observe — config is sensitive (may include credentials).
+roboflow device config <device-id>
+roboflow device config-history <device-id> --limit 20
+
+# Streams the device runs.
+roboflow device streams <device-id>
+roboflow device stream <device-id> <stream-id>
+
+# Logs (5 req/min/IP) and aggregated telemetry (60 req/min).
+roboflow device logs <device-id> --severity ERROR --limit 200
+roboflow device telemetry <device-id> --time-period 7d
+
+# Lifecycle events (stream start/stop, errors, config changes…).
+roboflow device events <device-id> --entity-type stream --direction backward
+```
+
 ### Workflows
 
 ```bash
@@ -202,6 +229,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `infer` | Run inference on images |
 | `search` | Search workspace images (RoboQL), export results |
 | `deployment` | Manage dedicated deployments |
+| `device` | List, get, create, and observe RFDM devices (v2 deployment API) |
 | `workflow` | Manage workflows |
 | `folder` | Manage workspace folders |
 | `annotation` | Annotation batches and jobs |
