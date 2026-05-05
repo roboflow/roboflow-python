@@ -71,9 +71,7 @@ def install(
         return
 
     try:
-        installed_shell, path = typer_install(
-            shell=shell, prog_name="roboflow", complete_var="_ROBOFLOW_COMPLETE"
-        )
+        installed_shell, path = typer_install(shell=shell, prog_name="roboflow", complete_var="_ROBOFLOW_COMPLETE")
     except click.exceptions.Exit:
         output_error(
             args,

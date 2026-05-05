@@ -169,10 +169,7 @@ class TestInstall(_IsolatedHomeMixin, unittest.TestCase):
         rc = (self.home / ".bashrc").read_text()
         target = self.home / ".bash_completions" / "roboflow.sh"
         self.assertTrue(
-            any(
-                line.lstrip().startswith("source ") and str(target) in line
-                for line in rc.splitlines()
-            ),
+            any(line.lstrip().startswith("source ") and str(target) in line for line in rc.splitlines()),
             msg=f"no source line for {target} in {rc!r}",
         )
 
@@ -207,10 +204,7 @@ class TestInstall(_IsolatedHomeMixin, unittest.TestCase):
         runner.invoke(app, ["completion", "install", "--shell", "bash"])
         rc = (self.home / ".bashrc").read_text()
         target = self.home / ".bash_completions" / "roboflow.sh"
-        source_lines = [
-            line for line in rc.splitlines()
-            if line.lstrip().startswith("source ") and str(target) in line
-        ]
+        source_lines = [line for line in rc.splitlines() if line.lstrip().startswith("source ") and str(target) in line]
         self.assertEqual(len(source_lines), 1, msg=f"unexpected rc: {rc!r}")
 
     def test_install_json_schema(self) -> None:
