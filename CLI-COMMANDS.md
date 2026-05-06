@@ -179,6 +179,32 @@ roboflow video status <job-id>
 
 ### Shell completion
 
+The fastest path: let the CLI install completion for you. Auto-detects your shell from `$SHELL`.
+
+```bash
+roboflow completion install
+```
+
+This writes the completion script to a per-user location and updates your shell rc file (`~/.bashrc` or `~/.zshrc`) so completion works in new shells. Idempotent — safe to re-run. Delegates to `typer.completion.install` under the hood.
+
+Supported shells: `bash`, `zsh`, `fish`. Windows / PowerShell is not supported.
+
+Override detection or scope to one shell:
+
+```bash
+roboflow completion install --shell zsh
+roboflow completion install --shell bash
+roboflow completion install --shell fish
+```
+
+Hidden commands (legacy aliases, snake_case shims, not-yet-implemented stubs) are filtered from completion automatically.
+
+To uninstall, delete the completion script (location depends on your shell — typer writes to `~/.bash_completions/roboflow.sh`, `~/.zfunc/_roboflow`, or `~/.config/fish/completions/roboflow.fish`) and remove any `source ...` line typer added to your `~/.bashrc`.
+
+#### Advanced: print the script yourself
+
+If you want full control, generate the raw script and source it however you like:
+
 ```bash
 # Zsh
 eval "$(roboflow completion zsh)"
@@ -237,7 +263,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `universe` | Search Roboflow Universe |
 | `video` | Video inference |
 | `batch` | Batch processing jobs *(coming soon)* |
-| `completion` | Generate shell completion scripts (bash, zsh, fish) |
+| `completion` | Install or generate shell completion scripts (bash, zsh, fish) |
 
 Run `roboflow <command> --help` for details on any command.
 
