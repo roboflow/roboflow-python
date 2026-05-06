@@ -95,6 +95,17 @@ def _mask_key(key: str) -> str:
     return key[:2] + "*" * (len(key) - 4) + key[-2:]
 
 
+def _print_completion_tip(args) -> None:  # noqa: ANN001
+    """Nudge users towards shell completion after a successful login.
+
+    Suppressed under --json (would corrupt the JSON output) and --quiet
+    (user explicitly opted out of non-essential output).
+    """
+    if getattr(args, "json", False) or getattr(args, "quiet", False):
+        return
+    print("\nTip: enable shell completion with 'roboflow completion install'")  # noqa: T201
+
+
 def _login(args):  # noqa: ANN001
     from roboflow.cli._output import output, output_error
 
@@ -154,6 +165,7 @@ def _login(args):  # noqa: ANN001
             {"status": "logged_in", "workspace": ws_url, "api_key": _mask_key(api_key)},
             text=f"Logged in. Default workspace: {ws_url}{note}",
         )
+        _print_completion_tip(args)
     else:
         # Interactive flow
         import roboflow
@@ -181,6 +193,8 @@ def _login(args):  # noqa: ANN001
             {"status": "logged_in", "workspace": ws, "api_key": "****"},
             text=f"Logged in. Default workspace: {ws}",
         )
+        _print_completion_tip(args)
+        _print_completion_tip(args)
 
 
 def _status(args):  # noqa: ANN001
