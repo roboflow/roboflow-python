@@ -119,6 +119,27 @@ class TestForkProjectWait(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.get_async_task")
     @patch("roboflow.adapters.rfapi.fork_project")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
+    def test_wait_builds_destination_url_from_dataset_url(self, _mock_key, mock_fork, mock_get):
+        from roboflow.cli.handlers.project import _fork_project
+
+        mock_fork.return_value = {"taskId": "task-1", "url": "poll"}
+        mock_get.return_value = {
+            "taskId": "task-1",
+            "status": "completed",
+            "result": {"forked": True, "datasetUrl": "license-plates"},
+        }
+        args = _make_args(source="ws/proj")
+        with patch("builtins.print") as mock_print:
+            _fork_project(args)
+
+        printed = mock_print.call_args[0][0]
+        self.assertIn("Destination URL", printed)
+        self.assertIn("/test-ws/license-plates", printed)
+
+    @patch("roboflow.core.async_tasks.time.sleep", lambda *_a, **_k: None)
+    @patch("roboflow.adapters.rfapi.get_async_task")
+    @patch("roboflow.adapters.rfapi.fork_project")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
     def test_wait_until_completed_json(self, _mock_key, mock_fork, mock_get):
         from roboflow.cli.handlers.project import _fork_project
 

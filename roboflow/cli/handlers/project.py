@@ -364,7 +364,7 @@ def _fork_project(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._resolver import resolve_default_workspace
-    from roboflow.config import load_roboflow_api_key
+    from roboflow.config import APP_URL, load_roboflow_api_key
     from roboflow.core.async_tasks import poll_until_terminal
 
     # The server accepts the full URL (or `<ws>/<proj>` shorthand) as `url`
@@ -441,5 +441,7 @@ def _fork_project(args):  # noqa: ANN001
 
     result = final.get("result") or {}
     project_url = result.get("url") or result.get("id") or ""
+    if not project_url and result.get("datasetUrl"):
+        project_url = f"{APP_URL}/{dest_workspace}/{result['datasetUrl']}"
     text = f"Forked.\nDestination URL: {project_url}" if project_url else "Forked."
     output(args, final, text=text)
