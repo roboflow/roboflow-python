@@ -47,6 +47,50 @@ roboflow download my-workspace/my-project/3 -f coco   # alias
 roboflow infer photo.jpg -m my-project/3
 ```
 
+### Train, monitor, cancel, stop
+
+```bash
+# Start training (any architecture). For NAS sweeps, use a NAS parent modelType:
+roboflow train start -p my-project -v 3 --type rfdetr-base
+roboflow train start -p my-project -v 3 --type rfdetr-nas-parent      # NAS sweep
+roboflow train start -p my-project -v 3 --type rfdetr-nas-base-parent # NAS Base sweep
+roboflow train start -p my-project -v 3 --type rfdetr-nas-seg-parent  # NAS instance-segmentation
+
+# Cancel an in-flight training (any architecture; NAS-aware):
+roboflow train cancel my-project/3
+# Pass --continue-if-no-refund to cancel even past the refund window:
+roboflow train cancel my-project/3 --continue-if-no-refund
+
+# Graceful early-stop:
+roboflow train stop my-project/3
+
+# Run-level training results bundle (NAS leaderboard for NAS runs,
+# minimal bundle for non-NAS):
+roboflow train results my-project/3
+```
+
+NAS sweeps require the version's validation split to have at least 15 images;
+the server returns `code: "insufficient_validation_images_for_nas"` otherwise.
+
+### NAS models — list, star, deploy
+
+```bash
+# Get a NAS run's modelGroup from training results:
+roboflow --json train results my-project/3 | jq -r .modelGroup
+# → rfdetrNasGroup-3
+
+# List every model from one NAS run, with hardware/latency/mAP columns:
+roboflow model list -p my-project --group rfdetrNasGroup-3
+
+# Star a NAS-trained model (triggers TRT compile for its recommended hardware):
+#   --json train results … gives you the modelId per row.
+roboflow model star <modelId>
+roboflow model star <modelId> --unstar
+```
+
+`model star` is NAS-only by server-side design; non-NAS modelTypes return
+`code: "MODEL_NOT_NAS"`.
+
 ### Search and export
 
 ```bash

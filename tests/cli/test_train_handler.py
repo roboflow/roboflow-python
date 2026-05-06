@@ -143,5 +143,109 @@ class TestTrainStart(unittest.TestCase):
         self.assertEqual(result["error"]["message"], "Unsupported request")
 
 
+class TestTrainSubcommandsRegister(unittest.TestCase):
+    """train cancel/stop/results subcommands register correctly."""
+
+    def test_cancel_help(self) -> None:
+        result = runner.invoke(app, ["train", "cancel", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("cancel", result.output.lower())
+
+    def test_stop_help(self) -> None:
+        result = runner.invoke(app, ["train", "stop", "--help"])
+        self.assertEqual(result.exit_code, 0)
+
+    def test_results_help(self) -> None:
+        result = runner.invoke(app, ["train", "results", "--help"])
+        self.assertEqual(result.exit_code, 0)
+
+
+class TestTrainCancelStopResults(unittest.TestCase):
+    """_cancel / _stop / _results business logic."""
+
+    def _args(self, **kwargs: object) -> types.SimpleNamespace:
+        defaults = {
+            "json": True,
+            "api_key": "test-key",
+            "workspace": "test-ws",
+            "target": "my-project/3",
+            "continue_if_no_refund": False,
+            "quiet": True,
+        }
+        defaults.update(kwargs)
+        return types.SimpleNamespace(**defaults)
+
+    def _capture_stdout(self, fn, args):
+        buf = io.StringIO()
+        old = sys.stdout
+        sys.stdout = buf
+        try:
+            fn(args)
+        finally:
+            sys.stdout = old
+        return buf.getvalue()
+
+    @patch("roboflow.adapters.rfapi.cancel_version_training")
+    def test_cancel_success(self, mock_cancel: MagicMock) -> None:
+        from roboflow.cli.handlers.train import _cancel
+
+        mock_cancel.return_value = {"refund": True}
+        out = self._capture_stdout(_cancel, self._args())
+
+        mock_cancel.assert_called_once_with("test-key", "test-ws", "my-project", "3", continue_if_no_refund=False)
+        result = json.loads(out)
+        self.assertEqual(result["status"], "cancelled")
+        self.assertEqual(result["project"], "my-project")
+        self.assertEqual(result["version"], "3")
+        self.assertTrue(result.get("refund"))
+
+    @patch("roboflow.adapters.rfapi.cancel_version_training")
+    def test_cancel_409_surfaces_hint(self, mock_cancel: MagicMock) -> None:
+        from roboflow.adapters import rfapi
+        from roboflow.cli.handlers.train import _cancel
+
+        mock_cancel.side_effect = rfapi.RoboflowError("Cannot cancel non-running train job.")
+        buf = io.StringIO()
+        old = sys.stderr
+        sys.stderr = buf
+        try:
+            with self.assertRaises(SystemExit) as cm:
+                _cancel(self._args())
+        finally:
+            sys.stderr = old
+        self.assertEqual(cm.exception.code, 3)
+        err = json.loads(buf.getvalue())
+        self.assertIn("Cannot cancel", err["error"]["message"])
+        self.assertIn("in-flight", err["error"].get("hint", ""))
+
+    @patch("roboflow.adapters.rfapi.stop_version_training")
+    def test_stop_success(self, mock_stop: MagicMock) -> None:
+        from roboflow.cli.handlers.train import _stop
+
+        mock_stop.return_value = {"success": True}
+        out = self._capture_stdout(_stop, self._args())
+
+        mock_stop.assert_called_once_with("test-key", "test-ws", "my-project", "3")
+        result = json.loads(out)
+        self.assertEqual(result["status"], "stop_requested")
+
+    @patch("roboflow.adapters.rfapi.get_training_results")
+    def test_results_nas_run(self, mock_get: MagicMock) -> None:
+        from roboflow.cli.handlers.train import _results
+
+        mock_get.return_value = {
+            "trainingId": "ds/3",
+            "status": "finished",
+            "jobType": "nas",
+            "modelGroup": "rfdetrNasGroup-3",
+            "modelCount": 5,
+            "models": [{"modelId": "m1"}],
+        }
+        out = self._capture_stdout(_results, self._args())
+        result = json.loads(out)
+        self.assertEqual(result["jobType"], "nas")
+        self.assertEqual(result["modelCount"], 5)
+
+
 if __name__ == "__main__":
     unittest.main()

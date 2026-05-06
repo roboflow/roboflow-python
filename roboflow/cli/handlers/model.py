@@ -15,9 +15,23 @@ model_app = typer.Typer(cls=SortedGroup, help="Manage trained models", no_args_i
 def list_models(
     ctx: typer.Context,
     project: Annotated[str, typer.Option("-p", "--project", help="Project ID or shorthand (e.g. my-ws/my-project)")],
+    group: Annotated[
+        Optional[str],
+        typer.Option(
+            "-g",
+            "--group",
+            help=(
+                "NAS modelGroup to scope the list to a single NAS run. "
+                "Get the value from 'roboflow train results <project>/<version>'."
+            ),
+        ),
+    ] = None,
 ) -> None:
-    """List trained models for a project."""
-    args = ctx_to_args(ctx, project=project)
+    """List trained models for a project.
+
+    Pass --group <modelGroup> to filter to a single NAS run.
+    """
+    args = ctx_to_args(ctx, project=project, group=group)
     _list_models(args)
 
 
@@ -29,6 +43,30 @@ def get_model(
     """Show details for a trained model."""
     args = ctx_to_args(ctx, model_url=model_url)
     _get_model(args)
+
+
+@model_app.command("star")
+def star_model(
+    ctx: typer.Context,
+    model_id: Annotated[
+        str,
+        typer.Argument(
+            help=(
+                "NAS-trained model id (Firestore document id). "
+                "Get it from 'roboflow train results <project>/<version>' (models[].modelId)."
+            ),
+        ),
+    ],
+    unstar: Annotated[bool, typer.Option("--unstar", help="Unstar instead of starring")] = False,
+) -> None:
+    """Star or unstar a NAS-trained model.
+
+    NAS-only by design — the server rejects non-NAS modelTypes with a
+    MODEL_NOT_NAS error. Starring triggers TRT compilation for the model's
+    recommended hardware so the model becomes deployable as an edge target.
+    """
+    args = ctx_to_args(ctx, model_id=model_id, starred=not unstar)
+    _star_model(args)
 
 
 @model_app.command("infer")
@@ -86,14 +124,62 @@ def upload_model(
 
 def _list_models(args):  # noqa: ANN001
     import roboflow
+    from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error, suppress_sdk_output
     from roboflow.cli._resolver import resolve_resource
     from roboflow.cli._table import format_table
+    from roboflow.config import load_roboflow_api_key
 
     try:
         workspace_url, project_slug, _version = resolve_resource(args.project, workspace_override=args.workspace)
     except ValueError as exc:
         output_error(args, str(exc))
+        return
+
+    group = getattr(args, "group", None)
+
+    if group:
+        # NAS path — hit the public /models endpoint with ?group= filter.
+        # Surfaces full per-row NAS metadata (nasFamily, group,
+        # train.results.{hardware,latency,map5095,paretoOptimalFor},
+        # favorites, recommended).
+        api_key = args.api_key or load_roboflow_api_key(workspace_url)
+        if not api_key:
+            output_error(
+                args,
+                "No API key found.",
+                hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.",
+                exit_code=2,
+            )
+            return
+        try:
+            rows = rfapi.list_project_models(api_key, workspace_url, project_slug, group=group)
+        except rfapi.RoboflowError as exc:
+            output_error(args, str(exc), exit_code=3)
+            return
+        if not isinstance(rows, list):
+            rows = []
+        # Project a leaderboard view for the text table; full row stays in JSON.
+        table_rows = []
+        for r in rows:
+            metrics = r.get("metrics") or {}
+            table_rows.append(
+                {
+                    "url": r.get("url", ""),
+                    "type": r.get("modelType", ""),
+                    "hardware": metrics.get("hardware", ""),
+                    "latency": metrics.get("latency", ""),
+                    "map50": metrics.get("map50", ""),
+                    "map5095": metrics.get("map5095", ""),
+                    "recommended": "★" if r.get("recommended") else "",
+                }
+            )
+        table = format_table(
+            table_rows,
+            columns=["url", "type", "hardware", "latency", "map50", "map5095", "recommended"],
+            headers=["URL", "TYPE", "HARDWARE", "LATENCY", "MAP50", "MAP5095", "REC"],
+        )
+        output(args, rows, text=table)
         return
 
     api_key = args.api_key or None
@@ -128,6 +214,56 @@ def _list_models(args):  # noqa: ANN001
         headers=["VERSION", "ID", "MODEL", "MAP"],
     )
     output(args, models, text=table)
+
+
+def _star_model(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.config import load_roboflow_api_key
+
+    workspace_url = args.workspace
+    if not workspace_url:
+        # Need a workspace; fall back to whatever the api key points at.
+        from roboflow.cli._resolver import resolve_default_workspace
+
+        workspace_url = resolve_default_workspace(args.api_key)
+    if not workspace_url:
+        output_error(
+            args,
+            "Could not determine workspace.",
+            hint="Pass -w/--workspace or run 'roboflow auth set-workspace <ws>'.",
+            exit_code=2,
+        )
+        return
+
+    api_key = args.api_key or load_roboflow_api_key(workspace_url)
+    if not api_key:
+        output_error(
+            args,
+            "No API key found.",
+            hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.",
+            exit_code=2,
+        )
+        return
+
+    try:
+        result = rfapi.favorite_nas_model(api_key, workspace_url, args.model_id, starred=args.starred)
+    except rfapi.RoboflowError as exc:
+        msg = str(exc)
+        hint = None
+        if "MODEL_NOT_NAS" in msg or "non-NAS" in msg:
+            hint = "Star is NAS-only. Use 'roboflow train results' to find NAS model ids (models[].modelId)."
+        elif "MODEL_NOT_IN_WORKSPACE" in msg:
+            hint = "Verify the model id and workspace; ids are Firestore doc ids, not URL slugs."
+        output_error(args, msg, hint=hint, exit_code=3)
+        return
+
+    verb = "starred" if args.starred else "unstarred"
+    output(
+        args,
+        result,
+        text=f"Model {args.model_id} {verb}.",
+    )
 
 
 def _get_model(args):  # noqa: ANN001

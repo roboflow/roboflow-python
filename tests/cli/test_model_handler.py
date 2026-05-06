@@ -242,5 +242,134 @@ class TestModelListError(unittest.TestCase):
         self.assertIn("error", result)
 
 
+class TestModelStarRegister(unittest.TestCase):
+    """model star subcommand registers."""
+
+    def test_star_help(self) -> None:
+        result = runner.invoke(app, ["model", "star", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("nas", result.output.lower())
+
+    def test_list_help_mentions_group(self) -> None:
+        result = runner.invoke(app, ["model", "list", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("group", result.output.lower())
+
+
+class TestModelStar(unittest.TestCase):
+    """_star_model business logic."""
+
+    def _args(self, **kwargs: object) -> types.SimpleNamespace:
+        defaults = {
+            "json": True,
+            "api_key": "test-key",
+            "workspace": "test-ws",
+            "model_id": "abc-firestore-id",
+            "starred": True,
+            "quiet": True,
+        }
+        defaults.update(kwargs)
+        return types.SimpleNamespace(**defaults)
+
+    def _capture_stdout(self, fn, args):
+        buf = io.StringIO()
+        old = sys.stdout
+        sys.stdout = buf
+        try:
+            fn(args)
+        finally:
+            sys.stdout = old
+        return buf.getvalue()
+
+    @patch("roboflow.adapters.rfapi.favorite_nas_model")
+    def test_star_success(self, mock_fav: MagicMock) -> None:
+        from roboflow.cli.handlers.model import _star_model
+
+        mock_fav.return_value = {"success": True, "model": {"id": "abc-firestore-id"}}
+        out = self._capture_stdout(_star_model, self._args())
+
+        mock_fav.assert_called_once_with("test-key", "test-ws", "abc-firestore-id", starred=True)
+        result = json.loads(out)
+        self.assertTrue(result.get("success"))
+
+    @patch("roboflow.adapters.rfapi.favorite_nas_model")
+    def test_star_unstar_path(self, mock_fav: MagicMock) -> None:
+        from roboflow.cli.handlers.model import _star_model
+
+        mock_fav.return_value = {"success": True, "model": {"id": "abc-firestore-id"}}
+        self._capture_stdout(_star_model, self._args(starred=False))
+
+        mock_fav.assert_called_once_with("test-key", "test-ws", "abc-firestore-id", starred=False)
+
+    @patch("roboflow.adapters.rfapi.favorite_nas_model")
+    def test_star_non_nas_surfaces_hint(self, mock_fav: MagicMock) -> None:
+        from roboflow.adapters import rfapi
+        from roboflow.cli.handlers.model import _star_model
+
+        mock_fav.side_effect = rfapi.RoboflowError(
+            '{"code":"MODEL_NOT_NAS","message":"Starring is only supported for NAS-trained models."}'
+        )
+        buf = io.StringIO()
+        old = sys.stderr
+        sys.stderr = buf
+        try:
+            with self.assertRaises(SystemExit) as cm:
+                _star_model(self._args())
+        finally:
+            sys.stderr = old
+        self.assertEqual(cm.exception.code, 3)
+        err = json.loads(buf.getvalue())
+        # output_error parses the JSON body; the code surfaces alongside the message.
+        self.assertEqual(err["error"].get("code"), "MODEL_NOT_NAS")
+        self.assertIn("NAS-only", err["error"].get("hint", ""))
+
+
+class TestModelListGroupFilter(unittest.TestCase):
+    """_list_models with --group hits the public /models endpoint."""
+
+    def _args(self, **kwargs: object) -> types.SimpleNamespace:
+        defaults = {
+            "json": True,
+            "api_key": "test-key",
+            "workspace": "test-ws",
+            "project": "my-project",
+            "group": None,
+            "quiet": True,
+        }
+        defaults.update(kwargs)
+        return types.SimpleNamespace(**defaults)
+
+    @patch("roboflow.adapters.rfapi.list_project_models")
+    def test_list_with_group_uses_public_endpoint(self, mock_list: MagicMock) -> None:
+        from roboflow.cli.handlers.model import _list_models
+
+        mock_list.return_value = [
+            {
+                "url": "my-ws/my-proj-3-nas-gpu-abc",
+                "modelType": "rfdetr-nas",
+                "metrics": {
+                    "map50": 87.3,
+                    "map5095": 57.6,
+                    "hardware": "gpu",
+                    "latency": 8.7,
+                },
+                "recommended": True,
+            }
+        ]
+
+        buf = io.StringIO()
+        old = sys.stdout
+        sys.stdout = buf
+        try:
+            _list_models(self._args(group="rfdetrNasGroup-3"))
+        finally:
+            sys.stdout = old
+
+        mock_list.assert_called_once_with("test-key", "test-ws", "my-project", group="rfdetrNasGroup-3")
+        rows = json.loads(buf.getvalue())
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["metrics"]["hardware"], "gpu")
+
+
 if __name__ == "__main__":
     unittest.main()
