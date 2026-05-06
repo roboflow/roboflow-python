@@ -20,7 +20,6 @@ def _make_args(**kwargs):
         "quiet": False,
         "task_id": "task-123",
         "timeout": 1800,
-        "poll_interval": 2.0,
     }
     defaults.update(kwargs)
     return Namespace(**defaults)
@@ -95,7 +94,7 @@ class TestAsyncTaskGet(unittest.TestCase):
 
 
 class TestAsyncTaskWait(unittest.TestCase):
-    @patch("roboflow.cli._async_tasks.time.sleep", lambda *_a, **_k: None)
+    @patch("roboflow.core.async_tasks.time.sleep", lambda *_a, **_k: None)
     @patch("roboflow.adapters.rfapi.get_async_task")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
     def test_wait_until_completed(self, _mock_key, mock_get):
@@ -114,7 +113,7 @@ class TestAsyncTaskWait(unittest.TestCase):
         printed = mock_print.call_args[0][0]
         self.assertIn("completed", printed)
 
-    @patch("roboflow.cli._async_tasks.time.sleep", lambda *_a, **_k: None)
+    @patch("roboflow.core.async_tasks.time.sleep", lambda *_a, **_k: None)
     @patch("roboflow.adapters.rfapi.get_async_task")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
     def test_wait_until_failed_exits_one(self, _mock_key, mock_get):
@@ -130,8 +129,8 @@ class TestAsyncTaskWait(unittest.TestCase):
             _wait_async_task(args)
         self.assertEqual(ctx.exception.code, 1)
 
-    @patch("roboflow.cli._async_tasks.time.sleep", lambda *_a, **_k: None)
-    @patch("roboflow.cli._async_tasks.time.monotonic")
+    @patch("roboflow.core.async_tasks.time.sleep", lambda *_a, **_k: None)
+    @patch("roboflow.core.async_tasks.time.monotonic")
     @patch("roboflow.adapters.rfapi.get_async_task")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
     def test_wait_timeout_exits_one(self, _mock_key, mock_get, mock_monotonic):
@@ -146,7 +145,7 @@ class TestAsyncTaskWait(unittest.TestCase):
             _wait_async_task(args)
         self.assertEqual(ctx.exception.code, 1)
 
-    @patch("roboflow.cli._async_tasks.time.sleep", lambda *_a, **_k: None)
+    @patch("roboflow.core.async_tasks.time.sleep", lambda *_a, **_k: None)
     @patch("roboflow.adapters.rfapi.get_async_task")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
     def test_wait_server_error_exits_three(self, _mock_key, mock_get):

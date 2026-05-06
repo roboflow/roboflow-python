@@ -160,36 +160,6 @@ class Workspace:
         """Return the current status of an async task owned by this workspace."""
         return rfapi.get_async_task(self.__api_key, self.url, task_id)
 
-    def wait_for_async_task(
-        self,
-        task_id: str,
-        *,
-        poll_interval: float = 2.0,
-        timeout: float = 1800.0,
-    ) -> Dict[str, Any]:
-        """Poll an async task until it reaches ``completed`` or ``failed``.
-
-        Args:
-            task_id: Async task id returned by an API endpoint.
-            poll_interval: Seconds between status polls.
-            timeout: Seconds to wait before raising ``TimeoutError``. A
-                non-positive timeout waits indefinitely.
-
-        Returns:
-            The terminal API status payload.
-        """
-        deadline = None if timeout <= 0 else time.monotonic() + timeout
-        while True:
-            status = self.get_async_task(task_id)
-            if status.get("status") in {"completed", "failed"}:
-                return status
-            if deadline is not None and time.monotonic() >= deadline:
-                raise TimeoutError(
-                    f"Timed out after {timeout:.0f}s waiting for task {task_id} "
-                    f"(last status: {status.get('status')})."
-                )
-            time.sleep(poll_interval)
-
     def devices(self) -> List["Device"]:
         """List v2 devices registered in this workspace.
 

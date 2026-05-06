@@ -251,7 +251,6 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `annotation` | Annotation batches and jobs |
 | `asynctasks` | Inspect async background tasks (e.g. project forks) |
 | `trash` | List items in Trash |
-| `asynctasks` | Poll generic async background tasks (e.g. project forks) |
 | `universe` | Search Roboflow Universe |
 | `video` | Video inference |
 | `batch` | Batch processing jobs *(coming soon)* |

@@ -38,13 +38,9 @@ def wait_async_task(
         int,
         typer.Option("--timeout", help="Seconds to wait for completion (0 = no timeout)."),
     ] = 1800,
-    poll_interval: Annotated[
-        float,
-        typer.Option("--poll-interval", help="Seconds between status polls.", hidden=True),
-    ] = 2.0,
 ) -> None:
     """Block until an async task is completed or failed."""
-    args = ctx_to_args(ctx, task_id=task_id, timeout=timeout, poll_interval=poll_interval)
+    args = ctx_to_args(ctx, task_id=task_id, timeout=timeout)
     _wait_async_task(args)
 
 
@@ -99,8 +95,8 @@ def _get_async_task(args):  # noqa: ANN001
 
 def _wait_async_task(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
-    from roboflow.cli._async_tasks import poll_until_terminal
     from roboflow.cli._output import output, output_error
+    from roboflow.core.async_tasks import poll_until_terminal
 
     workspace_url, api_key = _resolve_ws_and_key(args)
     if not api_key:
@@ -111,7 +107,6 @@ def _wait_async_task(args):  # noqa: ANN001
             api_key,
             workspace_url,
             args.task_id,
-            interval=args.poll_interval,
             timeout=args.timeout,
         )
     except rfapi.RoboflowError as exc:

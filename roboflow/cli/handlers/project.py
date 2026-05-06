@@ -93,15 +93,9 @@ def fork_project(
         int,
         typer.Option("--timeout", help="Seconds to wait for completion (0 = no timeout)."),
     ] = 1800,
-    poll_interval: Annotated[
-        float,
-        typer.Option("--poll-interval", help="Seconds between status polls.", hidden=True),
-    ] = 2.0,
 ) -> None:
     """Fork a public Universe project into a workspace."""
-    args = ctx_to_args(
-        ctx, source=source, no_wait=no_wait, timeout=timeout, poll_interval=poll_interval
-    )
+    args = ctx_to_args(ctx, source=source, no_wait=no_wait, timeout=timeout)
     _fork_project(args)
 
 
@@ -368,10 +362,10 @@ def _restore_project(args):  # noqa: ANN001
 
 def _fork_project(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
-    from roboflow.cli._async_tasks import poll_until_terminal
     from roboflow.cli._output import output, output_error
     from roboflow.cli._resolver import resolve_default_workspace
     from roboflow.config import load_roboflow_api_key
+    from roboflow.core.async_tasks import poll_until_terminal
 
     # The server accepts the full URL (or `<ws>/<proj>` shorthand) as `url`
     # and parses it itself — forward verbatim so the CLI doesn't duplicate
@@ -411,10 +405,7 @@ def _fork_project(args):  # noqa: ANN001
         output_error(args, str(exc))
         return
 
-    task_id = enqueued.get("taskId")
-    if not task_id:
-        output_error(args, f"Server did not return a taskId: {enqueued}")
-        return
+    task_id = enqueued["taskId"]
 
     if args.no_wait:
         output(args, enqueued, text=f"Fork enqueued: taskId={task_id}")
@@ -425,7 +416,6 @@ def _fork_project(args):  # noqa: ANN001
             api_key,
             dest_workspace,
             task_id,
-            interval=args.poll_interval,
             timeout=args.timeout,
         )
     except rfapi.RoboflowError as exc:

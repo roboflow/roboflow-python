@@ -91,20 +91,6 @@ class TestWorkspaceAsyncTasks(unittest.TestCase):
         self.assertEqual(result, {"taskId": "task-1", "status": "running"})
         mock_get.assert_called_once_with("test-key", "test-ws", "task-1")
 
-    @patch("roboflow.core.workspace.time.sleep", lambda *_a, **_k: None)
-    @patch("roboflow.adapters.rfapi.get_async_task")
-    def test_wait_for_async_task_polls_until_terminal(self, mock_get):
-        workspace = _make_workspace()
-        mock_get.side_effect = [
-            {"taskId": "task-1", "status": "running"},
-            {"taskId": "task-1", "status": "completed", "result": {"ok": True}},
-        ]
-
-        result = workspace.wait_for_async_task("task-1")
-
-        self.assertEqual(result["status"], "completed")
-        self.assertEqual(mock_get.call_count, 2)
-
 
 if __name__ == "__main__":
     unittest.main()

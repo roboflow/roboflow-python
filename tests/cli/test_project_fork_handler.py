@@ -21,7 +21,6 @@ def _make_args(**kwargs):
         "quiet": False,
         "no_wait": False,
         "timeout": 1800,
-        "poll_interval": 2.0,
     }
     defaults.update(kwargs)
     return Namespace(**defaults)
@@ -82,7 +81,7 @@ class TestForkProjectNoWait(unittest.TestCase):
 
 
 class TestForkProjectWait(unittest.TestCase):
-    @patch("roboflow.cli._async_tasks.time.sleep", lambda *_a, **_k: None)
+    @patch("roboflow.core.async_tasks.time.sleep", lambda *_a, **_k: None)
     @patch("roboflow.adapters.rfapi.get_async_task")
     @patch("roboflow.adapters.rfapi.fork_project")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
@@ -113,7 +112,7 @@ class TestForkProjectWait(unittest.TestCase):
         self.assertIn("https://app.roboflow.com/test-ws/license-plates", printed)
         self.assertEqual(mock_get.call_count, 2)
 
-    @patch("roboflow.cli._async_tasks.time.sleep", lambda *_a, **_k: None)
+    @patch("roboflow.core.async_tasks.time.sleep", lambda *_a, **_k: None)
     @patch("roboflow.adapters.rfapi.get_async_task")
     @patch("roboflow.adapters.rfapi.fork_project")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
@@ -135,7 +134,7 @@ class TestForkProjectWait(unittest.TestCase):
         out = json.loads(mock_print.call_args[0][0])
         self.assertEqual(out, terminal_payload)
 
-    @patch("roboflow.cli._async_tasks.time.sleep", lambda *_a, **_k: None)
+    @patch("roboflow.core.async_tasks.time.sleep", lambda *_a, **_k: None)
     @patch("roboflow.adapters.rfapi.get_async_task")
     @patch("roboflow.adapters.rfapi.fork_project")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")
