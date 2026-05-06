@@ -30,7 +30,6 @@ def poll_until_terminal(
             return status
         if deadline is not None and time.monotonic() >= deadline:
             raise TimeoutError(
-                f"Timed out after {timeout:.0f}s waiting for task {task_id} "
-                f"(last status: {status.get('status')})."
+                f"Timed out after {timeout:.0f}s waiting for task {task_id} (last status: {status.get('status')})."
             )
         time.sleep(interval)
