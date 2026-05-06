@@ -537,6 +537,69 @@ class TestListWorkflowVersions(unittest.TestCase):
             list_workflow_versions("key", "ws", "wf1")
 
 
+class TestForkProject(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_success_with_url(self, mock_post):
+        from roboflow.adapters.rfapi import fork_project
+
+        mock_post.return_value = MagicMock(status_code=202, json=lambda: {"taskId": "task-1", "url": "poll"})
+
+        result = fork_project("key", "target-ws", url="source-ws/source-project")
+
+        self.assertEqual(result["taskId"], "task-1")
+        self.assertIn("/target-ws/projects/fork", mock_post.call_args[0][0])
+        payload = mock_post.call_args[1]["json"]
+        self.assertEqual(payload, {"url": "source-ws/source-project"})
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_success_with_explicit_source_slugs(self, mock_post):
+        from roboflow.adapters.rfapi import fork_project
+
+        mock_post.return_value = MagicMock(status_code=202, json=lambda: {"taskId": "task-1", "url": "poll"})
+
+        fork_project(
+            "key",
+            "target-ws",
+            source_workspace_slug="source-ws",
+            source_project_slug="source-project",
+        )
+
+        payload = mock_post.call_args[1]["json"]
+        self.assertEqual(
+            payload,
+            {"source_workspace": "source-ws", "source_project": "source-project"},
+        )
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_error(self, mock_post):
+        from roboflow.adapters.rfapi import RoboflowError, fork_project
+
+        mock_post.return_value = MagicMock(status_code=403, text="Forbidden")
+        with self.assertRaises(RoboflowError):
+            fork_project("key", "ws", url="source-ws/source-project")
+
+
+class TestGetAsyncTask(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_success(self, mock_get):
+        from roboflow.adapters.rfapi import get_async_task
+
+        mock_get.return_value = MagicMock(status_code=200, json=lambda: {"taskId": "task-1", "status": "running"})
+
+        result = get_async_task("key", "ws", "task-1")
+
+        self.assertEqual(result["status"], "running")
+        self.assertIn("/ws/asynctasks/task-1", mock_get.call_args[0][0])
+
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_error(self, mock_get):
+        from roboflow.adapters.rfapi import RoboflowError, get_async_task
+
+        mock_get.return_value = MagicMock(status_code=404, text="Not found")
+        with self.assertRaises(RoboflowError):
+            get_async_task("key", "ws", "missing")
+
+
 class TestForkWorkflow(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_success(self, mock_post):

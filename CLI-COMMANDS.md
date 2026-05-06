@@ -122,6 +122,22 @@ roboflow workflow version list my-workflow
 roboflow workflow fork other-ws/their-workflow
 ```
 
+### Fork a Universe project (async)
+
+```bash
+# Fork a public Universe project into the default (or --workspace) workspace.
+# By default this blocks until the async task completes (up to --timeout seconds).
+roboflow project fork https://universe.roboflow.com/leo-ueno-uduc7/license-plate-recognition
+roboflow project fork leo-ueno-uduc7/license-plate-recognition --workspace my-ws
+
+# Return immediately with a {taskId, url} payload instead of waiting.
+roboflow project fork leo-ueno-uduc7/license-plate-recognition --no-wait
+
+# Poll the resulting task later (works for any async task that returns a taskId).
+roboflow asynctasks get  <task-id>
+roboflow asynctasks wait <task-id> --timeout 600
+```
+
 ### Create a dataset version
 
 ```bash
@@ -233,7 +249,9 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `workflow` | Manage workflows |
 | `folder` | Manage workspace folders |
 | `annotation` | Annotation batches and jobs |
+| `asynctasks` | Inspect async background tasks (e.g. project forks) |
 | `trash` | List items in Trash |
+| `asynctasks` | Poll generic async background tasks (e.g. project forks) |
 | `universe` | Search Roboflow Universe |
 | `video` | Video inference |
 | `batch` | Batch processing jobs *(coming soon)* |

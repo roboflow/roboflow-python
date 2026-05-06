@@ -78,6 +78,33 @@ def restore_project(
     _restore_project(args)
 
 
+@project_app.command("fork")
+def fork_project(
+    ctx: typer.Context,
+    source: Annotated[
+        str,
+        typer.Argument(help="Source project: Universe URL or '<workspace>/<project>' shorthand."),
+    ],
+    no_wait: Annotated[
+        bool,
+        typer.Option("--no-wait", help="Return immediately with the taskId instead of waiting."),
+    ] = False,
+    timeout: Annotated[
+        int,
+        typer.Option("--timeout", help="Seconds to wait for completion (0 = no timeout)."),
+    ] = 1800,
+    poll_interval: Annotated[
+        float,
+        typer.Option("--poll-interval", help="Seconds between status polls.", hidden=True),
+    ] = 2.0,
+) -> None:
+    """Fork a public Universe project into a workspace."""
+    args = ctx_to_args(
+        ctx, source=source, no_wait=no_wait, timeout=timeout, poll_interval=poll_interval
+    )
+    _fork_project(args)
+
+
 # ---------------------------------------------------------------------------
 # Business logic (unchanged from argparse version)
 # ---------------------------------------------------------------------------
@@ -337,3 +364,82 @@ def _restore_project(args):  # noqa: ANN001
         return
 
     output(args, data, text=f"Restored {workspace_url}/{project_slug} from Trash.")
+
+
+def _fork_project(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._async_tasks import poll_until_terminal
+    from roboflow.cli._output import output, output_error
+    from roboflow.cli._resolver import resolve_default_workspace
+    from roboflow.config import load_roboflow_api_key
+
+    # The server accepts the full URL (or `<ws>/<proj>` shorthand) as `url`
+    # and parses it itself — forward verbatim so the CLI doesn't duplicate
+    # that logic.
+    source = (args.source or "").strip()
+    if not source:
+        output_error(
+            args,
+            "Source is required.",
+            hint="Use '<workspace>/<project>' or a Universe URL.",
+        )
+        return
+
+    dest_workspace = args.workspace or resolve_default_workspace(api_key=args.api_key)
+    if not dest_workspace:
+        output_error(
+            args,
+            "No workspace specified.",
+            hint="Use --workspace or run 'roboflow auth login'.",
+            exit_code=2,
+        )
+        return
+
+    api_key = args.api_key or load_roboflow_api_key(dest_workspace)
+    if not api_key:
+        output_error(
+            args,
+            "No API key found.",
+            hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.",
+            exit_code=2,
+        )
+        return
+
+    try:
+        enqueued = rfapi.fork_project(api_key, dest_workspace, url=source)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+
+    task_id = enqueued.get("taskId")
+    if not task_id:
+        output_error(args, f"Server did not return a taskId: {enqueued}")
+        return
+
+    if args.no_wait:
+        output(args, enqueued, text=f"Fork enqueued: taskId={task_id}")
+        return
+
+    try:
+        final = poll_until_terminal(
+            api_key,
+            dest_workspace,
+            task_id,
+            interval=args.poll_interval,
+            timeout=args.timeout,
+        )
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+    except TimeoutError as exc:
+        output_error(args, str(exc))
+        return
+
+    if final.get("status") == "failed":
+        output_error(args, final.get("error") or "Fork task failed.")
+        return
+
+    result = final.get("result") or {}
+    project_url = result.get("url") or result.get("id") or ""
+    text = f"Forked → {project_url}" if project_url else "Forked."
+    output(args, final, text=text)

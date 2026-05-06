@@ -802,6 +802,56 @@ def list_workflow_versions(api_key, workspace_url, workflow_url):
     return response.json()
 
 
+def fork_project(
+    api_key,
+    dest_workspace,
+    *,
+    url=None,
+    source_workspace_slug=None,
+    source_project_slug=None,
+):
+    """POST /{ws}/projects/fork — enqueue an async fork of a public Universe project.
+
+    Pass ``url`` (a Universe URL or ``<workspace>/<project>`` shorthand) or
+    explicit ``source_workspace_slug`` / ``source_project_slug``. The API owns
+    parsing/validation. Returns the server's response, e.g.
+    ``{"taskId": "...", "url": "<polling url>"}``.
+    """
+    payload: Dict[str, str] = {}
+    if url:
+        payload["url"] = url
+    if source_workspace_slug:
+        payload["source_workspace"] = source_workspace_slug
+    if source_project_slug:
+        payload["source_project"] = source_project_slug
+    response = requests.post(
+        f"{API_URL}/{dest_workspace}/projects/fork",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if response.status_code not in (200, 202):
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_async_task(api_key, workspace_url, task_id):
+    """GET /{ws}/asynctasks/{id} — fetch the current status of an async task.
+
+    Returns the server's status payload, e.g.
+    ``{"taskId": "...", "status": "running", "progress": {...}}`` or
+    ``{"taskId": "...", "status": "completed", "result": {...}}`` once
+    terminal. Raises ``RoboflowError`` for any non-2xx response (including
+    404 for unknown ids or cross-workspace probes).
+    """
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/asynctasks/{task_id}",
+        params={"api_key": api_key},
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
 def fork_workflow(api_key, workspace_url, *, source_workspace, source_workflow, name=None, url=None):
     """POST /{ws}/forkWorkflow — fork a workflow into this workspace.
 

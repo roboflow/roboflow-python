@@ -131,6 +131,65 @@ class Workspace:
 
         return Project(self.__api_key, r.json(), self.model_format)
 
+    def fork_project(
+        self,
+        *,
+        url: Optional[str] = None,
+        source_workspace_slug: Optional[str] = None,
+        source_project_slug: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Fork a public Universe project into this workspace.
+
+        Args:
+            url: Universe project URL or ``<workspace>/<project>`` shorthand.
+            source_workspace_slug: Source workspace slug when not using ``url``.
+            source_project_slug: Source project slug when not using ``url``.
+
+        Returns:
+            The API response, typically ``{"taskId": "...", "url": "..."}``.
+        """
+        return rfapi.fork_project(
+            self.__api_key,
+            self.url,
+            url=url,
+            source_workspace_slug=source_workspace_slug,
+            source_project_slug=source_project_slug,
+        )
+
+    def get_async_task(self, task_id: str) -> Dict[str, Any]:
+        """Return the current status of an async task owned by this workspace."""
+        return rfapi.get_async_task(self.__api_key, self.url, task_id)
+
+    def wait_for_async_task(
+        self,
+        task_id: str,
+        *,
+        poll_interval: float = 2.0,
+        timeout: float = 1800.0,
+    ) -> Dict[str, Any]:
+        """Poll an async task until it reaches ``completed`` or ``failed``.
+
+        Args:
+            task_id: Async task id returned by an API endpoint.
+            poll_interval: Seconds between status polls.
+            timeout: Seconds to wait before raising ``TimeoutError``. A
+                non-positive timeout waits indefinitely.
+
+        Returns:
+            The terminal API status payload.
+        """
+        deadline = None if timeout <= 0 else time.monotonic() + timeout
+        while True:
+            status = self.get_async_task(task_id)
+            if status.get("status") in {"completed", "failed"}:
+                return status
+            if deadline is not None and time.monotonic() >= deadline:
+                raise TimeoutError(
+                    f"Timed out after {timeout:.0f}s waiting for task {task_id} "
+                    f"(last status: {status.get('status')})."
+                )
+            time.sleep(poll_interval)
+
     def devices(self) -> List["Device"]:
         """List v2 devices registered in this workspace.
 

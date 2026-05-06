@@ -4,8 +4,18 @@ import os
 import tempfile
 import unittest
 import zipfile
+from unittest.mock import patch
 
-from roboflow.core.workspace import _zip_directory
+from roboflow.core.workspace import Workspace, _zip_directory
+
+
+def _make_workspace():
+    return Workspace(
+        {"workspace": {"name": "Test", "projects": [], "url": "test-ws"}},
+        api_key="test-key",
+        default_workspace="test-ws",
+        model_format="yolov8",
+    )
 
 
 class TestZipDirectory(unittest.TestCase):
@@ -37,6 +47,63 @@ class TestZipDirectory(unittest.TestCase):
                 self.assertEqual(names, {"sample.jpg"})
             finally:
                 os.unlink(zip_path)
+
+
+class TestWorkspaceAsyncTasks(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.fork_project")
+    def test_fork_project_uses_workspace_destination(self, mock_fork):
+        workspace = _make_workspace()
+        mock_fork.return_value = {"taskId": "task-1", "url": "poll-url"}
+
+        result = workspace.fork_project(url="source-ws/source-project")
+
+        self.assertEqual(result, {"taskId": "task-1", "url": "poll-url"})
+        mock_fork.assert_called_once_with(
+            "test-key",
+            "test-ws",
+            url="source-ws/source-project",
+            source_workspace_slug=None,
+            source_project_slug=None,
+        )
+
+    @patch("roboflow.adapters.rfapi.fork_project")
+    def test_fork_project_accepts_explicit_source_slugs(self, mock_fork):
+        workspace = _make_workspace()
+        mock_fork.return_value = {"taskId": "task-1", "url": "poll-url"}
+
+        workspace.fork_project(source_workspace_slug="source-ws", source_project_slug="source-project")
+
+        mock_fork.assert_called_once_with(
+            "test-key",
+            "test-ws",
+            url=None,
+            source_workspace_slug="source-ws",
+            source_project_slug="source-project",
+        )
+
+    @patch("roboflow.adapters.rfapi.get_async_task")
+    def test_get_async_task_uses_workspace_destination(self, mock_get):
+        workspace = _make_workspace()
+        mock_get.return_value = {"taskId": "task-1", "status": "running"}
+
+        result = workspace.get_async_task("task-1")
+
+        self.assertEqual(result, {"taskId": "task-1", "status": "running"})
+        mock_get.assert_called_once_with("test-key", "test-ws", "task-1")
+
+    @patch("roboflow.core.workspace.time.sleep", lambda *_a, **_k: None)
+    @patch("roboflow.adapters.rfapi.get_async_task")
+    def test_wait_for_async_task_polls_until_terminal(self, mock_get):
+        workspace = _make_workspace()
+        mock_get.side_effect = [
+            {"taskId": "task-1", "status": "running"},
+            {"taskId": "task-1", "status": "completed", "result": {"ok": True}},
+        ]
+
+        result = workspace.wait_for_async_task("task-1")
+
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(mock_get.call_count, 2)
 
 
 if __name__ == "__main__":
