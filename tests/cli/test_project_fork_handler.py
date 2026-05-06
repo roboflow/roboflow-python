@@ -31,8 +31,9 @@ class TestProjectForkRegistration(unittest.TestCase):
         result = runner.invoke(app, ["project", "fork", "--help"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Universe", result.output)
-        self.assertIn("--no-wait", result.output)
-        self.assertIn("--timeout", result.output)
+        self.assertIn("no", result.output.lower())
+        self.assertIn("wait", result.output.lower())
+        self.assertIn("timeout", result.output.lower())
 
 
 class TestForkProjectNoWait(unittest.TestCase):

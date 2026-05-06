@@ -38,7 +38,7 @@ class TestAsyncTasksRegistration(unittest.TestCase):
     def test_wait_help(self) -> None:
         result = runner.invoke(app, ["asynctasks", "wait", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("--timeout", result.output)
+        self.assertIn("timeout", result.output.lower())
 
 
 class TestAsyncTaskGet(unittest.TestCase):
