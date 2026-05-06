@@ -552,7 +552,7 @@ class TestForkProject(unittest.TestCase):
         self.assertEqual(payload, {"url": "source-ws/source-project"})
 
     @patch("roboflow.adapters.rfapi.requests.post")
-    def test_success_with_explicit_source_slugs(self, mock_post):
+    def test_success_with_explicit_source_slug(self, mock_post):
         from roboflow.adapters.rfapi import fork_project
 
         mock_post.return_value = MagicMock(status_code=202, json=lambda: {"taskId": "task-1", "url": "poll"})
@@ -560,15 +560,11 @@ class TestForkProject(unittest.TestCase):
         fork_project(
             "key",
             "target-ws",
-            source_workspace_slug="source-ws",
             source_project_slug="source-project",
         )
 
         payload = mock_post.call_args[1]["json"]
-        self.assertEqual(
-            payload,
-            {"source_workspace": "source-ws", "source_project": "source-project"},
-        )
+        self.assertEqual(payload, {"source_project": "source-project"})
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_error(self, mock_post):

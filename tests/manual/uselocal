@@ -5,4 +5,11 @@ export API_URL=https://localapi.roboflow.one
 export APP_URL=https://localapp.roboflow.one
 export DEDICATED_DEPLOYMENT_URL=https://staging.roboflow.cloud
 export ROBOFLOW_CONFIG_DIR=$SCRIPT_DIR/data/.config
+# Trust the local self-signed cert (~/dev/ssl/localhost.{pem,key}) so `requests`
+# accepts https://localapi.roboflow.one without a verification error.
+# Only export when both files exist so the script stays usable without local certs.
+if [ -f "$HOME/dev/ssl/localhost.pem" ]; then
+    export REQUESTS_CA_BUNDLE=$HOME/dev/ssl/localhost.pem
+    export CURL_CA_BUNDLE=$HOME/dev/ssl/localhost.pem
+fi
 # need to set it in /etc/hosts to the IP of host.docker.internal!

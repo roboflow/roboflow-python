@@ -135,14 +135,12 @@ class Workspace:
         self,
         *,
         url: Optional[str] = None,
-        source_workspace_slug: Optional[str] = None,
         source_project_slug: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Fork a public Universe project into this workspace.
 
         Args:
-            url: Universe project URL or ``<workspace>/<project>`` shorthand.
-            source_workspace_slug: Source workspace slug when not using ``url``.
+            url: Universe project URL.
             source_project_slug: Source project slug when not using ``url``.
 
         Returns:
@@ -152,7 +150,6 @@ class Workspace:
             self.__api_key,
             self.url,
             url=url,
-            source_workspace_slug=source_workspace_slug,
             source_project_slug=source_project_slug,
         )
 

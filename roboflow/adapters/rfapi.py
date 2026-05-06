@@ -807,21 +807,17 @@ def fork_project(
     dest_workspace,
     *,
     url=None,
-    source_workspace_slug=None,
     source_project_slug=None,
 ):
     """POST /{ws}/projects/fork — enqueue an async fork of a public Universe project.
 
-    Pass ``url`` (a Universe URL or ``<workspace>/<project>`` shorthand) or
-    explicit ``source_workspace_slug`` / ``source_project_slug``. The API owns
-    parsing/validation. Returns the server's response, e.g.
+    Pass ``url`` (a Universe URL) or an explicit ``source_project_slug``. The
+    API owns parsing/validation. Returns the server's response, e.g.
     ``{"taskId": "...", "url": "<polling url>"}``.
     """
     payload: Dict[str, str] = {}
     if url:
         payload["url"] = url
-    if source_workspace_slug:
-        payload["source_workspace"] = source_workspace_slug
     if source_project_slug:
         payload["source_project"] = source_project_slug
     response = requests.post(
