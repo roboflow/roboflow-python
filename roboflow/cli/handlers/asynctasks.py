@@ -102,12 +102,22 @@ def _wait_async_task(args):  # noqa: ANN001
     if not api_key:
         return
 
+    def _print_progress(status):  # noqa: ANN001
+        if args.json:
+            return
+        progress = status.get("progress") or {}
+        current = progress.get("current") or progress.get("completed")
+        total = progress.get("total")
+        if current is not None and total is not None:
+            print(f"Task progress: {current}/{total}", flush=True)
+
     try:
         final = poll_until_terminal(
             api_key,
             workspace_url,
             args.task_id,
             timeout=args.timeout,
+            on_update=_print_progress,
         )
     except rfapi.RoboflowError as exc:
         output_error(args, str(exc), exit_code=3)

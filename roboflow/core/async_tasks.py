@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Optional
 
 from roboflow.adapters import rfapi
 
@@ -15,6 +15,7 @@ def poll_until_terminal(
     *,
     interval: float = 4.0,
     timeout: float = 1800.0,
+    on_update: Optional[Callable[[Dict[str, Any]], None]] = None,
 ) -> Dict[str, Any]:
     """Poll an async task until status is terminal or timeout elapses.
 
@@ -28,6 +29,8 @@ def poll_until_terminal(
         status = rfapi.get_async_task(api_key, workspace_url, task_id)
         if status.get("status") in {"completed", "failed"}:
             return status
+        if on_update:
+            on_update(status)
         if deadline is not None and time.monotonic() >= deadline:
             raise TimeoutError(
                 f"Timed out after {timeout:.0f}s waiting for task {task_id} (last status: {status.get('status')})."

@@ -102,7 +102,7 @@ class TestAsyncTaskWait(unittest.TestCase):
 
         mock_get.side_effect = [
             {"taskId": "task-1", "status": "pending", "progress": None},
-            {"taskId": "task-1", "status": "running", "progress": None},
+            {"taskId": "task-1", "status": "running", "progress": {"current": 1, "total": 3}},
             {"taskId": "task-1", "status": "completed", "result": {"ok": True}},
         ]
         args = _make_args(task_id="task-1")
@@ -112,6 +112,7 @@ class TestAsyncTaskWait(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 3)
         printed = mock_print.call_args[0][0]
         self.assertIn("completed", printed)
+        mock_print.assert_any_call("Task progress: 1/3", flush=True)
 
     @patch("roboflow.core.async_tasks.time.sleep", lambda *_a, **_k: None)
     @patch("roboflow.adapters.rfapi.get_async_task")

@@ -411,12 +411,22 @@ def _fork_project(args):  # noqa: ANN001
         output(args, enqueued, text=f"Fork enqueued: taskId={task_id}")
         return
 
+    def _print_progress(status):  # noqa: ANN001
+        if args.json:
+            return
+        progress = status.get("progress") or {}
+        current = progress.get("current") or progress.get("completed")
+        total = progress.get("total")
+        if current is not None and total is not None:
+            print(f"Task progress: {current}/{total}", flush=True)
+
     try:
         final = poll_until_terminal(
             api_key,
             dest_workspace,
             task_id,
             timeout=args.timeout,
+            on_update=_print_progress,
         )
     except rfapi.RoboflowError as exc:
         output_error(args, str(exc))
@@ -431,5 +441,5 @@ def _fork_project(args):  # noqa: ANN001
 
     result = final.get("result") or {}
     project_url = result.get("url") or result.get("id") or ""
-    text = f"Forked → {project_url}" if project_url else "Forked."
+    text = f"Forked.\nDestination URL: {project_url}" if project_url else "Forked."
     output(args, final, text=text)

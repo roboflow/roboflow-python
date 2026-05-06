@@ -91,7 +91,7 @@ class TestForkProjectWait(unittest.TestCase):
 
         mock_fork.return_value = {"taskId": "task-1", "url": "poll"}
         mock_get.side_effect = [
-            {"taskId": "task-1", "status": "running", "progress": None},
+            {"taskId": "task-1", "status": "running", "progress": {"current": 1, "total": 2}},
             {
                 "taskId": "task-1",
                 "status": "completed",
@@ -110,7 +110,9 @@ class TestForkProjectWait(unittest.TestCase):
 
         printed = mock_print.call_args[0][0]
         self.assertIn("Forked", printed)
+        self.assertIn("Destination URL", printed)
         self.assertIn("https://app.roboflow.com/test-ws/license-plates", printed)
+        mock_print.assert_any_call("Task progress: 1/2", flush=True)
         self.assertEqual(mock_get.call_count, 2)
 
     @patch("roboflow.core.async_tasks.time.sleep", lambda *_a, **_k: None)
