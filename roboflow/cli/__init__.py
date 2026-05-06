@@ -7,6 +7,7 @@ Built on typer. Each command group is a separate Typer app in the
 from __future__ import annotations
 
 import json
+import os
 from typing import Annotated, Any, Optional
 
 import click
@@ -31,6 +32,9 @@ app = typer.Typer(
     cls=SortedGroup,
     pretty_exceptions_enable=False,
     rich_markup_mode="rich",
+    # We expose shell completion through our own `completion` command group
+    # (see roboflow/cli/handlers/completion.py) so that there is exactly one
+    # documented entry-point.
     add_completion=False,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
@@ -163,6 +167,16 @@ def _print_flattened_help() -> None:
             styled_name.append(parts[1], style="bold")
         cmd_table.add_row(styled_name, help_text)
     console.print(Panel(cmd_table, title="Commands", title_align="left", border_style="dim"))
+    # Footer tip: nudge users to enable shell completion. Suppressed under
+    # --quiet (explicit opt-out of non-essential output). --json doesn't apply
+    # here because the flattened help only renders in non-JSON mode anyway.
+    import sys as _sys
+
+    if "--quiet" not in _sys.argv and "-q" not in _sys.argv:
+        console.print(
+            " Tip: enable shell completion with [bold]roboflow completion install[/bold]",
+            highlight=False,
+        )
     console.print()
 
 
@@ -363,6 +377,12 @@ def _reorder_argv(argv: list[str]) -> list[str]:
 def main() -> None:
     """CLI entry point — called by ``roboflow`` console script."""
     import sys
+
+    complete_mode = os.environ.get("_ROBOFLOW_COMPLETE")
+    if complete_mode in {"complete_bash", "bash_complete"} and (
+        "COMP_WORDS" not in os.environ or "COMP_CWORD" not in os.environ
+    ):
+        sys.exit(0)
 
     sys.argv[1:] = _reorder_argv(sys.argv[1:])
 
