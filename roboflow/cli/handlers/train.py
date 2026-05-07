@@ -76,6 +76,75 @@ def start_training(
     _start(args)
 
 
+@train_app.command("cancel")
+def cancel_training(
+    ctx: typer.Context,
+    target: Annotated[
+        str,
+        typer.Argument(
+            help="Training to cancel as 'project/version' (e.g. 'my-project/3' or 'workspace/my-project/3')"
+        ),
+    ],
+    continue_if_no_refund: Annotated[
+        bool,
+        typer.Option(
+            "--continue-if-no-refund",
+            help=(
+                "Cancel even if the run is past the refund window. "
+                "Default: false (server replies refund:false without cancelling)."
+            ),
+        ),
+    ] = False,
+) -> None:
+    """Cancel an in-flight training run.
+
+    Works for any architecture, including NAS sweeps in the mining or
+    training phase. Server-side gate: only valid while the run is in-flight;
+    a finished/failed run returns 409 CANNOT_CANCEL.
+    """
+    args = ctx_to_args(ctx, target=target, continue_if_no_refund=continue_if_no_refund)
+    _cancel(args)
+
+
+@train_app.command("stop")
+def stop_training(
+    ctx: typer.Context,
+    target: Annotated[
+        str,
+        typer.Argument(help="Training to stop as 'project/version'"),
+    ],
+) -> None:
+    """Request a graceful early-stop on an in-flight training run.
+
+    Distinct from cancel: the run finishes the current phase (mining or
+    training) instead of terminating immediately. Idempotent — calling
+    stop on an already-stopped run is a no-op.
+    """
+    args = ctx_to_args(ctx, target=target)
+    _stop(args)
+
+
+@train_app.command("results")
+def training_results(
+    ctx: typer.Context,
+    target: Annotated[
+        str,
+        typer.Argument(help="Training to inspect as 'project/version'"),
+    ],
+) -> None:
+    """Run-level training results bundle.
+
+    For NAS sweeps returns { trainingId, status, modelGroup, modelCount,
+    recommendedByHardware, mining?, models: [...] }. For non-NAS trainings
+    returns a minimal bundle with the produced model.
+
+    Pass the returned `modelGroup` to `roboflow model list --group ...` to
+    list every NAS model from that run with full metadata.
+    """
+    args = ctx_to_args(ctx, target=target)
+    _results(args)
+
+
 # ---------------------------------------------------------------------------
 # Business logic (unchanged from argparse version)
 # ---------------------------------------------------------------------------
@@ -202,3 +271,121 @@ def _ensure_export(args, api_key, workspace_url, project_slug, version_str, mode
                     return
             except rfapi.RoboflowError:
                 pass
+
+
+def _resolve_train_target(args):
+    """Parse '<project>/<version>' (or full 'workspace/<project>/<version>') and resolve api key.
+
+    Returns (api_key, workspace_url, project_slug, version_str) or None if validation fails.
+    """
+    from roboflow.cli._output import output_error
+    from roboflow.cli._resolver import resolve_resource
+    from roboflow.config import load_roboflow_api_key
+
+    try:
+        workspace_url, project_slug, version = resolve_resource(args.target, workspace_override=args.workspace)
+    except ValueError as exc:
+        output_error(args, str(exc))
+        return None
+    if version is None:
+        output_error(
+            args,
+            "Version is required.",
+            hint="Pass it as 'project/version' or 'workspace/project/version'.",
+        )
+        return None
+    api_key = args.api_key or load_roboflow_api_key(workspace_url)
+    if not api_key:
+        output_error(
+            args,
+            "No API key found.",
+            hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.",
+            exit_code=2,
+        )
+        return None
+    return api_key, workspace_url, project_slug, str(version)
+
+
+def _cancel(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_train_target(args)
+    if resolved is None:
+        return
+    api_key, workspace_url, project_slug, version_str = resolved
+
+    try:
+        result = rfapi.cancel_version_training(
+            api_key,
+            workspace_url,
+            project_slug,
+            version_str,
+            continue_if_no_refund=getattr(args, "continue_if_no_refund", False),
+        )
+    except rfapi.RoboflowError as exc:
+        msg = str(exc)
+        # 409 from server lands here as a RoboflowError carrying the JSON
+        # body; surface it with code "CANNOT_CANCEL" if present.
+        hint = None
+        if "non-running" in msg or "Cannot cancel" in msg:
+            hint = (
+                "Cancel only applies to in-flight runs. Check status with 'roboflow train results <project>/<version>'."
+            )
+        output_error(args, msg, hint=hint, exit_code=3)
+        return
+
+    output(
+        args,
+        {"status": "cancelled", "project": project_slug, "version": version_str, **(result or {})},
+        text=f"Training cancelled for {project_slug} version {version_str}.",
+    )
+
+
+def _stop(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_train_target(args)
+    if resolved is None:
+        return
+    api_key, workspace_url, project_slug, version_str = resolved
+
+    try:
+        result = rfapi.stop_version_training(api_key, workspace_url, project_slug, version_str)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    output(
+        args,
+        {"status": "stop_requested", "project": project_slug, "version": version_str, **(result or {})},
+        text=f"Early-stop requested for {project_slug} version {version_str}.",
+    )
+
+
+def _results(args):  # noqa: ANN001
+
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_train_target(args)
+    if resolved is None:
+        return
+    api_key, workspace_url, project_slug, version_str = resolved
+
+    try:
+        result = rfapi.get_training_results(api_key, workspace_url, project_slug, version_str)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    job_type = result.get("jobType", "unknown")
+    model_count = result.get("modelCount", 0)
+    model_group = result.get("modelGroup")
+    text_summary = (
+        f"{job_type} run for {project_slug} v{version_str}: status={result.get('status')}, models={model_count}"
+    )
+    if model_group:
+        text_summary += f", group={model_group}"
+    output(args, result, text=text_summary)

@@ -96,6 +96,99 @@ def start_version_training(
     return True
 
 
+def cancel_version_training(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    *,
+    continue_if_no_refund: bool = False,
+):
+    """Cancel an in-flight training run.
+
+    Backend handler is canonical for both vanilla and NAS trainings — it
+    accepts ``mining`` status, so this works for NAS sweeps too.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/train/cancel?api_key={api_key}"
+    body: Dict[str, Union[str, int, bool]] = {}
+    if continue_if_no_refund:
+        body["continueIfNoRefund"] = True
+    response = requests.post(url, json=body)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"success": True}
+
+
+def stop_version_training(api_key: str, workspace_url: str, project_url: str, version: str):
+    """Request an early stop on an in-flight training run.
+
+    The backend flips ``train.requestedStop``; the run finishes the current
+    phase gracefully (mining or training).
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/train/stop?api_key={api_key}"
+    response = requests.post(url, json={})
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"success": True}
+
+
+def get_training_results(api_key: str, workspace_url: str, project_url: str, version: str):
+    """Run-level training results bundle.
+
+    For NAS runs returns ``{ trainingId, status, modelGroup, modelCount,
+    recommendedByHardware, mining?, models: [...] }``. For non-NAS runs
+    returns a minimal bundle with the produced model(s).
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/training/results?api_key={api_key}"
+    response = requests.get(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def list_project_models(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    *,
+    group: Optional[str] = None,
+):
+    """List models for a project; pass ``group`` to scope to one NAS run."""
+    url = f"{API_URL}/{workspace_url}/{project_url}/models?api_key={api_key}"
+    if group:
+        url += f"&group={urllib.parse.quote(group, safe='')}"
+    response = requests.get(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_model_by_url(api_key: str, workspace_url: str, model_url: str):
+    """Fetch a single model by its URL slug."""
+    encoded = urllib.parse.quote(model_url, safe="/")
+    url = f"{API_URL}/models/{workspace_url}/{encoded}?api_key={api_key}"
+    response = requests.get(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def favorite_nas_model(api_key: str, workspace_url: str, model_id: str, *, starred: bool = True):
+    """Star or unstar a NAS-trained model.
+
+    ``model_id`` is the opaque public model id (e.g. ``my-project-3-nas-gpu-b``),
+    the same value the public API returns as ``models[].modelId`` on
+    ``GET /:workspace/:project/:version/training/results``. NAS-only on the
+    server side.
+    """
+    encoded = urllib.parse.quote(model_id, safe="")
+    url = f"{API_URL}/{workspace_url}/models/{encoded}/favorite?api_key={api_key}"
+    response = requests.post(url, json={"starred": bool(starred)})
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
 def get_version(api_key: str, workspace_url: str, project_url: str, version: str, nocache: bool = False):
     """
     Fetch detailed information about a specific dataset version.
