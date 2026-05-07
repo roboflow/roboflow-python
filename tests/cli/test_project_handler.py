@@ -124,5 +124,56 @@ class TestProjectRestoreHandler(unittest.TestCase):
             mock_restore.assert_not_called()
 
 
+class TestProjectHealthHandler(unittest.TestCase):
+    """project health calls project.health() via SDK."""
+
+    def _args(self, project_id="my-project", regenerate=False):
+        from argparse import Namespace
+
+        return Namespace(
+            json=False,
+            workspace="my-ws",
+            api_key="fake-key",
+            quiet=False,
+            project_id=project_id,
+            regenerate=regenerate,
+        )
+
+    def test_health_exists(self) -> None:
+        result = runner.invoke(app, ["project", "health", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("regenerate", result.output.lower())
+
+    def test_health_calls_sdk(self) -> None:
+        from unittest.mock import MagicMock, patch
+
+        from roboflow.cli.handlers.project import _health_project
+
+        mock_project = MagicMock()
+        mock_project.health.return_value = {"images": 100, "classes": {"cat": 50, "dog": 50}}
+
+        mock_rf = MagicMock()
+        mock_rf.workspace.return_value.project.return_value = mock_project
+
+        with patch("roboflow.Roboflow", return_value=mock_rf):
+            _health_project(self._args())
+            mock_project.health.assert_called_once_with(regenerate=False)
+
+    def test_health_regenerate(self) -> None:
+        from unittest.mock import MagicMock, patch
+
+        from roboflow.cli.handlers.project import _health_project
+
+        mock_project = MagicMock()
+        mock_project.health.return_value = {"images": 100}
+
+        mock_rf = MagicMock()
+        mock_rf.workspace.return_value.project.return_value = mock_project
+
+        with patch("roboflow.Roboflow", return_value=mock_rf):
+            _health_project(self._args(regenerate=True))
+            mock_project.health.assert_called_once_with(regenerate=True)
+
+
 if __name__ == "__main__":
     unittest.main()
