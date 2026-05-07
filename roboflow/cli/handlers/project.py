@@ -1,4 +1,4 @@
-"""Project management commands: list, get, create."""
+"""Project management commands: list, get, create, health."""
 
 from __future__ import annotations
 
@@ -76,6 +76,19 @@ def restore_project(
     """Restore a project from Trash."""
     args = ctx_to_args(ctx, project_id=project_id)
     _restore_project(args)
+
+
+@project_app.command("health")
+def health_project(
+    ctx: typer.Context,
+    project_id: Annotated[str, typer.Argument(help="Project ID or shorthand (e.g. my-ws/my-project)")],
+    regenerate: Annotated[
+        bool, typer.Option("--regenerate", "-r", help="Force regeneration of health check data.")
+    ] = False,
+) -> None:
+    """Show dataset health check for a project (class balance, dimensions, splits)."""
+    args = ctx_to_args(ctx, project_id=project_id, regenerate=regenerate)
+    _health_project(args)
 
 
 # ---------------------------------------------------------------------------
@@ -337,3 +350,26 @@ def _restore_project(args):  # noqa: ANN001
         return
 
     output(args, data, text=f"Restored {workspace_url}/{project_slug} from Trash.")
+
+
+def _health_project(args):  # noqa: ANN001
+    import json
+
+    import roboflow
+    from roboflow.cli._output import output, output_error, suppress_sdk_output
+
+    with suppress_sdk_output(args):
+        try:
+            rf = roboflow.Roboflow(api_key=args.api_key)
+            project = rf.workspace(args.workspace).project(args.project_id)
+        except Exception as exc:
+            output_error(args, str(exc))
+            return
+
+    try:
+        data = project.health(regenerate=args.regenerate)
+    except Exception as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    output(args, data, text=json.dumps(data, indent=2))

@@ -1084,3 +1084,21 @@ class Project:
         if not match:
             raise RuntimeError(f"Project '{self.__project_name}' is not in Trash — nothing to restore.")
         return rfapi.restore_trash_item(self.__api_key, self.__workspace, "project", match["id"])
+
+    def health(self, regenerate: bool = False) -> Dict:
+        """Get health check statistics for this project.
+
+        Args:
+            regenerate: If True, force regeneration of health check data.
+
+        Returns:
+            Dict: Health check statistics including class balance,
+                image dimensions, annotation counts, and split distribution.
+
+        Example:
+            >>> import roboflow
+            >>> rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+            >>> project = rf.workspace().project("PROJECT_ID")
+            >>> health = project.health()
+        """
+        return rfapi.get_project_health(self.__api_key, self.__workspace, self.__project_name, regenerate=regenerate)
