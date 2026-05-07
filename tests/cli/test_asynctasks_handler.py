@@ -160,6 +160,28 @@ class TestAsyncTaskWait(unittest.TestCase):
         self.assertEqual(ctx.exception.code, 3)
 
 
+class TestPollUntilTerminalCallback(unittest.TestCase):
+    """#6 — `on_update` must fire on the terminal tick too, so callers driving
+    a progress bar see the final ``current == total`` event before the loop
+    returns."""
+
+    @patch("roboflow.core.async_tasks.time.sleep", lambda *_a, **_k: None)
+    @patch("roboflow.adapters.rfapi.get_async_task")
+    def test_on_update_called_for_terminal_status(self, mock_get):
+        from roboflow.core.async_tasks import poll_until_terminal
+
+        mock_get.side_effect = [
+            {"taskId": "t", "status": "running", "progress": {"current": 1, "total": 2}},
+            {"taskId": "t", "status": "completed", "progress": {"current": 2, "total": 2}},
+        ]
+        seen = []
+        result = poll_until_terminal("k", "ws", "t", on_update=seen.append)
+
+        # Both ticks delivered, including the completed one.
+        self.assertEqual([s["status"] for s in seen], ["running", "completed"])
+        self.assertEqual(result["status"], "completed")
+
+
 class TestAsyncTaskNoWorkspace(unittest.TestCase):
     @patch("roboflow.cli._resolver.resolve_default_workspace", return_value=None)
     def test_get_no_workspace_exits_two(self, _mock_resolve):

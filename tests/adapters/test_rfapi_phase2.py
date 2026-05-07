@@ -570,9 +570,25 @@ class TestForkProject(unittest.TestCase):
     def test_error(self, mock_post):
         from roboflow.adapters.rfapi import RoboflowError, fork_project
 
-        mock_post.return_value = MagicMock(status_code=403, text="Forbidden")
+        mock_post.return_value = MagicMock(status_code=403, ok=False, text="Forbidden")
         with self.assertRaises(RoboflowError):
             fork_project("key", "ws", url="source-ws/source-project")
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_any_2xx_accepted(self, mock_post):
+        """#8 — accept any 2xx so the SDK doesn't break if the backend ever
+        returns 200 (sync result) or 201 (created) instead of 202.
+        """
+        from roboflow.adapters.rfapi import fork_project
+
+        for code in (200, 201, 202, 204):
+            mock_post.return_value = MagicMock(
+                status_code=code,
+                ok=200 <= code < 300,
+                json=lambda: {"taskId": "t", "url": "u"},
+            )
+            result = fork_project("key", "ws", url="source-ws/source-project")
+            self.assertEqual(result["taskId"], "t")
 
 
 class TestGetAsyncTask(unittest.TestCase):

@@ -60,6 +60,8 @@ class TestForkProjectNoWait(unittest.TestCase):
         )
         printed = mock_print.call_args[0][0]
         self.assertIn("task-123", printed)
+        # #10 — server-supplied polling URL surfaces so the user can poll later.
+        self.assertIn("https://api.roboflow.com/test-ws/asynctasks/task-123", printed)
 
     @patch("roboflow.adapters.rfapi.fork_project")
     @patch("roboflow.config.load_roboflow_api_key", return_value="test-key")

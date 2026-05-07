@@ -837,7 +837,7 @@ def fork_project(
         params={"api_key": api_key},
         json=payload,
     )
-    if response.status_code not in (200, 202):
+    if not response.ok:
         raise RoboflowError(response.text)
     return response.json()
 

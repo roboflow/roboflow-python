@@ -421,7 +421,11 @@ def _fork_project(args):  # noqa: ANN001
     task_id = enqueued["taskId"]
 
     if args.no_wait:
-        output(args, enqueued, text=f"Fork enqueued: taskId={task_id}")
+        polling_url = enqueued.get("url")
+        text = f"Fork enqueued: taskId={task_id}"
+        if polling_url:
+            text += f"\nPoll: {polling_url}"
+        output(args, enqueued, text=text)
         return
 
     def _print_progress(status):  # noqa: ANN001

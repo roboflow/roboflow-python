@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Optional
 
 from roboflow.adapters import rfapi
 
-NON_TERMINAL_STATUSES = frozenset({"created", "running"})
+NON_TERMINAL_STATUSES = frozenset({"created", "pending", "queued", "running", "in_progress"})
 
 
 def poll_until_terminal(
@@ -38,10 +38,12 @@ def poll_until_terminal(
             status = rfapi.get_async_task_at(api_key, polling_url)
         else:
             status = rfapi.get_async_task(api_key, workspace_url, task_id)
-        if status.get("status") not in NON_TERMINAL_STATUSES:
-            return status
+        # Invoke the callback before the terminal check so the final tick
+        # (typically `current == total`) is delivered to the caller.
         if on_update:
             on_update(status)
+        if status.get("status") not in NON_TERMINAL_STATUSES:
+            return status
         if deadline is not None and time.monotonic() >= deadline:
             raise TimeoutError(
                 f"Timed out after {timeout:.0f}s waiting for task {task_id} (last status: {status.get('status')})."
