@@ -1191,32 +1191,24 @@ class InvalidConfidenceError(RoboflowError):
 def _model_eval_error_for(response):
     """Translate a model-eval error response into the right RoboflowError subclass.
 
-    The model-eval REST surface returns errors in the shape::
+    The model-eval REST surface returns errors as a flat envelope::
 
         {"error": "<code>", "message": "<human readable>"}
 
-    Some routes (and earlier drafts of the spec) instead nest the code as
-    ``{"error": {"code": "...", "message": "..."}}``; we accept both so we
-    don't churn when the server normalises. Falls back to plain
-    :class:`RoboflowError` when the body isn't JSON or the code is
-    unrecognised, so new error codes don't crash older SDK callers.
+    Falls back to plain :class:`RoboflowError` when the body isn't JSON or
+    the code is unrecognised, so new error codes don't crash older SDK
+    callers. Status-code fallbacks for 404/409 keep typed exceptions
+    available even if the server omits the ``error`` field.
     """
     code = None
     message = response.text
     try:
         body = response.json()
         if isinstance(body, dict):
-            err = body.get("error")
-            if isinstance(err, str):
-                # Flat shape: {"error": "code_string", "message": "..."}
-                code = err
-                message = body.get("message") or err
-            elif isinstance(err, dict):
-                # Nested shape: {"error": {"code": "...", "message": "..."}}
-                code = err.get("code")
-                message = err.get("message") or body.get("message") or message
-            else:
-                message = body.get("message", message)
+            code = body.get("error")
+            if not isinstance(code, str):
+                code = None
+            message = body.get("message") or code or message
     except (ValueError, TypeError):
         pass
 
@@ -1229,7 +1221,6 @@ def _model_eval_error_for(response):
     cls = cls_by_code.get(code or "")
     if cls is not None:
         return cls(message)
-    # Status-code fallbacks for backends that haven't shipped the typed code yet.
     if response.status_code == 404:
         return ModelEvalNotFoundError(message)
     if response.status_code == 409:

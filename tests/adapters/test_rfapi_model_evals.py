@@ -162,9 +162,9 @@ class TestErrorMapping(unittest.TestCase):
         self.assertIn("Eval 'x' not found", str(ctx.exception))
 
     @patch("roboflow.adapters.rfapi.requests.get")
-    def test_404_nested_envelope_back_compat(self, mock_get):
-        # Older nested shape: {"error": {"code": "...", "message": "..."}}
-        mock_get.return_value = _resp(404, {"error": {"code": "model_eval_not_found", "message": "nested"}})
+    def test_404_status_code_fallback(self, mock_get):
+        # No `error` field at all — fall back to the status code mapping.
+        mock_get.return_value = _resp(404, {"message": "something went wrong"})
 
         with self.assertRaises(rfapi.ModelEvalNotFoundError):
             rfapi.get_model_eval("k", "ws", "x")
