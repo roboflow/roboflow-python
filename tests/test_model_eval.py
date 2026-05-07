@@ -26,13 +26,12 @@ class TestModelEvalConstruction(unittest.TestCase):
         from roboflow.core.model_eval import ModelEval
 
         info = {
-            "id": "e1",
+            "evalId": "e1",
             "status": "done",
             "projectId": "p1",
             "versionId": "3",
             "modelId": "m1",
             "createdAt": "2025-01-01",
-            "config": {"overlap": 30, "iouThreshold": 50},
             "summary": {"mAP": 0.9, "precision": 0.8, "recall": 0.85},
         }
         ev = ModelEval("k", "ws", "e1", info=info)
@@ -43,7 +42,6 @@ class TestModelEvalConstruction(unittest.TestCase):
         self.assertEqual(ev.version_id, "3")
         self.assertEqual(ev.model_id, "m1")
         self.assertEqual(ev.created_at, "2025-01-01")
-        self.assertEqual(ev.config["overlap"], 30)
         self.assertEqual(ev.summary["mAP"], 0.9)
 
     def test_construction_without_info(self):
@@ -52,7 +50,6 @@ class TestModelEvalConstruction(unittest.TestCase):
         ev = ModelEval("k", "ws", "e1")
         self.assertEqual(ev.id, "e1")
         self.assertIsNone(ev.status)
-        self.assertEqual(ev.config, {})
         self.assertIsNone(ev.summary)
 
 
@@ -62,10 +59,9 @@ class TestModelEvalRefresh(unittest.TestCase):
         from roboflow.core.model_eval import ModelEval
 
         mock_get.return_value = {
-            "id": "e1",
+            "evalId": "e1",
             "status": "done",
             "summary": {"mAP": 0.95},
-            "config": {},
         }
         ev = ModelEval("k", "ws", "e1")
         result = ev.refresh()
@@ -178,8 +174,8 @@ class TestWorkspaceEvalAccessors(unittest.TestCase):
 
         mock_list.return_value = {
             "evals": [
-                {"id": "e1", "status": "done", "projectId": "p1"},
-                {"id": "e2", "status": "running", "projectId": "p1"},
+                {"evalId": "e1", "status": "done", "projectId": "p1"},
+                {"evalId": "e2", "status": "running", "projectId": "p1"},
             ]
         }
         ws = _make_workspace()
@@ -217,7 +213,7 @@ class TestWorkspaceEvalAccessors(unittest.TestCase):
         from roboflow.core.model_eval import ModelEval
 
         mock_get.return_value = {
-            "id": "e1",
+            "evalId": "e1",
             "status": "done",
             "summary": {"mAP": 0.91},
         }

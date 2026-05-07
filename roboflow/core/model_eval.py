@@ -47,12 +47,16 @@ class ModelEval:
     # -- internal -----------------------------------------------------------
 
     def _apply(self, info: Dict[str, Any]) -> None:
+        # Server returns `evalId` (per DNA's identifier-embedding convention,
+        # consistent with every panel response). Accept legacy `id` for
+        # forward-compat with cached responses from older server versions.
+        if info.get("evalId"):
+            self.id = info["evalId"]
         self.status: Optional[str] = info.get("status")
         self.project_id: Optional[str] = info.get("projectId")
         self.version_id: Optional[str] = info.get("versionId")
         self.model_id: Optional[str] = info.get("modelId")
         self.created_at: Optional[str] = info.get("createdAt")
-        self.config: Dict[str, Any] = info.get("config", {}) or {}
         self.summary: Optional[Dict[str, Any]] = info.get("summary")
         self._raw: Dict[str, Any] = info
 
@@ -122,16 +126,16 @@ class ModelEval:
     # -- helpers ------------------------------------------------------------
 
     def to_dict(self) -> Dict[str, Any]:
-        """Return the cached eval metadata as a plain dict (id + last header fetch)."""
-        data: Dict[str, Any] = {"id": self.id}
+        """Return the cached eval metadata as a plain dict (evalId + last header fetch)."""
+        data: Dict[str, Any] = {"evalId": self.id}
         # Prefer raw payload (preserves keys we don't surface as attrs); fall
         # back to attributes when only the constructor was called with no info.
         if self._raw:
-            return {**self._raw, "id": self.id}
-        for key in ("status", "projectId", "versionId", "modelId", "createdAt", "config", "summary"):
+            return {**self._raw, "evalId": self.id}
+        for key in ("status", "projectId", "versionId", "modelId", "createdAt", "summary"):
             attr = (
                 key
-                if key in {"status", "config", "summary"}
+                if key in {"status", "summary"}
                 else {
                     "projectId": "project_id",
                     "versionId": "version_id",

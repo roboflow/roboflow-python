@@ -1478,7 +1478,10 @@ class Workspace:
             status=status,
             limit=limit,
         )
-        return [ModelEval(self.__api_key, self.url, e["id"], info=e) for e in result.get("evals", [])]
+        # Server returns `evalId` (per DNA); fall back to legacy `id` for forward-compat.
+        return [
+            ModelEval(self.__api_key, self.url, e.get("evalId") or e["id"], info=e) for e in result.get("evals", [])
+        ]
 
     def eval(self, eval_id: str) -> "ModelEval":
         """Fetch a single model eval by id.

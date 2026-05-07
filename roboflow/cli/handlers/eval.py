@@ -222,7 +222,8 @@ def _list_evals(args):  # noqa: ANN001
     evals = result.get("evals", [])
     rows = [
         {
-            "id": e.get("id", ""),
+            # Prefer DNA's `evalId`; tolerate legacy `id` from older server versions.
+            "id": e.get("evalId", e.get("id", "")),
             "status": e.get("status", ""),
             "project": e.get("projectId", ""),
             "version": e.get("versionId", ""),
@@ -255,7 +256,8 @@ def _get_eval(args):  # noqa: ANN001
         return
 
     lines = [
-        f"Eval: {info.get('id', args.eval_id)}",
+        # Prefer DNA's `evalId`; tolerate legacy `id`.
+        f"Eval: {info.get('evalId', info.get('id', args.eval_id))}",
         f"  Status:  {info.get('status', '')}",
         f"  Project: {info.get('projectId', '')}",
         f"  Version: {info.get('versionId', '')}",
