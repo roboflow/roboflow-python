@@ -48,12 +48,12 @@ def get_model(
 @model_app.command("star")
 def star_model(
     ctx: typer.Context,
-    model_id: Annotated[
+    model_url: Annotated[
         str,
         typer.Argument(
             help=(
-                "NAS-trained model id (Firestore document id). "
-                "Get it from 'roboflow train results <project>/<version>' (models[].modelId)."
+                "Model URL (e.g. workspace/model-slug, or just the slug if -w is set). "
+                "Get it from 'roboflow train results <project>/<version>' (models[].modelUrl)."
             ),
         ),
     ],
@@ -65,7 +65,7 @@ def star_model(
     MODEL_NOT_NAS error. Starring triggers TRT compilation for the model's
     recommended hardware so the model becomes deployable as an edge target.
     """
-    args = ctx_to_args(ctx, model_id=model_id, starred=not unstar)
+    args = ctx_to_args(ctx, model_url=model_url, starred=not unstar)
     _star_model(args)
 
 
@@ -221,9 +221,16 @@ def _star_model(args):  # noqa: ANN001
     from roboflow.cli._output import output, output_error
     from roboflow.config import load_roboflow_api_key
 
-    workspace_url = args.workspace
+    # Accept either "workspace/model-slug" or just "model-slug" (when -w is
+    # set). Mirrors the parsing pattern used by `roboflow model get`.
+    raw = args.model_url.strip("/")
+    if "/" in raw:
+        ws_from_arg, _sep, model_slug = raw.partition("/")
+    else:
+        ws_from_arg, model_slug = None, raw
+
+    workspace_url = args.workspace or ws_from_arg
     if not workspace_url:
-        # Need a workspace; fall back to whatever the api key points at.
         from roboflow.cli._resolver import resolve_default_workspace
 
         workspace_url = resolve_default_workspace(args.api_key)
@@ -231,7 +238,9 @@ def _star_model(args):  # noqa: ANN001
         output_error(
             args,
             "Could not determine workspace.",
-            hint="Pass -w/--workspace or run 'roboflow auth set-workspace <ws>'.",
+            hint=(
+                "Pass -w/--workspace, prefix the model URL (workspace/slug), or run 'roboflow auth set-workspace <ws>'."
+            ),
             exit_code=2,
         )
         return
@@ -247,14 +256,17 @@ def _star_model(args):  # noqa: ANN001
         return
 
     try:
-        result = rfapi.favorite_nas_model(api_key, workspace_url, args.model_id, starred=args.starred)
+        result = rfapi.favorite_nas_model(api_key, workspace_url, model_slug, starred=args.starred)
     except rfapi.RoboflowError as exc:
         msg = str(exc)
         hint = None
         if "MODEL_NOT_NAS" in msg or "non-NAS" in msg:
-            hint = "Star is NAS-only. Use 'roboflow train results' to find NAS model ids (models[].modelId)."
+            hint = "Star is NAS-only. Use 'roboflow train results' to find NAS model URLs (models[].modelUrl)."
         elif "MODEL_NOT_IN_WORKSPACE" in msg:
-            hint = "Verify the model id and workspace; ids are Firestore doc ids, not URL slugs."
+            hint = (
+                "Verify the model URL and workspace. The slug is the same value "
+                "'roboflow train results' returns as models[].modelUrl."
+            )
         output_error(args, msg, hint=hint, exit_code=3)
         return
 
@@ -262,7 +274,7 @@ def _star_model(args):  # noqa: ANN001
     output(
         args,
         result,
-        text=f"Model {args.model_id} {verb}.",
+        text=f"Model {workspace_url}/{model_slug} {verb}.",
     )
 
 

@@ -264,7 +264,7 @@ class TestModelStar(unittest.TestCase):
             "json": True,
             "api_key": "test-key",
             "workspace": "test-ws",
-            "model_id": "abc-firestore-id",
+            "model_url": "my-proj-3-nas-gpu-b",
             "starred": True,
             "quiet": True,
         }
@@ -285,21 +285,46 @@ class TestModelStar(unittest.TestCase):
     def test_star_success(self, mock_fav: MagicMock) -> None:
         from roboflow.cli.handlers.model import _star_model
 
-        mock_fav.return_value = {"success": True, "model": {"id": "abc-firestore-id"}}
+        mock_fav.return_value = {"success": True, "model": {"url": "my-proj-3-nas-gpu-b"}}
         out = self._capture_stdout(_star_model, self._args())
 
-        mock_fav.assert_called_once_with("test-key", "test-ws", "abc-firestore-id", starred=True)
+        # Bare slug + -w, so workspace comes from args.workspace.
+        mock_fav.assert_called_once_with("test-key", "test-ws", "my-proj-3-nas-gpu-b", starred=True)
         result = json.loads(out)
         self.assertTrue(result.get("success"))
+
+    @patch("roboflow.adapters.rfapi.favorite_nas_model")
+    def test_star_workspace_prefixed_url(self, mock_fav: MagicMock) -> None:
+        """When the URL is `<ws>/<slug>`, the workspace flag overrides anyway."""
+        from roboflow.cli.handlers.model import _star_model
+
+        mock_fav.return_value = {"success": True, "model": {"url": "my-proj-3-nas-gpu-b"}}
+        self._capture_stdout(_star_model, self._args(model_url="some-ws/my-proj-3-nas-gpu-b"))
+
+        # -w wins over the prefix, slug is stripped of the workspace segment.
+        mock_fav.assert_called_once_with("test-key", "test-ws", "my-proj-3-nas-gpu-b", starred=True)
+
+    @patch("roboflow.adapters.rfapi.favorite_nas_model")
+    def test_star_workspace_inferred_from_prefix(self, mock_fav: MagicMock) -> None:
+        """No -w but `<ws>/<slug>` argument: workspace comes from the prefix."""
+        from roboflow.cli.handlers.model import _star_model
+
+        mock_fav.return_value = {"success": True, "model": {"url": "my-proj-3-nas-gpu-b"}}
+        self._capture_stdout(
+            _star_model,
+            self._args(workspace=None, model_url="some-ws/my-proj-3-nas-gpu-b"),
+        )
+
+        mock_fav.assert_called_once_with("test-key", "some-ws", "my-proj-3-nas-gpu-b", starred=True)
 
     @patch("roboflow.adapters.rfapi.favorite_nas_model")
     def test_star_unstar_path(self, mock_fav: MagicMock) -> None:
         from roboflow.cli.handlers.model import _star_model
 
-        mock_fav.return_value = {"success": True, "model": {"id": "abc-firestore-id"}}
+        mock_fav.return_value = {"success": True, "model": {"url": "my-proj-3-nas-gpu-b"}}
         self._capture_stdout(_star_model, self._args(starred=False))
 
-        mock_fav.assert_called_once_with("test-key", "test-ws", "abc-firestore-id", starred=False)
+        mock_fav.assert_called_once_with("test-key", "test-ws", "my-proj-3-nas-gpu-b", starred=False)
 
     @patch("roboflow.adapters.rfapi.favorite_nas_model")
     def test_star_non_nas_surfaces_hint(self, mock_fav: MagicMock) -> None:
