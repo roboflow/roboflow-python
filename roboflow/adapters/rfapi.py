@@ -161,15 +161,15 @@ def get_model_by_url(api_key: str, workspace_url: str, model_url: str):
     return response.json()
 
 
-def favorite_nas_model(api_key: str, workspace_url: str, model_url: str, *, starred: bool = True):
+def favorite_nas_model(api_key: str, workspace_url: str, model_id: str, *, starred: bool = True):
     """Star or unstar a NAS-trained model.
 
-    ``model_url`` is the public model URL slug (e.g. ``my-project-3-nas-gpu-b``),
-    the same value the public API returns as ``models[].modelUrl`` on
+    ``model_id`` is the opaque public model id (e.g. ``my-project-3-nas-gpu-b``),
+    the same value the public API returns as ``models[].modelId`` on
     ``GET /:workspace/:project/:version/training/results``. NAS-only on the
     server side.
     """
-    encoded = urllib.parse.quote(model_url, safe="")
+    encoded = urllib.parse.quote(model_id, safe="")
     url = f"{API_URL}/{workspace_url}/models/{encoded}/favorite?api_key={api_key}"
     response = requests.post(url, json={"starred": bool(starred)})
     if not response.ok:

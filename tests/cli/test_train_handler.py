@@ -240,7 +240,7 @@ class TestTrainCancelStopResults(unittest.TestCase):
             "modelGroup": "rfdetrNasGroup-3",
             "modelCount": 5,
             "recommendedByHardware": {"gpu": "my-project-3-nas-gpu-a"},
-            "models": [{"modelUrl": "my-project-3-nas-gpu-a"}],
+            "models": [{"modelId": "my-project-3-nas-gpu-a"}],
         }
         out = self._capture_stdout(_results, self._args())
         result = json.loads(out)

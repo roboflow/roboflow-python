@@ -264,7 +264,7 @@ class TestModelStar(unittest.TestCase):
             "json": True,
             "api_key": "test-key",
             "workspace": "test-ws",
-            "model_url": "my-proj-3-nas-gpu-b",
+            "model_id": "my-proj-3-nas-gpu-b",
             "starred": True,
             "quiet": True,
         }
@@ -294,25 +294,25 @@ class TestModelStar(unittest.TestCase):
         self.assertTrue(result.get("success"))
 
     @patch("roboflow.adapters.rfapi.favorite_nas_model")
-    def test_star_workspace_prefixed_url(self, mock_fav: MagicMock) -> None:
-        """When the URL is `<ws>/<slug>`, the workspace flag overrides anyway."""
+    def test_star_workspace_prefixed_id(self, mock_fav: MagicMock) -> None:
+        """When the id is `<ws>/<id>`, the workspace flag overrides anyway."""
         from roboflow.cli.handlers.model import _star_model
 
         mock_fav.return_value = {"success": True, "model": {"url": "my-proj-3-nas-gpu-b"}}
-        self._capture_stdout(_star_model, self._args(model_url="some-ws/my-proj-3-nas-gpu-b"))
+        self._capture_stdout(_star_model, self._args(model_id="some-ws/my-proj-3-nas-gpu-b"))
 
-        # -w wins over the prefix, slug is stripped of the workspace segment.
+        # -w wins over the prefix, id is stripped of the workspace segment.
         mock_fav.assert_called_once_with("test-key", "test-ws", "my-proj-3-nas-gpu-b", starred=True)
 
     @patch("roboflow.adapters.rfapi.favorite_nas_model")
     def test_star_workspace_inferred_from_prefix(self, mock_fav: MagicMock) -> None:
-        """No -w but `<ws>/<slug>` argument: workspace comes from the prefix."""
+        """No -w but `<ws>/<id>` argument: workspace comes from the prefix."""
         from roboflow.cli.handlers.model import _star_model
 
         mock_fav.return_value = {"success": True, "model": {"url": "my-proj-3-nas-gpu-b"}}
         self._capture_stdout(
             _star_model,
-            self._args(workspace=None, model_url="some-ws/my-proj-3-nas-gpu-b"),
+            self._args(workspace=None, model_id="some-ws/my-proj-3-nas-gpu-b"),
         )
 
         mock_fav.assert_called_once_with("test-key", "some-ws", "my-proj-3-nas-gpu-b", starred=True)
