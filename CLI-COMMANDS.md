@@ -216,6 +216,31 @@ single item) is intentionally not available from the SDK or CLI — those
 actions destroy data irrecoverably and live only in the web UI's Trash
 view. Items left in Trash are cleaned up automatically after 30 days.
 
+### Inspect model evaluations
+
+```bash
+# List evals in the workspace; filter by project, version, model, or status.
+roboflow eval list --status done --limit 10
+
+# Read a single eval's metadata + summary metrics.
+roboflow eval get <eval-id>
+
+# Pull each panel — pipe to jq for structured access.
+roboflow eval map-results <eval-id> --json | jq '.splits.test.map50'
+roboflow eval performance-by-class <eval-id> --split test
+roboflow eval confusion-matrix <eval-id> --split test --confidence 30
+roboflow eval confidence-sweep <eval-id> --json
+roboflow eval vector-analysis <eval-id> --confidence 20 --json
+roboflow eval image-predictions <eval-id> --split test --limit 200
+roboflow eval recommendations <eval-id> --json
+```
+
+Exit codes are stable per error class so scripts and agents can react
+without parsing message strings: `3` for `model_eval_not_found` (404),
+`4` for `model_eval_not_done` (409 — eval still running), `5` for
+`invalid_split` / `invalid_confidence` (400). Requires the
+`model-eval:read` scope on the api key.
+
 ### Workspace stats and billing
 
 ```bash
@@ -316,6 +341,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `search` | Search workspace images (RoboQL), export results |
 | `deployment` | Manage dedicated deployments |
 | `device` | List, get, create, and observe RFDM devices (v2 deployment API) |
+| `eval` | Inspect model evaluation runs (mAP, confusion matrix, recommendations, ...) |
 | `workflow` | Manage workflows |
 | `folder` | Manage workspace folders |
 | `annotation` | Annotation batches and jobs |

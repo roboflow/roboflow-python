@@ -1165,3 +1165,193 @@ def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=Non
 # Note: permanent-delete from Trash (deleteImmediately / empty) is
 # intentionally not exposed on the public API — those actions destroy data
 # irrecoverably and are only available through the web UI's Trash view.
+
+
+# ---------------------------------------------------------------------------
+# Model evaluations
+# ---------------------------------------------------------------------------
+
+
+class ModelEvalNotFoundError(RoboflowError):
+    """Raised when an eval id (or workspace) does not exist (HTTP 404)."""
+
+
+class ModelEvalNotDoneError(RoboflowError):
+    """Raised when reading panel data for an eval whose status is not ``done`` (HTTP 409)."""
+
+
+class InvalidSplitError(RoboflowError):
+    """Raised when ``split`` is not one of the accepted values (HTTP 400)."""
+
+
+class InvalidConfidenceError(RoboflowError):
+    """Raised when ``confidence`` is non-integer or out of range 0-100 (HTTP 400)."""
+
+
+def _model_eval_error_for(response):
+    """Translate a model-eval error response into the right RoboflowError subclass.
+
+    The model-eval REST surface returns errors in the shape::
+
+        {"error": "<code>", "message": "<human readable>"}
+
+    Some routes (and earlier drafts of the spec) instead nest the code as
+    ``{"error": {"code": "...", "message": "..."}}``; we accept both so we
+    don't churn when the server normalises. Falls back to plain
+    :class:`RoboflowError` when the body isn't JSON or the code is
+    unrecognised, so new error codes don't crash older SDK callers.
+    """
+    code = None
+    message = response.text
+    try:
+        body = response.json()
+        if isinstance(body, dict):
+            err = body.get("error")
+            if isinstance(err, str):
+                # Flat shape: {"error": "code_string", "message": "..."}
+                code = err
+                message = body.get("message") or err
+            elif isinstance(err, dict):
+                # Nested shape: {"error": {"code": "...", "message": "..."}}
+                code = err.get("code")
+                message = err.get("message") or body.get("message") or message
+            else:
+                message = body.get("message", message)
+    except (ValueError, TypeError):
+        pass
+
+    cls_by_code = {
+        "model_eval_not_found": ModelEvalNotFoundError,
+        "model_eval_not_done": ModelEvalNotDoneError,
+        "invalid_split": InvalidSplitError,
+        "invalid_confidence": InvalidConfidenceError,
+    }
+    cls = cls_by_code.get(code or "")
+    if cls is not None:
+        return cls(message)
+    # Status-code fallbacks for backends that haven't shipped the typed code yet.
+    if response.status_code == 404:
+        return ModelEvalNotFoundError(message)
+    if response.status_code == 409:
+        return ModelEvalNotDoneError(message)
+    return RoboflowError(message)
+
+
+def _eval_get(api_key, workspace_url, path, params=None):
+    """GET helper for model-eval endpoints with typed error mapping."""
+    query: Dict[str, Union[str, int]] = {"api_key": api_key}
+    if params:
+        for key, value in params.items():
+            if value is not None:
+                query[key] = value
+    url = f"{API_URL}/{workspace_url}/model-evals{path}"
+    response = requests.get(url, params=query)
+    if response.status_code != 200:
+        raise _model_eval_error_for(response)
+    return response.json()
+
+
+def list_model_evals(
+    api_key: str,
+    workspace_url: str,
+    *,
+    project: Optional[str] = None,
+    version: Optional[Union[str, int]] = None,
+    model: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: Optional[int] = None,
+) -> dict:
+    """GET /{workspace}/model-evals — list evals in the workspace."""
+    return _eval_get(
+        api_key,
+        workspace_url,
+        "",
+        params={"project": project, "version": version, "model": model, "status": status, "limit": limit},
+    )
+
+
+def get_model_eval(api_key: str, workspace_url: str, eval_id: str) -> dict:
+    """GET /{workspace}/model-evals/{evalId} — fetch a single eval (with summary if done)."""
+    return _eval_get(api_key, workspace_url, f"/{eval_id}")
+
+
+def get_model_eval_map_results(api_key: str, workspace_url: str, eval_id: str) -> dict:
+    """GET /{workspace}/model-evals/{evalId}/map-results — per-split mAP breakdown."""
+    return _eval_get(api_key, workspace_url, f"/{eval_id}/map-results")
+
+
+def get_model_eval_confidence_sweep(api_key: str, workspace_url: str, eval_id: str) -> dict:
+    """GET /{workspace}/model-evals/{evalId}/confidence-sweep — F1/precision/recall sweep."""
+    return _eval_get(api_key, workspace_url, f"/{eval_id}/confidence-sweep")
+
+
+def get_model_eval_performance_by_class(
+    api_key: str,
+    workspace_url: str,
+    eval_id: str,
+    *,
+    split: Optional[str] = None,
+) -> dict:
+    """GET /{workspace}/model-evals/{evalId}/performance-by-class — per-class metrics.
+
+    Server rejects ``split=all`` for this panel; pass one of train/valid/test
+    or omit to use the server default (test).
+    """
+    return _eval_get(api_key, workspace_url, f"/{eval_id}/performance-by-class", params={"split": split})
+
+
+def get_model_eval_confusion_matrix(
+    api_key: str,
+    workspace_url: str,
+    eval_id: str,
+    *,
+    split: Optional[str] = None,
+    confidence: Optional[int] = None,
+) -> dict:
+    """GET /{workspace}/model-evals/{evalId}/confusion-matrix — confusion matrix for split."""
+    return _eval_get(
+        api_key,
+        workspace_url,
+        f"/{eval_id}/confusion-matrix",
+        params={"split": split, "confidence": confidence},
+    )
+
+
+def get_model_eval_vector_analysis(
+    api_key: str,
+    workspace_url: str,
+    eval_id: str,
+    *,
+    confidence: Optional[int] = None,
+) -> dict:
+    """GET /{workspace}/model-evals/{evalId}/vector-analysis — embedding clusters & metrics."""
+    return _eval_get(
+        api_key,
+        workspace_url,
+        f"/{eval_id}/vector-analysis",
+        params={"confidence": confidence},
+    )
+
+
+def get_model_eval_image_predictions(
+    api_key: str,
+    workspace_url: str,
+    eval_id: str,
+    *,
+    split: Optional[str] = None,
+    confidence: Optional[int] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+) -> dict:
+    """GET /{workspace}/model-evals/{evalId}/image-predictions — paginated per-image stats."""
+    return _eval_get(
+        api_key,
+        workspace_url,
+        f"/{eval_id}/image-predictions",
+        params={"split": split, "confidence": confidence, "limit": limit, "offset": offset},
+    )
+
+
+def get_model_eval_recommendations(api_key: str, workspace_url: str, eval_id: str) -> dict:
+    """GET /{workspace}/model-evals/{evalId}/recommendations — improvement suggestions."""
+    return _eval_get(api_key, workspace_url, f"/{eval_id}/recommendations")

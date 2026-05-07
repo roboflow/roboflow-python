@@ -20,6 +20,7 @@ from roboflow.config import API_URL, APP_URL, DEMO_KEYS
 
 if TYPE_CHECKING:
     from roboflow.core.device import Device
+    from roboflow.core.model_eval import ModelEval
 
 
 class Workspace:
@@ -1431,6 +1432,70 @@ class Workspace:
             name=name,
             metadata=metadata,
         )
+
+    # -----------------------------------------------------------------
+    # Model evaluations
+    # -----------------------------------------------------------------
+
+    def evals(
+        self,
+        *,
+        project: Optional[str] = None,
+        version: Optional[str] = None,
+        model: Optional[str] = None,
+        status: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> List["ModelEval"]:
+        """List model evaluations in this workspace.
+
+        Args:
+            project: Filter by project slug or id.
+            version: Filter by version id (or numeric version).
+            model: Filter by model id.
+            status: Filter by status — one of ``"running"``, ``"done"``, ``"failed"``.
+            limit: Max evals to return (server caps at 200; default 50).
+
+        Returns:
+            A list of :class:`ModelEval` instances pre-populated with the
+            metadata from the list response (``status``, ``createdAt``, etc.).
+            Call :meth:`ModelEval.refresh` to re-fetch the header, or any
+            panel method to load detailed data.
+
+        Example:
+            >>> ws = rf.workspace("lee-sandbox")
+            >>> done = ws.evals(status="done", limit=5)
+            >>> for ev in done:
+            ...     print(ev.id, ev.summary)
+        """
+        from roboflow.core.model_eval import ModelEval
+
+        result = rfapi.list_model_evals(
+            self.__api_key,
+            self.url,
+            project=project,
+            version=version,
+            model=model,
+            status=status,
+            limit=limit,
+        )
+        return [ModelEval(self.__api_key, self.url, e["id"], info=e) for e in result.get("evals", [])]
+
+    def eval(self, eval_id: str) -> "ModelEval":
+        """Fetch a single model eval by id.
+
+        Raises:
+            roboflow.adapters.rfapi.ModelEvalNotFoundError: If the id doesn't
+                exist in this workspace (HTTP 404).
+
+        Example:
+            >>> ws = rf.workspace("lee-sandbox")
+            >>> ev = ws.eval("huUF720inUcymARwqAGK")
+            >>> ev.summary["mAP"]
+        """
+        from roboflow.core.model_eval import ModelEval
+
+        info = rfapi.get_model_eval(self.__api_key, self.url, eval_id)
+        return ModelEval(self.__api_key, self.url, info.get("id", eval_id), info=info)
 
     def trash(self) -> dict:
         """
