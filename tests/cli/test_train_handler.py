@@ -234,12 +234,13 @@ class TestTrainCancelStopResults(unittest.TestCase):
         from roboflow.cli.handlers.train import _results
 
         mock_get.return_value = {
-            "trainingId": "ds/3",
+            "trainingId": "test-ws/my-project/3",
             "status": "finished",
             "jobType": "nas",
             "modelGroup": "rfdetrNasGroup-3",
             "modelCount": 5,
-            "models": [{"modelId": "m1"}],
+            "recommendedByHardware": {"gpu": "my-project-3-nas-gpu-a"},
+            "models": [{"modelUrl": "my-project-3-nas-gpu-a"}],
         }
         out = self._capture_stdout(_results, self._args())
         result = json.loads(out)
