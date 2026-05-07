@@ -256,9 +256,7 @@ def _star_model(args):  # noqa: ANN001
         return
 
     try:
-        result = rfapi.favorite_nas_model(
-            api_key, workspace_url, public_model_id, starred=args.starred
-        )
+        result = rfapi.favorite_nas_model(api_key, workspace_url, public_model_id, starred=args.starred)
     except rfapi.RoboflowError as exc:
         msg = str(exc)
         hint = None
