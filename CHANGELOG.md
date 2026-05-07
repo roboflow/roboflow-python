@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added — Model evaluations SDK & CLI
+
+Wraps the public `/{workspace}/model-evals` REST surface
+([roboflow/roboflow#11636](https://github.com/roboflow/roboflow/pull/11636))
+so users can read evaluation results — mAP, confidence sweep, per-class
+performance, confusion matrix, vector clusters, per-image stats,
+recommendations — from Python and from the CLI without hitting the API
+directly. Companion docs:
+[roboflow-dev-reference#18](https://github.com/roboflow/roboflow-dev-reference/pull/18).
+
+**SDK (`roboflow/core/model_eval.py`):**
+- `Workspace.evals(project=None, version=None, model=None, status=None, limit=None)` — list evals as `ModelEval` instances pre-populated with metadata from the list response.
+- `Workspace.eval(eval_id)` — fetch a single eval (returns a `ModelEval` with `.summary` populated when status is `done`).
+- `ModelEval.refresh()` — re-fetch the eval header.
+- `ModelEval.map_results()`, `.confidence_sweep()`, `.performance_by_class(split=None)`, `.confusion_matrix(split=None, confidence=None)`, `.vector_analysis(confidence=None)`, `.image_predictions(split=None, confidence=None, limit=None, offset=None)`, `.recommendations()` — one method per panel; each returns the raw JSON dict.
+
+**CLI (`roboflow/cli/handlers/eval.py`):**
+- `roboflow eval list [--project P] [--version V] [--model M] [--status S] [--limit N]`
+- `roboflow eval get <eval_id>`
+- `roboflow eval map-results <eval_id>`
+- `roboflow eval confidence-sweep <eval_id>`
+- `roboflow eval performance-by-class <eval_id> [--split S]`
+- `roboflow eval confusion-matrix <eval_id> [--split S] [--confidence N]`
+- `roboflow eval vector-analysis <eval_id> [--confidence N]`
+- `roboflow eval image-predictions <eval_id> [--split S] [--confidence N] [--limit N] [--offset N]`
+- `roboflow eval recommendations <eval_id>`
+
+Exit codes are stable per error class so shell scripts and AI agents can
+react without parsing message strings: `3` for `model_eval_not_found`
+(404), `4` for `model_eval_not_done` (409), `5` for `invalid_split` /
+`invalid_confidence` (400). Every command supports `--json` for
+structured output.
+
+**Low-level (`roboflow.adapters.rfapi`):**
+- `list_model_evals`, `get_model_eval`, `get_model_eval_map_results`, `get_model_eval_confidence_sweep`, `get_model_eval_performance_by_class`, `get_model_eval_confusion_matrix`, `get_model_eval_vector_analysis`, `get_model_eval_image_predictions`, `get_model_eval_recommendations`.
+- New typed exceptions `ModelEvalNotFoundError`, `ModelEvalNotDoneError`, `InvalidSplitError`, `InvalidConfidenceError` (all subclasses of `RoboflowError`) so callers can distinguish "eval doesn't exist" from "eval still running" from "bad argument" without parsing strings.
+
+The endpoints require the `model-eval:read` scope. The base URL is
+configurable via `API_URL` (set to `https://localapi.roboflow.one` to
+test against a local API server).
+
 ## 1.3.7
 
 ### Added — Soft-delete / Trash support
