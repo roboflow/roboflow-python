@@ -97,6 +97,8 @@ def fork_project(
     """Fork a public Universe project into a workspace."""
     args = ctx_to_args(ctx, source=source, no_wait=no_wait, timeout=timeout)
     _fork_project(args)
+
+
 @project_app.command("health")
 def health_project(
     ctx: typer.Context,
@@ -457,6 +459,8 @@ def _fork_project(args):  # noqa: ANN001
     project_url = (final.get("result") or {}).get("url", "")
     text = f"Forked.\nDestination URL: {project_url}" if project_url else "Forked."
     output(args, final, text=text)
+
+
 def _health_project(args):  # noqa: ANN001
     import json
 

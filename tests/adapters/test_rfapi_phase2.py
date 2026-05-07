@@ -620,9 +620,7 @@ class TestGetAsyncTask(unittest.TestCase):
         host the task lives on even if it differs from ``API_URL``."""
         from roboflow.adapters.rfapi import get_async_task_at
 
-        mock_get.return_value = MagicMock(
-            status_code=200, json=lambda: {"taskId": "task-1", "status": "completed"}
-        )
+        mock_get.return_value = MagicMock(status_code=200, json=lambda: {"taskId": "task-1", "status": "completed"})
         result = get_async_task_at("key", "https://other.host/ws/asynctasks/task-1")
         self.assertEqual(result["status"], "completed")
         self.assertEqual(mock_get.call_args[0][0], "https://other.host/ws/asynctasks/task-1")
