@@ -27,7 +27,7 @@ class ModelEval:
 
         from roboflow.core.model_eval import ModelEval
         ev = ModelEval(api_key, "lee-sandbox", "huUF720inUcymARwqAGK")
-        ev.refresh()  # populates .status, .summary, .config, etc.
+        ev.refresh()  # populates .status, .summary, etc.
     """
 
     def __init__(
@@ -67,7 +67,7 @@ class ModelEval:
     # -- core ---------------------------------------------------------------
 
     def refresh(self) -> "ModelEval":
-        """Re-fetch the eval header (status, summary, config) from the server."""
+        """Re-fetch the eval header (status, summary, …) from the server."""
         info = rfapi.get_model_eval(self._api_key, self._workspace_url, self.id)
         self._apply(info)
         return self
@@ -129,26 +129,37 @@ class ModelEval:
 
     # -- helpers ------------------------------------------------------------
 
+    # Mapping (json_key, attr_name) used by `to_dict()` to round-trip a
+    # constructor-only ModelEval (one with no `info=` payload) back into the
+    # public JSON shape. Same fields the server returns at the top level of
+    # `modelEvals.get`, in the same order.
+    _PUBLIC_FIELDS = (
+        ("status", "status"),
+        ("project", "project"),
+        ("versionId", "version_id"),
+        ("modelId", "model_id"),
+        ("createdAt", "created_at"),
+        ("summary", "summary"),
+    )
+
     def to_dict(self) -> Dict[str, Any]:
-        """Return the cached eval metadata as a plain dict (evalId + last header fetch)."""
-        data: Dict[str, Any] = {"evalId": self.id}
-        # Prefer raw payload (preserves keys we don't surface as attrs); fall
-        # back to attributes when only the constructor was called with no info.
+        """Return the cached eval metadata as a plain dict (evalId + last header fetch).
+
+        When the instance was created from a server payload (the usual path —
+        via ``Workspace.eval`` or ``Workspace.evals``) the raw payload is
+        round-tripped, with ``evalId`` overlaid so legacy ``id``-keyed
+        responses still emit the DNA-aligned field. When the instance was
+        created without a payload (constructor only — ``ModelEval(key, ws,
+        eval_id)`` with no ``refresh()``) only the attributes the caller has
+        set get serialised, omitting any ``None`` fields.
+        """
         if self._raw:
             return {**self._raw, "evalId": self.id}
-        for key in ("status", "project", "versionId", "modelId", "createdAt", "summary"):
-            attr = (
-                key
-                if key in {"status", "project", "summary"}
-                else {
-                    "versionId": "version_id",
-                    "modelId": "model_id",
-                    "createdAt": "created_at",
-                }[key]
-            )
-            value = getattr(self, attr, None)
+        data: Dict[str, Any] = {"evalId": self.id}
+        for json_key, attr_name in self._PUBLIC_FIELDS:
+            value = getattr(self, attr_name, None)
             if value is not None:
-                data[key] = value
+                data[json_key] = value
         return data
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper

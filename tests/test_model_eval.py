@@ -53,6 +53,84 @@ class TestModelEvalConstruction(unittest.TestCase):
         self.assertIsNone(ev.summary)
 
 
+class TestModelEvalToDict(unittest.TestCase):
+    """`to_dict()` has two branches: with-payload (round-trip) and without-payload
+    (rebuild from attributes). Both need to behave correctly."""
+
+    def test_to_dict_round_trips_raw_payload_with_evalId_overlay(self):
+        from roboflow.core.model_eval import ModelEval
+
+        # Server-payload path: the raw response is round-tripped (including any
+        # extra keys we don't surface as attrs), with `evalId` overlaid so legacy
+        # `id`-keyed responses still emit the DNA-aligned field.
+        info = {
+            "evalId": "e1",
+            "status": "done",
+            "project": "my-project-slug",
+            "versionId": "3",
+            "modelId": "m1",
+            "createdAt": "2025-01-01",
+            "summary": {"mAP": 0.9, "precision": 0.8, "recall": 0.85},
+            "extraField": "preserved-by-roundtrip",
+        }
+        ev = ModelEval("k", "ws", "e1", info=info)
+        d = ev.to_dict()
+        # Round-trip preserves every server-side field, including ones we don't
+        # surface as attributes.
+        self.assertEqual(d["extraField"], "preserved-by-roundtrip")
+        self.assertEqual(d["project"], "my-project-slug")
+        self.assertEqual(d["evalId"], "e1")
+        self.assertEqual(d["summary"]["mAP"], 0.9)
+
+    def test_to_dict_overlays_evalId_when_payload_used_legacy_id_key(self):
+        from roboflow.core.model_eval import ModelEval
+
+        # Older server versions returned `id` instead of `evalId`. The SDK accepts
+        # both on the way in; on the way out it always emits `evalId`.
+        info = {"id": "e1-legacy", "status": "done", "project": "p"}
+        ev = ModelEval("k", "ws", "e1-legacy", info=info)
+        d = ev.to_dict()
+        self.assertEqual(d["evalId"], "e1-legacy")
+
+    def test_to_dict_no_info_serialises_attrs_only_omitting_None(self):
+        from roboflow.core.model_eval import ModelEval
+
+        # Constructor-only path (no `info=` payload, no `refresh()` call).
+        # Only attributes the caller sets get serialised; everything else is
+        # omitted rather than serialised as `null`.
+        ev = ModelEval("k", "ws", "e1")
+        d = ev.to_dict()
+        self.assertEqual(d, {"evalId": "e1"})
+
+    def test_to_dict_no_info_translates_attr_names_back_to_json_keys(self):
+        from roboflow.core.model_eval import ModelEval
+
+        # Hand-construct an instance without an info payload, then mutate
+        # attributes (the way a user might before serialising for logging /
+        # comparison). `to_dict` should emit the JSON-side names, not the
+        # snake_case Python attr names.
+        ev = ModelEval("k", "ws", "e1")
+        ev.status = "done"
+        ev.project = "p"
+        ev.version_id = "3"
+        ev.model_id = "m1"
+        ev.created_at = "2025-01-01"
+        ev.summary = {"mAP": 0.9}
+        d = ev.to_dict()
+        self.assertEqual(
+            d,
+            {
+                "evalId": "e1",
+                "status": "done",
+                "project": "p",
+                "versionId": "3",  # not version_id
+                "modelId": "m1",  # not model_id
+                "createdAt": "2025-01-01",  # not created_at
+                "summary": {"mAP": 0.9},
+            },
+        )
+
+
 class TestModelEvalRefresh(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.get_model_eval")
     def test_refresh_updates_status_and_summary(self, mock_get):

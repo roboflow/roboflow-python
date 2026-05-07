@@ -267,9 +267,6 @@ def _get_eval(args):  # noqa: ANN001
         f"  Model:   {info.get('modelId', '') or '(none)'}",
         f"  Created: {info.get('createdAt', '')}",
     ]
-    config = info.get("config") or {}
-    if config:
-        lines.append(f"  Config:  overlap={config.get('overlap')} iouThreshold={config.get('iouThreshold')}")
     summary = info.get("summary") or {}
     if summary:
         lines.append(
@@ -452,15 +449,19 @@ def _image_predictions(args):  # noqa: ANN001
     images = data.get("images", [])
     rows = []
     for img in images:
+        # Stats are camelCase per the public API:
+        # `truePositives`/`falsePositives`/`falseNegatives` (not `tp`/`fp`/`fn`).
         stats = img.get("stats") or {}
+        cluster = img.get("cluster") or {}
+        cluster_id = cluster.get("id") if isinstance(cluster, dict) else cluster
         rows.append(
             {
                 "image": img.get("imageName", img.get("imageId", "")),
                 "split": img.get("split", ""),
-                "tp": stats.get("tp", ""),
-                "fp": stats.get("fp", ""),
-                "fn": stats.get("fn", ""),
-                "cluster": img.get("cluster", ""),
+                "tp": stats.get("truePositives", ""),
+                "fp": stats.get("falsePositives", ""),
+                "fn": stats.get("falseNegatives", ""),
+                "cluster": cluster_id if cluster_id is not None else "",
             }
         )
     table = format_table(

@@ -307,6 +307,54 @@ class TestPanelHandlers(unittest.TestCase):
         printed = mock_print.call_args[0][0]
         self.assertIn("a.jpg", printed)
 
+    @patch("roboflow.adapters.rfapi.get_model_eval_image_predictions")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="lee-sandbox")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="key")
+    def test_image_predictions_table_renders_TP_FP_FN_from_camelCase_stats(self, _key, _ws, mock_fn):
+        # Regression: the public API nests counts under `stats` with camelCase
+        # keys (`truePositives`/`falsePositives`/`falseNegatives`). Earlier code
+        # read `stats.tp`/`stats.fp`/`stats.fn` and silently rendered blanks.
+        mock_fn.return_value = {
+            "split": "test",
+            "confidenceThreshold": 0.2,
+            "totalImages": 1,
+            "offset": 0,
+            "limit": 1,
+            "images": [
+                {
+                    "imageId": "i1",
+                    "imageName": "abc.jpg",
+                    "split": "test",
+                    "augmentations": 2,
+                    "stats": {
+                        "truePositives": 7,
+                        "falsePositives": 2,
+                        "falseNegatives": 1,
+                        "precision": 0.78,
+                        "recall": 0.875,
+                        "f1": 0.824,
+                    },
+                    # The cluster column previously stringified the whole dict;
+                    # we only want the cluster id rendered.
+                    "cluster": {"id": 4, "embedding2D": [1.5, -3.2]},
+                }
+            ],
+        }
+        args = _args(workspace=None, eval_id="e1", split="test", confidence=None, limit=None, offset=None)
+
+        from roboflow.cli.handlers.eval import _image_predictions
+
+        with patch("builtins.print") as mock_print:
+            _image_predictions(args)
+        printed = mock_print.call_args[0][0]
+        # TP/FP/FN counts must appear in the rendered table.
+        self.assertIn("7", printed)  # truePositives
+        self.assertIn("2", printed)  # falsePositives + augmentations both = 2; either way it should appear
+        self.assertIn("1", printed)  # falseNegatives
+        # Cluster rendered as the bare id, not the embedding-bearing dict.
+        self.assertIn(" 4 ", printed)
+        self.assertNotIn("embedding2D", printed)
+
     @patch("roboflow.adapters.rfapi.get_model_eval_recommendations")
     @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="lee-sandbox")
     @patch("roboflow.config.load_roboflow_api_key", return_value="key")
