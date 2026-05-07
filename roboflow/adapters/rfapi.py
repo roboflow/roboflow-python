@@ -3,6 +3,7 @@ import mimetypes
 import os
 import urllib
 from typing import Dict, List, Optional, Union
+from urllib.parse import quote
 
 import requests
 from requests.exceptions import RequestException
@@ -839,10 +840,29 @@ def get_async_task(api_key, workspace_url, task_id):
     terminal. Raises ``RoboflowError`` for any non-2xx response (including
     404 for unknown ids or cross-workspace probes).
     """
+    # ``task_id`` comes from arbitrary external input; encode so a stray
+    # ``/``, ``?`` or ``#`` cannot mutate the request path (and still send
+    # the api_key with it).
+    encoded_task_id = quote(task_id, safe="")
     response = requests.get(
-        f"{API_URL}/{workspace_url}/asynctasks/{task_id}",
+        f"{API_URL}/{workspace_url}/asynctasks/{encoded_task_id}",
         params={"api_key": api_key},
     )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_async_task_at(api_key, polling_url):
+    """GET an async-task polling URL returned verbatim by the server.
+
+    Enqueue endpoints (e.g. ``/{ws}/projects/fork``) return a fully-qualified
+    ``url`` alongside ``taskId``. The host may differ from ``API_URL`` (e.g.
+    local dev against ``localapi.roboflow.one``), so hit it directly and
+    only attach the api_key. Falls back to ``get_async_task`` callers when
+    no server-supplied URL is available.
+    """
+    response = requests.get(polling_url, params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()

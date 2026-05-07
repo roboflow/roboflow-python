@@ -588,12 +588,82 @@ class TestGetAsyncTask(unittest.TestCase):
         self.assertIn("/ws/asynctasks/task-1", mock_get.call_args[0][0])
 
     @patch("roboflow.adapters.rfapi.requests.get")
+    def test_malformed_task_id_is_url_encoded(self, mock_get):
+        """A task_id containing path/query/fragment characters must not
+        silently mutate the request path. Each unsafe char is percent-encoded
+        by ``urllib.parse.quote(..., safe="")``."""
+        from roboflow.adapters.rfapi import get_async_task
+
+        mock_get.return_value = MagicMock(status_code=200, json=lambda: {"taskId": "x", "status": "running"})
+
+        # Task ids containing `/`, `?`, `#`, `..`, spaces, and a literal `&`
+        # used to land in the path verbatim — leaking the api_key with a
+        # forged path and confusing the router. With the fix in place each
+        # unsafe character is percent-encoded.
+        get_async_task("key", "ws", "../task?secret=1#frag&x")
+
+        called_url = mock_get.call_args[0][0]
+        # Slash, dot, question mark, hash, ampersand, and space are all encoded.
+        self.assertIn("/ws/asynctasks/", called_url)
+        self.assertIn("%2F", called_url)  # `/`
+        self.assertIn("%3F", called_url)  # `?`
+        self.assertIn("%23", called_url)  # `#`
+        self.assertIn("%26", called_url)  # `&`
+        # Path doesn't end with the bare task id segments.
+        self.assertNotIn("/asynctasks/../task", called_url)
+        self.assertNotIn("?secret=1", called_url.split("/asynctasks/", 1)[1])
+
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_get_async_task_at_uses_supplied_url(self, mock_get):
+        """``get_async_task_at`` hits the server-supplied polling URL
+        verbatim (modulo the api_key query param), so polling stays on the
+        host the task lives on even if it differs from ``API_URL``."""
+        from roboflow.adapters.rfapi import get_async_task_at
+
+        mock_get.return_value = MagicMock(
+            status_code=200, json=lambda: {"taskId": "task-1", "status": "completed"}
+        )
+        result = get_async_task_at("key", "https://other.host/ws/asynctasks/task-1")
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(mock_get.call_args[0][0], "https://other.host/ws/asynctasks/task-1")
+        self.assertEqual(mock_get.call_args[1]["params"], {"api_key": "key"})
+
+    @patch("roboflow.adapters.rfapi.requests.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, get_async_task
 
         mock_get.return_value = MagicMock(status_code=404, text="Not found")
         with self.assertRaises(RoboflowError):
             get_async_task("key", "ws", "missing")
+
+
+class TestGetAsyncTaskAt(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_polling_url_used_verbatim(self, mock_get):
+        """When the server returns a fully-qualified polling URL, the SDK must
+        hit it as-is (potentially on a different host than ``API_URL``) and
+        only attach the ``api_key`` query param.
+        """
+        from roboflow.adapters.rfapi import get_async_task_at
+
+        mock_get.return_value = MagicMock(status_code=200, json=lambda: {"taskId": "task-1", "status": "running"})
+
+        polling_url = "https://localapi.roboflow.one/ws/asynctasks/task-1"
+        result = get_async_task_at("api-key", polling_url)
+
+        self.assertEqual(result["status"], "running")
+        # URL passed through unchanged.
+        self.assertEqual(mock_get.call_args[0][0], polling_url)
+        # api_key tacked on as a param.
+        self.assertEqual(mock_get.call_args[1]["params"], {"api_key": "api-key"})
+
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_error_on_non_200(self, mock_get):
+        from roboflow.adapters.rfapi import RoboflowError, get_async_task_at
+
+        mock_get.return_value = MagicMock(status_code=404, text="Not found")
+        with self.assertRaises(RoboflowError):
+            get_async_task_at("key", "https://api.roboflow.com/ws/asynctasks/missing")
 
 
 class TestForkWorkflow(unittest.TestCase):

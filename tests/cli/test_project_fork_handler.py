@@ -89,7 +89,9 @@ class TestForkProjectWait(unittest.TestCase):
     def test_wait_until_completed_text(self, _mock_key, mock_fork, mock_get):
         from roboflow.cli.handlers.project import _fork_project
 
-        mock_fork.return_value = {"taskId": "task-1", "url": "poll"}
+        # No `url` in the fork response → poll_until_terminal falls back to
+        # rfapi.get_async_task (which `mock_get` patches).
+        mock_fork.return_value = {"taskId": "task-1"}
         mock_get.side_effect = [
             {"taskId": "task-1", "status": "running", "progress": {"current": 1, "total": 2}},
             {
@@ -122,7 +124,7 @@ class TestForkProjectWait(unittest.TestCase):
     def test_wait_until_completed_json(self, _mock_key, mock_fork, mock_get):
         from roboflow.cli.handlers.project import _fork_project
 
-        mock_fork.return_value = {"taskId": "task-1", "url": "poll"}
+        mock_fork.return_value = {"taskId": "task-1"}
         terminal_payload = {
             "taskId": "task-1",
             "status": "completed",
@@ -144,7 +146,7 @@ class TestForkProjectWait(unittest.TestCase):
     def test_wait_until_failed_exits_one(self, _mock_key, mock_fork, mock_get):
         from roboflow.cli.handlers.project import _fork_project
 
-        mock_fork.return_value = {"taskId": "task-1", "url": "poll"}
+        mock_fork.return_value = {"taskId": "task-1"}
         mock_get.return_value = {
             "taskId": "task-1",
             "status": "failed",
