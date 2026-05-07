@@ -925,6 +925,17 @@ def _raise_for_trash_response(response):
     raise RoboflowError(msg or response.text)
 
 
+def get_project_health(api_key, workspace_url, project_url, regenerate=False):
+    """GET /{workspace}/{project}/health — dataset health check statistics."""
+    url = f"{API_URL}/{workspace_url}/{project_url}/health?api_key={api_key}"
+    if regenerate:
+        url += "&regenerate=true"
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
 def delete_project(api_key, workspace_url, project_url):
     """DELETE /{workspace}/{project} — move a project to Trash (30-day retention).
 

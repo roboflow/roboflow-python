@@ -1101,14 +1101,4 @@ class Project:
             >>> project = rf.workspace().project("PROJECT_ID")
             >>> health = project.health()
         """
-        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/health?api_key={self.__api_key}"
-        if regenerate:
-            url += "&regenerate=true"
-
-        response = requests.get(url)
-        data = response.json()
-
-        if "error" in data:
-            raise RuntimeError(data["error"])
-
-        return data
+        return rfapi.get_project_health(self.__api_key, self.__workspace, self.__project_name, regenerate=regenerate)
