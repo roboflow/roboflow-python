@@ -28,7 +28,7 @@ class TestModelEvalConstruction(unittest.TestCase):
         info = {
             "evalId": "e1",
             "status": "done",
-            "projectId": "p1",
+            "project": "my-project-slug",  # URL slug — the public API only returns the slug
             "versionId": "3",
             "modelId": "m1",
             "createdAt": "2025-01-01",
@@ -38,7 +38,7 @@ class TestModelEvalConstruction(unittest.TestCase):
 
         self.assertEqual(ev.id, "e1")
         self.assertEqual(ev.status, "done")
-        self.assertEqual(ev.project_id, "p1")
+        self.assertEqual(ev.project, "my-project-slug")
         self.assertEqual(ev.version_id, "3")
         self.assertEqual(ev.model_id, "m1")
         self.assertEqual(ev.created_at, "2025-01-01")
@@ -174,8 +174,8 @@ class TestWorkspaceEvalAccessors(unittest.TestCase):
 
         mock_list.return_value = {
             "evals": [
-                {"evalId": "e1", "status": "done", "projectId": "p1"},
-                {"evalId": "e2", "status": "running", "projectId": "p1"},
+                {"evalId": "e1", "status": "done", "project": "my-project-slug"},
+                {"evalId": "e2", "status": "running", "project": "my-project-slug"},
             ]
         }
         ws = _make_workspace()

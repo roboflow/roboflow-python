@@ -53,7 +53,11 @@ class ModelEval:
         if info.get("evalId"):
             self.id = info["evalId"]
         self.status: Optional[str] = info.get("status")
-        self.project_id: Optional[str] = info.get("projectId")
+        # `project` is the project URL slug — the same identifier the REST API
+        # uses in URL paths. The internal Firestore doc id is intentionally
+        # never exposed in the public API. Accept legacy `projectId` for
+        # forward-compat with older server versions.
+        self.project: Optional[str] = info.get("project") or info.get("projectId")
         self.version_id: Optional[str] = info.get("versionId")
         self.model_id: Optional[str] = info.get("modelId")
         self.created_at: Optional[str] = info.get("createdAt")
@@ -132,12 +136,11 @@ class ModelEval:
         # back to attributes when only the constructor was called with no info.
         if self._raw:
             return {**self._raw, "evalId": self.id}
-        for key in ("status", "projectId", "versionId", "modelId", "createdAt", "summary"):
+        for key in ("status", "project", "versionId", "modelId", "createdAt", "summary"):
             attr = (
                 key
-                if key in {"status", "summary"}
+                if key in {"status", "project", "summary"}
                 else {
-                    "projectId": "project_id",
                     "versionId": "version_id",
                     "modelId": "model_id",
                     "createdAt": "created_at",
@@ -149,7 +152,7 @@ class ModelEval:
         return data
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
-        return f"ModelEval(id={self.id!r}, status={self.status!r}, project={self.project_id!r})"
+        return f"ModelEval(id={self.id!r}, status={self.status!r}, project={self.project!r})"
 
 
 __all__: List[str] = ["ModelEval"]

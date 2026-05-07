@@ -75,14 +75,21 @@ class TestEvalListHandler(unittest.TestCase):
                 {
                     "id": "e1",
                     "status": "done",
-                    "projectId": "p1",
+                    "project": "my-project-slug",
                     "versionId": "3",
                     "modelId": None,
                     "createdAt": "2025-01-01",
                 }
             ]
         }
-        args = _args(workspace=None, project="p1", version="3", model=None, status="done", limit=5)
+        args = _args(
+            workspace=None,
+            project="my-project-slug",
+            version="3",
+            model=None,
+            status="done",
+            limit=5,
+        )
 
         from roboflow.cli.handlers.eval import _list_evals
 
@@ -90,7 +97,13 @@ class TestEvalListHandler(unittest.TestCase):
             _list_evals(args)
 
         mock_list.assert_called_once_with(
-            "key", "lee-sandbox", project="p1", version="3", model=None, status="done", limit=5
+            "key",
+            "lee-sandbox",
+            project="my-project-slug",
+            version="3",
+            model=None,
+            status="done",
+            limit=5,
         )
         printed = mock_print.call_args[0][0]
         self.assertIn("e1", printed)
@@ -136,11 +149,10 @@ class TestEvalGetHandler(unittest.TestCase):
         mock_get.return_value = {
             "id": "e1",
             "status": "done",
-            "projectId": "p1",
+            "project": "my-project-slug",
             "versionId": "3",
             "modelId": "m1",
             "createdAt": "2025-01-01",
-            "config": {"overlap": 30, "iouThreshold": 50},
             "summary": {"mAP": 0.91, "precision": 0.85, "recall": 0.8},
         }
         args = _args(workspace=None, eval_id="e1")

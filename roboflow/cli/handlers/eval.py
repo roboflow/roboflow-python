@@ -225,7 +225,9 @@ def _list_evals(args):  # noqa: ANN001
             # Prefer DNA's `evalId`; tolerate legacy `id` from older server versions.
             "id": e.get("evalId", e.get("id", "")),
             "status": e.get("status", ""),
-            "project": e.get("projectId", ""),
+            # `project` is the URL slug; the public API does not expose the doc id.
+            # Tolerate legacy `projectId` for forward-compat against older deploys.
+            "project": e.get("project") or e.get("projectId", ""),
             "version": e.get("versionId", ""),
             "model": e.get("modelId", "") or "",
             "created": e.get("createdAt", ""),
@@ -259,7 +261,8 @@ def _get_eval(args):  # noqa: ANN001
         # Prefer DNA's `evalId`; tolerate legacy `id`.
         f"Eval: {info.get('evalId', info.get('id', args.eval_id))}",
         f"  Status:  {info.get('status', '')}",
-        f"  Project: {info.get('projectId', '')}",
+        # `project` is the URL slug; tolerate legacy `projectId` for forward-compat.
+        f"  Project: {info.get('project') or info.get('projectId', '')}",
         f"  Version: {info.get('versionId', '')}",
         f"  Model:   {info.get('modelId', '') or '(none)'}",
         f"  Created: {info.get('createdAt', '')}",
