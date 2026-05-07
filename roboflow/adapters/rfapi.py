@@ -3,6 +3,7 @@ import mimetypes
 import os
 import urllib
 from typing import Dict, List, Optional, Union
+from urllib.parse import quote
 
 import requests
 from requests.exceptions import RequestException
@@ -808,6 +809,71 @@ def list_workflow_versions(api_key, workspace_url, workflow_url):
         f"{API_URL}/{workspace_url}/workflows/{workflow_url}/versions",
         params={"api_key": api_key},
     )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def fork_project(
+    api_key,
+    dest_workspace,
+    *,
+    url=None,
+    source_project_slug=None,
+):
+    """POST /{ws}/projects/fork — enqueue an async fork of a public Universe project.
+
+    Pass ``url`` (a Universe URL) or an explicit ``source_project_slug``. The
+    API owns parsing/validation. Returns the server's response, e.g.
+    ``{"taskId": "...", "url": "<polling url>"}``.
+    """
+    payload: Dict[str, str] = {}
+    if url:
+        payload["url"] = url
+    if source_project_slug:
+        payload["source_project"] = source_project_slug
+    response = requests.post(
+        f"{API_URL}/{dest_workspace}/projects/fork",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_async_task(api_key, workspace_url, task_id):
+    """GET /{ws}/asynctasks/{id} — fetch the current status of an async task.
+
+    Returns the server's status payload, e.g.
+    ``{"taskId": "...", "status": "running", "progress": {...}}`` or
+    ``{"taskId": "...", "status": "completed", "result": {...}}`` once
+    terminal. Raises ``RoboflowError`` for any non-2xx response (including
+    404 for unknown ids or cross-workspace probes).
+    """
+    # ``task_id`` comes from arbitrary external input; encode so a stray
+    # ``/``, ``?`` or ``#`` cannot mutate the request path (and still send
+    # the api_key with it).
+    encoded_task_id = quote(task_id, safe="")
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/asynctasks/{encoded_task_id}",
+        params={"api_key": api_key},
+    )
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_async_task_at(api_key, polling_url):
+    """GET an async-task polling URL returned verbatim by the server.
+
+    Enqueue endpoints (e.g. ``/{ws}/projects/fork``) return a fully-qualified
+    ``url`` alongside ``taskId``. The host may differ from ``API_URL`` (e.g.
+    local dev against ``localapi.roboflow.one``), so hit it directly and
+    only attach the api_key. Falls back to ``get_async_task`` callers when
+    no server-supplied URL is available.
+    """
+    response = requests.get(polling_url, params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()

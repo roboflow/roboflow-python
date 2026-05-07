@@ -1,8 +1,15 @@
 #!/bin/env bash
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cp $SCRIPT_DIR/data/.config-staging $SCRIPT_DIR/data/.config
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+[ -n "$ZSH_VERSION" ] && SCRIPT_PATH="${(%):-%x}"
+SCRIPT_DIR="$( cd "$( dirname "$SCRIPT_PATH" )" && pwd )"
+cp "$SCRIPT_DIR/data/.config-staging" "$SCRIPT_DIR/data/.config"
 export API_URL=https://localapi.roboflow.one
 export APP_URL=https://localapp.roboflow.one
 export DEDICATED_DEPLOYMENT_URL=https://staging.roboflow.cloud
 export ROBOFLOW_CONFIG_DIR=$SCRIPT_DIR/data/.config
+MKCERT_ROOT_CA=$HOME/Library/Application\ Support/mkcert/rootCA.pem
+if [ -f "$MKCERT_ROOT_CA" ]; then
+    export REQUESTS_CA_BUNDLE=$MKCERT_ROOT_CA
+    export CURL_CA_BUNDLE=$MKCERT_ROOT_CA
+fi
 # need to set it in /etc/hosts to the IP of host.docker.internal!

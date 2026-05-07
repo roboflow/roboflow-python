@@ -131,6 +131,32 @@ class Workspace:
 
         return Project(self.__api_key, r.json(), self.model_format)
 
+    def fork_project(
+        self,
+        *,
+        url: Optional[str] = None,
+        source_project_slug: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Fork a public Universe project into this workspace.
+
+        Args:
+            url: Universe project URL.
+            source_project_slug: Source project slug when not using ``url``.
+
+        Returns:
+            The API response, typically ``{"taskId": "...", "url": "..."}``.
+        """
+        return rfapi.fork_project(
+            self.__api_key,
+            self.url,
+            url=url,
+            source_project_slug=source_project_slug,
+        )
+
+    def get_async_task(self, task_id: str) -> Dict[str, Any]:
+        """Return the current status of an async task owned by this workspace."""
+        return rfapi.get_async_task(self.__api_key, self.url, task_id)
+
     def devices(self) -> List["Device"]:
         """List v2 devices registered in this workspace.
 
