@@ -29,17 +29,15 @@ class RoboflowError(Exception):
 class ImageUploadError(RoboflowError):
     def __init__(self, message, status_code=None):
         self.message = message
-        self.status_code = status_code
         self.retries = 0
-        super().__init__(self.message)
+        super().__init__(self.message, status_code=status_code)
 
 
 class AnnotationSaveError(RoboflowError):
     def __init__(self, message, status_code=None):
         self.message = message
-        self.status_code = status_code
         self.retries = 0
-        super().__init__(self.message)
+        super().__init__(self.message, status_code=status_code)
 
 
 def get_workspace(api_key, workspace_url):

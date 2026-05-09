@@ -280,5 +280,36 @@ class TestIdempotentDelete(unittest.TestCase):
         self.assertIn('"version": "1"', out)
 
 
+# ---------------------------------------------------------------------------
+# 4. RoboflowError subclasses must preserve their HTTP status_code
+# ---------------------------------------------------------------------------
+
+
+class TestRoboflowErrorSubclassStatusCode(unittest.TestCase):
+    """Regression guard: when ``RoboflowError.__init__`` started accepting
+    ``status_code``, the subclasses ``ImageUploadError`` and
+    ``AnnotationSaveError`` were calling ``super().__init__(self.message)``
+    without forwarding the second arg. The parent then assigned
+    ``self.status_code = None``, silently wiping the HTTP code that the
+    subclass had just set on itself a line earlier."""
+
+    def test_image_upload_error_preserves_status_code(self) -> None:
+        exc = rfapi.ImageUploadError("upload blew up", status_code=413)
+        self.assertEqual(exc.status_code, 413)
+        self.assertEqual(exc.message, "upload blew up")
+        self.assertEqual(exc.retries, 0)
+
+    def test_annotation_save_error_preserves_status_code(self) -> None:
+        exc = rfapi.AnnotationSaveError("annot blew up", status_code=409)
+        self.assertEqual(exc.status_code, 409)
+        self.assertEqual(exc.message, "annot blew up")
+        self.assertEqual(exc.retries, 0)
+
+    def test_subclasses_default_status_code_to_none(self) -> None:
+        # Existing message-only call sites must keep working.
+        self.assertIsNone(rfapi.ImageUploadError("just a message").status_code)
+        self.assertIsNone(rfapi.AnnotationSaveError("just a message").status_code)
+
+
 if __name__ == "__main__":
     unittest.main()
