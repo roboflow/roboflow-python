@@ -8,7 +8,7 @@ import sys
 import tempfile
 import time
 import zipfile
-from typing import Any, Dict, Generator, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional
 
 import requests
 from requests.exceptions import HTTPError
@@ -17,6 +17,10 @@ from tqdm import tqdm
 from roboflow.adapters import rfapi, vision_events_api
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS
+
+if TYPE_CHECKING:
+    from roboflow.core.device import Device
+    from roboflow.core.model_eval import ModelEval
 
 
 class Workspace:
@@ -127,6 +131,102 @@ class Workspace:
             raise RuntimeError(r.json()["error"])
 
         return Project(self.__api_key, r.json(), self.model_format)
+
+    def fork_project(
+        self,
+        *,
+        url: Optional[str] = None,
+        source_project_slug: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Fork a public Universe project into this workspace.
+
+        Args:
+            url: Universe project URL.
+            source_project_slug: Source project slug when not using ``url``.
+
+        Returns:
+            The API response, typically ``{"taskId": "...", "url": "..."}``.
+        """
+        return rfapi.fork_project(
+            self.__api_key,
+            self.url,
+            url=url,
+            source_project_slug=source_project_slug,
+        )
+
+    def get_async_task(self, task_id: str) -> Dict[str, Any]:
+        """Return the current status of an async task owned by this workspace."""
+        return rfapi.get_async_task(self.__api_key, self.url, task_id)
+
+    def devices(self) -> List["Device"]:
+        """List v2 devices registered in this workspace.
+
+        Returns:
+            List of :class:`roboflow.core.device.Device` objects. Each
+            wraps the entity returned by ``GET /:workspace/devices/v2``
+            (id, name, status, last_heartbeat, hardware, tags, …).
+        """
+        from roboflow.adapters import devicesapi
+        from roboflow.core.device import Device
+
+        rows = devicesapi.list_devices(self.__api_key, self.url).get("data", [])
+        return [Device(self.__api_key, self.url, row) for row in rows]
+
+    def device(self, device_id: str) -> "Device":
+        """Get a single device by id.
+
+        Args:
+            device_id: The device id (as returned by :meth:`devices` or by
+                :meth:`create_device`).
+
+        Returns:
+            A :class:`roboflow.core.device.Device` instance.
+        """
+        from roboflow.adapters import devicesapi
+        from roboflow.core.device import Device
+
+        info = devicesapi.get_device(self.__api_key, self.url, device_id)
+        return Device(self.__api_key, self.url, info)
+
+    def create_device(
+        self,
+        device_name: str,
+        device_type: Optional[str] = None,
+        *,
+        workflow_id: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        offline_mode: Optional[bool] = None,
+        source_device_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create a new v2 device in the workspace.
+
+        Args:
+            device_name: Human-readable device name (required).
+            device_type: ``"ai1"``, ``"edge"``, or any custom string.
+            workflow_id: Optional initial workflow assignment. For AI1 devices
+                this seeds the default ``aione`` stream.
+            tags: Optional list of string tags.
+            offline_mode: Boolean; only valid for AI1 devices on workspaces
+                with the ``roboflowLiteMode`` feature.
+            source_device_id: When set, duplicates the named existing
+                device's config instead of generating a fresh one.
+
+        Returns:
+            Dict with ``deviceId`` and ``installId`` (the short-lived install
+            token to feed into ``GET /devices/v2/:installId/install.sh``).
+        """
+        from roboflow.adapters import devicesapi
+
+        return devicesapi.create_device(
+            self.__api_key,
+            self.url,
+            device_name=device_name,
+            device_type=device_type,
+            workflow_id=workflow_id,
+            tags=tags,
+            offline_mode=offline_mode,
+            source_device_id=source_device_id,
+        )
 
     def clip_compare(self, dir: str = "", image_ext: str = ".png", target_image: str = "") -> List[dict]:
         """
@@ -1332,6 +1432,73 @@ class Workspace:
             name=name,
             metadata=metadata,
         )
+
+    # -----------------------------------------------------------------
+    # Model evaluations
+    # -----------------------------------------------------------------
+
+    def evals(
+        self,
+        *,
+        project: Optional[str] = None,
+        version: Optional[str] = None,
+        model: Optional[str] = None,
+        status: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> List["ModelEval"]:
+        """List model evaluations in this workspace.
+
+        Args:
+            project: Filter by project slug or id.
+            version: Filter by version id (or numeric version).
+            model: Filter by model id.
+            status: Filter by status — one of ``"running"``, ``"done"``, ``"failed"``.
+            limit: Max evals to return (server caps at 200; default 50).
+
+        Returns:
+            A list of :class:`ModelEval` instances pre-populated with the
+            metadata from the list response (``status``, ``createdAt``, etc.).
+            Call :meth:`ModelEval.refresh` to re-fetch the header, or any
+            panel method to load detailed data.
+
+        Example:
+            >>> ws = rf.workspace("lee-sandbox")
+            >>> done = ws.evals(status="done", limit=5)
+            >>> for ev in done:
+            ...     print(ev.id, ev.summary)
+        """
+        from roboflow.core.model_eval import ModelEval
+
+        result = rfapi.list_model_evals(
+            self.__api_key,
+            self.url,
+            project=project,
+            version=version,
+            model=model,
+            status=status,
+            limit=limit,
+        )
+        # Server returns `evalId` (per DNA); fall back to legacy `id` for forward-compat.
+        return [
+            ModelEval(self.__api_key, self.url, e.get("evalId") or e["id"], info=e) for e in result.get("evals", [])
+        ]
+
+    def eval(self, eval_id: str) -> "ModelEval":
+        """Fetch a single model eval by id.
+
+        Raises:
+            roboflow.adapters.rfapi.ModelEvalNotFoundError: If the id doesn't
+                exist in this workspace (HTTP 404).
+
+        Example:
+            >>> ws = rf.workspace("lee-sandbox")
+            >>> ev = ws.eval("huUF720inUcymARwqAGK")
+            >>> ev.summary["mAP"]
+        """
+        from roboflow.core.model_eval import ModelEval
+
+        info = rfapi.get_model_eval(self.__api_key, self.url, eval_id)
+        return ModelEval(self.__api_key, self.url, info.get("id", eval_id), info=info)
 
     def trash(self) -> dict:
         """

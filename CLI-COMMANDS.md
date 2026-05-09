@@ -47,6 +47,50 @@ roboflow download my-workspace/my-project/3 -f coco   # alias
 roboflow infer photo.jpg -m my-project/3
 ```
 
+### Train, monitor, cancel, stop
+
+```bash
+# Start training (any architecture). For NAS sweeps, use a NAS parent modelType:
+roboflow train start -p my-project -v 3 --type rfdetr-base
+roboflow train start -p my-project -v 3 --type rfdetr-nas-parent      # NAS sweep
+roboflow train start -p my-project -v 3 --type rfdetr-nas-base-parent # NAS Base sweep
+roboflow train start -p my-project -v 3 --type rfdetr-nas-seg-parent  # NAS instance-segmentation
+
+# Cancel an in-flight training (any architecture; NAS-aware):
+roboflow train cancel my-project/3
+# Pass --continue-if-no-refund to cancel even past the refund window:
+roboflow train cancel my-project/3 --continue-if-no-refund
+
+# Graceful early-stop:
+roboflow train stop my-project/3
+
+# Run-level training results bundle (NAS leaderboard for NAS runs,
+# minimal bundle for non-NAS):
+roboflow train results my-project/3
+```
+
+NAS sweeps require the version's validation split to have at least 15 images;
+the server returns `code: "insufficient_validation_images_for_nas"` otherwise.
+
+### NAS models — list, star, deploy
+
+```bash
+# Get a NAS run's modelGroup from training results:
+roboflow --json train results my-project/3 | jq -r .modelGroup
+# → rfdetrNasGroup-3
+
+# List every model from one NAS run, with hardware/latency/mAP columns:
+roboflow model list -p my-project --group rfdetrNasGroup-3
+
+# Star a NAS-trained model (triggers TRT compile for its recommended hardware):
+#   --json train results … gives you the modelId per row.
+roboflow model star <modelId>
+roboflow model star <modelId> --unstar
+```
+
+`model star` is NAS-only by server-side design; non-NAS modelTypes return
+`code: "MODEL_NOT_NAS"`.
+
 ### Search and export
 
 ```bash
@@ -84,6 +128,33 @@ roboflow annotation job create -p my-project --name "Label round 1" \
   --batch <batch-id> --num-images 100 --labeler a@co.com --reviewer b@co.com
 ```
 
+### RFDM devices (v2 deployments)
+
+Workspace-scoped device management — backed by the external Deployments API
+(`/:workspace/devices/v2/*`). Read commands need the `device:read` scope on
+your api_key; `create` needs `device:update`.
+
+```bash
+roboflow device list
+roboflow device get <device-id>
+roboflow device create "Factory floor cam" --type edge --tags floor-1,vision
+
+# Observe — config is sensitive (may include credentials).
+roboflow device config <device-id>
+roboflow device config-history <device-id> --limit 20
+
+# Streams the device runs.
+roboflow device streams <device-id>
+roboflow device stream <device-id> <stream-id>
+
+# Logs (5 req/min/IP) and aggregated telemetry (60 req/min).
+roboflow device logs <device-id> --severity ERROR --limit 200
+roboflow device telemetry <device-id> --time-period 7d
+
+# Lifecycle events (stream start/stop, errors, config changes…).
+roboflow device events <device-id> --entity-type stream --direction backward
+```
+
 ### Workflows
 
 ```bash
@@ -93,6 +164,22 @@ roboflow workflow create --name "My Workflow" --definition workflow.json
 roboflow workflow update my-workflow --definition updated.json
 roboflow workflow version list my-workflow
 roboflow workflow fork other-ws/their-workflow
+```
+
+### Fork a Universe project (async)
+
+```bash
+# Fork a public Universe project into the default (or --workspace) workspace.
+# By default this blocks until the async task completes (up to --timeout seconds).
+roboflow project fork https://universe.roboflow.com/leo-ueno-uduc7/license-plate-recognition
+roboflow project fork leo-ueno-uduc7/license-plate-recognition --workspace my-ws
+
+# Return immediately with a {taskId, url} payload instead of waiting.
+roboflow project fork leo-ueno-uduc7/license-plate-recognition --no-wait
+
+# Poll the resulting task later (works for any async task that returns a taskId).
+roboflow asynctasks get  <task-id>
+roboflow asynctasks wait <task-id> --timeout 600
 ```
 
 ### Create a dataset version
@@ -129,6 +216,31 @@ single item) is intentionally not available from the SDK or CLI — those
 actions destroy data irrecoverably and live only in the web UI's Trash
 view. Items left in Trash are cleaned up automatically after 30 days.
 
+### Inspect model evaluations
+
+```bash
+# List evals in the workspace; filter by project, version, model, or status.
+roboflow eval list --status done --limit 10
+
+# Read a single eval's metadata + summary metrics.
+roboflow eval get <eval-id>
+
+# Pull each panel — pipe to jq for structured access.
+roboflow eval map-results <eval-id> --json | jq '.splits.test.map50'
+roboflow eval performance-by-class <eval-id> --split test
+roboflow eval confusion-matrix <eval-id> --split test --confidence 30
+roboflow eval confidence-sweep <eval-id> --json
+roboflow eval vector-analysis <eval-id> --confidence 20 --json
+roboflow eval image-predictions <eval-id> --split test --limit 200
+roboflow eval recommendations <eval-id> --json
+```
+
+Exit codes are stable per error class so scripts and agents can react
+without parsing message strings: `3` for `model_eval_not_found` (404),
+`4` for `model_eval_not_done` (409 — eval still running), `5` for
+`invalid_split` / `invalid_confidence` (400). Requires the
+`model-eval:read` scope on the api key.
+
 ### Workspace stats and billing
 
 ```bash
@@ -151,6 +263,32 @@ roboflow video status <job-id>
 ```
 
 ### Shell completion
+
+The fastest path: let the CLI install completion for you. Auto-detects your shell from `$SHELL`.
+
+```bash
+roboflow completion install
+```
+
+This writes the completion script to a per-user location and updates your shell rc file (`~/.bashrc` or `~/.zshrc`) so completion works in new shells. Idempotent — safe to re-run. Delegates to `typer.completion.install` under the hood.
+
+Supported shells: `bash`, `zsh`, `fish`. Windows / PowerShell is not supported.
+
+Override detection or scope to one shell:
+
+```bash
+roboflow completion install --shell zsh
+roboflow completion install --shell bash
+roboflow completion install --shell fish
+```
+
+Hidden commands (legacy aliases, snake_case shims, not-yet-implemented stubs) are filtered from completion automatically.
+
+To uninstall, delete the completion script (location depends on your shell — typer writes to `~/.bash_completions/roboflow.sh`, `~/.zfunc/_roboflow`, or `~/.config/fish/completions/roboflow.fish`) and remove any `source ...` line typer added to your `~/.bashrc`.
+
+#### Advanced: print the script yourself
+
+If you want full control, generate the raw script and source it however you like:
 
 ```bash
 # Zsh
@@ -202,14 +340,17 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `infer` | Run inference on images |
 | `search` | Search workspace images (RoboQL), export results |
 | `deployment` | Manage dedicated deployments |
+| `device` | List, get, create, and observe RFDM devices (v2 deployment API) |
+| `eval` | Inspect model evaluation runs (mAP, confusion matrix, recommendations, ...) |
 | `workflow` | Manage workflows |
 | `folder` | Manage workspace folders |
 | `annotation` | Annotation batches and jobs |
+| `asynctasks` | Inspect async background tasks (e.g. project forks) |
 | `trash` | List items in Trash |
 | `universe` | Search Roboflow Universe |
 | `video` | Video inference |
 | `batch` | Batch processing jobs *(coming soon)* |
-| `completion` | Generate shell completion scripts (bash, zsh, fish) |
+| `completion` | Install or generate shell completion scripts (bash, zsh, fish) |
 
 Run `roboflow <command> --help` for details on any command.
 
