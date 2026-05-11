@@ -428,30 +428,60 @@ def _stub_deploy(args) -> None:  # noqa: ANN001
 
 def _delete_workflow(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import confirm_destructive, output, output_api_error
 
     resolved = _resolve_workspace_and_key(args)
     if resolved is None:
         return
     workspace_url, api_key = resolved
 
-    if not getattr(args, "yes", False) and not getattr(args, "json", False):
-        confirmed = typer.confirm(
-            f"Move workflow '{workspace_url}/{args.workflow_url}' to Trash? (Retained for 30 days.)",
-            default=False,
-        )
-        if not confirmed:
-            output(args, {"cancelled": True}, text="Cancelled.")
-            return
+    if not confirm_destructive(
+        args,
+        f"Move workflow '{workspace_url}/{args.workflow_url}' to Trash? (Retained for 30 days.)",
+    ):
+        return
 
     try:
         data = rfapi.delete_workflow(api_key, workspace_url, args.workflow_url)
     except rfapi.RoboflowError as exc:
-        output_error(
+        # Idempotent re-delete: a workflow already in Trash returns 404
+        # because the public API filters trashed workflows out of the URL
+        # match. Probe Trash and treat as a no-op success when found —
+        # mirrors the project / version delete behavior.
+        if getattr(exc, "status_code", None) == 404:
+            try:
+                trash = rfapi.list_trash(api_key, workspace_url)
+            except rfapi.RoboflowError:
+                trash = None
+            if trash is not None:
+                already = next(
+                    (
+                        w
+                        for w in trash.get("sections", {}).get("workflows", [])
+                        if w.get("url") == args.workflow_url or w.get("id") == args.workflow_url
+                    ),
+                    None,
+                )
+                if already is not None:
+                    data = {
+                        "deleted": True,
+                        "type": "workflow",
+                        "workspace": workspace_url,
+                        "workflow": args.workflow_url,
+                        "workflowId": already.get("id"),
+                        "trash": True,
+                        "alreadyInTrash": True,
+                    }
+                    output(
+                        args,
+                        data,
+                        text=f"{workspace_url}/{args.workflow_url} is already in Trash (no-op).",
+                    )
+                    return
+        output_api_error(
             args,
-            str(exc),
+            exc,
             hint="Check your API key has 'workflow:update' scope on this workspace.",
-            exit_code=3,
         )
         return
 
@@ -464,7 +494,7 @@ def _delete_workflow(args) -> None:  # noqa: ANN001
 
 def _restore_workflow(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import output, output_api_error, output_error
 
     resolved = _resolve_workspace_and_key(args)
     if resolved is None:
@@ -474,11 +504,10 @@ def _restore_workflow(args) -> None:  # noqa: ANN001
     try:
         trash = rfapi.list_trash(api_key, workspace_url)
     except rfapi.RoboflowError as exc:
-        output_error(
+        output_api_error(
             args,
-            str(exc),
+            exc,
             hint="Check your API key has 'project:read' scope on this workspace.",
-            exit_code=3,
         )
         return
 
@@ -500,11 +529,10 @@ def _restore_workflow(args) -> None:  # noqa: ANN001
     try:
         data = rfapi.restore_trash_item(api_key, workspace_url, "workflow", match["id"])
     except rfapi.RoboflowError as exc:
-        output_error(
+        output_api_error(
             args,
-            str(exc),
+            exc,
             hint="Check your API key has 'workflow:update' scope on this workspace.",
-            exit_code=3,
         )
         return
 
