@@ -345,6 +345,74 @@ class TestImageUploadDirectory(unittest.TestCase):
             _, kwargs = mock_ws.upload_dataset.call_args
             self.assertEqual(kwargs.get("use_zip_upload"), False)
 
+    @patch("roboflow.Roboflow")
+    def test_upload_directory_omits_default_split_when_not_explicit(self, mock_rf_cls):
+        from roboflow.cli.handlers.image import _handle_upload
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mock_ws = MagicMock()
+            mock_rf_cls.return_value.workspace.return_value = mock_ws
+
+            args = _make_args(
+                json=True,
+                path=tmpdir,
+                project="proj",
+                annotation=None,
+                split=None,
+                batch=None,
+                tag=None,
+                metadata=None,
+                concurrency=10,
+                retries=0,
+                labelmap=None,
+                is_prediction=False,
+            )
+
+            buf = io.StringIO()
+            old = sys.stdout
+            sys.stdout = buf
+            try:
+                _handle_upload(args)
+            finally:
+                sys.stdout = old
+
+            _, kwargs = mock_ws.upload_dataset.call_args
+            self.assertIsNone(kwargs.get("split"))
+
+    @patch("roboflow.Roboflow")
+    def test_upload_directory_forwards_explicit_split(self, mock_rf_cls):
+        from roboflow.cli.handlers.image import _handle_upload
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mock_ws = MagicMock()
+            mock_rf_cls.return_value.workspace.return_value = mock_ws
+
+            args = _make_args(
+                json=True,
+                path=tmpdir,
+                project="proj",
+                annotation=None,
+                split="valid",
+                batch=None,
+                tag=None,
+                metadata=None,
+                concurrency=10,
+                retries=0,
+                labelmap=None,
+                is_prediction=False,
+            )
+
+            buf = io.StringIO()
+            old = sys.stdout
+            sys.stdout = buf
+            try:
+                _handle_upload(args)
+            finally:
+                sys.stdout = old
+
+            _, kwargs = mock_ws.upload_dataset.call_args
+            self.assertEqual(kwargs.get("split"), "valid")
+
 
 class TestImageDelete(unittest.TestCase):
     """Test the delete handler."""
