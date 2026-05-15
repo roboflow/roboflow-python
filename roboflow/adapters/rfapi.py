@@ -763,6 +763,28 @@ def delete_folder(api_key, workspace_url, group_id):
     return response.json()
 
 
+def add_projects_to_folder(api_key, workspace_url, group_id, project_ids):
+    """PATCH /{ws}/groups/{id}/projects — add projects to a folder."""
+    response = requests.patch(
+        f"{API_URL}/{workspace_url}/groups/{group_id}/projects",
+        params={"api_key": api_key},
+        json={"projects": project_ids},
+    )
+    if response.status_code not in (200, 204):
+        raise RoboflowError(response.text)
+
+
+def remove_projects_from_folder(api_key, workspace_url, group_id, project_ids):
+    """DELETE /{ws}/groups/{id}/projects — remove projects from a folder."""
+    response = requests.delete(
+        f"{API_URL}/{workspace_url}/groups/{group_id}/projects",
+        params={"api_key": api_key},
+        json={"projects": project_ids},
+    )
+    if response.status_code not in (200, 204):
+        raise RoboflowError(response.text)
+
+
 # ---------------------------------------------------------------------------
 # Phase 2: Workflow endpoints
 # ---------------------------------------------------------------------------

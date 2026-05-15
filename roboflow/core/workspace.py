@@ -1081,6 +1081,18 @@ class Workspace:
 
         return rfapi.create_folder(self.__api_key, self.url, name, parent_id=parent_id, project_ids=project_ids)
 
+    def add_projects_to_folder(self, group_id, project_ids):
+        """Add projects to an existing folder."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.add_projects_to_folder(self.__api_key, self.url, group_id, project_ids)
+
+    def remove_projects_from_folder(self, group_id, project_ids):
+        """Remove projects from a folder."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.remove_projects_from_folder(self.__api_key, self.url, group_id, project_ids)
+
     # -----------------------------------------------------------------
     # Phase 2: Workflow management
     # -----------------------------------------------------------------
