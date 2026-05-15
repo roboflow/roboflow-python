@@ -295,6 +295,7 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> tuple[str,
         "results.png",
         "model_artifacts.json",
         "state_dict.pt",
+        "keypoints_metadata.json",
     ]
 
     zip_file_name = "roboflow_deploy.zip"
