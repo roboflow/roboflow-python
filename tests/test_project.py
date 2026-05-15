@@ -328,6 +328,15 @@ class TestProject(RoboflowTest):
                 "assertions": {"upload": {"count": 1, "kwargs": {"batch_name": "test-batch", "num_retry_uploads": 3}}},
             },
             {
+                "name": "explicit_split_overrides_parsed_directory_splits",
+                "dataset": [
+                    {"file": "image1.jpg", "split": "train"},
+                    {"file": "image2.jpg", "split": "test"},
+                ],
+                "params": {"split": "valid", "num_workers": 1},
+                "assertions": {"upload": {"count": 2, "kwargs": {"split": "valid"}}},
+            },
+            {
                 "name": "project_creation",
                 "dataset": None,
                 "params": {"project_name": "new-project"},
