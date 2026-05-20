@@ -832,5 +832,80 @@ class TestSearchUniverse(unittest.TestCase):
             search_universe("query")
 
 
+class TestUpdateImageMetadata(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_success(self, mock_post):
+        from roboflow.adapters.rfapi import update_image_metadata
+
+        mock_post.return_value = MagicMock(status_code=200, json=lambda: {"success": True})
+        result = update_image_metadata("key", "ws", "img-1", add_tags=["tag1"], remove_tags=["old"])
+        self.assertEqual(result, {"success": True})
+        mock_post.assert_called_once()
+        self.assertIn("/ws/images/img-1/metadata", mock_post.call_args[0][0])
+        payload = mock_post.call_args[1]["json"]
+        self.assertEqual(payload["addTags"], ["tag1"])
+        self.assertEqual(payload["removeTags"], ["old"])
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_only_sends_provided_fields(self, mock_post):
+        from roboflow.adapters.rfapi import update_image_metadata
+
+        mock_post.return_value = MagicMock(status_code=200, json=lambda: {"success": True})
+        update_image_metadata("key", "ws", "img-1", add_tags=["foo"])
+        payload = mock_post.call_args[1]["json"]
+        self.assertEqual(payload, {"addTags": ["foo"]})
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_metadata_and_tags(self, mock_post):
+        from roboflow.adapters.rfapi import update_image_metadata
+
+        mock_post.return_value = MagicMock(status_code=200, json=lambda: {"success": True})
+        update_image_metadata("key", "ws", "img-1", metadata={"cam": "1"}, add_tags=["review"])
+        payload = mock_post.call_args[1]["json"]
+        self.assertEqual(payload["metadata"], {"cam": "1"})
+        self.assertEqual(payload["addTags"], ["review"])
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_error_404(self, mock_post):
+        from roboflow.adapters.rfapi import RoboflowError, update_image_metadata
+
+        mock_post.return_value = MagicMock(status_code=404, text="Not found")
+        with self.assertRaises(RoboflowError):
+            update_image_metadata("key", "ws", "img-1", add_tags=["x"])
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_image_id_url_encoded(self, mock_post):
+        from roboflow.adapters.rfapi import update_image_metadata
+
+        mock_post.return_value = MagicMock(status_code=200, json=lambda: {"success": True})
+        update_image_metadata("key", "ws", "img/1", add_tags=["a"])
+        called_url = mock_post.call_args[0][0]
+        self.assertIn("/ws/images/img%2F1/metadata", called_url)
+        self.assertNotIn("/ws/images/img/1/metadata", called_url)
+
+
+class TestBatchUpdateImageMetadata(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_success(self, mock_post):
+        from roboflow.adapters.rfapi import batch_update_image_metadata
+
+        updates = [{"imageId": "img-1", "addTags": ["t1"]}, {"imageId": "img-2", "metadata": {"k": "v"}}]
+        mock_post.return_value = MagicMock(status_code=202, json=lambda: {"taskId": "t1", "url": "poll-url"})
+        result = batch_update_image_metadata("key", "ws", updates)
+        self.assertEqual(result, {"taskId": "t1", "url": "poll-url"})
+        mock_post.assert_called_once()
+        self.assertIn("/ws/images/metadata", mock_post.call_args[0][0])
+        payload = mock_post.call_args[1]["json"]
+        self.assertEqual(payload, {"updates": updates})
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_error_400(self, mock_post):
+        from roboflow.adapters.rfapi import RoboflowError, batch_update_image_metadata
+
+        mock_post.return_value = MagicMock(status_code=400, text="Bad request")
+        with self.assertRaises(RoboflowError):
+            batch_update_image_metadata("key", "ws", [{"imageId": "img-1"}])
+
+
 if __name__ == "__main__":
     unittest.main()

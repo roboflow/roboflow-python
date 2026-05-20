@@ -143,13 +143,45 @@ def search_images(
 def tag_image(
     ctx: typer.Context,
     image_id: Annotated[str, typer.Argument(help="Image ID")],
-    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
     add_tags: Annotated[Optional[str], typer.Option("--add", help="Comma-separated tags to add")] = None,
     remove_tags: Annotated[Optional[str], typer.Option("--remove", help="Comma-separated tags to remove")] = None,
 ) -> None:
     """Add or remove tags on an image."""
-    args = ctx_to_args(ctx, image_id=image_id, project=project, add_tags=add_tags, remove_tags=remove_tags)
+    args = ctx_to_args(ctx, image_id=image_id, add_tags=add_tags, remove_tags=remove_tags)
     _handle_tag(args)
+
+
+@image_app.command("update")
+def update_image(
+    ctx: typer.Context,
+    image_ids: Annotated[str, typer.Argument(help="Comma-separated image IDs (batch mode if multiple)")],
+    metadata: Annotated[
+        Optional[str], typer.Option("-m", "--metadata", help="JSON string of key-value metadata to set")
+    ] = None,
+    remove_metadata: Annotated[
+        Optional[str], typer.Option("--remove-metadata", help="Comma-separated metadata keys to remove")
+    ] = None,
+    add_tags: Annotated[Optional[str], typer.Option("--add-tags", help="Comma-separated tags to add")] = None,
+    remove_tags: Annotated[Optional[str], typer.Option("--remove-tags", help="Comma-separated tags to remove")] = None,
+    poll: Annotated[bool, typer.Option("--poll/--no-poll", help="For batch updates: poll until complete")] = False,
+    timeout: Annotated[int, typer.Option("--timeout", help="Polling timeout in seconds")] = 1800,
+) -> None:
+    """Update metadata and tags on existing images.
+
+    Single image ID: updates synchronously.
+    Multiple comma-separated IDs: uses the batch async endpoint.
+    """
+    args = ctx_to_args(
+        ctx,
+        image_ids=image_ids,
+        metadata=metadata,
+        remove_metadata=remove_metadata,
+        add_tags=add_tags,
+        remove_tags=remove_tags,
+        poll=poll,
+        timeout=timeout,
+    )
+    _handle_update(args)
 
 
 @image_app.command("delete")
@@ -373,55 +405,174 @@ def _handle_search(args):  # noqa: ANN001
 
 
 def _handle_tag(args):  # noqa: ANN001
-    import requests
-
+    from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
-    from roboflow.config import API_URL, load_roboflow_api_key
+    from roboflow.cli._resolver import resolve_ws_and_key
 
     if not args.add_tags and not args.remove_tags:
         output_error(args, "Nothing to do", hint="Specify --add and/or --remove with comma-separated tags")
         return
 
-    api_key = args.api_key or load_roboflow_api_key(args.workspace)
-    if not api_key:
-        output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
+    resolved = resolve_ws_and_key(args)
+    if not resolved:
+        return
+    workspace_url, api_key = resolved
+
+    add_list = [t.strip() for t in args.add_tags.split(",") if t.strip()] if args.add_tags else None
+    remove_list = [t.strip() for t in args.remove_tags.split(",") if t.strip()] if args.remove_tags else None
+
+    try:
+        rfapi.update_image_metadata(
+            api_key=api_key,
+            workspace_url=workspace_url,
+            image_id=args.image_id,
+            add_tags=add_list,
+            remove_tags=remove_list,
+        )
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=1)
         return
 
-    workspace_url = args.workspace or _default_workspace()
-    if not workspace_url:
-        output_error(args, "No workspace specified", hint="Use --workspace or run 'roboflow auth login'")
-        return
-
-    base = f"{API_URL}/{workspace_url}/{args.project}/images/{args.image_id}/tags"
-    added = []
-    removed = []
-
-    if args.add_tags:
-        for tag in args.add_tags.split(","):
-            tag = tag.strip()
-            if not tag:
-                continue
-            resp = requests.post(base, params={"api_key": api_key}, json={"tag": tag})
-            if resp.status_code == 200:
-                added.append(tag)
-
-    if args.remove_tags:
-        for tag in args.remove_tags.split(","):
-            tag = tag.strip()
-            if not tag:
-                continue
-            resp = requests.delete(f"{base}/{tag}", params={"api_key": api_key})
-            if resp.status_code == 200:
-                removed.append(tag)
-
-    data = {"added": added, "removed": removed}
+    data = {"added": add_list or [], "removed": remove_list or []}
     parts = []
-    if added:
-        parts.append(f"Added tags: {', '.join(added)}")
-    if removed:
-        parts.append(f"Removed tags: {', '.join(removed)}")
+    if add_list:
+        parts.append(f"Added tags: {', '.join(add_list)}")
+    if remove_list:
+        parts.append(f"Removed tags: {', '.join(remove_list)}")
     text = "; ".join(parts) if parts else "No tags modified"
     output(args, data, text=text)
+
+
+def _handle_update(args):  # noqa: ANN001
+    import json as json_mod
+
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.cli._resolver import resolve_ws_and_key
+
+    ids = [i.strip() for i in args.image_ids.split(",") if i.strip()]
+    if not ids:
+        output_error(args, "No image IDs provided")
+        return
+
+    metadata_dict = None
+    if args.metadata:
+        try:
+            metadata_dict = json_mod.loads(args.metadata)
+            if not isinstance(metadata_dict, dict):
+                output_error(args, "Metadata must be a JSON object", hint='Example: \'{"key": "value"}\'')
+                return
+        except json_mod.JSONDecodeError as exc:
+            output_error(args, f"Invalid metadata JSON: {exc}", hint='Example: \'{"key": "value"}\'')
+            return
+
+    remove_meta_list = (
+        [k.strip() for k in args.remove_metadata.split(",") if k.strip()] if args.remove_metadata else None
+    )
+    add_tags_list = [t.strip() for t in args.add_tags.split(",") if t.strip()] if args.add_tags else None
+    remove_tags_list = [t.strip() for t in args.remove_tags.split(",") if t.strip()] if args.remove_tags else None
+
+    if not metadata_dict and not remove_meta_list and not add_tags_list and not remove_tags_list:
+        output_error(
+            args,
+            "Nothing to update",
+            hint="Specify at least one of --metadata, --remove-metadata, --add-tags, --remove-tags",
+        )
+        return
+
+    resolved = resolve_ws_and_key(args)
+    if not resolved:
+        return
+    workspace_url, api_key = resolved
+
+    if len(ids) == 1:
+        try:
+            rfapi.update_image_metadata(
+                api_key=api_key,
+                workspace_url=workspace_url,
+                image_id=ids[0],
+                metadata=metadata_dict,
+                remove_metadata=remove_meta_list,
+                add_tags=add_tags_list,
+                remove_tags=remove_tags_list,
+            )
+        except rfapi.RoboflowError as exc:
+            output_error(args, str(exc), exit_code=1)
+            return
+        data = {"success": True, "imageId": ids[0]}
+        output(args, data, text=f"Updated image {ids[0]}")
+    else:
+        _handle_update_batch(
+            args, api_key, workspace_url, ids, metadata_dict, remove_meta_list, add_tags_list, remove_tags_list
+        )
+
+
+def _handle_update_batch(args, api_key, workspace_url, image_ids, metadata, remove_metadata, add_tags, remove_tags):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    BATCH_LIMIT = 1000
+    if len(image_ids) > BATCH_LIMIT:
+        output_error(
+            args,
+            f"Too many images: {len(image_ids)} (limit: {BATCH_LIMIT})",
+            hint=f"Split into batches of {BATCH_LIMIT} or fewer",
+        )
+        return
+
+    updates = []
+    for img_id in image_ids:
+        entry: dict = {"imageId": img_id}
+        if metadata:
+            entry["metadata"] = metadata
+        if remove_metadata:
+            entry["removeMetadata"] = remove_metadata
+        if add_tags:
+            entry["addTags"] = add_tags
+        if remove_tags:
+            entry["removeTags"] = remove_tags
+        updates.append(entry)
+
+    try:
+        result = rfapi.batch_update_image_metadata(
+            api_key=api_key,
+            workspace_url=workspace_url,
+            updates=updates,
+        )
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=1)
+        return
+
+    task_id = result.get("taskId")
+    polling_url = result.get("url")
+
+    if not args.poll:
+        data = {"taskId": task_id, "url": polling_url, "imageCount": len(image_ids)}
+        output(args, data, text=f"Batch update started: taskId={task_id} ({len(image_ids)} images)")
+        return
+
+    from roboflow.core.async_tasks import poll_until_terminal
+
+    try:
+        final = poll_until_terminal(
+            api_key,
+            workspace_url,
+            task_id,
+            timeout=args.timeout,
+            polling_url=polling_url,
+        )
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=1)
+        return
+    except TimeoutError as exc:
+        output_error(args, str(exc))
+        return
+
+    result_data = final.get("result", {})
+    data = {"taskId": task_id, "status": final.get("status"), **result_data}
+    succeeded = result_data.get("succeeded", 0)
+    failed = result_data.get("failed", 0)
+    output(args, data, text=f"Batch update complete: {succeeded} succeeded, {failed} failed (taskId={task_id})")
 
 
 def _handle_delete(args):  # noqa: ANN001
