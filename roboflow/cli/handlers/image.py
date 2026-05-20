@@ -139,34 +139,17 @@ def search_images(
         _search(args)
 
 
-@image_app.command("tag")
-def tag_image(
+def _metadata_command(
     ctx: typer.Context,
-    image_id: Annotated[str, typer.Argument(help="Image ID")],
-    add_tags: Annotated[Optional[str], typer.Option("--add", help="Comma-separated tags to add")] = None,
-    remove_tags: Annotated[Optional[str], typer.Option("--remove", help="Comma-separated tags to remove")] = None,
+    image_ids: str,
+    metadata: Optional[str] = None,
+    remove_metadata: Optional[str] = None,
+    tags: Optional[str] = None,
+    remove_tags: Optional[str] = None,
+    poll: bool = False,
+    timeout: int = 1800,
 ) -> None:
-    """Add or remove tags on an image."""
-    args = ctx_to_args(ctx, image_id=image_id, add_tags=add_tags, remove_tags=remove_tags)
-    _handle_tag(args)
-
-
-@image_app.command("update")
-def update_image(
-    ctx: typer.Context,
-    image_ids: Annotated[str, typer.Argument(help="Comma-separated image IDs (batch mode if multiple)")],
-    metadata: Annotated[
-        Optional[str], typer.Option("-m", "--metadata", help="JSON string of key-value metadata to set")
-    ] = None,
-    remove_metadata: Annotated[
-        Optional[str], typer.Option("--remove-metadata", help="Comma-separated metadata keys to remove")
-    ] = None,
-    add_tags: Annotated[Optional[str], typer.Option("--add-tags", help="Comma-separated tags to add")] = None,
-    remove_tags: Annotated[Optional[str], typer.Option("--remove-tags", help="Comma-separated tags to remove")] = None,
-    poll: Annotated[bool, typer.Option("--poll/--no-poll", help="For batch updates: poll until complete")] = False,
-    timeout: Annotated[int, typer.Option("--timeout", help="Polling timeout in seconds")] = 1800,
-) -> None:
-    """Update metadata and tags on existing images.
+    """Update metadata and/or tags on existing images.
 
     Single image ID: updates synchronously.
     Multiple comma-separated IDs: uses the batch async endpoint.
@@ -176,12 +159,50 @@ def update_image(
         image_ids=image_ids,
         metadata=metadata,
         remove_metadata=remove_metadata,
-        add_tags=add_tags,
+        add_tags=tags,
         remove_tags=remove_tags,
         poll=poll,
         timeout=timeout,
     )
-    _handle_update(args)
+    _handle_metadata(args)
+
+
+@image_app.command("metadata")
+def metadata_image(
+    ctx: typer.Context,
+    image_ids: Annotated[str, typer.Argument(help="Comma-separated image IDs (batch mode if multiple)")],
+    metadata: Annotated[
+        Optional[str], typer.Option("-m", "--metadata", help="JSON string of key-value metadata to set")
+    ] = None,
+    remove_metadata: Annotated[
+        Optional[str], typer.Option("--remove-metadata", help="Comma-separated metadata keys to remove")
+    ] = None,
+    tags: Annotated[Optional[str], typer.Option("--tags", help="Comma-separated tags to add")] = None,
+    remove_tags: Annotated[Optional[str], typer.Option("--remove-tags", help="Comma-separated tags to remove")] = None,
+    poll: Annotated[bool, typer.Option("--poll/--no-poll", help="For batch updates: poll until complete")] = False,
+    timeout: Annotated[int, typer.Option("--timeout", help="Polling timeout in seconds")] = 1800,
+) -> None:
+    """Update metadata and/or tags on existing images."""
+    _metadata_command(ctx, image_ids, metadata, remove_metadata, tags, remove_tags, poll, timeout)
+
+
+@image_app.command("tag", hidden=True)
+def tag_image(
+    ctx: typer.Context,
+    image_ids: Annotated[str, typer.Argument(help="Comma-separated image IDs (batch mode if multiple)")],
+    metadata: Annotated[
+        Optional[str], typer.Option("-m", "--metadata", help="JSON string of key-value metadata to set")
+    ] = None,
+    remove_metadata: Annotated[
+        Optional[str], typer.Option("--remove-metadata", help="Comma-separated metadata keys to remove")
+    ] = None,
+    tags: Annotated[Optional[str], typer.Option("--tags", help="Comma-separated tags to add")] = None,
+    remove_tags: Annotated[Optional[str], typer.Option("--remove-tags", help="Comma-separated tags to remove")] = None,
+    poll: Annotated[bool, typer.Option("--poll/--no-poll", help="For batch updates: poll until complete")] = False,
+    timeout: Annotated[int, typer.Option("--timeout", help="Polling timeout in seconds")] = 1800,
+) -> None:
+    """Alias for 'metadata'."""
+    _metadata_command(ctx, image_ids, metadata, remove_metadata, tags, remove_tags, poll, timeout)
 
 
 @image_app.command("delete")
@@ -404,46 +425,7 @@ def _handle_search(args):  # noqa: ANN001
     output(args, result, text=json.dumps(result, indent=2))
 
 
-def _handle_tag(args):  # noqa: ANN001
-    from roboflow.adapters import rfapi
-    from roboflow.cli._output import output, output_error
-    from roboflow.cli._resolver import resolve_ws_and_key
-
-    if not args.add_tags and not args.remove_tags:
-        output_error(args, "Nothing to do", hint="Specify --add and/or --remove with comma-separated tags")
-        return
-
-    resolved = resolve_ws_and_key(args)
-    if not resolved:
-        return
-    workspace_url, api_key = resolved
-
-    add_list = [t.strip() for t in args.add_tags.split(",") if t.strip()] if args.add_tags else None
-    remove_list = [t.strip() for t in args.remove_tags.split(",") if t.strip()] if args.remove_tags else None
-
-    try:
-        rfapi.update_image_metadata(
-            api_key=api_key,
-            workspace_url=workspace_url,
-            image_id=args.image_id,
-            add_tags=add_list,
-            remove_tags=remove_list,
-        )
-    except rfapi.RoboflowError as exc:
-        output_error(args, str(exc), exit_code=1)
-        return
-
-    data = {"added": add_list or [], "removed": remove_list or []}
-    parts = []
-    if add_list:
-        parts.append(f"Added tags: {', '.join(add_list)}")
-    if remove_list:
-        parts.append(f"Removed tags: {', '.join(remove_list)}")
-    text = "; ".join(parts) if parts else "No tags modified"
-    output(args, data, text=text)
-
-
-def _handle_update(args):  # noqa: ANN001
+def _handle_metadata(args):  # noqa: ANN001
     import json as json_mod
 
     from roboflow.adapters import rfapi
@@ -476,7 +458,7 @@ def _handle_update(args):  # noqa: ANN001
         output_error(
             args,
             "Nothing to update",
-            hint="Specify at least one of --metadata, --remove-metadata, --add-tags, --remove-tags",
+            hint="Specify at least one of --metadata, --remove-metadata, --tags, --remove-tags",
         )
         return
 
@@ -502,12 +484,12 @@ def _handle_update(args):  # noqa: ANN001
         data = {"success": True, "imageId": ids[0]}
         output(args, data, text=f"Updated image {ids[0]}")
     else:
-        _handle_update_batch(
+        _handle_metadata_batch(
             args, api_key, workspace_url, ids, metadata_dict, remove_meta_list, add_tags_list, remove_tags_list
         )
 
 
-def _handle_update_batch(args, api_key, workspace_url, image_ids, metadata, remove_metadata, add_tags, remove_tags):  # noqa: ANN001
+def _handle_metadata_batch(args, api_key, workspace_url, image_ids, metadata, remove_metadata, add_tags, remove_tags):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
