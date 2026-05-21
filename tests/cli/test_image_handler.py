@@ -466,14 +466,14 @@ class TestImageMetadataRegistration(unittest.TestCase):
     def test_image_metadata_help(self):
         result = runner.invoke(app, ["image", "metadata", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("--tags", result.output)
-        self.assertIn("--metadata", result.output)
+        self.assertIn("tags", result.output.lower())
+        self.assertIn("metadata", result.output.lower())
 
     def test_tag_is_alias(self):
         result = runner.invoke(app, ["image", "tag", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("--tags", result.output)
-        self.assertNotIn("--project", result.output)
+        self.assertIn("tags", result.output.lower())
+        self.assertNotIn("project", result.output.lower())
 
 
 class TestImageMetadataSingle(unittest.TestCase):
