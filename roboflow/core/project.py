@@ -638,8 +638,8 @@ class Project:
             annotation_name = annotation_path["name"]
             annotation_string = annotation_path["rawText"]
         elif os.path.exists(annotation_path):  # type: ignore[arg-type]
-            with open(annotation_path):  # type: ignore[arg-type]
-                annotation_string = open(annotation_path).read()  # type: ignore[arg-type]
+            with open(annotation_path) as f:  # type: ignore[arg-type]
+                annotation_string = f.read()  # type: ignore[arg-type]
             annotation_name = os.path.basename(annotation_path)  # type: ignore[arg-type]
         elif self.type == "classification":
             print(f"-> using {annotation_path} as classname for classification project")
