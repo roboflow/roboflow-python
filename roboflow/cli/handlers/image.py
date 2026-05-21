@@ -21,7 +21,14 @@ def upload_image(
     annotation: Annotated[
         Optional[str], typer.Option("-a", "--annotation", help="Path to annotation file (single upload)")
     ] = None,
-    split: Annotated[str, typer.Option("-s", "--split", help="Dataset split")] = "train",
+    split: Annotated[
+        Optional[str],
+        typer.Option(
+            "-s",
+            "--split",
+            help="Override split for all images (default: infer from folder for dirs, 'train' for files)",
+        ),
+    ] = None,
     batch: Annotated[Optional[str], typer.Option("-b", "--batch", help="Batch name")] = None,
     tag: Annotated[Optional[str], typer.Option("-t", "--tag", help="Comma-separated tag names")] = None,
     metadata: Annotated[Optional[str], typer.Option(help="JSON string of key-value metadata")] = None,
@@ -290,7 +297,7 @@ def _handle_upload_single(args, api_key: str, path: str) -> None:  # noqa: ANN00
             image_path=path,
             annotation_path=args.annotation,
             annotation_labelmap=getattr(args, "labelmap", None),
-            split=args.split,
+            split=args.split or "train",
             num_retry_uploads=retries,
             batch_name=args.batch,
             tag_names=tag_names,

@@ -427,7 +427,8 @@ class Workspace:
             is_prediction (bool, optional): whether the annotations provided in the dataset are predictions and not ground truth. Defaults to False.
             use_zip_upload (bool, optional): opt-in to the zip flow for a directory input (the SDK zips it client-side). Ignored when dataset_path is already a `.zip`.
             tags (list[str], optional): zip flow only — tags to apply to the uploaded batch.
-            split (str, optional): zip flow only — dataset split for the uploaded batch.
+            split (str, optional): dataset split for the uploaded batch. In per-image directory
+                uploads, this overrides inferred splits for every image.
             wait (bool, optional): zip flow only — poll for processing completion. Defaults to True.
             poll_interval (float, optional): zip flow only — seconds between status polls.
             poll_timeout (float, optional): zip flow only — total seconds to wait before timing out.
@@ -489,6 +490,9 @@ class Workspace:
         is_classification = project.type == "classification"
         parsed_dataset = folderparser.parsefolder(dataset_path, is_classification=is_classification)
         images = parsed_dataset["images"]
+        if split is not None:
+            for image in images:
+                image["split"] = split
 
         location = parsed_dataset["location"]
 
@@ -1080,6 +1084,18 @@ class Workspace:
         from roboflow.adapters import rfapi
 
         return rfapi.create_folder(self.__api_key, self.url, name, parent_id=parent_id, project_ids=project_ids)
+
+    def add_projects_to_folder(self, group_id, project_ids):
+        """Add projects to an existing folder."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.add_projects_to_folder(self.__api_key, self.url, group_id, project_ids)
+
+    def remove_projects_from_folder(self, group_id, project_ids):
+        """Remove projects from a folder."""
+        from roboflow.adapters import rfapi
+
+        return rfapi.remove_projects_from_folder(self.__api_key, self.url, group_id, project_ids)
 
     # -----------------------------------------------------------------
     # Phase 2: Workflow management

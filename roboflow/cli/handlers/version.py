@@ -356,7 +356,7 @@ def _create(args):  # noqa: ANN001
 
 def _delete_version(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import confirm_destructive, output, output_api_error, output_error
     from roboflow.cli._resolver import resolve_resource
     from roboflow.config import load_roboflow_api_key
 
@@ -388,26 +388,55 @@ def _delete_version(args):  # noqa: ANN001
         )
         return
 
-    if not getattr(args, "yes", False) and not getattr(args, "json", False):
-        import typer
-
-        confirmed = typer.confirm(
-            f"Move version '{workspace_url}/{project_slug}/{version_num}' to Trash? "
-            "(Retained for 30 days. Any in-flight training will be cancelled.)",
-            default=False,
-        )
-        if not confirmed:
-            output(args, {"cancelled": True}, text="Cancelled.")
-            return
+    if not confirm_destructive(
+        args,
+        f"Move version '{workspace_url}/{project_slug}/{version_num}' to Trash? "
+        "(Retained for 30 days. Any in-flight training will be cancelled.)",
+    ):
+        return
 
     try:
         data = rfapi.delete_version(api_key, workspace_url, project_slug, version_num)
     except rfapi.RoboflowError as exc:
-        output_error(
+        # Idempotent re-delete: if the version is already in Trash, the
+        # public API URL is filtered and DELETE returns 404 — surface it
+        # as an explicit no-op so retries don't surface a misleading
+        # "missing scope" message. Same shape as project delete above.
+        if getattr(exc, "status_code", None) == 404:
+            try:
+                trash = rfapi.list_trash(api_key, workspace_url)
+            except rfapi.RoboflowError:
+                trash = None
+            if trash is not None:
+                target = str(version_num)
+                already = next(
+                    (
+                        v
+                        for v in trash.get("sections", {}).get("versions", [])
+                        if str(v.get("id")) == target and v.get("parentUrl") == project_slug
+                    ),
+                    None,
+                )
+                if already is not None:
+                    data = {
+                        "deleted": True,
+                        "type": "version",
+                        "workspace": workspace_url,
+                        "project": project_slug,
+                        "version": str(version_num),
+                        "trash": True,
+                        "alreadyInTrash": True,
+                    }
+                    output(
+                        args,
+                        data,
+                        text=f"{workspace_url}/{project_slug}/{version_num} is already in Trash (no-op).",
+                    )
+                    return
+        output_api_error(
             args,
-            str(exc),
+            exc,
             hint="Check your API key has 'version:update' scope and the version exists.",
-            exit_code=3,
         )
         return
 
@@ -420,7 +449,7 @@ def _delete_version(args):  # noqa: ANN001
 
 def _restore_version(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import output, output_api_error, output_error
     from roboflow.cli._resolver import resolve_resource
     from roboflow.config import load_roboflow_api_key
 
@@ -455,11 +484,10 @@ def _restore_version(args):  # noqa: ANN001
     try:
         trash = rfapi.list_trash(api_key, workspace_url)
     except rfapi.RoboflowError as exc:
-        output_error(
+        output_api_error(
             args,
-            str(exc),
+            exc,
             hint="Check your API key has 'project:read' scope on this workspace.",
-            exit_code=3,
         )
         return
 
@@ -488,11 +516,10 @@ def _restore_version(args):  # noqa: ANN001
             parent_id=match.get("parentId"),
         )
     except rfapi.RoboflowError as exc:
-        output_error(
+        output_api_error(
             args,
-            str(exc),
+            exc,
             hint="Check your API key has 'version:update' scope on this workspace.",
-            exit_code=3,
         )
         return
 

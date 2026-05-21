@@ -38,8 +38,7 @@ class DeviceApiError(RoboflowError):
     """Raised when a device API call returns a non-success status."""
 
     def __init__(self, message: str, status_code: Optional[int] = None) -> None:
-        self.status_code = status_code
-        super().__init__(message)
+        super().__init__(message, status_code=status_code)
 
 
 class DeviceNotFoundError(DeviceApiError):

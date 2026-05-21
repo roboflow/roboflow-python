@@ -61,6 +61,28 @@ def delete_folder(
     _delete_folder(args)
 
 
+@folder_app.command("add-projects")
+def add_projects(
+    ctx: typer.Context,
+    folder_id: Annotated[str, typer.Argument(help="Folder ID")],
+    projects: Annotated[str, typer.Argument(help="Comma-separated project IDs")],
+) -> None:
+    """Add projects to a folder."""
+    args = ctx_to_args(ctx, folder_id=folder_id, projects=projects)
+    _add_projects(args)
+
+
+@folder_app.command("remove-projects")
+def remove_projects(
+    ctx: typer.Context,
+    folder_id: Annotated[str, typer.Argument(help="Folder ID")],
+    projects: Annotated[str, typer.Argument(help="Comma-separated project IDs")],
+) -> None:
+    """Remove projects from a folder."""
+    args = ctx_to_args(ctx, folder_id=folder_id, projects=projects)
+    _remove_projects(args)
+
+
 # ---------------------------------------------------------------------------
 # Business logic (unchanged from argparse version)
 # ---------------------------------------------------------------------------
@@ -200,3 +222,51 @@ def _delete_folder(args) -> None:  # noqa: ANN001
 
     data = {"status": "deleted"}
     output(args, data, text=f"Deleted folder '{args.folder_id}'")
+
+
+def _add_projects(args) -> None:  # noqa: ANN001
+    import roboflow
+    from roboflow.cli._output import output, output_error, suppress_sdk_output
+
+    with suppress_sdk_output(args):
+        try:
+            rf = roboflow.Roboflow(api_key=args.api_key)
+            workspace = rf.workspace(args.workspace)
+        except Exception as exc:
+            output_error(args, str(exc))
+            return
+
+    project_ids = [p.strip() for p in args.projects.split(",")]
+
+    try:
+        workspace.add_projects_to_folder(args.folder_id, project_ids)
+    except Exception as exc:
+        output_error(args, str(exc), exit_code=1)
+        return
+
+    data = {"status": "added", "folder_id": args.folder_id, "projects": project_ids}
+    output(args, data, text=f"Added {len(project_ids)} project(s) to folder '{args.folder_id}'")
+
+
+def _remove_projects(args) -> None:  # noqa: ANN001
+    import roboflow
+    from roboflow.cli._output import output, output_error, suppress_sdk_output
+
+    with suppress_sdk_output(args):
+        try:
+            rf = roboflow.Roboflow(api_key=args.api_key)
+            workspace = rf.workspace(args.workspace)
+        except Exception as exc:
+            output_error(args, str(exc))
+            return
+
+    project_ids = [p.strip() for p in args.projects.split(",")]
+
+    try:
+        workspace.remove_projects_from_folder(args.folder_id, project_ids)
+    except Exception as exc:
+        output_error(args, str(exc), exit_code=1)
+        return
+
+    data = {"status": "removed", "folder_id": args.folder_id, "projects": project_ids}
+    output(args, data, text=f"Removed {len(project_ids)} project(s) from folder '{args.folder_id}'")
