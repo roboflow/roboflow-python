@@ -461,7 +461,7 @@ def _handle_metadata(args):  # noqa: ANN001
     add_tags_list = [t.strip() for t in args.add_tags.split(",") if t.strip()] if args.add_tags else None
     remove_tags_list = [t.strip() for t in args.remove_tags.split(",") if t.strip()] if args.remove_tags else None
 
-    if not metadata_dict and not remove_meta_list and not add_tags_list and not remove_tags_list:
+    if metadata_dict is None and remove_meta_list is None and add_tags_list is None and remove_tags_list is None:
         output_error(
             args,
             "Nothing to update",
@@ -500,7 +500,7 @@ def _handle_metadata_batch(args, api_key, workspace_url, image_ids, metadata, re
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
-    BATCH_LIMIT = 1000
+    BATCH_LIMIT = 1000  # matches the workspace images/metadata endpoint limit
     if len(image_ids) > BATCH_LIMIT:
         output_error(
             args,
@@ -554,7 +554,7 @@ def _handle_metadata_batch(args, api_key, workspace_url, image_ids, metadata, re
         output_error(args, str(exc), exit_code=1)
         return
     except TimeoutError as exc:
-        output_error(args, str(exc))
+        output_error(args, str(exc), exit_code=1)
         return
 
     result_data = final.get("result", {})
