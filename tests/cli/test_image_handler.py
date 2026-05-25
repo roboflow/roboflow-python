@@ -462,8 +462,30 @@ class TestImageSearch(unittest.TestCase):
             sys.stdout = old
 
         mock_workspace_search.assert_called_once()
+        # -p/--project must scope the search via a `project:<slug>` RoboQL filter,
+        # combined with the user's query (the API ignores body-level project params).
+        called_query = mock_workspace_search.call_args.kwargs["query"]
+        self.assertEqual(called_query, "project:proj tag:test")
         result = json.loads(buf.getvalue())
         self.assertEqual(result["total"], 0)
+
+    @patch("roboflow.adapters.rfapi.workspace_search")
+    def test_search_without_project_is_unscoped(self, mock_workspace_search):
+        from roboflow.cli.handlers.image import _handle_search
+
+        mock_workspace_search.return_value = {"results": [], "total": 0}
+        args = _make_args(json=True, query="tag:test", project=None, limit=10, cursor=None)
+
+        buf = io.StringIO()
+        old = sys.stdout
+        sys.stdout = buf
+        try:
+            _handle_search(args)
+        finally:
+            sys.stdout = old
+
+        called_query = mock_workspace_search.call_args.kwargs["query"]
+        self.assertEqual(called_query, "tag:test")
 
 
 class TestImageAnnotate(unittest.TestCase):

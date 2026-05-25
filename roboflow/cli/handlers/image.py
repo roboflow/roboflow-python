@@ -104,7 +104,7 @@ def search_images(
     Use --export to download matching results as a dataset.
     """
     if project:
-        # Project-scoped search (legacy behavior)
+        # Project-scoped search: _handle_search injects a `project:<slug>` RoboQL filter.
         args = ctx_to_args(ctx, query=query, project=project, limit=limit, cursor=cursor)
         _handle_search(args)
     elif export:
@@ -422,10 +422,21 @@ def _handle_search(args):  # noqa: ANN001
         output_error(args, "No workspace specified", hint="Use --workspace or run 'roboflow auth login'")
         return
 
+    # Scope the search to a single project when -p/--project is given. The search/v1
+    # endpoint only honors a project filter expressed inside the RoboQL query
+    # (`project:<slug>`, which the API resolves to a project id) — body params like
+    # `project`/`dataset` are ignored. We prepend it with a leading space so it ANDs
+    # with the user's query while staying compatible with free-text/semantic queries
+    # (an explicit `AND (...)` wrapper 500s on free text).
+    query = args.query
+    project = getattr(args, "project", None)
+    if project:
+        query = f"project:{project} {args.query}"
+
     result = rfapi.workspace_search(
         api_key=api_key,
         workspace_url=workspace_url,
-        query=args.query,
+        query=query,
         page_size=args.limit,
         continuation_token=args.cursor,
     )
