@@ -2,7 +2,7 @@ import json
 import mimetypes
 import os
 import urllib
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import quote
 
 import requests
@@ -374,6 +374,76 @@ def workspace_delete_images(
     url = f"{API_URL}/{workspace_url}/images?api_key={api_key}"
     response = requests.delete(url, json={"images": image_ids})
     if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def update_image_metadata(
+    api_key: str,
+    workspace_url: str,
+    image_id: str,
+    *,
+    metadata: Optional[Dict] = None,
+    remove_metadata: Optional[List[str]] = None,
+    add_tags: Optional[List[str]] = None,
+    remove_tags: Optional[List[str]] = None,
+) -> dict:
+    """Update metadata and tags on a single image (synchronous).
+
+    Args:
+        api_key: Roboflow API key.
+        workspace_url: Workspace slug/url.
+        image_id: Image/source ID.
+        metadata: Key-value pairs to set on the image.
+        remove_metadata: Metadata keys to delete.
+        add_tags: Tags to append.
+        remove_tags: Tags to remove.
+
+    Returns:
+        Parsed JSON response (``{"success": true}``).
+
+    Raises:
+        RoboflowError: On non-200 response.
+    """
+    url = f"{API_URL}/{workspace_url}/images/{quote(image_id, safe='')}/metadata"
+    body: Dict[str, Any] = {}
+    if metadata is not None:
+        body["metadata"] = metadata
+    if remove_metadata is not None:
+        body["removeMetadata"] = remove_metadata
+    if add_tags is not None:
+        body["addTags"] = add_tags
+    if remove_tags is not None:
+        body["removeTags"] = remove_tags
+
+    response = requests.post(url, params={"api_key": api_key}, json=body)
+    if response.status_code != 200:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def batch_update_image_metadata(
+    api_key: str,
+    workspace_url: str,
+    updates: List[Dict],
+) -> dict:
+    """Batch-update metadata and tags on multiple images (asynchronous).
+
+    Args:
+        api_key: Roboflow API key.
+        workspace_url: Workspace slug/url.
+        updates: List of update dicts, each containing ``imageId`` and optionally
+            ``metadata``, ``removeMetadata``, ``addTags``, ``removeTags``.
+
+    Returns:
+        Parsed JSON with ``taskId`` and ``url`` for polling.
+
+    Raises:
+        RoboflowError: On non-202 response.
+    """
+    url = f"{API_URL}/{workspace_url}/images/metadata"
+    response = requests.post(url, params={"api_key": api_key}, json={"updates": updates})
+    if response.status_code != 202:
         raise RoboflowError(response.text)
     return response.json()
 
