@@ -462,8 +462,7 @@ class TestImageSearch(unittest.TestCase):
             sys.stdout = old
 
         mock_workspace_search.assert_called_once()
-        # -p/--project must scope the search via a `project:<slug>` RoboQL filter,
-        # combined with the user's query (the API ignores body-level project params).
+        # -p must scope via a `project:<slug>` filter prepended to the query.
         called_query = mock_workspace_search.call_args.kwargs["query"]
         self.assertEqual(called_query, "project:proj tag:test")
         result = json.loads(buf.getvalue())
