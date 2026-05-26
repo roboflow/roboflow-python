@@ -5,6 +5,7 @@ from roboflow.config import TASK_CLS, TASK_DET, TASK_OBB, TASK_POSE, TASK_SEG
 from roboflow.util.model_processor import (
     _detect_rfdetr_task,
     _detect_yolo_task,
+    _validate_pose_kpt_shape,
     task_of_model_type,
 )
 
@@ -82,6 +83,34 @@ class DetectRfdetrTaskTest(unittest.TestCase):
         self.assertIsNone(_detect_rfdetr_task({}))
         self.assertIsNone(_detect_rfdetr_task({"model_name": None}))
         self.assertIsNone(_detect_rfdetr_task({"args": SimpleNamespace(other=1)}))
+
+
+class ValidatePoseKptShapeTest(unittest.TestCase):
+    def test_non_pose_is_noop(self):
+        # Detection model with no yaml at all must not raise.
+        _validate_pose_kpt_shape("yolov11", SimpleNamespace(yaml=None), "/tmp/best.pt")
+        _validate_pose_kpt_shape("yolov11-seg", SimpleNamespace(), "/tmp/best.pt")
+
+    def test_pose_with_kpt_shape_ok(self):
+        inst = SimpleNamespace(yaml={"nc": 1, "kpt_shape": [17, 3]})
+        _validate_pose_kpt_shape("yolov11-pose", inst, "/tmp/best.pt")
+
+    def test_pose_missing_kpt_shape_raises(self):
+        inst = SimpleNamespace(yaml={"nc": 1})
+        with self.assertRaises(ValueError) as ctx:
+            _validate_pose_kpt_shape("yolov11-pose", inst, "/tmp/best.pt")
+        msg = str(ctx.exception)
+        self.assertIn("kpt_shape", msg)
+        self.assertIn("/tmp/best.pt", msg)
+
+    def test_pose_empty_kpt_shape_raises(self):
+        inst = SimpleNamespace(yaml={"kpt_shape": []})
+        with self.assertRaises(ValueError):
+            _validate_pose_kpt_shape("yolov11-pose", inst, "/tmp/best.pt")
+
+    def test_pose_no_yaml_raises(self):
+        with self.assertRaises(ValueError):
+            _validate_pose_kpt_shape("yolo26-pose", SimpleNamespace(yaml=None), "/tmp/best.pt")
 
 
 if __name__ == "__main__":
