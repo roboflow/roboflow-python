@@ -63,7 +63,10 @@ def register_hidden_aliases(app: typer.Typer) -> None:
         project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
         annotation: Annotated[Optional[str], typer.Option("-a", "--annotation", help="Annotation file")] = None,
         labelmap: Annotated[Optional[str], typer.Option("-m", "--labelmap", help="Labelmap file")] = None,
-        split: Annotated[str, typer.Option("-s", "--split", help="Split (train/valid/test)")] = "train",
+        split: Annotated[
+            Optional[str],
+            typer.Option("-s", "--split", help="Override split for all uploaded images (default: infer from folder)"),
+        ] = None,
         num_retries: Annotated[int, typer.Option("-r", "--retries", help="Retry count")] = 0,
         batch: Annotated[Optional[str], typer.Option("-b", "--batch", help="Batch name")] = None,
         tag_names: Annotated[Optional[str], typer.Option("-t", "--tag", help="Tag names")] = None,
