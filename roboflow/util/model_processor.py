@@ -125,6 +125,28 @@ def _detect_yolo_task(model_instance) -> Optional[str]:
     }.get(type(model_instance).__name__)
 
 
+def _validate_pose_kpt_shape(model_type: str, model_instance, pt_path: str) -> None:
+    """Fail fast if a pose model lacks `kpt_shape` in its config.
+
+    Roboflow's converter reads `model_artifacts["yaml"]["kpt_shape"]` to build
+    keypoints_metadata.json. Without it the conversion crashes and the deployed package
+    loads as incomplete (CorruptedModelPackageError) — so reject the upload here with an
+    actionable message rather than shipping a model that can never serve.
+    """
+    if task_of_model_type(model_type) != TASK_POSE:
+        return
+    yaml_cfg = getattr(model_instance, "yaml", None)
+    kpt_shape = yaml_cfg.get("kpt_shape") if isinstance(yaml_cfg, dict) else None
+    if not kpt_shape:
+        raise ValueError(
+            f"model_type '{model_type}' is a keypoint/pose model but the checkpoint at "
+            f"'{pt_path}' has no 'kpt_shape' in its config, so the number of keypoints is "
+            "unknown and the deployed model would fail to load. Train/export the model with "
+            "Ultralytics on a pose dataset whose data.yaml sets "
+            "'kpt_shape: [num_keypoints, dims]' (e.g. [17, 3]), then redeploy that .pt."
+        )
+
+
 def _process_yolo(model_type: str, model_path: str, filename: str) -> tuple[str, str]:
     if "yolov8" in model_type:
         try:
@@ -217,6 +239,8 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> tuple[str,
                 f"model_type '{model_type}' implies task '{existing_task}' but the "
                 f".pt file is a '{detected_task}' checkpoint. Use a matching model_type."
             )
+
+    _validate_pose_kpt_shape(model_type, model_instance, os.path.join(model_path, filename))
 
     if isinstance(model_instance.names, list):
         class_names = model_instance.names
