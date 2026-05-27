@@ -528,29 +528,155 @@ class TestUploadPathNotFound(unittest.TestCase):
             _handle_upload(args)
 
 
-class TestImageTagValidation(unittest.TestCase):
-    """Test that tag command validates --add/--remove presence."""
+class TestImageMetadataRegistration(unittest.TestCase):
+    """Verify the metadata command and tag alias register correctly."""
 
-    def test_tag_no_add_or_remove(self):
-        from roboflow.cli.handlers.image import _handle_tag
+    def test_image_metadata_help(self):
+        result = runner.invoke(app, ["image", "metadata", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("tags", result.output.lower())
+        self.assertIn("metadata", result.output.lower())
+
+    def test_tag_is_alias(self):
+        result = runner.invoke(app, ["image", "tag", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("tags", result.output.lower())
+        self.assertNotIn("project", result.output.lower())
+
+
+class TestImageMetadataSingle(unittest.TestCase):
+    """Test the single-image metadata path."""
+
+    @patch("roboflow.cli._resolver.resolve_ws_and_key", return_value=("test-ws", "test-key"))
+    @patch("roboflow.adapters.rfapi.update_image_metadata", return_value={"success": True})
+    def test_metadata_single(self, mock_update, mock_resolve):
+        from roboflow.cli.handlers.image import _handle_metadata
 
         args = _make_args(
+            image_ids="img-1",
+            metadata='{"camera": "cam1"}',
+            remove_metadata=None,
+            add_tags="review",
+            remove_tags=None,
+            poll=False,
+            timeout=1800,
+        )
+        _handle_metadata(args)
+        mock_update.assert_called_once_with(
+            api_key="test-key",
+            workspace_url="test-ws",
             image_id="img-1",
-            project="proj",
-            add_tags=None,
+            metadata={"camera": "cam1"},
+            remove_metadata=None,
+            add_tags=["review"],
             remove_tags=None,
         )
 
+    def test_metadata_invalid_json(self):
+        from roboflow.cli.handlers.image import _handle_metadata
+
+        args = _make_args(
+            image_ids="img-1",
+            metadata="not-json",
+            remove_metadata=None,
+            add_tags=None,
+            remove_tags=None,
+            poll=False,
+            timeout=1800,
+        )
         buf = io.StringIO()
         old = sys.stderr
         sys.stderr = buf
         try:
             with self.assertRaises(SystemExit):
-                _handle_tag(args)
+                _handle_metadata(args)
         finally:
             sys.stderr = old
+        self.assertIn("Invalid metadata JSON", buf.getvalue())
 
-        self.assertIn("Nothing to do", buf.getvalue())
+    def test_metadata_nothing_to_do(self):
+        from roboflow.cli.handlers.image import _handle_metadata
+
+        args = _make_args(
+            image_ids="img-1",
+            metadata=None,
+            remove_metadata=None,
+            add_tags=None,
+            remove_tags=None,
+            poll=False,
+            timeout=1800,
+        )
+        buf = io.StringIO()
+        old = sys.stderr
+        sys.stderr = buf
+        try:
+            with self.assertRaises(SystemExit):
+                _handle_metadata(args)
+        finally:
+            sys.stderr = old
+        self.assertIn("Nothing to update", buf.getvalue())
+
+
+class TestImageMetadataBatch(unittest.TestCase):
+    """Test the batch (multi-image) metadata path."""
+
+    @patch("roboflow.cli._resolver.resolve_ws_and_key", return_value=("test-ws", "test-key"))
+    @patch(
+        "roboflow.adapters.rfapi.batch_update_image_metadata",
+        return_value={"taskId": "t1", "url": "https://api.roboflow.com/test-ws/asynctasks/t1"},
+    )
+    def test_metadata_batch_no_poll(self, mock_batch, mock_resolve):
+        from roboflow.cli.handlers.image import _handle_metadata
+
+        args = _make_args(
+            image_ids="img-1,img-2,img-3",
+            metadata=None,
+            remove_metadata=None,
+            add_tags="review",
+            remove_tags=None,
+            poll=False,
+            timeout=1800,
+            json=True,
+        )
+        buf = io.StringIO()
+        old = sys.stdout
+        sys.stdout = buf
+        try:
+            _handle_metadata(args)
+        finally:
+            sys.stdout = old
+        data = json.loads(buf.getvalue())
+        self.assertEqual(data["taskId"], "t1")
+        self.assertEqual(data["imageCount"], 3)
+        mock_batch.assert_called_once()
+        updates = mock_batch.call_args[1]["updates"]
+        self.assertEqual(len(updates), 3)
+        self.assertEqual(updates[0]["imageId"], "img-1")
+        self.assertEqual(updates[0]["addTags"], ["review"])
+
+    def test_metadata_batch_over_limit(self):
+        from roboflow.cli.handlers.image import _handle_metadata
+
+        ids = ",".join([f"img-{i}" for i in range(1001)])
+        args = _make_args(
+            image_ids=ids,
+            metadata=None,
+            remove_metadata=None,
+            add_tags="review",
+            remove_tags=None,
+            poll=False,
+            timeout=1800,
+        )
+        with patch("roboflow.cli._resolver.resolve_ws_and_key", return_value=("test-ws", "test-key")):
+            buf = io.StringIO()
+            old = sys.stderr
+            sys.stderr = buf
+            try:
+                with self.assertRaises(SystemExit):
+                    _handle_metadata(args)
+            finally:
+                sys.stderr = old
+            self.assertIn("Too many images", buf.getvalue())
 
 
 if __name__ == "__main__":
