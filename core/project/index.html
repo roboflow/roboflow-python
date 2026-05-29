@@ -657,6 +657,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        health
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.project.Project.image" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1235,6 +1246,17 @@
     <span class="md-ellipsis">
       
         get_version_information
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        health
       
     </span>
   </a>
@@ -2494,7 +2516,25 @@
 <span class="normal">1083</span>
 <span class="normal">1084</span>
 <span class="normal">1085</span>
-<span class="normal">1086</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Project</span><span class="p">:</span>
+<span class="normal">1086</span>
+<span class="normal">1087</span>
+<span class="normal">1088</span>
+<span class="normal">1089</span>
+<span class="normal">1090</span>
+<span class="normal">1091</span>
+<span class="normal">1092</span>
+<span class="normal">1093</span>
+<span class="normal">1094</span>
+<span class="normal">1095</span>
+<span class="normal">1096</span>
+<span class="normal">1097</span>
+<span class="normal">1098</span>
+<span class="normal">1099</span>
+<span class="normal">1100</span>
+<span class="normal">1101</span>
+<span class="normal">1102</span>
+<span class="normal">1103</span>
+<span class="normal">1104</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Project</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A Roboflow Project.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -3542,6 +3582,24 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="si">}</span><span class="s2">&#39; is not in Trash — nothing to restore.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">restore_trash_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="s2">&quot;project&quot;</span><span class="p">,</span> <span class="n">match</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">health</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">regenerate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get health check statistics for this project.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            regenerate: If True, force regeneration of health check data.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict: Health check statistics including class balance,</span>
+<span class="sd">                image dimensions, annotation counts, and split distribution.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; import roboflow</span>
+<span class="sd">            &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;YOUR_API_KEY&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; project = rf.workspace().project(&quot;PROJECT_ID&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; health = project.health()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_project_health</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">,</span> <span class="n">regenerate</span><span class="o">=</span><span class="n">regenerate</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -5220,6 +5278,130 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
     <span class="n">dataset_info</span> <span class="o">=</span> <span class="n">dataset_info</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">dataset_info</span><span class="p">[</span><span class="s2">&quot;versions&quot;</span><span class="p">]</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.project.Project.health" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">health</span><span class="p">(</span><span class="n">regenerate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+<a href="#roboflow.core.project.Project.health" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get health check statistics for this project.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>regenerate</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, force regeneration of health check data.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Dict</code></td>            <td>
+                  <code><span title="typing.Dict">Dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Health check statistics including class balance,
+image dimensions, annotation counts, and split distribution.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <blockquote>
+<blockquote>
+<blockquote>
+<p>import roboflow
+rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+project = rf.workspace().project("PROJECT_ID")
+health = project.health()</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</details>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/project.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1088</span>
+<span class="normal">1089</span>
+<span class="normal">1090</span>
+<span class="normal">1091</span>
+<span class="normal">1092</span>
+<span class="normal">1093</span>
+<span class="normal">1094</span>
+<span class="normal">1095</span>
+<span class="normal">1096</span>
+<span class="normal">1097</span>
+<span class="normal">1098</span>
+<span class="normal">1099</span>
+<span class="normal">1100</span>
+<span class="normal">1101</span>
+<span class="normal">1102</span>
+<span class="normal">1103</span>
+<span class="normal">1104</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">health</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">regenerate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get health check statistics for this project.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        regenerate: If True, force regeneration of health check data.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict: Health check statistics including class balance,</span>
+<span class="sd">            image dimensions, annotation counts, and split distribution.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; import roboflow</span>
+<span class="sd">        &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;YOUR_API_KEY&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; project = rf.workspace().project(&quot;PROJECT_ID&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; health = project.health()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_project_health</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">,</span> <span class="n">regenerate</span><span class="o">=</span><span class="n">regenerate</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
