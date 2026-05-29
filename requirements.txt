@@ -19,9 +19,5 @@ tqdm>=4.41.0
 PyYAML>=5.3.1
 requests_toolbelt
 filetype
-# typer 0.26 vendors its own click as typer._click and drops the external click dep, which
-# breaks roboflow/cli/_compat.py's SortedGroup (it subclasses TyperGroup using external click
-# types). 0.25.x still depends on external click and type-checks; pin below 0.26.
-typer>=0.12.0,<0.26
-# CLI imports click directly; declare it explicitly rather than relying on typer's transitive dep.
+typer>=0.12.0,<0.26  # 0.26 vendors click, dropping the external dep the CLI imports
 click>=8.0

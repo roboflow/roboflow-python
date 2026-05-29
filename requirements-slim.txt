@@ -6,10 +6,7 @@ tqdm>=4.41.0
 PyYAML>=5.3.1
 requests_toolbelt
 filetype
-# typer 0.26 vendors click as typer._click and drops the external click dep, breaking
-# roboflow.cli imports (test_slim_compat imports it). 0.25.x still uses external click.
-typer>=0.12.0,<0.26
-# CLI imports click directly; declare it explicitly rather than relying on typer's transitive dep.
+typer>=0.12.0,<0.26  # 0.26 vendors click, dropping the external dep the CLI imports
 click>=8.0
 python-dateutil
 python-dotenv
