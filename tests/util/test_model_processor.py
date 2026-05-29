@@ -1,3 +1,5 @@
+import os
+import tempfile
 import unittest
 from types import SimpleNamespace
 
@@ -5,6 +7,7 @@ from roboflow.config import TASK_CLS, TASK_DET, TASK_OBB, TASK_POSE, TASK_SEG
 from roboflow.util.model_processor import (
     _detect_rfdetr_task,
     _detect_yolo_task,
+    get_classnames_txt_for_rfdetr,
     task_of_model_type,
 )
 
@@ -82,6 +85,23 @@ class DetectRfdetrTaskTest(unittest.TestCase):
         self.assertIsNone(_detect_rfdetr_task({}))
         self.assertIsNone(_detect_rfdetr_task({"model_name": None}))
         self.assertIsNone(_detect_rfdetr_task({"args": SimpleNamespace(other=1)}))
+
+
+class GetClassnamesTxtForRfdetrTest(unittest.TestCase):
+    def _classnames(self, args):
+        with tempfile.TemporaryDirectory() as model_path:
+            get_classnames_txt_for_rfdetr(model_path, "weights.pt", checkpoint={"args": args})
+            with open(os.path.join(model_path, "class_names.txt")) as f:
+                return f.read().splitlines()
+
+    def test_dict_args(self):
+        self.assertEqual(self._classnames({"class_names": ["cat", "dog"]}), ["background_class83422", "cat", "dog"])
+
+    def test_namespace_args(self):
+        self.assertEqual(
+            self._classnames(SimpleNamespace(class_names=["cat", "dog"])),
+            ["background_class83422", "cat", "dog"],
+        )
 
 
 if __name__ == "__main__":
