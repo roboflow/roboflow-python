@@ -486,6 +486,35 @@ class TestImageSearch(unittest.TestCase):
         called_query = mock_workspace_search.call_args.kwargs["query"]
         self.assertEqual(called_query, "tag:test")
 
+    @patch("roboflow.cli.handlers.search._search")
+    @patch("roboflow.cli.handlers.image._handle_search")
+    def test_search_with_project_and_export_scopes_the_export(self, mock_handle_search, mock_search):
+        # `-p ... --export` must export the project, not silently drop --export.
+        result = runner.invoke(
+            app,
+            ["--workspace", "ws", "--api-key", "k", "image", "search", "tag:test", "-p", "proj", "--export"],
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        mock_handle_search.assert_not_called()
+        mock_search.assert_called_once()
+        export_args = mock_search.call_args.args[0]
+        self.assertTrue(export_args.export)
+        # Export scopes by the `dataset` (project slug) body param.
+        self.assertEqual(export_args.dataset, "proj")
+
+    @patch("roboflow.cli.handlers.search._search")
+    @patch("roboflow.cli.handlers.image._handle_search")
+    def test_search_with_project_no_export_uses_roboql_filter(self, mock_handle_search, mock_search):
+        result = runner.invoke(
+            app,
+            ["--workspace", "ws", "--api-key", "k", "image", "search", "tag:test", "-p", "proj"],
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        mock_search.assert_not_called()
+        mock_handle_search.assert_called_once()
+
 
 class TestImageAnnotate(unittest.TestCase):
     """Test the annotate handler."""
