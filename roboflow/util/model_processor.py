@@ -19,6 +19,30 @@ from roboflow.config import (
 )
 from roboflow.util.versions import print_warn_for_wrong_dependencies_versions
 
+# Minimum rf-detr release shipping `RFDETR.export_for_roboflow`.
+RFDETR_MIN_VERSION = "1.8.0"  # TODO: pin once rf-detr release is cut
+
+# rf-detr model_type -> RFDETR subclass name. Single source of truth for both the
+# supported-type check and the `from_checkpoint` fallback (used when a raw checkpoint
+# lacks the metadata rf-detr needs to infer its own class).
+_RFDETR_MODEL_TYPE_TO_CLASS = {
+    # Detection
+    "rfdetr-base": "RFDETRBase",
+    "rfdetr-nano": "RFDETRNano",
+    "rfdetr-small": "RFDETRSmall",
+    "rfdetr-medium": "RFDETRMedium",
+    "rfdetr-large": "RFDETRLarge",
+    "rfdetr-xlarge": "RFDETRXLarge",
+    "rfdetr-2xlarge": "RFDETR2XLarge",
+    # Segmentation
+    "rfdetr-seg-nano": "RFDETRSegNano",
+    "rfdetr-seg-small": "RFDETRSegSmall",
+    "rfdetr-seg-medium": "RFDETRSegMedium",
+    "rfdetr-seg-large": "RFDETRSegLarge",
+    "rfdetr-seg-xlarge": "RFDETRSegXLarge",
+    "rfdetr-seg-2xlarge": "RFDETRSeg2XLarge",
+}
+
 
 def task_of_model_type(model_type: str) -> str:
     """Canonical task for a deploy model_type string.
@@ -339,24 +363,35 @@ def _detect_rfdetr_task(checkpoint) -> Optional[str]:
     return None
 
 
+def _is_ptl_checkpoint(checkpoint) -> bool:
+    """True if `checkpoint` is a raw PyTorch-Lightning rf-detr checkpoint dict."""
+    return isinstance(checkpoint, dict) and "pytorch-lightning_version" in checkpoint
+
+
+def _require_rfdetr():
+    """Lazily import `rfdetr` and verify it ships the upload-bundle helpers.
+
+    Raises a RuntimeError with an actionable hint if rfdetr is missing or too old.
+    """
+    try:
+        import rfdetr
+    except ImportError:
+        raise RuntimeError(
+            "rfdetr is required to upload PyTorch-Lightning rf-detr checkpoints. "
+            f"Please install it with `pip install 'rfdetr>={RFDETR_MIN_VERSION}'`."
+        )
+
+    if not hasattr(rfdetr.RFDETR, "export_for_roboflow"):
+        raise RuntimeError(
+            "The installed rfdetr is too old to upload PyTorch-Lightning rf-detr checkpoints. "
+            f"Please upgrade it with `pip install --upgrade 'rfdetr>={RFDETR_MIN_VERSION}'`."
+        )
+
+    return rfdetr
+
+
 def _process_rfdetr(model_type: str, model_path: str, filename: str) -> tuple[str, str]:
-    _supported_types = [
-        # Detection models
-        "rfdetr-base",
-        "rfdetr-nano",
-        "rfdetr-small",
-        "rfdetr-medium",
-        "rfdetr-large",
-        "rfdetr-xlarge",
-        "rfdetr-2xlarge",
-        # Segmentation models
-        "rfdetr-seg-nano",
-        "rfdetr-seg-small",
-        "rfdetr-seg-medium",
-        "rfdetr-seg-large",
-        "rfdetr-seg-xlarge",
-        "rfdetr-seg-2xlarge",
-    ]
+    _supported_types = list(_RFDETR_MODEL_TYPE_TO_CLASS)
     if model_type not in _supported_types:
         raise ValueError(f"Model type {model_type} not supported. Supported types are {_supported_types}")
 
@@ -382,11 +417,25 @@ def _process_rfdetr(model_type: str, model_path: str, filename: str) -> tuple[st
                 f".pt is a '{detected_task}' rfdetr checkpoint. Use a matching model_type."
             )
 
-    get_classnames_txt_for_rfdetr(model_path, pt_file, checkpoint=checkpoint)
+    if _is_ptl_checkpoint(checkpoint):
+        # Raw PyTorch-Lightning checkpoint: let rf-detr rebuild a proper upload
+        # bundle (weights.pt with `args.resolution` + class_names.txt).
+        rfdetr = _require_rfdetr()
+        pth = os.path.join(model_path, pt_file)
+        try:
+            model = rfdetr.RFDETR.from_checkpoint(pth)
+        except ValueError:
+            # Checkpoint lacks model_name/pretrain_weights signals; fall back to
+            # the already-validated user-provided model_type to pick the subclass.
+            model_cls = getattr(rfdetr, _RFDETR_MODEL_TYPE_TO_CLASS[model_type])
+            model = model_cls(pretrain_weights=pth)
+        model.export_for_roboflow(model_path)  # writes weights.pt + class_names.txt
+    else:
+        get_classnames_txt_for_rfdetr(model_path, pt_file, checkpoint=checkpoint)
 
-    # Copy the .pt file to weights.pt if not already named weights.pt
-    if pt_file != "weights.pt":
-        shutil.copy(os.path.join(model_path, pt_file), os.path.join(model_path, "weights.pt"))
+        # Copy the .pt file to weights.pt if not already named weights.pt
+        if pt_file != "weights.pt":
+            shutil.copy(os.path.join(model_path, pt_file), os.path.join(model_path, "weights.pt"))
 
     required_files = ["weights.pt"]
 
