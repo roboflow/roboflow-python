@@ -414,7 +414,9 @@ def get_classnames_txt_for_rfdetr(model_path: str, pt_file: str, checkpoint=None
         import torch
 
         checkpoint = torch.load(os.path.join(model_path, pt_file), map_location="cpu", weights_only=False)
-    args = vars(checkpoint["args"])
+    raw_args = checkpoint["args"]
+    # args may be a plain dict in some checkpoints
+    args = raw_args if isinstance(raw_args, dict) else vars(raw_args)
     if "class_names" in args:
         with open(class_names_path, "w") as f:
             for class_name in args["class_names"]:

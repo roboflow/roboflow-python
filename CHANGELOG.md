@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 1.3.9
 
 ### Added — Model evaluations SDK & CLI
 
@@ -44,6 +44,12 @@ structured output.
 The endpoints require the `model-eval:read` scope. The base URL is
 configurable via `API_URL` (set to `https://localapi.roboflow.one` to
 test against a local API server).
+
+### Fixed
+- rf-detr model upload: accept checkpoints whose `args` is a plain dict (e.g. EMA checkpoints) when extracting class names, instead of raising `TypeError` from `vars()`.
+
+### Changed
+- Pin `typer<0.26` and declare `click` explicitly: typer 0.26 vendors its own click and drops the external dependency, which broke the CLI and its type checks.
 
 ## 1.3.7
 
