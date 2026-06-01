@@ -56,7 +56,8 @@ def _search(args):  # noqa: ANN001
 
     try:
         with suppress_sdk_output():
-            rf = roboflow.Roboflow()
+            # Forward the CLI --api-key; Roboflow() falls back to saved/env creds when None.
+            rf = roboflow.Roboflow(api_key=args.api_key)
             workspace = rf.workspace(args.workspace)
     except Exception as exc:
         output_error(args, str(exc), exit_code=2)

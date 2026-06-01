@@ -503,6 +503,20 @@ class TestImageSearch(unittest.TestCase):
         # Export scopes by the `dataset` (project slug) body param.
         self.assertEqual(export_args.dataset, "proj")
 
+    @patch("roboflow.Roboflow")
+    def test_search_export_forwards_cli_api_key_to_sdk(self, mock_roboflow):
+        # The export path must honor an explicitly supplied --api-key, not only
+        # saved/env credentials (CI/agent workflows pass the key directly).
+        mock_roboflow.return_value = MagicMock()
+        result = runner.invoke(
+            app,
+            ["--workspace", "ws", "--api-key", "MY_KEY", "image", "search", "tag:test", "-p", "proj", "--export"],
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        mock_roboflow.assert_called_once()
+        self.assertEqual(mock_roboflow.call_args.kwargs.get("api_key"), "MY_KEY")
+
     @patch("roboflow.cli.handlers.search._search")
     @patch("roboflow.cli.handlers.image._handle_search")
     def test_search_with_project_no_export_uses_roboql_filter(self, mock_handle_search, mock_search):
