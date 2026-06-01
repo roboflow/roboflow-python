@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Upload raw rf-detr PyTorch-Lightning checkpoints (e.g. `checkpoint_best_ema.pth`):
+  `upload_model` detects them and rebuilds a deploy-ready bundle via rf-detr's
+  `export_for_roboflow` (requires `rfdetr>=1.8.0`)
+  ([#488](https://github.com/roboflow/roboflow-python/pull/488))
+
 ## 1.3.11
 
 ### Added
