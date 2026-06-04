@@ -81,7 +81,8 @@ def search_images(
     ctx: typer.Context,
     query: Annotated[str, typer.Argument(help="RoboQL search query (e.g. 'tag:review' or '*')")],
     project: Annotated[
-        Optional[str], typer.Option("-p", "--project", help="Project ID (omit to search entire workspace)")
+        Optional[str],
+        typer.Option("-p", "--project", help="Project slug to scope results (omit to search entire workspace)"),
     ] = None,
     limit: Annotated[int, typer.Option(help="Number of results")] = 50,
     cursor: Annotated[Optional[str], typer.Option(help="Continuation token for pagination")] = None,
@@ -103,12 +104,10 @@ def search_images(
     With -p/--project, searches within a specific project.
     Use --export to download matching results as a dataset.
     """
-    if project:
-        # Project-scoped search (legacy behavior)
-        args = ctx_to_args(ctx, query=query, project=project, limit=limit, cursor=cursor)
-        _handle_search(args)
-    elif export:
-        # Workspace-level export
+    if export:
+        # Export scopes to a project via the `dataset` (project slug) body param,
+        # so route -p through as the dataset. Check export before project so
+        # `-p ... --export` exports the project instead of silently ignoring --export.
         from roboflow.cli.handlers.search import _search
 
         args = ctx_to_args(
@@ -119,12 +118,16 @@ def search_images(
             export=True,
             format=format,
             location=location,
-            dataset=dataset,
+            dataset=dataset or project,
             annotation_group=annotation_group,
             name=name,
             no_extract=no_extract,
         )
         _search(args)
+    elif project:
+        # _handle_search scopes by injecting a `project:<slug>` RoboQL filter.
+        args = ctx_to_args(ctx, query=query, project=project, limit=limit, cursor=cursor)
+        _handle_search(args)
     else:
         # Workspace-level search
         from roboflow.cli.handlers.search import _search
@@ -422,10 +425,17 @@ def _handle_search(args):  # noqa: ANN001
         output_error(args, "No workspace specified", hint="Use --workspace or run 'roboflow auth login'")
         return
 
+    # search/v1 only scopes via a `project:<slug>` RoboQL filter (body params are
+    # ignored). Leading space = implicit AND; `AND (...)` 500s on free-text queries.
+    query = args.query
+    project = getattr(args, "project", None)
+    if project:
+        query = f"project:{project} {args.query}"
+
     result = rfapi.workspace_search(
         api_key=api_key,
         workspace_url=workspace_url,
-        query=args.query,
+        query=query,
         page_size=args.limit,
         continuation_token=args.cursor,
     )

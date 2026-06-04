@@ -462,8 +462,72 @@ class TestImageSearch(unittest.TestCase):
             sys.stdout = old
 
         mock_workspace_search.assert_called_once()
+        # -p must scope via a `project:<slug>` filter prepended to the query.
+        called_query = mock_workspace_search.call_args.kwargs["query"]
+        self.assertEqual(called_query, "project:proj tag:test")
         result = json.loads(buf.getvalue())
         self.assertEqual(result["total"], 0)
+
+    @patch("roboflow.adapters.rfapi.workspace_search")
+    def test_search_without_project_is_unscoped(self, mock_workspace_search):
+        from roboflow.cli.handlers.image import _handle_search
+
+        mock_workspace_search.return_value = {"results": [], "total": 0}
+        args = _make_args(json=True, query="tag:test", project=None, limit=10, cursor=None)
+
+        buf = io.StringIO()
+        old = sys.stdout
+        sys.stdout = buf
+        try:
+            _handle_search(args)
+        finally:
+            sys.stdout = old
+
+        called_query = mock_workspace_search.call_args.kwargs["query"]
+        self.assertEqual(called_query, "tag:test")
+
+    @patch("roboflow.cli.handlers.search._search")
+    @patch("roboflow.cli.handlers.image._handle_search")
+    def test_search_with_project_and_export_scopes_the_export(self, mock_handle_search, mock_search):
+        # `-p ... --export` must export the project, not silently drop --export.
+        result = runner.invoke(
+            app,
+            ["--workspace", "ws", "--api-key", "k", "image", "search", "tag:test", "-p", "proj", "--export"],
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        mock_handle_search.assert_not_called()
+        mock_search.assert_called_once()
+        export_args = mock_search.call_args.args[0]
+        self.assertTrue(export_args.export)
+        # Export scopes by the `dataset` (project slug) body param.
+        self.assertEqual(export_args.dataset, "proj")
+
+    @patch("roboflow.Roboflow")
+    def test_search_export_forwards_cli_api_key_to_sdk(self, mock_roboflow):
+        # The export path must honor an explicitly supplied --api-key, not only
+        # saved/env credentials (CI/agent workflows pass the key directly).
+        mock_roboflow.return_value = MagicMock()
+        result = runner.invoke(
+            app,
+            ["--workspace", "ws", "--api-key", "MY_KEY", "image", "search", "tag:test", "-p", "proj", "--export"],
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        mock_roboflow.assert_called_once()
+        self.assertEqual(mock_roboflow.call_args.kwargs.get("api_key"), "MY_KEY")
+
+    @patch("roboflow.cli.handlers.search._search")
+    @patch("roboflow.cli.handlers.image._handle_search")
+    def test_search_with_project_no_export_uses_roboql_filter(self, mock_handle_search, mock_search):
+        result = runner.invoke(
+            app,
+            ["--workspace", "ws", "--api-key", "k", "image", "search", "tag:test", "-p", "proj"],
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        mock_search.assert_not_called()
+        mock_handle_search.assert_called_once()
 
 
 class TestImageAnnotate(unittest.TestCase):
