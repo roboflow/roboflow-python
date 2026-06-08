@@ -206,6 +206,36 @@ class TestFolderParser(unittest.TestCase):
             self.assertEqual(ann_data["annotations"][0]["bbox"], [10, 20, 100, 200])
 
 
+    def test_parse_csv_quoted_filename(self):
+        """_parseAnnotationCSV must handle filenames containing commas (RFC 4180 quoting)."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, newline="") as f:
+            f.write('img_fName,class_label\n')
+            f.write('"image,with,commas.jpg",cat\n')
+            f.write("normal.jpg,dog\n")
+            tmppath = f.name
+        try:
+            parsed = folderparser._parseAnnotationCSV(tmppath)
+            names = [ld["file_name"] for ld in parsed["lines"]]
+            self.assertEqual(names[0], "image,with,commas.jpg")
+            self.assertEqual(names[1], "normal.jpg")
+        finally:
+            os.unlink(tmppath)
+
+    def test_parse_multilabel_csv_quoted_filename(self):
+        """_parseAnnotationCSV must handle quoted filenames in _classes.csv format."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            classes_csv = os.path.join(tmpdir, "_classes.csv")
+            with open(classes_csv, "w") as f:
+                f.write("filename,cat,dog\n")
+                f.write('"image,with,commas.jpg",1,0\n')
+                f.write("normal.jpg,0,1\n")
+            parsed = folderparser._parseAnnotationCSV(classes_csv)
+            self.assertEqual(parsed["type"], "multilabel_csv")
+            rows = {r["file_name"]: r["labels"] for r in parsed["rows"]}
+            self.assertEqual(rows["image,with,commas.jpg"], ["cat"])
+            self.assertEqual(rows["normal.jpg"], ["dog"])
+
+
 def _assertJsonMatchesFile(actual, filename):
     with open(filename) as file:
         expected = json.load(file)
