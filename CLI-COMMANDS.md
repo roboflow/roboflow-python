@@ -91,6 +91,32 @@ roboflow model star <modelId> --unstar
 `model star` is NAS-only by server-side design; non-NAS modelTypes return
 `code: "MODEL_NOT_NAS"`.
 
+### Update image metadata and tags
+
+```bash
+# Single image: set metadata + add tags
+roboflow image metadata <image_id> -m '{"camera": "cam1"}' --tags "review,v2"
+
+# Remove metadata keys
+roboflow image metadata <image_id> --remove-metadata "old_key"
+
+# Remove tags
+roboflow image metadata <image_id> --remove-tags "draft"
+
+# Batch: update multiple images (async), poll for completion
+roboflow image metadata img1,img2,img3 --tags "processed" --poll
+
+# Batch with timeout
+roboflow image metadata img1,img2 -m '{"status": "done"}' --poll --timeout 600
+
+# Tag alias works identically (hidden command)
+roboflow image tag <image_id> --tags "review" --remove-tags "draft"
+```
+
+Single image ID updates synchronously. Multiple comma-separated IDs use the
+batch async endpoint (up to 1000 images). Use `--poll` to block until
+completion; without it the command returns the `taskId` immediately.
+
 ### Search and export
 
 ```bash
@@ -334,7 +360,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `workspace` | List and inspect workspaces |
 | `project` | List, get, create projects |
 | `version` | List, get, download, export dataset versions |
-| `image` | Upload, get, search, tag, delete, annotate images |
+| `image` | Upload, get, search, metadata, tag, delete, annotate images |
 | `model` | List, get, upload trained models |
 | `train` | Start model training |
 | `infer` | Run inference on images |
