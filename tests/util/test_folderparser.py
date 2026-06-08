@@ -205,11 +205,10 @@ class TestFolderParser(unittest.TestCase):
             self.assertEqual(len(ann_data["annotations"]), 1, "Should have one annotation")
             self.assertEqual(ann_data["annotations"][0]["bbox"], [10, 20, 100, 200])
 
-
     def test_parse_csv_quoted_filename(self):
         """_parseAnnotationCSV must handle filenames containing commas (RFC 4180 quoting)."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, newline="") as f:
-            f.write('img_fName,class_label\n')
+            f.write("img_fName,class_label\n")
             f.write('"image,with,commas.jpg",cat\n')
             f.write("normal.jpg,dog\n")
             tmppath = f.name

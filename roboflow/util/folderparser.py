@@ -353,8 +353,7 @@ def _parseAnnotationCSV(filename):
     # for upload, but use csv.reader to correctly extract file_name (handles quoted commas).
     header_line = raw_lines[0] if raw_lines else ""
     lines = [
-        {"file_name": row[0].strip() if row else "", "line": raw_line}
-        for raw_line, row in zip(raw_lines[1:], rows[1:])
+        {"file_name": row[0].strip() if row else "", "line": raw_line} for raw_line, row in zip(raw_lines[1:], rows[1:])
     ]
     return {"headers": header_line, "lines": lines}
 
