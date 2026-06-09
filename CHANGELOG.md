@@ -4,19 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## 1.3.10
 
-### Added — Weight upload for yolo26-sem semantic segmentation models
+### Added
 
-Adds `TASK_SEM` task constant and wires it through the weight upload
-pipeline so yolo26-sem checkpoints (ultralytics `SemanticSegmentationModel`,
-new in ultralytics 8.4.55) are recognised, auto-suffixed, and validated
-against semantic-segmentation projects.
-
-- `task_of_model_type()` recognises the `-sem` suffix
-- `_detect_yolo_task()` maps `SemanticSegmentationModel` checkpoints to `TASK_SEM`
-- `validate_model_type_for_project()` enforces that `-sem` models match
-  semantic-segmentation projects (and rejects mismatches in both directions)
-- Auto-suffix: declaring plain `"yolo26"` with a semantic-seg checkpoint
-  auto-corrects to `"yolo26-sem"`
+- Weight upload support for yolo26-sem semantic segmentation models via
+  `version.deploy()` and `workspace.deploy_model()`
 
 ## 1.3.9
 
