@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from types import SimpleNamespace
 
-from roboflow.config import TASK_CLS, TASK_DET, TASK_OBB, TASK_POSE, TASK_SEG
+from roboflow.config import TASK_CLS, TASK_DET, TASK_OBB, TASK_POSE, TASK_SEG, TASK_SEM
 from roboflow.util.model_processor import (
     _detect_rfdetr_task,
     _detect_yolo_task,
@@ -38,6 +38,9 @@ class TaskOfModelTypeTest(unittest.TestCase):
     def test_classify(self):
         self.assertEqual(task_of_model_type("yolov11-cls"), TASK_CLS)
 
+    def test_semantic(self):
+        self.assertEqual(task_of_model_type("yolo26-sem"), TASK_SEM)
+
     def test_obb(self):
         self.assertEqual(task_of_model_type("yolov11-obb"), TASK_OBB)
 
@@ -53,6 +56,9 @@ class DetectYoloTaskTest(unittest.TestCase):
         }
         for cls_name, expected in cases.items():
             self.assertEqual(_detect_yolo_task(_make_fake(cls_name)), expected, cls_name)
+
+    def test_semantic_segmentation_model(self):
+        self.assertEqual(_detect_yolo_task(_make_fake("SemanticSegmentationModel")), TASK_SEM)
 
     def test_unrecognized_returns_none(self):
         self.assertIsNone(_detect_yolo_task(_make_fake("SomeOtherModel")))

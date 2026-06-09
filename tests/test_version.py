@@ -10,6 +10,7 @@ from roboflow.config import (
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_KEYPOINT_DETECTION,
     TYPE_OBJECT_DETECTION,
+    TYPE_SEMANTIC_SEGMENTATION,
 )
 from roboflow.core.version import Version, unwrap_version_id
 from tests.helpers import get_version
@@ -242,6 +243,25 @@ class TestValidateAgainstProjectType(unittest.TestCase):
 
     def test_classification_project_accepts_cls(self):
         self._version(TYPE_CLASSICATION)._validate_against_project_type("yolov11-cls")
+
+    def test_semantic_seg_project_accepts_sem_model(self):
+        self._version(TYPE_SEMANTIC_SEGMENTATION)._validate_against_project_type("yolo26-sem")
+
+    def test_semantic_seg_project_rejects_detection(self):
+        with self.assertRaises(ValueError):
+            self._version(TYPE_SEMANTIC_SEGMENTATION)._validate_against_project_type("yolov11")
+
+    def test_semantic_seg_project_rejects_instance_seg(self):
+        with self.assertRaises(ValueError):
+            self._version(TYPE_SEMANTIC_SEGMENTATION)._validate_against_project_type("yolov11-seg")
+
+    def test_instance_seg_project_rejects_sem_model(self):
+        with self.assertRaises(ValueError):
+            self._version(TYPE_INSTANCE_SEGMENTATION)._validate_against_project_type("yolo26-sem")
+
+    def test_detection_project_rejects_sem_model(self):
+        with self.assertRaises(ValueError):
+            self._version(TYPE_OBJECT_DETECTION)._validate_against_project_type("yolo26-sem")
 
     def test_classification_project_rejects_detection(self):
         with self.assertRaises(ValueError):
