@@ -76,6 +76,7 @@ TYPE_TEXT_IMAGE_PAIRS = "text-image-pairs"
 
 TASK_DET = "det"
 TASK_SEG = "seg"
+TASK_SEM = "sem"
 TASK_POSE = "pose"
 TASK_CLS = "cls"
 TASK_OBB = "obb"

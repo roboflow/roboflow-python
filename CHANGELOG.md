@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.3.10
+
+### Added
+
+- Weight upload support for yolo26-sem semantic segmentation models via
+  `version.deploy()` and `workspace.deploy_model()`
+
 ## 1.3.9
 
 ### Added — Model evaluations SDK & CLI

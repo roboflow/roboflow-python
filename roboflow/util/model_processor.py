@@ -12,10 +12,12 @@ from roboflow.config import (
     TASK_OBB,
     TASK_POSE,
     TASK_SEG,
+    TASK_SEM,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_KEYPOINT_DETECTION,
     TYPE_OBJECT_DETECTION,
+    TYPE_SEMANTIC_SEGMENTATION,
 )
 from roboflow.util.versions import print_warn_for_wrong_dependencies_versions
 
@@ -27,21 +29,18 @@ def task_of_model_type(model_type: str) -> str:
     (e.g. 'yolov11-seg' -> TASK_SEG). Plain 'yolov11' / 'rfdetr-base' -> TASK_DET.
     """
     s = model_type.lower()
-    for task in (TASK_SEG, TASK_POSE, TASK_CLS, TASK_OBB):
+    for task in (TASK_SEM, TASK_SEG, TASK_POSE, TASK_CLS, TASK_OBB):
         if task in s:
             return task
     return TASK_DET
 
 
 def validate_model_type_for_project(model_type: str, project_type: str, project_id: str) -> None:
-    """Raise ValueError if model_type's task doesn't match the Roboflow project type.
-
-    No-op when project_type has no uploader-relevant task (e.g. semantic-segmentation).
-    """
-    # TYPE_SEMANTIC_SEGMENTATION intentionally omitted — no uploader emits it.
+    """Raise ValueError if model_type's task doesn't match the Roboflow project type."""
     expected = {
         TYPE_OBJECT_DETECTION: TASK_DET,
         TYPE_INSTANCE_SEGMENTATION: TASK_SEG,
+        TYPE_SEMANTIC_SEGMENTATION: TASK_SEM,
         TYPE_KEYPOINT_DETECTION: TASK_POSE,
         TYPE_CLASSICATION: TASK_CLS,
     }.get(project_type)
@@ -119,6 +118,7 @@ def _detect_yolo_task(model_instance) -> Optional[str]:
     return {
         "DetectionModel": TASK_DET,
         "SegmentationModel": TASK_SEG,
+        "SemanticSegmentationModel": TASK_SEM,
         "PoseModel": TASK_POSE,
         "ClassificationModel": TASK_CLS,
         "OBBModel": TASK_OBB,
