@@ -7,6 +7,7 @@ from typing import Callable, Optional
 import yaml
 
 from roboflow.config import (
+    DISABLE_CLASS_SORTING,
     TASK_CLS,
     TASK_DET,
     TASK_OBB,
@@ -224,7 +225,11 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> tuple[str,
         class_names = []
         for i, val in enumerate(model_instance.names):
             class_names.append((val, model_instance.names[val]))
-        class_names.sort(key=lambda x: x[0])
+        # NOTE: When DISABLE_CLASS_SORTING is enabled, users are responsible for ensuring
+        # their model's names dict has properly ordered/sequential keys. Non-sequential keys
+        # may result in incorrect class-to-index mappings.
+        if not DISABLE_CLASS_SORTING:
+            class_names.sort(key=lambda x: x[0])
         class_names = [x[1] for x in class_names]
 
     if (
