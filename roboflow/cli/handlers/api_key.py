@@ -51,7 +51,10 @@ def create_key(
     name: Annotated[str, typer.Argument(help="Display name for the new key")],
     scope: Annotated[
         Optional[List[str]],
-        typer.Option("--scope", help="Permission scope (repeatable). Omit for full-access key."),
+        typer.Option(
+            "--scope",
+            help="Scope or role:<name> preset (repeatable). Omit to inherit the calling key's scopes.",
+        ),
     ] = None,
     folder: Annotated[
         Optional[List[str]],
@@ -84,7 +87,10 @@ def update_key(
     name: Annotated[Optional[str], typer.Option("--name", help="New display name")] = None,
     scope: Annotated[
         Optional[List[str]],
-        typer.Option("--scope", help="Permission scope (repeatable). Replaces existing scopes."),
+        typer.Option(
+            "--scope",
+            help="Scope or role:<name> preset (repeatable). Replaces existing scopes.",
+        ),
     ] = None,
     metadata: Annotated[
         Optional[List[str]],
