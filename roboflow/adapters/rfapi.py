@@ -1450,3 +1450,111 @@ def get_model_eval_image_predictions(
 def get_model_eval_recommendations(api_key: str, workspace_url: str, eval_id: str) -> dict:
     """GET /{workspace}/model-evals/{evalId}/recommendations — improvement suggestions."""
     return _eval_get(api_key, workspace_url, f"/{eval_id}/recommendations")
+
+
+# ---------------------------------------------------------------------------
+# API key management endpoints
+# ---------------------------------------------------------------------------
+
+
+def list_api_keys(
+    api_key: str,
+    workspace_url: str,
+    include_disabled: bool = False,
+    include_folders: bool = False,
+) -> dict:
+    """GET /{workspace}/api-keys — list API keys for a workspace."""
+    params: Dict[str, Union[str, bool]] = {"api_key": api_key}
+    if include_disabled:
+        params["includeDisabled"] = "true"
+    if include_folders:
+        params["includeFolders"] = "true"
+    response = requests.get(f"{API_URL}/{workspace_url}/api-keys", params=params)
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def get_api_key(api_key: str, workspace_url: str, key_id: str) -> dict:
+    """GET /{workspace}/api-keys/{keyId} — get a single API key by ID."""
+    encoded = quote(key_id, safe="")
+    response = requests.get(f"{API_URL}/{workspace_url}/api-keys/{encoded}", params={"api_key": api_key})
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def get_publishable_key(api_key: str, workspace_url: str) -> dict:
+    """GET /{workspace}/api-keys/publishable — get the workspace publishable key."""
+    response = requests.get(f"{API_URL}/{workspace_url}/api-keys/publishable", params={"api_key": api_key})
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def create_api_key(
+    api_key: str,
+    workspace_url: str,
+    name: Optional[str] = None,
+    scopes: Optional[List[str]] = None,
+    folder_ids: Optional[List[str]] = None,
+    custom_metadata: Optional[Dict] = None,
+    protected: bool = False,
+) -> dict:
+    """POST /{workspace}/api-keys — create a new API key.
+
+    The secret ``key`` value is returned only on creation (shown once).
+    Omitting ``scopes`` (or passing ``None``) creates a full-access key.
+    ``scopes``, ``folder_ids``, and ``custom_metadata`` require the Advanced
+    API Keys plan feature — the backend returns 403 if unavailable.
+    """
+    body: Dict[str, Any] = {}
+    if name is not None:
+        body["name"] = name
+    if scopes is not None:
+        body["scopes"] = scopes
+    if folder_ids is not None:
+        body["folderIds"] = folder_ids
+    if custom_metadata is not None:
+        body["custom_metadata"] = custom_metadata
+    if protected:
+        body["protected"] = True
+    response = requests.post(f"{API_URL}/{workspace_url}/api-keys", params={"api_key": api_key}, json=body)
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def update_api_key(api_key: str, workspace_url: str, key_id: str, **fields: Any) -> dict:
+    """PATCH /{workspace}/api-keys/{keyId} — update an existing API key.
+
+    Pass only the fields you want to change as keyword arguments:
+    ``name``, ``scopes``, ``custom_metadata``, ``protected``, ``disabled``.
+    The API cannot unprotect a key (``protected=False`` → 403).
+    Disabling a protected key returns 409.
+    """
+    encoded = quote(key_id, safe="")
+    body: Dict[str, Any] = {k: v for k, v in fields.items() if v is not None}
+    response = requests.patch(
+        f"{API_URL}/{workspace_url}/api-keys/{encoded}",
+        params={"api_key": api_key},
+        json=body,
+    )
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def revoke_api_key(api_key: str, workspace_url: str, key_id: str) -> dict:
+    """DELETE /{workspace}/api-keys/{keyId} — revoke (permanently delete) an API key.
+
+    Revoking a protected key returns 409. This action is irreversible.
+    """
+    encoded = quote(key_id, safe="")
+    response = requests.delete(
+        f"{API_URL}/{workspace_url}/api-keys/{encoded}",
+        params={"api_key": api_key},
+    )
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
