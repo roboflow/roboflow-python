@@ -303,7 +303,7 @@ class TestCreateApiKey(unittest.TestCase):
             api_key=None,
             quiet=False,
             name="Scoped Key",
-            scope=["read:images", "read:annotations"],
+            scope=["image:read", "image:annotate"],
             folder=["f1", "f2"],
             metadata=None,
             protected=False,
@@ -316,7 +316,7 @@ class TestCreateApiKey(unittest.TestCase):
             "fake-key",
             "test-ws",
             name="Scoped Key",
-            scopes=["read:images", "read:annotations"],
+            scopes=["image:read", "image:annotate"],
             folder_ids=["f1", "f2"],
             custom_metadata=None,
             protected=False,
@@ -438,7 +438,7 @@ class TestUpdateApiKey(unittest.TestCase):
             quiet=False,
             key_id="k1",
             name=None,
-            scope=["read:images"],
+            scope=["image:read"],
             metadata=["team=vision"],
         )
         from roboflow.cli.handlers.api_key import _update_key
@@ -449,7 +449,7 @@ class TestUpdateApiKey(unittest.TestCase):
             "fake-key",
             "test-ws",
             "k1",
-            scopes=["read:images"],
+            scopes=["image:read"],
             custom_metadata={"team": "vision"},
         )
 
@@ -702,6 +702,29 @@ class TestErrorBranches(unittest.TestCase):
         data = json.loads(printed["json"])
         self.assertIn("settings/api", data["error"]["hint"])
         self.assertNotIn("settings/api-keys", data["error"]["hint"])
+
+    @patch("roboflow.adapters.rfapi.update_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_disable_plan_feature_403_hint(self, _mock_key, _mock_ws, mock_update) -> None:
+        from roboflow.adapters.rfapi import RoboflowError
+
+        mock_update.side_effect = RoboflowError("forbidden", status_code=403)
+        args = Namespace(json=True, workspace=None, api_key=None, quiet=False, key_id="k1", enable=False)
+        from roboflow.cli.handlers.api_key import _disable_key
+
+        printed = {}
+
+        def _capture(payload, *a, **k):
+            printed["json"] = payload
+
+        with patch("builtins.print", side_effect=_capture):
+            with self.assertRaises(SystemExit) as ctx:
+                _disable_key(args)
+        # 403 → plan-feature hint, same as create, exit 1.
+        self.assertEqual(ctx.exception.code, 1)
+        data = json.loads(printed["json"])
+        self.assertIn("Advanced API Keys", data["error"]["hint"])
 
 
 if __name__ == "__main__":

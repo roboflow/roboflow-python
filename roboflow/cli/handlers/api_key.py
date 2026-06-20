@@ -389,6 +389,13 @@ def _disable_key(args) -> None:  # noqa: ANN001
                 hint="Protected keys cannot be disabled. To disable, visit app.roboflow.com/settings/api.",
                 exit_code=1,
             )
+        elif getattr(exc, "status_code", None) == 403:
+            output_error(
+                args,
+                str(exc),
+                hint="Enabling/disabling keys requires the Advanced API Keys plan feature.",
+                exit_code=1,
+            )
         else:
             output_api_error(
                 args,
