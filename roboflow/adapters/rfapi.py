@@ -1504,9 +1504,11 @@ def create_api_key(
     """POST /{workspace}/api-keys — create a new API key.
 
     The secret ``key`` value is returned only on creation (shown once).
-    Omitting ``scopes`` (or passing ``None``) creates a full-access key.
-    ``scopes``, ``folder_ids``, and ``custom_metadata`` require the Advanced
-    API Keys plan feature — the backend returns 403 if unavailable.
+    Omitting ``scopes`` (or passing ``None``) inherits the calling credential's
+    own scopes, so a full-access credential creates a full-access key. Pass a list
+    to scope the key (``role:<name>`` presets are accepted), or ``[]`` for a key
+    with no abilities. ``scopes``, ``folder_ids``, and ``custom_metadata`` require
+    the Advanced API Keys plan feature — the backend returns 403 if unavailable.
     """
     body: Dict[str, Any] = {}
     if name is not None:
