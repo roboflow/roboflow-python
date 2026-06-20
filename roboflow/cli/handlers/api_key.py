@@ -298,18 +298,15 @@ def _create_key(args) -> None:  # noqa: ANN001
     secret = result.get("key", "")
     key_id = result.get("keyId", "")
 
-    if getattr(args, "json", False):
-        output(args, result)
-    else:
-        lines = [
-            f"Created API key '{args.name}' (keyId: {key_id})",
-            "",
-            "WARNING: This is the only time the secret key will be shown.",
-            "Save it somewhere secure now.",
-            "",
-            f"  Key: {secret}",
-        ]
-        print("\n".join(lines))  # noqa: T201
+    lines = [
+        f"Created API key '{args.name}' (keyId: {key_id})",
+        "",
+        "WARNING: This is the only time the secret key will be shown.",
+        "Save it somewhere secure now.",
+        "",
+        f"  Key: {secret}",
+    ]
+    output(args, result, text="\n".join(lines))
 
 
 def _update_key(args) -> None:  # noqa: ANN001
