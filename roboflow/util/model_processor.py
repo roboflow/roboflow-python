@@ -325,10 +325,12 @@ def _detect_rfdetr_task(checkpoint) -> Optional[str]:
     rf-detr supports weight upload for detection, instance segmentation, and
     keypoint detection. Modern checkpoints (rf-detr v1.7+) store the Python
     class name at `checkpoint["model_name"]` (e.g. 'RFDETRNano' vs
-    'RFDETRSegNano' vs 'RFDETRKeypointPreview'); older checkpoints — including
-    those downloaded from Roboflow — lack that field but always carry
-    `args.segmentation_head: bool`. Keypoint support is recent enough that those
-    checkpoints always carry `model_name`, so no args fallback is needed for it.
+    'RFDETRSegNano' vs 'RFDETRKeypointPreview').
+
+    The deploy bundle written by rf-detr's `export_for_roboflow` only serialises
+    `{"model", "args"}` — it drops `model_name` — so detection must also work
+    from `args`: keypoint checkpoints carry a non-empty `args.num_keypoints_per_class`,
+    and detection/segmentation checkpoints carry `args.segmentation_head: bool`.
     """
     if not isinstance(checkpoint, dict):
         return None
@@ -341,7 +343,13 @@ def _detect_rfdetr_task(checkpoint) -> Optional[str]:
     args = checkpoint.get("args")
     if args is None:
         return None
-    seg_head = args.get("segmentation_head") if isinstance(args, dict) else getattr(args, "segmentation_head", None)
+
+    def _arg(key):
+        return args.get(key) if isinstance(args, dict) else getattr(args, key, None)
+
+    if _arg("num_keypoints_per_class"):
+        return TASK_POSE
+    seg_head = _arg("segmentation_head")
     if seg_head is True:
         return TASK_SEG
     if seg_head is False:

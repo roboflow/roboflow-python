@@ -78,6 +78,16 @@ class DetectRfdetrTaskTest(unittest.TestCase):
     def test_keypoint_model_names(self):
         self.assertEqual(_detect_rfdetr_task({"model_name": "RFDETRKeypointPreview"}), TASK_POSE)
 
+    def test_keypoint_args_fallback(self):
+        # The deploy bundle from export_for_roboflow carries `args` but not
+        # `model_name`; a non-empty `num_keypoints_per_class` marks a keypoint model.
+        self.assertEqual(_detect_rfdetr_task({"args": SimpleNamespace(num_keypoints_per_class=[0, 17])}), TASK_POSE)
+        self.assertEqual(_detect_rfdetr_task({"args": {"num_keypoints_per_class": [0, 17]}}), TASK_POSE)
+        # Empty / absent keypoint schema must NOT be treated as a keypoint model.
+        self.assertEqual(
+            _detect_rfdetr_task({"args": {"num_keypoints_per_class": [], "segmentation_head": False}}), TASK_DET
+        )
+
     def test_segmentation_head_fallback(self):
         # Roboflow-hosted rf-detr .pt downloads lack `model_name` but always carry
         # `args.segmentation_head`. Cover both namespace and dict shapes.
