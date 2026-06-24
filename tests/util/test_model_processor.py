@@ -34,6 +34,7 @@ class TaskOfModelTypeTest(unittest.TestCase):
 
     def test_pose(self):
         self.assertEqual(task_of_model_type("yolov11-pose"), TASK_POSE)
+        self.assertEqual(task_of_model_type("rfdetr-keypoint-preview"), TASK_POSE)
 
     def test_classify(self):
         self.assertEqual(task_of_model_type("yolov11-cls"), TASK_CLS)
@@ -73,6 +74,9 @@ class DetectRfdetrTaskTest(unittest.TestCase):
     def test_detection_model_names(self):
         for name in ("RFDETRNano", "RFDETRSmall", "RFDETRMedium", "RFDETRLarge", "RFDETRXLarge"):
             self.assertEqual(_detect_rfdetr_task({"model_name": name}), TASK_DET, name)
+
+    def test_keypoint_model_names(self):
+        self.assertEqual(_detect_rfdetr_task({"model_name": "RFDETRKeypointPreview"}), TASK_POSE)
 
     def test_segmentation_head_fallback(self):
         # Roboflow-hosted rf-detr .pt downloads lack `model_name` but always carry

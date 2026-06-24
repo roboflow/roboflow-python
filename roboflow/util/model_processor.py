@@ -27,8 +27,13 @@ def task_of_model_type(model_type: str) -> str:
 
     Non-detect tasks double as the model_type suffix token
     (e.g. 'yolov11-seg' -> TASK_SEG). Plain 'yolov11' / 'rfdetr-base' -> TASK_DET.
+
+    Keypoint/pose models may spell the token as either 'pose' (Ultralytics) or
+    'keypoint' (rf-detr, e.g. 'rfdetr-keypoint-preview'); both map to TASK_POSE.
     """
     s = model_type.lower()
+    if "keypoint" in s:
+        return TASK_POSE
     for task in (TASK_SEM, TASK_SEG, TASK_POSE, TASK_CLS, TASK_OBB):
         if task in s:
             return task
@@ -317,17 +322,22 @@ def _process_yolo(model_type: str, model_path: str, filename: str) -> tuple[str,
 def _detect_rfdetr_task(checkpoint) -> Optional[str]:
     """Detect the training task of an rf-detr checkpoint.
 
-    rf-detr currently only supports weight upload for detection and instance
-    segmentation. Modern checkpoints (rf-detr v1.7+) store the Python class
-    name at `checkpoint["model_name"]` (e.g. 'RFDETRNano' vs 'RFDETRSegNano');
-    older checkpoints — including those downloaded from Roboflow — lack that
-    field but always carry `args.segmentation_head: bool`.
+    rf-detr supports weight upload for detection, instance segmentation, and
+    keypoint detection. Modern checkpoints (rf-detr v1.7+) store the Python
+    class name at `checkpoint["model_name"]` (e.g. 'RFDETRNano' vs
+    'RFDETRSegNano' vs 'RFDETRKeypointPreview'); older checkpoints — including
+    those downloaded from Roboflow — lack that field but always carry
+    `args.segmentation_head: bool`. Keypoint support is recent enough that those
+    checkpoints always carry `model_name`, so no args fallback is needed for it.
     """
     if not isinstance(checkpoint, dict):
         return None
     model_name = checkpoint.get("model_name")
     if isinstance(model_name, str):
-        return TASK_SEG if TASK_SEG in model_name.lower() else TASK_DET
+        name = model_name.lower()
+        if "keypoint" in name:
+            return TASK_POSE
+        return TASK_SEG if TASK_SEG in name else TASK_DET
     args = checkpoint.get("args")
     if args is None:
         return None
@@ -356,6 +366,8 @@ def _process_rfdetr(model_type: str, model_path: str, filename: str) -> tuple[st
         "rfdetr-seg-large",
         "rfdetr-seg-xlarge",
         "rfdetr-seg-2xlarge",
+        # Keypoint detection models
+        "rfdetr-keypoint-preview",
     ]
     if model_type not in _supported_types:
         raise ValueError(f"Model type {model_type} not supported. Supported types are {_supported_types}")
