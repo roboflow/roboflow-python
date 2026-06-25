@@ -92,6 +92,40 @@ class TrainedModel:
         params.update(kwargs)
         return model.predict(image_path, prediction_type=prediction_type, **params)
 
+    def predict_video(self, video_path, fps=5, additional_models=None, prediction_type="batch-video"):
+        """Run hosted video inference for this model (DNA-era equivalent of the
+        legacy ``version.model.predict_video``).
+
+        Delegates to the task-appropriate legacy inference model built from this
+        model's id, so a ``TrainedModel`` can do everything the old
+        ``version.model`` could. Returns ``(job_id, signed_url, expires)``; poll
+        with :meth:`poll_for_video_results` on the same object.
+
+        NOTE: the legacy ``/videoinfer`` payload is keyed by ``<dataset>/<version>``.
+        For MMPV models addressed by ``<workspace>/<model-slug>`` this routes the
+        slug through as the version segment; verify against staging before relying
+        on it for slug-addressed models.
+        """
+        from roboflow.models.classification import ClassificationModel
+        from roboflow.models.instance_segmentation import InstanceSegmentationModel
+        from roboflow.models.keypoint_detection import KeypointDetectionModel
+        from roboflow.models.object_detection import ObjectDetectionModel
+        from roboflow.models.semantic_segmentation import SemanticSegmentationModel
+
+        task = task_of_model_type(self.model_type or "")
+        legacy_class = {
+            TASK_CLS: ClassificationModel,
+            TASK_SEG: InstanceSegmentationModel,
+            TASK_SEM: SemanticSegmentationModel,
+            TASK_POSE: KeypointDetectionModel,
+        }.get(task, ObjectDetectionModel)
+
+        legacy_id = f"{self.workspace}/{self.project}/{self._weights_id}"
+        legacy_model = legacy_class(self.__api_key, legacy_id)
+        return legacy_model.predict_video(
+            video_path, fps=fps, additional_models=additional_models, prediction_type=prediction_type
+        )
+
     def download(self, format="pt", location="."):
         """Download this model's PyTorch weights to ``location/weights.pt``."""
         weights_url = rfapi.get_model_weights_url(

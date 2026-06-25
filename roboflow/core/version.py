@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import time
+import warnings
 from typing import TYPE_CHECKING, Optional, Union
 
 import requests
@@ -50,8 +51,6 @@ class Version:
     Class representing a Roboflow dataset version.
     """
 
-    model: Optional[InferenceModel]
-
     def __init__(
         self,
         version_dict,
@@ -69,7 +68,6 @@ class Version:
         """
         Initialize a Version object.
         """
-        self._model = None
         if api_key:
             self.__api_key = api_key
             self.name = name
@@ -165,26 +163,20 @@ class Version:
 
     @property
     def model(self):
-        """The version's legacy inference model, if one is known."""
-        return getattr(self, "_model", None)
+        """Deprecated. The version's legacy single inference model, or ``None``.
 
-    def require_single_model(self):
-        """Return the only model across this version's trainings, or raise.
-
-        MMPV versions may have zero, one, or many trained models. This explicit
-        method preserves the legacy nullable ``version.model`` behavior while
-        still giving callers a shortcut when they require exactly one model.
+        A version may now own many trained models (MMPV). This single-model
+        attribute cannot represent that, so it is deprecated in favor of
+        :meth:`models`, which returns every trained model for the version, and
+        :meth:`trainings`, which exposes the runs that produced them.
         """
-        models = self.models()
-        if len(models) == 1:
-            return models[0]
-        if not models:
-            raise RuntimeError(f"Version {self.version} has no trained model yet.")
-        raise RuntimeError(
-            f"Version {self.version} has multiple models; the sole-model shortcut is ambiguous. "
-            "Enumerate them with version.models() (or a specific training's .models) and pick "
-            "one — refusing to guess a canonical model."
+        warnings.warn(
+            "version.model is deprecated and will be removed in a future release; "
+            "use version.models() (all trained models) or version.trainings() instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        return getattr(self, "_model", None)
 
     @model.setter
     def model(self, value):
@@ -566,8 +558,8 @@ class Version:
                 raise ValueError(f"Unsupported model type: {self.type}")
 
         # return the model object
-        assert self.model
-        return self.model
+        assert self._model
+        return self._model
 
     # @warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])
     def deploy(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:

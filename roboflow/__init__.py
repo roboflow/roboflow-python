@@ -168,7 +168,9 @@ def load_model(model_url):
 
     project = operate_workspace.project(project)
     version = project.version(version)
-    model = version.model
+    # version.model is deprecated; read the underlying legacy model directly so
+    # load_model keeps its single-model return contract without emitting the warning.
+    model = getattr(version, "_model", None)
     return model
 
 

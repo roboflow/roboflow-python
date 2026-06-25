@@ -80,7 +80,7 @@ class KeypointDetectionModel(InferenceModel):
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> model = project.version("1").model
+            >>> model = project.version("1").models()[0]
 
             >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """

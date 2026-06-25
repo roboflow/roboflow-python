@@ -56,7 +56,7 @@ def _video_infer(args) -> None:  # noqa: ANN001
             rf = roboflow.Roboflow(api_key)
             project = rf.workspace().project(args.project)
             version = project.version(args.version_number)
-            model = version.model
+            model = getattr(version, "_model", None)
 
             job_id, _signed_url, _expire_time = model.predict_video(
                 args.video_file,

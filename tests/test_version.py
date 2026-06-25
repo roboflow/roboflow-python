@@ -1,5 +1,6 @@
 import os
 import unittest
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -270,27 +271,20 @@ class TestValidateAgainstProjectType(unittest.TestCase):
 
 class TestMMPVCompatibility(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.get_version", return_value={"version": {}})
-    def test_model_property_remains_nullable_without_enumerating_models(self, _mock_get_version: MagicMock):
+    def test_model_property_is_deprecated_and_does_not_enumerate_models(self, _mock_get_version: MagicMock):
         version = get_version()
         with patch.object(Version, "models", side_effect=AssertionError("models should not be called")):
-            self.assertIsNone(version.model)
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsNone(version.model)
 
     @patch("roboflow.adapters.rfapi.get_version", return_value={"version": {}})
-    def test_require_single_model_returns_only_model(self, _mock_get_version: MagicMock):
+    def test_models_returns_union_across_trainings(self, _mock_get_version: MagicMock):
         version = get_version()
-        trained_model = object()
-        with patch.object(Version, "models", return_value=[trained_model]):
-            self.assertIs(version.require_single_model(), trained_model)
-
-    @patch("roboflow.adapters.rfapi.get_version", return_value={"version": {}})
-    def test_require_single_model_raises_for_zero_or_many_models(self, _mock_get_version: MagicMock):
-        version = get_version()
-        with patch.object(Version, "models", return_value=[]):
-            with self.assertRaises(RuntimeError):
-                version.require_single_model()
-        with patch.object(Version, "models", return_value=[object(), object()]):
-            with self.assertRaises(RuntimeError):
-                version.require_single_model()
+        a, b, c = object(), object(), object()
+        training_one = SimpleNamespace(models=[a, b])
+        training_two = SimpleNamespace(models=[c])
+        with patch.object(Version, "trainings", return_value=[training_one, training_two]):
+            self.assertEqual(version.models(), [a, b, c])
 
     @patch.object(Version, "_Version__wait_if_generating")
     @patch("roboflow.adapters.rfapi.create_training_v2")
