@@ -165,15 +165,16 @@ class Version:
 
     @property
     def model(self):
-        """The version's single inference model.
+        """The version's legacy inference model, if one is known."""
+        return getattr(self, "_model", None)
 
-        For a legacy (SMPV) version this is the inline model built at
-        construction. For an MMPV version it resolves the sole model across the
-        version's trainings — refusing to guess when the version owns several
-        (a NAS run or multiple trainings). Use :meth:`models` to enumerate them.
+    def require_single_model(self):
+        """Return the only model across this version's trainings, or raise.
+
+        MMPV versions may have zero, one, or many trained models. This explicit
+        method preserves the legacy nullable ``version.model`` behavior while
+        still giving callers a shortcut when they require exactly one model.
         """
-        if getattr(self, "_model", None) is not None:
-            return self._model
         models = self.models()
         if len(models) == 1:
             return models[0]
@@ -211,6 +212,38 @@ class Version:
         for training in self.trainings():
             result.extend(training.models)
         return result
+
+    def create_training(
+        self, speed=None, model_type=None, checkpoint=None, epochs=None
+    ):
+        """Create a v2 training run and return a Training object.
+
+        Unlike :meth:`train`, this does not block until completion or return a
+        legacy task-specific model. It exposes the MMPV-aware training id so
+        callers can refresh the run, enumerate produced models, and select the
+        model they want.
+        """
+        from roboflow.core.training import Training
+
+        self.__wait_if_generating()
+
+        if model_type:
+            train_model_format = get_model_format(model_type)
+            if train_model_format not in self.exports:
+                self.export(train_model_format)
+
+        workspace, project, *_ = self.id.rsplit("/")
+        raw = rfapi.create_training_v2(
+            api_key=self.__api_key,
+            workspace_url=workspace,
+            project_url=project,
+            version=self.version,
+            speed=speed if speed else None,
+            checkpoint=checkpoint if checkpoint else None,
+            model_type=model_type if model_type else None,
+            epochs=epochs,
+        )
+        return Training(self.__api_key, workspace, project, self.version, raw)
 
     def __check_if_generating(self):
         # check Roboflow API to see if this version is still generating

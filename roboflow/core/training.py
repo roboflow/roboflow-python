@@ -8,18 +8,50 @@ the backend, never here.
 
 from __future__ import annotations
 
-import base64
-import io
 import json
 import os
-import urllib.parse
 from typing import List
 
 import requests
 
 from roboflow.adapters import rfapi
-from roboflow.config import OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
-from roboflow.util.prediction import PredictionGroup
+from roboflow.config import (
+    CLASSIFICATION_MODEL,
+    INSTANCE_SEGMENTATION_MODEL,
+    KEYPOINT_DETECTION_MODEL,
+    OBJECT_DETECTION_MODEL,
+    OBJECT_DETECTION_URL,
+    SEMANTIC_SEGMENTATION_MODEL,
+    SEMANTIC_SEGMENTATION_URL,
+    TASK_CLS,
+    TASK_OBB,
+    TASK_POSE,
+    TASK_SEG,
+    TASK_SEM,
+)
+from roboflow.models.inference import InferenceModel
+from roboflow.util.model_processor import task_of_model_type
+
+
+def _serverless_base_url_for_task(task: str) -> str:
+    if task == TASK_SEM:
+        return SEMANTIC_SEGMENTATION_URL
+    return OBJECT_DETECTION_URL
+
+
+def _prediction_type_for_task(task: str) -> str:
+    if task == TASK_CLS:
+        return CLASSIFICATION_MODEL
+    elif task == TASK_SEG:
+        return INSTANCE_SEGMENTATION_MODEL
+    elif task == TASK_SEM:
+        return SEMANTIC_SEGMENTATION_MODEL
+    elif task == TASK_POSE:
+        return KEYPOINT_DETECTION_MODEL
+    elif task == TASK_OBB:
+        return OBJECT_DETECTION_MODEL
+    else:
+        return OBJECT_DETECTION_MODEL
 
 
 class TrainedModel:
@@ -49,34 +81,16 @@ class TrainedModel:
         its task. Returns a ``PredictionGroup``. Set ``hosted=True`` when
         ``image_path`` is a public URL.
         """
-        base = OBJECT_DETECTION_URL if OBJECT_DETECTION_URL.endswith("/") else OBJECT_DETECTION_URL + "/"
-        params = {"api_key": self.__api_key, "confidence": confidence, "overlap": overlap, "format": format}
+        task = task_of_model_type(self.model_type or "")
+        prediction_type = _prediction_type_for_task(task)
+        base_url = _serverless_base_url_for_task(task).rstrip("/")
+        model = InferenceModel(self.__api_key, "BASE_MODEL")
+        model.api_url = f"{base_url}/{str(self.model_id).strip('/')}"
+        model.colors = {}
+
+        params = {"confidence": confidence, "overlap": overlap, "format": format}
         params.update(kwargs)
-        api_url = f"{base}{self.model_id}?{urllib.parse.urlencode(params)}"
-
-        if hosted:
-            api_url += "&image=" + urllib.parse.quote_plus(image_path)
-            resp = requests.post(api_url)
-            image_dims = {"width": "0", "height": "0"}
-        else:
-            from PIL import Image
-
-            image = Image.open(image_path).convert("RGB")
-            dimensions = image.size
-            image_dims = {"width": str(dimensions[0]), "height": str(dimensions[1])}
-            buffered = io.BytesIO()
-            image.save(buffered, format="JPEG")
-            encoded = base64.b64encode(buffered.getvalue()).decode("ascii")
-            resp = requests.post(api_url, data=encoded, headers={"Content-Type": "application/x-www-form-urlencoded"})
-
-        resp.raise_for_status()
-        return PredictionGroup.create_prediction_group(
-            resp.json(),
-            image_path=image_path,
-            prediction_type=OBJECT_DETECTION_MODEL,
-            image_dims=image_dims,
-            colors={},
-        )
+        return model.predict(image_path, prediction_type=prediction_type, **params)
 
     def download(self, format="pt", location="."):
         """Download this model's PyTorch weights to ``location/weights.pt``."""
@@ -119,10 +133,14 @@ class Training:
         self.model_type = self._raw.get("modelType")
         self.model_group = self._raw.get("modelGroup")
         self.model_ids = self._raw.get("modelIds", []) or []
+        self._models_cache = None
 
     @property
     def models(self) -> List["TrainedModel"]:
         """The models this run produced (DNA ``trainings.get`` → ``models[]``)."""
+        if self._models_cache is not None:
+            return self._models_cache
+
         bundle = rfapi.get_training(
             self.__api_key, self.workspace, self.project, self.version, training_id=self.training_id
         )
@@ -141,7 +159,8 @@ class Training:
                     metrics=entry.get("metrics"),
                 )
             )
-        return models
+        self._models_cache = models
+        return self._models_cache
 
     def refresh(self) -> "Training":
         """Re-read this run's status/results from the backend in place."""
@@ -150,6 +169,7 @@ class Training:
         )
         self._raw.update(bundle)
         self.status = bundle.get("status", self.status)
+        self._models_cache = None
         return self
 
     def cancel(self, continue_if_no_refund: bool = False):

@@ -6,6 +6,7 @@ from pathlib import Path
 import responses
 from dotenv import load_dotenv
 
+from roboflow.config import KEYPOINT_DETECTION_MODEL
 from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.util.prediction import PredictionGroup
 
@@ -46,7 +47,9 @@ class TestKeypointDetection(unittest.TestCase):
         result = instance.predict("tests/images/MM2A_46_R_T.png")
 
         self.assertIsInstance(result, PredictionGroup)
-        self.assertEqual(len(result.predictions), 1)
+        self.assertEqual(len(result.predictions), len(MOCK_RESPONSE["predictions"]))
+        self.assertEqual(result.predictions[0]["prediction_type"], KEYPOINT_DETECTION_MODEL)
+        self.assertIn("keypoints", result.predictions[0].json())
 
     @responses.activate
     def test_predict_with_confidence(self):
