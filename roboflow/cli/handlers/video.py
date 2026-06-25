@@ -57,6 +57,14 @@ def _video_infer(args) -> None:  # noqa: ANN001
             project = rf.workspace().project(args.project)
             version = project.version(args.version_number)
             model = getattr(version, "_model", None)
+            if model is None:
+                output_error(
+                    args,
+                    f"No model found for project '{args.project}' version {args.version_number}.",
+                    hint="Train or deploy a model for this version before running video inference.",
+                    exit_code=3,
+                )
+                return
 
             job_id, _signed_url, _expire_time = model.predict_video(
                 args.video_file,
