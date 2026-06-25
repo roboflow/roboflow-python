@@ -144,6 +144,7 @@ class Training:
         bundle = rfapi.get_training(
             self.__api_key, self.workspace, self.project, self.version, training_id=self.training_id
         )
+        bundle_model_type = bundle.get("modelType") or self.model_type
         models = []
         for entry in bundle.get("models", []) or []:
             model_id = entry.get("modelId")
@@ -155,7 +156,7 @@ class Training:
                     self.workspace,
                     self.project,
                     model_id,
-                    model_type=entry.get("modelType"),
+                    model_type=entry.get("modelType") or bundle_model_type,
                     metrics=entry.get("metrics"),
                 )
             )
@@ -168,7 +169,11 @@ class Training:
             self.__api_key, self.workspace, self.project, self.version, training_id=self.training_id
         )
         self._raw.update(bundle)
+        self.training_id = bundle.get("trainingId") or bundle.get("id") or self.training_id
         self.status = bundle.get("status", self.status)
+        self.model_type = bundle.get("modelType", self.model_type)
+        self.model_group = bundle.get("modelGroup", self.model_group)
+        self.model_ids = bundle.get("modelIds", self.model_ids)
         self._models_cache = None
         return self
 

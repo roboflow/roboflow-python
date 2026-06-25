@@ -45,7 +45,10 @@ class TestTrainingModels(unittest.TestCase):
         training = Training("key", "ws", "proj", "1", {"trainingId": "training-1"})
         bundle = {
             "status": "finished",
-            "models": [{"modelId": "ws/model-slug", "modelType": "yolov11"}],
+            "modelType": "yolov11-cls",
+            "modelGroup": "group-1",
+            "modelIds": ["ws/model-slug"],
+            "models": [{"modelId": "ws/model-slug"}],
         }
 
         with patch("roboflow.core.training.rfapi.get_training", return_value=bundle) as get_training:
@@ -56,7 +59,13 @@ class TestTrainingModels(unittest.TestCase):
 
         self.assertIs(first, second)
         self.assertEqual(first[0].model_id, "ws/model-slug")
+        self.assertEqual(first[0].model_type, "yolov11-cls")
         self.assertEqual(third[0].model_id, "ws/model-slug")
+        self.assertEqual(third[0].model_type, "yolov11-cls")
+        self.assertEqual(training.status, "finished")
+        self.assertEqual(training.model_type, "yolov11-cls")
+        self.assertEqual(training.model_group, "group-1")
+        self.assertEqual(training.model_ids, ["ws/model-slug"])
         self.assertEqual(get_training.call_count, 3)
 
 
