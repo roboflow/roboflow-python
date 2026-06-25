@@ -69,6 +69,7 @@ class Version:
         """
         Initialize a Version object.
         """
+        self._model = None
         if api_key:
             self.__api_key = api_key
             self.name = name
@@ -161,6 +162,55 @@ class Version:
                 self.name = "chess-pieces-new"
                 self.version = "23"
                 self.id = "joseph-nelson/chess-pieces-new"
+
+    @property
+    def model(self):
+        """The version's single inference model.
+
+        For a legacy (SMPV) version this is the inline model built at
+        construction. For an MMPV version it resolves the sole model across the
+        version's trainings — refusing to guess when the version owns several
+        (a NAS run or multiple trainings). Use :meth:`models` to enumerate them.
+        """
+        if getattr(self, "_model", None) is not None:
+            return self._model
+        models = self.models()
+        if len(models) == 1:
+            return models[0]
+        if not models:
+            raise RuntimeError(f"Version {self.version} has no trained model yet.")
+        raise RuntimeError(
+            f"Version {self.version} has multiple models; the sole-model shortcut is ambiguous. "
+            "Enumerate them with version.models() (or a specific training's .models) and pick "
+            "one — refusing to guess a canonical model."
+        )
+
+    @model.setter
+    def model(self, value):
+        self._model = value
+
+    def trainings(self):
+        """List this version's trainings as Training objects (DNA ``trainings.list``).
+
+        An MMPV version may own many; a legacy (SMPV) version reports its single
+        run. Returns a list of :class:`~roboflow.core.training.Training`.
+        """
+        from roboflow.core.training import Training
+
+        raw = rfapi.list_trainings_for_version(self.__api_key, self.workspace, self.project, self.version)
+        return [Training(self.__api_key, self.workspace, self.project, self.version, t) for t in raw]
+
+    def models(self):
+        """All trained models for this version — the union across its trainings.
+
+        Mirrors the backend's "a version's models are the union across its
+        trainings" rule. Returns a list of
+        :class:`~roboflow.core.training.TrainedModel`.
+        """
+        result = []
+        for training in self.trainings():
+            result.extend(training.models)
+        return result
 
     def __check_if_generating(self):
         # check Roboflow API to see if this version is still generating
@@ -451,7 +501,7 @@ class Version:
 
             time.sleep(5)
 
-        if not self.model:
+        if not getattr(self, "_model", None):
             if self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
                     self.__api_key,
