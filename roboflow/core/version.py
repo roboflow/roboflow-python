@@ -213,9 +213,7 @@ class Version:
             result.extend(training.models)
         return result
 
-    def create_training(
-        self, speed=None, model_type=None, checkpoint=None, epochs=None
-    ):
+    def create_training(self, speed=None, model_type=None, checkpoint=None, epochs=None):
         """Create a v2 training run and return a Training object.
 
         Unlike :meth:`train`, this does not block until completion or return a
