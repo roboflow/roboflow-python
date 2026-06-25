@@ -107,6 +107,14 @@ banned-module-level-imports = [
 python_version = "3.10"
 exclude = ["^build/"]
 
+# numpy's bundled stubs use PEP 695 `type` statements, which mypy rejects when
+# checking against python_version 3.10. Skip following them so the type checker
+# doesn't choke on numpy's own stub syntax.
+[[tool.mypy.overrides]]
+module = ["numpy", "numpy.*"]
+follow_imports = "skip"
+follow_imports_for_stubs = true
+
 [[tool.mypy.overrides]]
 module = [
     "_datetime.*",

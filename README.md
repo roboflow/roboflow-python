@@ -145,8 +145,8 @@ version = project.version("VERSION_NUMBER")
 # upload model weights - yolov10
 version.deploy(model_type="yolov10", model_path=f”{HOME}/runs/detect/train/”, filename="weights.pt")
 
-# run inference
-model = version.model
+# run inference (a version may own several trained models; models() returns all of them)
+model = version.models()[0]
 
 img_url = "https://media.roboflow.com/quickstart/aerial_drone.jpeg"
 
