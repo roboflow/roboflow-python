@@ -13,7 +13,7 @@ import io
 import json
 import os
 import urllib.parse
-from typing import List, Optional
+from typing import List
 
 import requests
 
@@ -67,9 +67,7 @@ class TrainedModel:
             buffered = io.BytesIO()
             image.save(buffered, format="JPEG")
             encoded = base64.b64encode(buffered.getvalue()).decode("ascii")
-            resp = requests.post(
-                api_url, data=encoded, headers={"Content-Type": "application/x-www-form-urlencoded"}
-            )
+            resp = requests.post(api_url, data=encoded, headers={"Content-Type": "application/x-www-form-urlencoded"})
 
         resp.raise_for_status()
         return PredictionGroup.create_prediction_group(

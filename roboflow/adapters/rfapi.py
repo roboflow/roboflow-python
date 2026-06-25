@@ -271,9 +271,7 @@ def stop_training_v2(api_key: str, workspace_url: str, project_url: str, version
     return response.json() if response.content else {"success": True}
 
 
-def get_model_weights_url(
-    api_key: str, workspace_url: str, project_url: str, model_id: str, model_format: str = "pt"
-):
+def get_model_weights_url(api_key: str, workspace_url: str, project_url: str, model_id: str, model_format: str = "pt"):
     """Resolve a signed PyTorch weights URL for a single trained model.
 
     GET /{ws}/{proj}/{model_id}/ptFile, where ``model_id`` is the addressable
