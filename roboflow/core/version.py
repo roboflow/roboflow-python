@@ -93,12 +93,11 @@ class Version:
 
             version_without_workspace = os.path.basename(str(version))
 
-            try:
-                version_response = rfapi.get_version(self.__api_key, workspace, project, self.version)
-                version_info = version_response.get("version", {})
-                has_model = bool(version_info.get("train", {}).get("model"))
-            except rfapi.RoboflowError:
-                has_model = False
+            # Derive the legacy single-model flag from the payload the caller
+            # already fetched. Keeping __init__ free of network side effects means
+            # a transient/mocked request failure can't break basic version
+            # retrieval; the v2 surface (models()/trainings()) does its own reads.
+            has_model = bool(version_dict.get("model"))
 
             if not has_model:
                 self.model = None

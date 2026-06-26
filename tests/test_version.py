@@ -3,6 +3,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import requests
 import responses
 
 from roboflow.adapters import rfapi
@@ -14,6 +15,7 @@ from roboflow.config import (
     TYPE_SEMANTIC_SEGMENTATION,
 )
 from roboflow.core.version import Version, unwrap_version_id
+from roboflow.models.object_detection import ObjectDetectionModel
 from tests.helpers import get_version
 
 
@@ -267,6 +269,27 @@ class TestValidateAgainstProjectType(unittest.TestCase):
     def test_classification_project_rejects_detection(self):
         with self.assertRaises(ValueError):
             self._version(TYPE_CLASSICATION)._validate_against_project_type("yolov11")
+
+
+class TestConstructionDoesNotProbeNetwork(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.get_version", side_effect=AssertionError("get_version should not be called"))
+    def test_construction_makes_no_request_when_payload_has_no_model(self, _mock_get_version: MagicMock):
+        version = get_version()
+        self.assertIsNone(version._model)
+
+    @patch(
+        "roboflow.adapters.rfapi.get_version",
+        side_effect=requests.exceptions.ConnectionError("network down"),
+    )
+    def test_construction_survives_request_layer_failure(self, _mock_get_version: MagicMock):
+        # A transient/mocked request failure must not break basic version retrieval.
+        version = get_version()
+        self.assertIsNone(version._model)
+
+    @patch("roboflow.adapters.rfapi.get_version", side_effect=AssertionError("get_version should not be called"))
+    def test_legacy_model_is_derived_from_payload(self, _mock_get_version: MagicMock):
+        version = get_version(type=TYPE_OBJECT_DETECTION, model={"id": "test-workspace/test-project/2"})
+        self.assertIsInstance(version._model, ObjectDetectionModel)
 
 
 class TestMMPVCompatibility(unittest.TestCase):
