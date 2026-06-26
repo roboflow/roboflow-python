@@ -73,6 +73,7 @@ class TrainedModel:
         # The second segment addresses the model on /ptFile: a model slug for
         # MMPV, a version number for SMPV.
         self._weights_id = model_id.split("/", 1)[1] if "/" in str(model_id) else model_id
+        self._video_model_cache = None
 
     def predict(self, image_path, hosted=False, confidence=40, overlap=30, format="json", **kwargs):
         """Run hosted inference on an image by this model's id.
@@ -92,20 +93,17 @@ class TrainedModel:
         params.update(kwargs)
         return model.predict(image_path, prediction_type=prediction_type, **params)
 
-    def predict_video(self, video_path, fps=5, additional_models=None, prediction_type="batch-video"):
-        """Run hosted video inference for this model (DNA-era equivalent of the
-        legacy ``version.model.predict_video``).
+    def _video_model(self):
+        """Build (and cache) the legacy inference model used for video inference.
 
-        Delegates to the task-appropriate legacy inference model built from this
-        model's id, so a ``TrainedModel`` can do everything the old
-        ``version.model`` could. Returns ``(job_id, signed_url, expires)``; poll
-        with :meth:`poll_for_video_results` on the same object.
-
-        NOTE: the legacy ``/videoinfer`` payload is keyed by ``<dataset>/<version>``.
-        For MMPV models addressed by ``<workspace>/<model-slug>`` this routes the
-        slug through as the version segment; verify against staging before relying
-        on it for slug-addressed models.
+        Video upload and result polling still flow through the legacy
+        ``/videoinfer`` endpoints, which the task-specific models implement.
+        Caching keeps ``predict_video`` and the poll methods on one underlying
+        object, so a job started here can be polled without re-passing its id.
         """
+        if self._video_model_cache is not None:
+            return self._video_model_cache
+
         from roboflow.models.classification import ClassificationModel
         from roboflow.models.instance_segmentation import InstanceSegmentationModel
         from roboflow.models.keypoint_detection import KeypointDetectionModel
@@ -121,10 +119,45 @@ class TrainedModel:
         }.get(task, ObjectDetectionModel)
 
         legacy_id = f"{self.workspace}/{self.project}/{self._weights_id}"
-        legacy_model = legacy_class(self.__api_key, legacy_id)
-        return legacy_model.predict_video(
+        self._video_model_cache = legacy_class(self.__api_key, legacy_id)
+        return self._video_model_cache
+
+    def predict_video(self, video_path, fps=5, additional_models=None, prediction_type="batch-video"):
+        """Run hosted video inference for this model (DNA-era equivalent of the
+        legacy ``version.model.predict_video``).
+
+        Delegates to the task-appropriate legacy inference model built from this
+        model's id, so a ``TrainedModel`` can do everything the old
+        ``version.model`` could. Returns ``(job_id, signed_url, expires)``; poll
+        with :meth:`poll_until_video_results` on the same object.
+
+        NOTE: the legacy ``/videoinfer`` payload is keyed by ``<dataset>/<version>``.
+        For MMPV models addressed by ``<workspace>/<model-slug>`` this routes the
+        slug through as the version segment; verify against staging before relying
+        on it for slug-addressed models.
+        """
+        return self._video_model().predict_video(
             video_path, fps=fps, additional_models=additional_models, prediction_type=prediction_type
         )
+
+    def poll_for_video_results(self, job_id=None) -> dict:
+        """Check once for this model's video inference results (DNA-era equivalent
+        of the legacy ``version.model.poll_for_video_results``).
+
+        Returns ``{}`` while the job is still running. Defaults to the job started
+        by the most recent :meth:`predict_video` call on this object.
+        """
+        return self._video_model().poll_for_video_results(job_id)
+
+    def poll_until_video_results(self, job_id=None) -> dict:
+        """Block until this model's video inference job completes, returning the
+        results (DNA-era equivalent of the legacy
+        ``version.model.poll_until_video_results``).
+
+        Defaults to the job started by the most recent :meth:`predict_video` call
+        on this object.
+        """
+        return self._video_model().poll_until_video_results(job_id)
 
     def download(self, format="pt", location="."):
         """Download this model's PyTorch weights to ``location/weights.pt``."""
