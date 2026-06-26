@@ -4,10 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## 1.4.0
 
-### Added — MMPV (multiple-models-per-version) training surface
+### Added — Support for multiple models per version
 
 A dataset version can now own many trainings, and a training can produce many
-models (e.g. a NAS sweep). New DNA-style objects expose this:
+models (e.g. a NAS sweep). New object types expose this:
 
 **SDK (`roboflow/core/training.py`, `roboflow/core/version.py`):**
 - `Version.trainings()` — list the version's training runs as `Training` objects.
