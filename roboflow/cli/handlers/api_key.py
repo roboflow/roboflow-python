@@ -294,11 +294,25 @@ def _create_key(args) -> None:  # noqa: ANN001
             protected=getattr(args, "protected", False),
         )
     except rfapi.RoboflowError as exc:
-        output_api_error(
-            args,
-            exc,
-            hint="Scopes, folders, and metadata require the Advanced API Keys plan feature.",
-        )
+        status = getattr(exc, "status_code", None)
+        if status in (403, 404):
+            output_api_error(
+                args,
+                exc,
+                hint=(
+                    "Creating API keys requires an unscoped key or one granted the "
+                    "'api-key:create' scope (OAuth also needs the create_api_key permission). "
+                    "A workspace-wide key additionally requires access to all folders. Use an "
+                    "unscoped key, grant this key 'api-key:create', or create the key at "
+                    "app.roboflow.com/settings/api."
+                ),
+            )
+        else:
+            output_api_error(
+                args,
+                exc,
+                hint="Scopes, folders, and metadata require the Advanced API Keys plan feature.",
+            )
         return
 
     secret = result.get("key", "")
