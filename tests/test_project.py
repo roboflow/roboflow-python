@@ -1,4 +1,5 @@
 import json
+import os
 from unittest.mock import patch
 
 import requests
@@ -154,6 +155,47 @@ class TestProject(RoboflowTest):
             )
 
         self.assertEqual(str(error.exception), "Image was already annotated.")
+
+    def test_upload_single_file_returns_result(self):
+        """upload() should return the single_upload result dict for a single file (#254)."""
+        image_id = "test-upload-id"
+
+        responses.add(
+            responses.POST,
+            f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}&batch={DEFAULT_BATCH_NAME}",
+            json={"success": True, "id": image_id},
+            status=200,
+        )
+
+        result = self.project.upload("tests/images/rabbit.JPG")
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["image"]["id"], image_id)
+        self.assertIn("upload_time", result)
+        self.assertIn("upload_retry_attempts", result)
+
+    def test_upload_directory_returns_list_of_results(self):
+        """upload() should return a list of single_upload results for a directory (#254)."""
+        test_dir = "tests/images"
+        # Determine how many valid images are in the directory so we can mock
+        # exactly that many upload responses.
+        valid_images = [f for f in os.listdir(test_dir) if self.project.check_valid_image(os.path.join(test_dir, f))]
+
+        for i, _ in enumerate(valid_images):
+            responses.add(
+                responses.POST,
+                f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}&batch={DEFAULT_BATCH_NAME}",
+                json={"success": True, "id": f"img-{i}"},
+                status=200,
+            )
+
+        result = self.project.upload(test_dir)
+
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), len(valid_images))
+        for i, entry in enumerate(result):
+            self.assertIsInstance(entry, dict)
+            self.assertEqual(entry["image"]["id"], f"img-{i}")
 
     def test_image_success(self):
         image_id = "test-image-id"
