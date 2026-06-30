@@ -31,6 +31,11 @@ setuptools.setup(
     extras_require={
         "desktop": ["opencv-python==4.8.0.74"],
         "dev": [
+            # numpy 2.5.0 (2026-06-21) ships PEP 695 `type` statement stubs that
+            # mypy cannot parse under python_version = "3.10". Cap in the dev
+            # extra only so typecheck CI keeps passing; runtime installs
+            # (requirements.txt) stay unconstrained for end users. See #498.
+            "numpy<2.5",
             "mypy",
             "responses",
             "ruff",
