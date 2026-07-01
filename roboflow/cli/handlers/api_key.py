@@ -56,6 +56,20 @@ def create_key(
             help="Scope or role:<name> preset (repeatable). Omit to inherit the calling key's scopes.",
         ),
     ] = None,
+    no_scopes: Annotated[
+        bool,
+        typer.Option(
+            "--no-scopes",
+            help="Create a key with an empty scope list (no abilities). Mutually exclusive with --scope/--full-access.",
+        ),
+    ] = False,
+    full_access: Annotated[
+        bool,
+        typer.Option(
+            "--full-access",
+            help="Create an unscoped, full-access key (sends null). Mutually exclusive with --scope/--no-scopes.",
+        ),
+    ] = False,
     folder: Annotated[
         Optional[List[str]],
         typer.Option("--folder", help="Folder ID to restrict access to (repeatable)."),
@@ -75,8 +89,21 @@ def create_key(
     To capture it programmatically use --json and pipe to jq:
 
         roboflow --json api-key create MY-KEY | jq -r .key
+
+    Scope selection is three-way: omit all scope flags to inherit the calling
+    key's scopes, pass --scope (repeatable) to scope the key, --no-scopes for a
+    key with no abilities, or --full-access for an unscoped/full-access key.
     """
-    args = ctx_to_args(ctx, name=name, scope=scope, folder=folder, metadata=metadata, protected=protected)
+    args = ctx_to_args(
+        ctx,
+        name=name,
+        scope=scope,
+        no_scopes=no_scopes,
+        full_access=full_access,
+        folder=folder,
+        metadata=metadata,
+        protected=protected,
+    )
     _create_key(args)
 
 
@@ -92,13 +119,49 @@ def update_key(
             help="Scope or role:<name> preset (repeatable). Replaces existing scopes.",
         ),
     ] = None,
+    no_scopes: Annotated[
+        bool,
+        typer.Option(
+            "--no-scopes",
+            help="Replace scopes with an empty list (no abilities). Mutually exclusive with --scope/--full-access.",
+        ),
+    ] = False,
+    full_access: Annotated[
+        bool,
+        typer.Option(
+            "--full-access",
+            help="Make the key unscoped/full access (sends null). Mutually exclusive with --scope/--no-scopes.",
+        ),
+    ] = False,
     metadata: Annotated[
         Optional[List[str]],
         typer.Option("--metadata", help="Custom metadata as KEY=VALUE (repeatable)."),
     ] = None,
+    clear_metadata: Annotated[
+        bool,
+        typer.Option(
+            "--clear-metadata",
+            help="Clear all custom metadata (sends {}). Mutually exclusive with --metadata.",
+        ),
+    ] = False,
 ) -> None:
-    """Update an API key's display name, scopes, or metadata."""
-    args = ctx_to_args(ctx, key_id=key_id, name=name, scope=scope, metadata=metadata)
+    """Update an API key's display name, scopes, or metadata.
+
+    Scopes are three-way: --scope (repeatable) replaces scopes, --no-scopes
+    replaces them with an empty list (no abilities), and --full-access makes the
+    key unscoped/full access. Metadata: --metadata sets custom KEY=VALUE pairs,
+    --clear-metadata removes all custom metadata.
+    """
+    args = ctx_to_args(
+        ctx,
+        key_id=key_id,
+        name=name,
+        scope=scope,
+        no_scopes=no_scopes,
+        full_access=full_access,
+        metadata=metadata,
+        clear_metadata=clear_metadata,
+    )
     _update_key(args)
 
 
@@ -176,6 +239,74 @@ def _parse_metadata(args, pairs: Optional[List[str]]) -> Optional[dict]:  # noqa
             )
         metadata[key] = value
     return metadata
+
+
+# Sentinel meaning "field not provided" — distinct from an explicit ``None``/``[]``/``{}``.
+_UNSET = object()
+
+
+def _resolve_scopes(args):  # noqa: ANN001
+    """Resolve the three-way ``--scope`` / ``--no-scopes`` / ``--full-access`` selection.
+
+    Returns one of:
+      * ``_UNSET`` — no scope flag given (inherit / leave unchanged),
+      * a list — explicit ``--scope`` values (``[]`` for ``--no-scopes``),
+      * ``rfapi.FULL_ACCESS`` — ``--full-access`` (send ``null``).
+
+    Exits 1 if more than one of the three is supplied.
+    """
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output_error
+
+    scope = getattr(args, "scope", None) or None
+    no_scopes = getattr(args, "no_scopes", False)
+    full_access = getattr(args, "full_access", False)
+
+    if sum([scope is not None, no_scopes, full_access]) > 1:
+        output_error(
+            args,
+            "Only one of --scope, --no-scopes, or --full-access may be used.",
+            hint="Use --scope to scope the key, --no-scopes for no abilities, or --full-access for unscoped access.",
+            exit_code=1,
+        )
+
+    if full_access:
+        return rfapi.FULL_ACCESS
+    if no_scopes:
+        return []
+    if scope is not None:
+        return scope
+    return _UNSET
+
+
+def _resolve_metadata(args):  # noqa: ANN001
+    """Resolve the ``--metadata`` / ``--clear-metadata`` selection.
+
+    Returns one of:
+      * ``_UNSET`` — neither flag given (leave unchanged),
+      * a dict — parsed ``--metadata`` pairs (``{}`` for ``--clear-metadata``).
+
+    Exits 1 if both are supplied.
+    """
+    from roboflow.cli._output import output_error
+
+    metadata = getattr(args, "metadata", None)
+    clear_metadata = getattr(args, "clear_metadata", False)
+
+    if metadata and clear_metadata:
+        output_error(
+            args,
+            "Only one of --metadata or --clear-metadata may be used.",
+            hint="Use --metadata KEY=VALUE to set metadata, or --clear-metadata to remove it.",
+            exit_code=1,
+        )
+
+    if clear_metadata:
+        return {}
+    parsed = _parse_metadata(args, metadata)
+    if parsed is not None:
+        return parsed
+    return _UNSET
 
 
 def _list_keys(args) -> None:  # noqa: ANN001
@@ -279,18 +410,18 @@ def _create_key(args) -> None:  # noqa: ANN001
         return
     ws, api_key = resolved
 
-    scopes = getattr(args, "scope", None) or None
+    scopes = _resolve_scopes(args)
     folder_ids = getattr(args, "folder", None) or None
-    custom_metadata = _parse_metadata(args, getattr(args, "metadata", None))
+    metadata = _resolve_metadata(args)
 
     try:
         result = rfapi.create_api_key(
             api_key,
             ws,
             name=args.name,
-            scopes=scopes,
+            scopes=None if scopes is _UNSET else scopes,
             folder_ids=folder_ids,
-            custom_metadata=custom_metadata,
+            custom_metadata=None if metadata is _UNSET else metadata,
             protected=getattr(args, "protected", False),
         )
     except rfapi.RoboflowError as exc:
@@ -341,12 +472,12 @@ def _update_key(args) -> None:  # noqa: ANN001
     fields = {}
     if getattr(args, "name", None) is not None:
         fields["name"] = args.name
-    scopes = getattr(args, "scope", None) or None
-    if scopes is not None:
+    scopes = _resolve_scopes(args)
+    if scopes is not _UNSET:
         fields["scopes"] = scopes
-    custom_metadata = _parse_metadata(args, getattr(args, "metadata", None))
-    if custom_metadata is not None:
-        fields["custom_metadata"] = custom_metadata
+    metadata = _resolve_metadata(args)
+    if metadata is not _UNSET:
+        fields["custom_metadata"] = metadata
 
     try:
         result = rfapi.update_api_key(api_key, ws, args.key_id, **fields)

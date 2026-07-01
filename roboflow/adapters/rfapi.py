@@ -1457,6 +1457,30 @@ def get_model_eval_recommendations(api_key: str, workspace_url: str, eval_id: st
 # ---------------------------------------------------------------------------
 
 
+class _FullAccess:
+    """Sentinel distinguishing "unscoped/full access" from "omit scopes".
+
+    The API treats three ``scopes`` states differently: omitted inherits the
+    caller's own scopes, an explicit ``null`` grants full (unscoped) access, and
+    an empty ``[]`` grants no abilities. Passing ``None`` from Python means
+    "omit", so ``FULL_ACCESS`` is used to force an explicit ``"scopes": null``
+    into the request body.
+    """
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __repr__(self) -> str:
+        return "FULL_ACCESS"
+
+
+FULL_ACCESS = _FullAccess()
+
+
 def list_api_keys(
     api_key: str,
     workspace_url: str,
@@ -1496,7 +1520,7 @@ def create_api_key(
     api_key: str,
     workspace_url: str,
     name: Optional[str] = None,
-    scopes: Optional[List[str]] = None,
+    scopes: Union[List[str], _FullAccess, None] = None,
     folder_ids: Optional[List[str]] = None,
     custom_metadata: Optional[Dict] = None,
     protected: bool = False,
@@ -1506,14 +1530,17 @@ def create_api_key(
     The secret ``key`` value is returned only on creation (shown once).
     Omitting ``scopes`` (or passing ``None``) inherits the calling credential's
     own scopes, so a full-access credential creates a full-access key. Pass a list
-    to scope the key (``role:<name>`` presets are accepted), or ``[]`` for a key
-    with no abilities. ``scopes``, ``folder_ids``, and ``custom_metadata`` require
-    the Advanced API Keys plan feature — the backend returns 403 if unavailable.
+    to scope the key (``role:<name>`` presets are accepted), ``[]`` for a key with
+    no abilities, or ``FULL_ACCESS`` to send an explicit ``null`` (unscoped/full
+    access). ``scopes``, ``folder_ids``, and ``custom_metadata`` require the
+    Advanced API Keys plan feature — the backend returns 403 if unavailable.
     """
     body: Dict[str, Any] = {}
     if name is not None:
         body["name"] = name
-    if scopes is not None:
+    if scopes is FULL_ACCESS:
+        body["scopes"] = None
+    elif scopes is not None:
         body["scopes"] = scopes
     if folder_ids is not None:
         body["folderIds"] = folder_ids
@@ -1532,11 +1559,19 @@ def update_api_key(api_key: str, workspace_url: str, key_id: str, **fields: Any)
 
     Pass only the fields you want to change as keyword arguments:
     ``name``, ``scopes``, ``custom_metadata``, ``protected``, ``disabled``.
+    ``None`` values are omitted (left unchanged). To send explicit values,
+    pass ``scopes=[]`` (no abilities), ``scopes=FULL_ACCESS`` (unscoped/full
+    access, serialized as ``null``), or ``custom_metadata={}`` (clear metadata).
     The API cannot unprotect a key (``protected=False`` → 403).
     Disabling a protected key returns 409.
     """
     encoded = quote(key_id, safe="")
-    body: Dict[str, Any] = {k: v for k, v in fields.items() if v is not None}
+    body: Dict[str, Any] = {}
+    for k, v in fields.items():
+        if v is FULL_ACCESS:
+            body[k] = None
+        elif v is not None:
+            body[k] = v
     response = requests.patch(
         f"{API_URL}/{workspace_url}/api-keys/{encoded}",
         params={"api_key": api_key},

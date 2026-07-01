@@ -403,6 +403,87 @@ class TestCreateApiKey(unittest.TestCase):
         )
 
 
+class TestCreateApiKeyScopeStates(unittest.TestCase):
+    """--no-scopes / --full-access three-way scope selection on create."""
+
+    def _args(self, **overrides):
+        base = dict(
+            json=False,
+            workspace=None,
+            api_key=None,
+            quiet=False,
+            name="K",
+            scope=None,
+            no_scopes=False,
+            full_access=False,
+            folder=None,
+            metadata=None,
+            protected=False,
+        )
+        base.update(overrides)
+        return Namespace(**base)
+
+    @patch("roboflow.adapters.rfapi.create_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_create_no_scopes_sends_empty_list(self, _mock_key, _mock_ws, mock_create) -> None:
+        mock_create.return_value = {"keyId": "k", "key": "s", "name": "K"}
+        from roboflow.cli.handlers.api_key import _create_key
+
+        with patch("builtins.print"):
+            _create_key(self._args(no_scopes=True))
+        mock_create.assert_called_once_with(
+            "fake-key",
+            "test-ws",
+            name="K",
+            scopes=[],
+            folder_ids=None,
+            custom_metadata=None,
+            protected=False,
+        )
+
+    @patch("roboflow.adapters.rfapi.create_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_create_full_access_sends_sentinel(self, _mock_key, _mock_ws, mock_create) -> None:
+        from roboflow.adapters import rfapi
+
+        mock_create.return_value = {"keyId": "k", "key": "s", "name": "K"}
+        from roboflow.cli.handlers.api_key import _create_key
+
+        with patch("builtins.print"):
+            _create_key(self._args(full_access=True))
+        mock_create.assert_called_once_with(
+            "fake-key",
+            "test-ws",
+            name="K",
+            scopes=rfapi.FULL_ACCESS,
+            folder_ids=None,
+            custom_metadata=None,
+            protected=False,
+        )
+
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_create_scope_and_no_scopes_conflict_exits_1(self, _mock_key, _mock_ws) -> None:
+        from roboflow.cli.handlers.api_key import _create_key
+
+        with patch("sys.stderr"):
+            with self.assertRaises(SystemExit) as ctx:
+                _create_key(self._args(scope=["image:read"], no_scopes=True))
+        self.assertEqual(ctx.exception.code, 1)
+
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_create_no_scopes_and_full_access_conflict_exits_1(self, _mock_key, _mock_ws) -> None:
+        from roboflow.cli.handlers.api_key import _create_key
+
+        with patch("sys.stderr"):
+            with self.assertRaises(SystemExit) as ctx:
+                _create_key(self._args(no_scopes=True, full_access=True))
+        self.assertEqual(ctx.exception.code, 1)
+
+
 # ---------------------------------------------------------------------------
 # update
 # ---------------------------------------------------------------------------
@@ -725,6 +806,181 @@ class TestErrorBranches(unittest.TestCase):
         self.assertEqual(ctx.exception.code, 1)
         data = json.loads(printed["json"])
         self.assertIn("Advanced API Keys", data["error"]["hint"])
+
+
+class TestUpdateApiKeyScopeAndMetadataStates(unittest.TestCase):
+    """--no-scopes / --full-access / --clear-metadata explicit states on update."""
+
+    def _args(self, **overrides):
+        base = dict(
+            json=False,
+            workspace=None,
+            api_key=None,
+            quiet=False,
+            key_id="k1",
+            name=None,
+            scope=None,
+            no_scopes=False,
+            full_access=False,
+            metadata=None,
+            clear_metadata=False,
+        )
+        base.update(overrides)
+        return Namespace(**base)
+
+    @patch("roboflow.adapters.rfapi.update_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_update_no_scopes_sends_empty_list(self, _mock_key, _mock_ws, mock_update) -> None:
+        mock_update.return_value = {"apiKey": {"keyId": "k1"}}
+        from roboflow.cli.handlers.api_key import _update_key
+
+        with patch("builtins.print"):
+            _update_key(self._args(no_scopes=True))
+        mock_update.assert_called_once_with("fake-key", "test-ws", "k1", scopes=[])
+
+    @patch("roboflow.adapters.rfapi.update_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_update_full_access_sends_sentinel(self, _mock_key, _mock_ws, mock_update) -> None:
+        from roboflow.adapters import rfapi
+
+        mock_update.return_value = {"apiKey": {"keyId": "k1"}}
+        from roboflow.cli.handlers.api_key import _update_key
+
+        with patch("builtins.print"):
+            _update_key(self._args(full_access=True))
+        mock_update.assert_called_once_with("fake-key", "test-ws", "k1", scopes=rfapi.FULL_ACCESS)
+
+    @patch("roboflow.adapters.rfapi.update_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_update_clear_metadata_sends_empty_dict(self, _mock_key, _mock_ws, mock_update) -> None:
+        mock_update.return_value = {"apiKey": {"keyId": "k1"}}
+        from roboflow.cli.handlers.api_key import _update_key
+
+        with patch("builtins.print"):
+            _update_key(self._args(clear_metadata=True))
+        mock_update.assert_called_once_with("fake-key", "test-ws", "k1", custom_metadata={})
+
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_update_scope_and_full_access_conflict_exits_1(self, _mock_key, _mock_ws) -> None:
+        from roboflow.cli.handlers.api_key import _update_key
+
+        with patch("sys.stderr"):
+            with self.assertRaises(SystemExit) as ctx:
+                _update_key(self._args(scope=["image:read"], full_access=True))
+        self.assertEqual(ctx.exception.code, 1)
+
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_update_metadata_and_clear_metadata_conflict_exits_1(self, _mock_key, _mock_ws) -> None:
+        from roboflow.cli.handlers.api_key import _update_key
+
+        with patch("sys.stderr"):
+            with self.assertRaises(SystemExit) as ctx:
+                _update_key(self._args(metadata=["a=b"], clear_metadata=True))
+        self.assertEqual(ctx.exception.code, 1)
+
+
+class TestApiKeyBodySerialization(unittest.TestCase):
+    """The rfapi wrappers must serialize the three scope/metadata states correctly."""
+
+    def _ok_response(self, payload=None):
+        from unittest.mock import MagicMock
+
+        resp = MagicMock()
+        resp.ok = True
+        resp.status_code = 200
+        resp.json.return_value = payload or {}
+        return resp
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_create_full_access_serializes_null_scopes(self, mock_post) -> None:
+        from roboflow.adapters.rfapi import FULL_ACCESS, create_api_key
+
+        mock_post.return_value = self._ok_response()
+        create_api_key("fake-key", "test-ws", name="K", scopes=FULL_ACCESS)
+        body = mock_post.call_args.kwargs["json"]
+        self.assertIn("scopes", body)
+        self.assertIsNone(body["scopes"])
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_create_empty_scopes_serializes_empty_list(self, mock_post) -> None:
+        from roboflow.adapters.rfapi import create_api_key
+
+        mock_post.return_value = self._ok_response()
+        create_api_key("fake-key", "test-ws", name="K", scopes=[])
+        body = mock_post.call_args.kwargs["json"]
+        self.assertEqual(body["scopes"], [])
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_create_omitted_scopes_absent_from_body(self, mock_post) -> None:
+        from roboflow.adapters.rfapi import create_api_key
+
+        mock_post.return_value = self._ok_response()
+        create_api_key("fake-key", "test-ws", name="K", scopes=None)
+        body = mock_post.call_args.kwargs["json"]
+        self.assertNotIn("scopes", body)
+
+    @patch("roboflow.adapters.rfapi.requests.patch")
+    def test_update_full_access_serializes_null_scopes(self, mock_patch) -> None:
+        from roboflow.adapters.rfapi import FULL_ACCESS, update_api_key
+
+        mock_patch.return_value = self._ok_response()
+        update_api_key("fake-key", "test-ws", "k1", scopes=FULL_ACCESS)
+        body = mock_patch.call_args.kwargs["json"]
+        self.assertIn("scopes", body)
+        self.assertIsNone(body["scopes"])
+
+    @patch("roboflow.adapters.rfapi.requests.patch")
+    def test_update_empty_scopes_serializes_empty_list(self, mock_patch) -> None:
+        from roboflow.adapters.rfapi import update_api_key
+
+        mock_patch.return_value = self._ok_response()
+        update_api_key("fake-key", "test-ws", "k1", scopes=[])
+        body = mock_patch.call_args.kwargs["json"]
+        self.assertEqual(body["scopes"], [])
+
+    @patch("roboflow.adapters.rfapi.requests.patch")
+    def test_update_clear_metadata_serializes_empty_dict(self, mock_patch) -> None:
+        from roboflow.adapters.rfapi import update_api_key
+
+        mock_patch.return_value = self._ok_response()
+        update_api_key("fake-key", "test-ws", "k1", custom_metadata={})
+        body = mock_patch.call_args.kwargs["json"]
+        self.assertIn("custom_metadata", body)
+        self.assertEqual(body["custom_metadata"], {})
+
+    @patch("roboflow.adapters.rfapi.requests.patch")
+    def test_update_none_scopes_absent_from_body(self, mock_patch) -> None:
+        from roboflow.adapters.rfapi import update_api_key
+
+        mock_patch.return_value = self._ok_response()
+        update_api_key("fake-key", "test-ws", "k1", name="X", scopes=None)
+        body = mock_patch.call_args.kwargs["json"]
+        self.assertNotIn("scopes", body)
+        self.assertEqual(body["name"], "X")
+
+
+class TestApiKeyNewFlagsHelp(unittest.TestCase):
+    """The new flags must be discoverable in --help."""
+
+    def test_create_help_lists_new_flags(self) -> None:
+        result = runner.invoke(app, ["api-key", "create", "--help"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        output = _strip_ansi(result.output).lower()
+        self.assertIn("--no-scopes", output)
+        self.assertIn("--full-access", output)
+
+    def test_update_help_lists_new_flags(self) -> None:
+        result = runner.invoke(app, ["api-key", "update", "--help"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        output = _strip_ansi(result.output).lower()
+        self.assertIn("--no-scopes", output)
+        self.assertIn("--full-access", output)
+        self.assertIn("--clear-metadata", output)
 
 
 if __name__ == "__main__":
