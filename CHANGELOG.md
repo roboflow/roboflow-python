@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.3.11
+
+### Added
+
+- `roboflow api-key` CLI command group and SDK methods to create, list, get,
+  update, protect, and revoke workspace API keys — including scoped keys, folder
+  restrictions, and custom metadata (scoping/metadata require the Advanced API
+  Keys plan feature).
+
 ## 1.3.10
 
 ### Added
