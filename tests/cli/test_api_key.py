@@ -950,8 +950,21 @@ class TestApiKeyBodySerialization(unittest.TestCase):
         mock_patch.return_value = self._ok_response()
         update_api_key("fake-key", "test-ws", "k1", custom_metadata={})
         body = mock_patch.call_args.kwargs["json"]
-        self.assertIn("custom_metadata", body)
-        self.assertEqual(body["custom_metadata"], {})
+        # The Pythonic `custom_metadata` kwarg serializes as the canonical camelCase
+        # `customMetadata` wire field (consistent with `folderIds`).
+        self.assertIn("customMetadata", body)
+        self.assertEqual(body["customMetadata"], {})
+        self.assertNotIn("custom_metadata", body)
+
+    @patch("roboflow.adapters.rfapi.requests.post")
+    def test_create_metadata_serializes_camelcase(self, mock_post) -> None:
+        from roboflow.adapters.rfapi import create_api_key
+
+        mock_post.return_value = self._ok_response()
+        create_api_key("fake-key", "test-ws", name="K", custom_metadata={"env": "prod"})
+        body = mock_post.call_args.kwargs["json"]
+        self.assertEqual(body["customMetadata"], {"env": "prod"})
+        self.assertNotIn("custom_metadata", body)
 
     @patch("roboflow.adapters.rfapi.requests.patch")
     def test_update_none_scopes_absent_from_body(self, mock_patch) -> None:

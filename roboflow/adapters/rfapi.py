@@ -1545,7 +1545,8 @@ def create_api_key(
     if folder_ids is not None:
         body["folderIds"] = folder_ids
     if custom_metadata is not None:
-        body["custom_metadata"] = custom_metadata
+        # Canonical wire field is camelCase `customMetadata` (consistent with `folderIds`).
+        body["customMetadata"] = custom_metadata
     if protected:
         body["protected"] = True
     response = requests.post(f"{API_URL}/{workspace_url}/api-keys", params={"api_key": api_key}, json=body)
@@ -1566,12 +1567,16 @@ def update_api_key(api_key: str, workspace_url: str, key_id: str, **fields: Any)
     Disabling a protected key returns 409.
     """
     encoded = quote(key_id, safe="")
+    # Canonical wire field is camelCase `customMetadata` (consistent with `folderIds`); callers may
+    # pass the Pythonic `custom_metadata` kwarg, which is normalized here.
+    wire_aliases = {"custom_metadata": "customMetadata"}
     body: Dict[str, Any] = {}
     for k, v in fields.items():
+        wire_key = wire_aliases.get(k, k)
         if v is FULL_ACCESS:
-            body[k] = None
+            body[wire_key] = None
         elif v is not None:
-            body[k] = v
+            body[wire_key] = v
     response = requests.patch(
         f"{API_URL}/{workspace_url}/api-keys/{encoded}",
         params={"api_key": api_key},
