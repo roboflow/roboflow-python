@@ -390,17 +390,17 @@ def _process_model(
     allow_dependency_mismatch: bool,
     allow_size_mismatch: bool,
 ) -> tuple[Path, str, list[str]]:
-    if not any(supported in model_type for supported in SUPPORTED_MODELS):
+    if not model_type.startswith(SUPPORTED_MODELS):
         raise UnsupportedModelError(
             f"Model type '{model_type}' is not supported for custom weights upload. "
-            f"Supported families are: {', '.join(SUPPORTED_MODELS)}."
+            f"It must start with a supported family: {', '.join(SUPPORTED_MODELS)}."
         )
 
     if model_type.startswith(("paligemma", "paligemma2", "florence-2")):
         return _process_huggingface(model_type, model_path, build_dir)
-    if "yolonas" in model_type:
+    if model_type.startswith("yolonas"):
         return _process_yolonas(model_type, model_path, filename, build_dir)
-    if "rfdetr" in model_type:
+    if model_type.startswith("rfdetr"):
         return _process_rfdetr(model_type, model_path, filename, build_dir, allow_size_mismatch)
     return _process_yolo(
         model_type,

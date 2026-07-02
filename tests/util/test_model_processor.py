@@ -376,6 +376,13 @@ class PackageCustomWeightsTest(unittest.TestCase):
         with self.assertRaises(MissingFileError):
             package_custom_weights("yolonas", "/nonexistent/path/for/test")
 
+    def test_family_must_be_a_prefix_not_a_substring(self):
+        # 'foo-yolov8n' merely contains a family token; the backend would
+        # reject it after upload, so the gate must reject it up front.
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(UnsupportedModelError):
+                package_custom_weights("foo-yolov8n", tmp)
+
     def test_rfdetr_falls_back_to_discovered_checkpoint(self):
         with tempfile.TemporaryDirectory() as tmp:
             model_dir = Path(tmp)
