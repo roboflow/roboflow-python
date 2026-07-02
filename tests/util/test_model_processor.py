@@ -458,6 +458,37 @@ class ProcessCompatTest(unittest.TestCase):
             self.assertTrue((model_dir / "model_artifacts.json").exists())
             self.assertTrue((model_dir / "state_dict.pt").exists())
 
+    def test_prompts_and_retries_on_mismatch_like_before(self):
+        error = model_processor.DependencyMismatchError(
+            "wrong ultralytics",
+            dependency="ultralytics",
+            required="ultralytics==8.0.196",
+            installed="8.3.0",
+        )
+        bundle = model_processor.ModelUploadBundle(
+            archive_path=Path("roboflow_deploy.zip"),
+            build_dir=Path("."),
+            model_type="yolov8n",
+        )
+        outcomes = [error, bundle]
+
+        def fake_package(*args, **kwargs):
+            outcome = outcomes.pop(0)
+            if isinstance(outcome, Exception):
+                raise outcome
+            self.assertTrue(kwargs["allow_dependency_mismatch"])
+            return outcome
+
+        with (
+            mock.patch.object(model_processor, "package_custom_weights", side_effect=fake_package),
+            mock.patch("builtins.input", return_value="y"),
+            mock.patch("builtins.print"),
+        ):
+            zip_file_name, model_type = process("yolov8m", "/models", "weights/best.pt")
+
+        self.assertEqual(zip_file_name, "roboflow_deploy.zip")
+        self.assertEqual(model_type, "yolov8n")
+
 
 class PackageCustomWeightsInteractiveTest(unittest.TestCase):
     def _bundle(self):

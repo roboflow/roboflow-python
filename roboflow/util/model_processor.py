@@ -16,10 +16,10 @@ Roboflow MCP server)::
 Expected, user-correctable failures raise :class:`ModelPackagingError`
 subclasses; anything else escaping these helpers is a bug.
 
-:func:`process` is the legacy entry point kept for backwards compatibility,
-and the ``Version.deploy`` / ``Workspace.deploy_model`` flows wrap the packaging
-step with :func:`package_custom_weights_interactive`, which preserves the
-historical print-and-confirm CLI behavior.
+The legacy :func:`process` entry point and the ``Version.deploy`` /
+``Workspace.deploy_model`` flows wrap the packaging step with
+:func:`package_custom_weights_interactive`, which preserves the historical
+print-and-confirm CLI behavior.
 """
 
 from __future__ import annotations
@@ -371,14 +371,13 @@ def package_custom_weights_interactive(
 def process(model_type: str, model_path: str, filename: str) -> tuple[str, str]:
     """Legacy packaging entry point, kept for backwards compatibility.
 
-    Packages into ``model_path`` (the historical behavior: intermediate
-    artifacts and the final archive land there), prints any packaging warnings,
-    and returns ``(archive_file_name, resolved_model_type)``. New code should
-    call :func:`package_custom_weights` instead.
+    Preserves the historical contract end to end: packages into ``model_path``
+    (intermediate artifacts and the final archive land there), prints packaging
+    warnings, asks for confirmation on dependency/size mismatches, and returns
+    ``(archive_file_name, resolved_model_type)``. Headless code should call
+    :func:`package_custom_weights` instead.
     """
-    bundle = package_custom_weights(model_type, model_path, filename, build_dir=model_path)
-    for warning in bundle.warnings:
-        print(warning)
+    bundle = package_custom_weights_interactive(model_type, model_path, filename, build_dir=model_path)
     return bundle.archive_path.name, bundle.model_type
 
 
