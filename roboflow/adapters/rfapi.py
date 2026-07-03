@@ -1583,3 +1583,153 @@ def get_model_eval_image_predictions(
 def get_model_eval_recommendations(api_key: str, workspace_url: str, eval_id: str) -> dict:
     """GET /{workspace}/model-evals/{evalId}/recommendations — improvement suggestions."""
     return _eval_get(api_key, workspace_url, f"/{eval_id}/recommendations")
+
+
+# ---------------------------------------------------------------------------
+# API key management endpoints
+# ---------------------------------------------------------------------------
+
+
+class _FullAccess:
+    """Sentinel distinguishing "unscoped/full access" from "omit scopes".
+
+    The API treats three ``scopes`` states differently: omitted inherits the
+    caller's own scopes, an explicit ``null`` grants full (unscoped) access, and
+    an empty ``[]`` grants no abilities. Passing ``None`` from Python means
+    "omit", so ``FULL_ACCESS`` is used to force an explicit ``"scopes": null``
+    into the request body.
+    """
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __repr__(self) -> str:
+        return "FULL_ACCESS"
+
+
+FULL_ACCESS = _FullAccess()
+
+
+def list_api_keys(
+    api_key: str,
+    workspace_url: str,
+    include_disabled: bool = False,
+    include_folders: bool = False,
+) -> dict:
+    """GET /{workspace}/api-keys — list API keys for a workspace."""
+    params: Dict[str, Union[str, bool]] = {"api_key": api_key}
+    if include_disabled:
+        params["includeDisabled"] = "true"
+    if include_folders:
+        params["includeFolders"] = "true"
+    response = requests.get(f"{API_URL}/{workspace_url}/api-keys", params=params)
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def get_api_key(api_key: str, workspace_url: str, key_id: str) -> dict:
+    """GET /{workspace}/api-keys/{keyId} — get a single API key by ID."""
+    encoded = quote(key_id, safe="")
+    response = requests.get(f"{API_URL}/{workspace_url}/api-keys/{encoded}", params={"api_key": api_key})
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def get_publishable_key(api_key: str, workspace_url: str) -> dict:
+    """GET /{workspace}/api-keys/publishable — get the workspace publishable key."""
+    response = requests.get(f"{API_URL}/{workspace_url}/api-keys/publishable", params={"api_key": api_key})
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def create_api_key(
+    api_key: str,
+    workspace_url: str,
+    name: Optional[str] = None,
+    scopes: Union[List[str], _FullAccess, None] = None,
+    folder_ids: Optional[List[str]] = None,
+    custom_metadata: Optional[Dict] = None,
+    protected: bool = False,
+) -> dict:
+    """POST /{workspace}/api-keys — create a new API key.
+
+    The secret ``key`` value is returned only on creation (shown once).
+    Omitting ``scopes`` (or passing ``None``) inherits the calling credential's
+    own scopes, so a full-access credential creates a full-access key. Pass a list
+    to scope the key (``role:<name>`` presets are accepted), ``[]`` for a key with
+    no abilities, or ``FULL_ACCESS`` to send an explicit ``null`` (unscoped/full
+    access). ``scopes``, ``folder_ids``, and ``custom_metadata`` require the
+    Advanced API Keys plan feature — the backend returns 403 if unavailable.
+    """
+    body: Dict[str, Any] = {}
+    if name is not None:
+        body["name"] = name
+    if scopes is FULL_ACCESS:
+        body["scopes"] = None
+    elif scopes is not None:
+        body["scopes"] = scopes
+    if folder_ids is not None:
+        body["folderIds"] = folder_ids
+    if custom_metadata is not None:
+        # Canonical wire field is camelCase `customMetadata` (consistent with `folderIds`).
+        body["customMetadata"] = custom_metadata
+    if protected:
+        body["protected"] = True
+    response = requests.post(f"{API_URL}/{workspace_url}/api-keys", params={"api_key": api_key}, json=body)
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def update_api_key(api_key: str, workspace_url: str, key_id: str, **fields: Any) -> dict:
+    """PATCH /{workspace}/api-keys/{keyId} — update an existing API key.
+
+    Pass only the fields you want to change as keyword arguments:
+    ``name``, ``scopes``, ``custom_metadata``, ``protected``, ``disabled``.
+    ``None`` values are omitted (left unchanged). To send explicit values,
+    pass ``scopes=[]`` (no abilities), ``scopes=FULL_ACCESS`` (unscoped/full
+    access, serialized as ``null``), or ``custom_metadata={}`` (clear metadata).
+    The API cannot unprotect a key (``protected=False`` → 403).
+    Disabling a protected key returns 409.
+    """
+    encoded = quote(key_id, safe="")
+    # Canonical wire field is camelCase `customMetadata` (consistent with `folderIds`); callers may
+    # pass the Pythonic `custom_metadata` kwarg, which is normalized here.
+    wire_aliases = {"custom_metadata": "customMetadata"}
+    body: Dict[str, Any] = {}
+    for k, v in fields.items():
+        wire_key = wire_aliases.get(k, k)
+        if v is FULL_ACCESS:
+            body[wire_key] = None
+        elif v is not None:
+            body[wire_key] = v
+    response = requests.patch(
+        f"{API_URL}/{workspace_url}/api-keys/{encoded}",
+        params={"api_key": api_key},
+        json=body,
+    )
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def revoke_api_key(api_key: str, workspace_url: str, key_id: str) -> dict:
+    """DELETE /{workspace}/api-keys/{keyId} — revoke (permanently delete) an API key.
+
+    Revoking a protected key returns 409. This action is irreversible.
+    """
+    encoded = quote(key_id, safe="")
+    response = requests.delete(
+        f"{API_URL}/{workspace_url}/api-keys/{encoded}",
+        params={"api_key": api_key},
+    )
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()

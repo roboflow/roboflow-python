@@ -357,6 +357,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | Command | Description |
 |---------|-------------|
 | `auth` | Login, logout, status, set default workspace |
+| `api-key` | List, create, update, protect, disable, revoke workspace API keys |
 | `workspace` | List and inspect workspaces |
 | `project` | List, get, create projects |
 | `version` | List, get, download, export dataset versions |
