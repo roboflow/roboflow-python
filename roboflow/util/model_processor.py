@@ -1020,6 +1020,12 @@ def _process_yolonas(
     filename: str,
     build_dir: Path,
 ) -> tuple[Path, str, list[str]]:
+    if model_type != "yolonas":
+        raise UnsupportedModelError(
+            f"Model type '{model_type}' is not supported for YOLO-NAS upload. The only "
+            "supported YOLO-NAS type is 'yolonas'; the architecture size goes in opt.yaml "
+            "as 'architecture: yolo_nas_s' (or _m / _l)."
+        )
     torch = _import_required_module("torch", "pip install torch")
     weights_path = model_path / filename
     if not weights_path.exists():

@@ -423,6 +423,13 @@ class PackageCustomWeightsTest(unittest.TestCase):
             with self.assertRaises(UnsupportedModelError):
                 package_custom_weights("foo-yolov8n", tmp)
 
+    def test_yolonas_requires_exact_model_type(self):
+        # Only 'yolonas' is valid; a suffixed typo like 'yolonas-foo' passes the
+        # family prefix gate but must be rejected before upload, not by the backend.
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(UnsupportedModelError):
+                package_custom_weights("yolonas-foo", tmp)
+
     def test_rfdetr_falls_back_to_discovered_checkpoint(self):
         with tempfile.TemporaryDirectory() as tmp:
             model_dir = Path(tmp)
