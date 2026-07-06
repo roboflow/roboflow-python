@@ -10,7 +10,14 @@ class DeploymentApiError(Exception):
 
 
 def add_deployment(
-    api_key, creator_email, machine_type, duration, delete_on_expiration, deployment_name, inference_version
+    api_key,
+    creator_email,
+    machine_type,
+    duration,
+    delete_on_expiration,
+    deployment_name,
+    inference_version,
+    region=None,
 ):
     url = f"{DEDICATED_DEPLOYMENT_URL}/add"
     params = {
@@ -24,6 +31,8 @@ def add_deployment(
     }
     if machine_type is not None:
         params["machine_type"] = machine_type
+    if region is not None:
+        params["region"] = region
     response = requests.post(url, json=params)
     if response.status_code != 200:
         return response.status_code, response.text
@@ -98,6 +107,14 @@ def delete_deployment(api_key, deployment_name):
 
 def list_machine_types(api_key):
     url = f"{DEDICATED_DEPLOYMENT_URL}/machine_types?api_key={api_key}"
+    response = requests.get(url)
+    if response.status_code != 200:
+        return response.status_code, response.text
+    return response.status_code, response.json()
+
+
+def list_regions(api_key):
+    url = f"{DEDICATED_DEPLOYMENT_URL}/regions?api_key={api_key}"
     response = requests.get(url)
     if response.status_code != 200:
         return response.status_code, response.text

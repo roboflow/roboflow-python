@@ -86,6 +86,15 @@ def machine_type(ctx: typer.Context) -> None:
     _wrap(list_machine_types)(args)
 
 
+@deployment_app.command("regions")
+def regions(ctx: typer.Context) -> None:
+    """List available regions and per-machine-type specs."""
+    from roboflow.deployment import list_regions
+
+    args = ctx_to_args(ctx)
+    _wrap(list_regions)(args)
+
+
 @deployment_app.command("create")
 def create_deployment(
     ctx: typer.Context,
@@ -99,6 +108,14 @@ def create_deployment(
         bool, typer.Option("--no-delete-on-expiration", help="Keep deployment when it expires")
     ] = False,
     inference_version: Annotated[str, typer.Option("--inference-version", help="Inference server version")] = "latest",
+    region: Annotated[
+        Optional[str],
+        typer.Option(
+            "-r",
+            "--region",
+            help="Region to deploy in (run 'roboflow deployment regions' to list; default: the default region)",
+        ),
+    ] = None,
     wait_on_pending: Annotated[bool, typer.Option("--wait", help="Wait until deployment is ready")] = False,
 ) -> None:
     """Create a dedicated deployment."""
@@ -112,6 +129,7 @@ def create_deployment(
         duration=duration,
         no_delete_on_expiration=no_delete_on_expiration,
         inference_version=inference_version,
+        region=region,
         wait_on_pending=wait_on_pending,
     )
     _wrap(add_deployment)(args)
@@ -247,6 +265,7 @@ def legacy_add(
     duration: Annotated[float, typer.Option("-t", "--duration")] = 3,
     no_delete_on_expiration: Annotated[bool, typer.Option("-nodel", "--no_delete_on_expiration")] = False,
     inference_version: Annotated[str, typer.Option("-v", "--inference_version")] = "latest",
+    region: Annotated[Optional[str], typer.Option("-r", "--region")] = None,
     wait_on_pending: Annotated[bool, typer.Option("-w", "--wait_on_pending")] = False,
 ) -> None:
     """Legacy alias for create."""
@@ -260,6 +279,7 @@ def legacy_add(
         duration=duration,
         no_delete_on_expiration=no_delete_on_expiration,
         inference_version=inference_version,
+        region=region,
         wait_on_pending=wait_on_pending,
     )
     if api_key:

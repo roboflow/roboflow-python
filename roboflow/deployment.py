@@ -50,6 +50,9 @@ def add_deployment_parser(subparsers):
     )
     deployment_subparsers = deployment_parser.add_subparsers(title="deployment subcommands")
     deployment_machine_type_parser = deployment_subparsers.add_parser("machine_type", help="list machine types")
+    deployment_regions_parser = deployment_subparsers.add_parser(
+        "regions", help="list available regions and per-machine-type specs"
+    )
     deployment_add_parser = deployment_subparsers.add_parser("add", help="create a dedicated deployment")
     deployment_get_parser = deployment_subparsers.add_parser(
         "get", help="show detailed info for a dedicated deployment"
@@ -68,6 +71,9 @@ def add_deployment_parser(subparsers):
 
     deployment_machine_type_parser.set_defaults(func=list_machine_types)
     deployment_machine_type_parser.add_argument("-a", "--api_key", help="api key")
+
+    deployment_regions_parser.set_defaults(func=list_regions)
+    deployment_regions_parser.add_argument("-a", "--api_key", help="api key")
 
     deployment_add_parser.set_defaults(func=add_deployment)
     deployment_add_parser.add_argument("-a", "--api_key", help="api key")
@@ -102,6 +108,13 @@ def add_deployment_parser(subparsers):
         "--inference_version",
         help="inference server version (default: latest)",
         default="latest",
+    )
+    deployment_add_parser.add_argument(
+        "-r",
+        "--region",
+        help="region to deploy in, run `roboflow deployment regions` to see available options"
+        " (default: the workspace controller's default region)",
+        default=None,
     )
     deployment_add_parser.add_argument(
         "-w", "--wait_on_pending", help="wait if deployment is pending", action="store_true"
@@ -172,6 +185,18 @@ def list_machine_types(args):
     print(json.dumps(msg, indent=2))
 
 
+def list_regions(args):
+    api_key = args.api_key or load_roboflow_api_key(None)
+    if api_key is None:
+        print("Please provide an api key")
+        exit(1)
+    status_code, msg = deploymentapi.list_regions(api_key)
+    if status_code != 200:
+        print(f"{status_code}: {msg}")
+        exit(status_code)
+    print(json.dumps(msg, indent=2))
+
+
 def add_deployment(args):
     api_key = args.api_key or load_roboflow_api_key(None)
     if api_key is None:
@@ -186,6 +211,7 @@ def add_deployment(args):
         (not args.no_delete_on_expiration),
         args.deployment_name,
         args.inference_version,
+        region=getattr(args, "region", None),
     )
 
     if status_code != 200:
