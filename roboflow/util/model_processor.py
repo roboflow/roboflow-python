@@ -102,6 +102,8 @@ SUPPORTED_RFDETR_TYPES = (
     "rfdetr-seg-2xlarge",
 )
 
+DEFAULT_WEIGHTS_FILENAME = "weights/best.pt"
+
 # YOLO families Roboflow rejects without a size suffix (e.g. `yolov8` must be
 # `yolov8n`/`yolov8s`/...). Legacy yolov5/7/9 go through the opt.yaml path and are
 # intentionally excluded.
@@ -237,6 +239,20 @@ def task_of_model_type(model_type: str) -> str:
     return TASK_DET
 
 
+def _checkpoint_args_as_dict(raw_args: Any) -> dict[str, Any]:
+    """Coerce a checkpoint's ``args`` (dict, argparse.Namespace, or None) to a dict.
+
+    A corrupt checkpoint may store ``args`` as a scalar or list; those have no
+    meaningful attributes, so treat them as no-args rather than letting
+    ``vars()`` raise a bare ``TypeError`` outside the ModelPackagingError contract.
+    """
+    if isinstance(raw_args, dict):
+        return raw_args
+    if hasattr(raw_args, "__dict__"):
+        return dict(vars(raw_args))
+    return {}
+
+
 def validate_model_type_for_project(model_type: str, project_type: str, project_id: str) -> None:
     """Raise TaskMismatchError if model_type's task doesn't match the Roboflow project type."""
     expected = {
@@ -259,7 +275,7 @@ def validate_model_type_for_project(model_type: str, project_type: str, project_
 def package_custom_weights(
     model_type: str,
     model_path: str,
-    filename: str = "weights/best.pt",
+    filename: str = DEFAULT_WEIGHTS_FILENAME,
     *,
     build_dir: str | Path | None = None,
     allow_dependency_mismatch: bool = False,
@@ -331,7 +347,7 @@ def package_custom_weights(
 def package_custom_weights_interactive(
     model_type: str,
     model_path: str,
-    filename: str = "weights/best.pt",
+    filename: str = DEFAULT_WEIGHTS_FILENAME,
     *,
     build_dir: str | Path | None = None,
 ) -> ModelUploadBundle:
@@ -547,6 +563,13 @@ def _resolve_yolo_size(
 
     if inferred is None:
         if not provided:
+            if allow_mismatch:
+                warnings.append(
+                    f"Could not infer a size for '{model_type}' from the checkpoint; "
+                    f"uploading the bare family name as requested. Roboflow may reject it "
+                    f"if it requires an explicit size."
+                )
+                return model_type
             raise SizeMismatchError(
                 f"model_type '{model_type}' is missing a size suffix and the size "
                 f"could not be inferred from the checkpoint. Specify it explicitly, "
@@ -731,7 +754,7 @@ def _detect_rfdetr_task(checkpoint: Any) -> str | None:
     raw_args = checkpoint.get("args")
     if raw_args is None:
         return None
-    args = raw_args if isinstance(raw_args, dict) else vars(raw_args)
+    args = _checkpoint_args_as_dict(raw_args)
     segmentation_head = args.get("segmentation_head")
     if segmentation_head is True:
         return TASK_SEG
@@ -749,13 +772,7 @@ def _rfdetr_checkpoint_pe_size(checkpoint: Any) -> int | None:
     """
     if not isinstance(checkpoint, dict):
         return None
-    raw_args = checkpoint.get("args")
-    if isinstance(raw_args, dict):
-        args = raw_args
-    elif raw_args is not None:
-        args = dict(vars(raw_args))
-    else:
-        args = {}
+    args = _checkpoint_args_as_dict(checkpoint.get("args"))
 
     pe = args.get("positional_encoding_size")
     if isinstance(pe, int) and pe > 0:
@@ -847,15 +864,23 @@ def _resolve_rfdetr_variant(
 
 
 def _find_rfdetr_checkpoint(model_path: Path, filename: str, warnings: list[str]) -> Path:
-    """Locate the rf-detr checkpoint, preserving the historical discovery behavior.
+    """Locate the rf-detr checkpoint.
 
-    The requested ``filename`` wins when it exists. Otherwise fall back to the
-    first top-level .pt/.pth file (sorted for determinism), which is how rf-detr
-    uploads located the checkpoint before ``filename`` was honored for them.
+    An explicitly-requested ``filename`` (anything other than the default) must
+    exist: falling back to a different checkpoint on a typo would silently
+    package the wrong weights. Only the default path falls back to discovering
+    the first top-level .pt/.pth file (sorted for determinism), preserving how
+    rf-detr uploads located the checkpoint before ``filename`` was honored.
     """
     requested_file = model_path / filename
     if requested_file.exists():
         return requested_file
+
+    if filename != DEFAULT_WEIGHTS_FILENAME:
+        raise MissingFileError(
+            f"RF-DETR weights file '{requested_file}' was not found. Set filename to the "
+            f"checkpoint's exact .pt or .pth path relative to model_path."
+        )
 
     discovered = sorted(path for path in model_path.iterdir() if path.is_file() and path.suffix in {".pt", ".pth"})
     if not discovered:
@@ -874,13 +899,7 @@ def _write_rfdetr_class_names(model_path: Path, build_dir: Path, checkpoint: Any
         class_names = class_names_path.read_text().splitlines()
     else:
         raw_args = checkpoint.get("args") if isinstance(checkpoint, dict) else None
-        if raw_args is None:
-            args: dict[str, Any] = {}
-        elif isinstance(raw_args, dict):
-            args = raw_args
-        else:
-            args = dict(vars(raw_args))
-        class_names = args.get("class_names") or []
+        class_names = _checkpoint_args_as_dict(raw_args).get("class_names") or []
         if not class_names:
             raise MissingFileError(
                 f"No class_names.txt file found in '{model_path}', and the RF-DETR "
@@ -924,7 +943,11 @@ def _process_rfdetr(
 
     model_type = _resolve_rfdetr_variant(model_type, checkpoint, warnings, allow_size_mismatch)
 
-    shutil.copy(checkpoint_path, build_dir / "weights.pt")
+    weights_dest = build_dir / "weights.pt"
+    # In the legacy deploy flow build_dir is model_path, so a checkpoint already
+    # named weights.pt is its own destination; copying would raise SameFileError.
+    if checkpoint_path.resolve() != weights_dest.resolve():
+        shutil.copy(checkpoint_path, weights_dest)
     _write_rfdetr_class_names(model_path, build_dir, checkpoint)
     archive_path = build_dir / "roboflow_deploy.zip"
     _write_zip(

@@ -17,6 +17,7 @@ from roboflow.util.model_processor import (
     SizeMismatchError,
     TaskMismatchError,
     UnsupportedModelError,
+    _checkpoint_args_as_dict,
     _detect_rfdetr_task,
     _detect_yolo_task,
     _infer_yolo_size,
@@ -114,6 +115,20 @@ class DetectRfdetrTaskTest(unittest.TestCase):
         self.assertIsNone(_detect_rfdetr_task({"model_name": None}))
         self.assertIsNone(_detect_rfdetr_task({"args": SimpleNamespace(other=1)}))
 
+    def test_scalar_args_do_not_raise_typeerror(self):
+        # A corrupt checkpoint storing args as a bare scalar must not escape the
+        # ModelPackagingError contract with a raw vars() TypeError.
+        self.assertIsNone(_detect_rfdetr_task({"args": 640}))
+
+
+class CheckpointArgsAsDictTest(unittest.TestCase):
+    def test_coerces_dict_namespace_none_and_scalar(self):
+        self.assertEqual(_checkpoint_args_as_dict({"a": 1}), {"a": 1})
+        self.assertEqual(_checkpoint_args_as_dict(SimpleNamespace(a=1)), {"a": 1})
+        self.assertEqual(_checkpoint_args_as_dict(None), {})
+        self.assertEqual(_checkpoint_args_as_dict(640), {})
+        self.assertEqual(_checkpoint_args_as_dict(["not", "a", "dict"]), {})
+
 
 class GetClassnamesTxtForRfdetrTest(unittest.TestCase):
     def _classnames(self, args):
@@ -161,9 +176,7 @@ class LegacyYoloArgsTest(unittest.TestCase):
 
     def test_accepts_either_image_size_key(self):
         self.assertEqual(_legacy_yolo_args({"imgsz": 640, "batch_size": 8}, Path("x")), {"imgsz": 640, "batch": 8})
-        self.assertEqual(
-            _legacy_yolo_args({"img_size": 416, "batch_size": 4}, Path("x")), {"imgsz": 416, "batch": 4}
-        )
+        self.assertEqual(_legacy_yolo_args({"img_size": 416, "batch_size": 4}, Path("x")), {"imgsz": 416, "batch": 4})
 
 
 class _FakeYoloModel:
@@ -226,6 +239,20 @@ class ResolveYoloSizeTest(unittest.TestCase):
         model = _FakeYoloModel({"depth_multiple": 0.33, "width_multiple": 0.25})
         self.assertEqual(_resolve_yolo_size("yolov8n", model, warnings), "yolov8n")
         self.assertEqual(warnings, [])
+
+    def test_bare_family_uninferable_raises_by_default(self):
+        with self.assertRaises(SizeMismatchError):
+            _resolve_yolo_size("yolov10", _FakeYoloModel({}), [])
+
+    def test_bare_family_uninferable_proceeds_under_allow_mismatch(self):
+        # The interactive retry sets allow_mismatch=True after the user confirms;
+        # this branch must then converge (return) rather than raise forever.
+        warnings: list = []
+        self.assertEqual(
+            _resolve_yolo_size("yolov10", _FakeYoloModel({}), warnings, allow_mismatch=True),
+            "yolov10",
+        )
+        self.assertTrue(warnings and "bare family name" in warnings[0])
 
 
 class ResolveRfdetrVariantTest(unittest.TestCase):
@@ -327,9 +354,7 @@ class PackageCustomWeightsTest(unittest.TestCase):
         prompt_guard = mock.patch(
             "builtins.input", side_effect=AssertionError("package_custom_weights must not prompt")
         )
-        exit_guard = mock.patch.object(
-            sys, "exit", side_effect=AssertionError("package_custom_weights must not exit")
-        )
+        exit_guard = mock.patch.object(sys, "exit", side_effect=AssertionError("package_custom_weights must not exit"))
         with tempfile.TemporaryDirectory() as tmp:
             model_dir = Path(tmp)
             _write_yolonas_inputs(model_dir)
@@ -404,6 +429,31 @@ class PackageCustomWeightsTest(unittest.TestCase):
             with _import_patch({"torch": torch}):
                 with self.assertRaises(MissingFileError):
                     package_custom_weights("rfdetr-base", tmp)
+
+    def test_rfdetr_explicit_missing_filename_does_not_fall_back(self):
+        # A typo'd explicit filename must fail loudly, not silently upload a
+        # different checkpoint that happens to be in the directory.
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "some_other_checkpoint.pth").write_bytes(b"checkpoint")
+            torch = _fake_torch({"args": {"class_names": ["widget"]}})
+            with _import_patch({"torch": torch}):
+                with self.assertRaises(MissingFileError):
+                    package_custom_weights("rfdetr-base", str(model_dir), filename="checkpoint_epoch50.pth")
+
+    def test_rfdetr_legacy_deploy_layout_does_not_self_copy(self):
+        # Legacy deploy passes build_dir=model_path with a top-level weights.pt;
+        # copying weights.pt onto itself would raise shutil.SameFileError.
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "weights.pt").write_bytes(b"checkpoint")
+            torch = _fake_torch({"args": {"class_names": ["widget"]}})
+            with _import_patch({"torch": torch}):
+                bundle = package_custom_weights(
+                    "rfdetr-base", str(model_dir), filename="weights.pt", build_dir=model_dir
+                )
+            with zipfile.ZipFile(bundle.archive_path) as archive:
+                self.assertIn("weights.pt", archive.namelist())
 
     def test_yolov8_full_flow_builds_artifacts(self):
         checkpoint_names = {1: "dog", 0: "cat"}
