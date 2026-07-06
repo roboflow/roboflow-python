@@ -20,6 +20,7 @@ from roboflow.util.model_processor import (
     _checkpoint_args_as_dict,
     _detect_rfdetr_task,
     _detect_yolo_task,
+    _filtered_args,
     _infer_yolo_size,
     _legacy_yolo_args,
     _resolve_rfdetr_variant,
@@ -128,6 +129,20 @@ class CheckpointArgsAsDictTest(unittest.TestCase):
         self.assertEqual(_checkpoint_args_as_dict(None), {})
         self.assertEqual(_checkpoint_args_as_dict(640), {})
         self.assertEqual(_checkpoint_args_as_dict(["not", "a", "dict"]), {})
+
+
+class FilteredArgsTest(unittest.TestCase):
+    def test_keeps_only_upload_keys_from_dict_or_namespace(self):
+        self.assertEqual(
+            _filtered_args({"model": "m", "imgsz": 640, "batch": 8, "lr0": 0.01}),
+            {"model": "m", "imgsz": 640, "batch": 8},
+        )
+        self.assertEqual(_filtered_args(SimpleNamespace(imgsz=320, batch=4, extra=1)), {"imgsz": 320, "batch": 4})
+
+    def test_scalar_or_none_args_do_not_raise(self):
+        # A corrupt .args must coerce to {} instead of raising a raw TypeError.
+        self.assertEqual(_filtered_args(None), {})
+        self.assertEqual(_filtered_args(640), {})
 
 
 class GetClassnamesTxtForRfdetrTest(unittest.TestCase):
@@ -429,6 +444,34 @@ class PackageCustomWeightsTest(unittest.TestCase):
             with _import_patch({"torch": torch}):
                 with self.assertRaises(MissingFileError):
                     package_custom_weights("rfdetr-base", tmp)
+
+    def test_rfdetr_bare_state_dict_without_args_fails_before_upload(self):
+        # A stripped inference checkpoint ({"model": state_dict} with no "args")
+        # would package fine but fail Roboflow's server-side conversion with an
+        # opaque KeyError: 'args'. Packaging must reject it up front.
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "weights.pt").write_bytes(b"checkpoint")
+            torch = _fake_torch({"model": {"backbone.weight": object()}})
+            with _import_patch({"torch": torch}):
+                with self.assertRaises(ModelPackagingError) as ctx:
+                    package_custom_weights("rfdetr-base", str(model_dir), filename="weights.pt")
+        self.assertIn("args", str(ctx.exception))
+        self.assertIn("state_dict", str(ctx.exception))
+
+    def test_yolonas_bare_state_dict_without_class_names_fails_before_upload(self):
+        # A bare YOLO-NAS state_dict lacks processing_params.class_names; it must
+        # raise an actionable error instead of a raw KeyError/TypeError.
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "weights").mkdir()
+            (model_dir / "weights" / "best.pt").write_bytes(b"checkpoint")
+            torch = _fake_torch({"backbone.weight": object()})  # bare state_dict, no processing_params
+            with _import_patch({"torch": torch}):
+                with self.assertRaises(ModelPackagingError) as ctx:
+                    package_custom_weights("yolonas", str(model_dir))
+        self.assertIn("class_names", str(ctx.exception))
+        self.assertIn("state_dict", str(ctx.exception))
 
     def test_rfdetr_explicit_missing_filename_does_not_fall_back(self):
         # A typo'd explicit filename must fail loudly, not silently upload a

@@ -490,9 +490,9 @@ def _class_names_from_model_instance(model_instance: Any) -> list[str]:
 
 
 def _filtered_args(args: Any) -> dict[str, Any]:
-    if not isinstance(args, dict):
-        args = vars(args)
-    return {k: v for k, v in args.items() if k in {"model", "imgsz", "batch"}}
+    # A corrupt checkpoint may store args as a scalar/None; coerce via the shared
+    # helper so it becomes {} rather than raising a raw TypeError from vars().
+    return {k: v for k, v in _checkpoint_args_as_dict(args).items() if k in {"model", "imgsz", "batch"}}
 
 
 def _load_checkpoint(torch_module: Any, checkpoint_path: Path, *, map_location: str | None = None) -> Any:
@@ -934,6 +934,20 @@ def _process_rfdetr(
     checkpoint_path = _find_rfdetr_checkpoint(model_path, filename, warnings)
     checkpoint = _load_checkpoint(torch, checkpoint_path, map_location="cpu")
 
+    # Roboflow's server-side RF-DETR conversion reads checkpoint["args"] (the
+    # class names, class count, and model config). A bare inference state_dict —
+    # e.g. {"model": <weights>} with nothing else — would otherwise package and
+    # upload fine, then fail conversion with an opaque KeyError: 'args'. Catch it
+    # here so the caller gets an actionable error before uploading.
+    if not isinstance(checkpoint, dict) or checkpoint.get("args") is None:
+        raise ModelPackagingError(
+            f"The RF-DETR checkpoint '{checkpoint_path.name}' is missing its 'args' "
+            "metadata; it looks like a bare inference state_dict. Roboflow's weight "
+            "conversion needs the full training checkpoint (args carries the class "
+            "names, class count, and model config). Re-export the checkpoint from your "
+            "training run, or download the deploy checkpoint from Roboflow."
+        )
+
     detected_task = _detect_rfdetr_task(checkpoint)
     if detected_task and detected_task != task_of_model_type(model_type):
         raise TaskMismatchError(
@@ -1012,7 +1026,17 @@ def _process_yolonas(
         raise MissingFileError(f"Model weights file '{weights_path}' was not found.")
 
     checkpoint = _load_checkpoint(torch, weights_path, map_location="cpu")
-    class_names = checkpoint["processing_params"]["class_names"]
+    # A SuperGradients YOLO-NAS checkpoint carries processing_params.class_names.
+    # A bare state_dict (e.g. torch.save(net.state_dict())) lacks it and would
+    # otherwise raise a raw KeyError/TypeError instead of an actionable error.
+    processing_params = checkpoint.get("processing_params") if isinstance(checkpoint, dict) else None
+    class_names = processing_params.get("class_names") if isinstance(processing_params, dict) else None
+    if not class_names:
+        raise ModelPackagingError(
+            f"The YOLO-NAS checkpoint '{weights_path.name}' is missing "
+            "processing_params.class_names; it looks like a bare state_dict. Provide the "
+            "full training checkpoint saved by SuperGradients."
+        )
     opt_path = model_path / "opt.yaml"
     if not opt_path.exists():
         raise MissingFileError(
