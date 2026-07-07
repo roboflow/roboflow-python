@@ -26,6 +26,13 @@ models (e.g. a NAS sweep). New object types expose this:
 `list_trainings_for_version`, `get_training`, `create_training_v2`,
 `cancel_training_v2`, `stop_training_v2`, `get_model_weights_url`.
 
+### Added
+
+- Upload raw rf-detr PyTorch-Lightning checkpoints (e.g. `checkpoint_best_ema.pth`):
+  `upload_model` detects them and rebuilds a deploy-ready bundle via rf-detr's
+  `export_for_roboflow` (requires `rfdetr>=1.8.0`)
+  ([#488](https://github.com/roboflow/roboflow-python/pull/488))
+
 ### Changed
 
 - Keypoint detection inference now reports its prediction type correctly

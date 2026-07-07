@@ -124,6 +124,7 @@ module = [
     # ipywidgets is an optional dependency
     "ipywidgets.*",
     "requests_toolbelt.*",
+    "rfdetr.*",
     "torch.*",
     "ultralytics.*",
 ]
