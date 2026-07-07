@@ -84,23 +84,32 @@ SUPPORTED_HUGGINGFACE_TYPES = (
     "paligemma2-3b-pt-896-peft",
 )
 
-SUPPORTED_RFDETR_TYPES = (
-    # Detection models
-    "rfdetr-base",
-    "rfdetr-nano",
-    "rfdetr-small",
-    "rfdetr-medium",
-    "rfdetr-large",
-    "rfdetr-xlarge",
-    "rfdetr-2xlarge",
-    # Segmentation models
-    "rfdetr-seg-nano",
-    "rfdetr-seg-small",
-    "rfdetr-seg-medium",
-    "rfdetr-seg-large",
-    "rfdetr-seg-xlarge",
-    "rfdetr-seg-2xlarge",
-)
+# Minimum rf-detr release shipping ``RFDETR.export_for_roboflow`` (used to rebuild
+# an upload bundle from a raw PyTorch-Lightning checkpoint).
+RFDETR_MIN_VERSION = "1.8.0"
+
+# rf-detr model_type -> RFDETR subclass name. Single source of truth for both the
+# supported-type check and the ``from_checkpoint`` fallback (used when a raw
+# checkpoint lacks the metadata rf-detr needs to infer its own class).
+_RFDETR_MODEL_TYPE_TO_CLASS = {
+    # Detection
+    "rfdetr-base": "RFDETRBase",
+    "rfdetr-nano": "RFDETRNano",
+    "rfdetr-small": "RFDETRSmall",
+    "rfdetr-medium": "RFDETRMedium",
+    "rfdetr-large": "RFDETRLarge",
+    "rfdetr-xlarge": "RFDETRXLarge",
+    "rfdetr-2xlarge": "RFDETR2XLarge",
+    # Segmentation
+    "rfdetr-seg-nano": "RFDETRSegNano",
+    "rfdetr-seg-small": "RFDETRSegSmall",
+    "rfdetr-seg-medium": "RFDETRSegMedium",
+    "rfdetr-seg-large": "RFDETRSegLarge",
+    "rfdetr-seg-xlarge": "RFDETRSegXLarge",
+    "rfdetr-seg-2xlarge": "RFDETRSeg2XLarge",
+}
+
+SUPPORTED_RFDETR_TYPES = tuple(_RFDETR_MODEL_TYPE_TO_CLASS)
 
 DEFAULT_WEIGHTS_FILENAME = "weights/best.pt"
 
@@ -750,7 +759,13 @@ def _detect_rfdetr_task(checkpoint: Any) -> str | None:
         return None
     model_name = checkpoint.get("model_name")
     if isinstance(model_name, str):
-        return TASK_SEG if TASK_SEG in model_name.lower() else TASK_DET
+        name = model_name.lower()
+        # Keypoint rf-detr checkpoints (e.g. 'RFDETRKeypointPreview') are not a
+        # supported upload type; classify them as pose so the task check rejects
+        # them instead of silently uploading a keypoint model as detection.
+        if "keypoint" in name:
+            return TASK_POSE
+        return TASK_SEG if TASK_SEG in name else TASK_DET
     raw_args = checkpoint.get("args")
     if raw_args is None:
         return None
@@ -916,6 +931,34 @@ def _write_rfdetr_class_names(model_path: Path, build_dir: Path, checkpoint: Any
     return output_path
 
 
+def _is_ptl_checkpoint(checkpoint: Any) -> bool:
+    """True if the checkpoint is a raw PyTorch-Lightning rf-detr checkpoint dict."""
+    return isinstance(checkpoint, dict) and "pytorch-lightning_version" in checkpoint
+
+
+def _require_rfdetr() -> Any:
+    """Import ``rfdetr`` and verify it ships the upload-bundle helpers.
+
+    Raises :class:`MissingDependencyError` (a ModelPackagingError, so callers see
+    an actionable 400 rather than an opaque server error) when ``rfdetr`` is
+    missing or too old to export a Roboflow upload bundle.
+    """
+    try:
+        import rfdetr
+    except ImportError as exc:
+        raise MissingDependencyError(
+            "The 'rfdetr' package is required to package raw PyTorch-Lightning rf-detr "
+            f"checkpoints. Install it with `pip install 'rfdetr>={RFDETR_MIN_VERSION}'`."
+        ) from exc
+
+    if not hasattr(rfdetr.RFDETR, "export_for_roboflow"):
+        raise MissingDependencyError(
+            "The installed 'rfdetr' is too old to package raw PyTorch-Lightning rf-detr "
+            f"checkpoints. Upgrade it with `pip install --upgrade 'rfdetr>={RFDETR_MIN_VERSION}'`."
+        )
+    return rfdetr
+
+
 def _process_rfdetr(
     model_type: str,
     model_path: Path,
@@ -934,20 +977,8 @@ def _process_rfdetr(
     checkpoint_path = _find_rfdetr_checkpoint(model_path, filename, warnings)
     checkpoint = _load_checkpoint(torch, checkpoint_path, map_location="cpu")
 
-    # Roboflow's server-side RF-DETR conversion reads checkpoint["args"] (the
-    # class names, class count, and model config). A bare inference state_dict —
-    # e.g. {"model": <weights>} with nothing else — would otherwise package and
-    # upload fine, then fail conversion with an opaque KeyError: 'args'. Catch it
-    # here so the caller gets an actionable error before uploading.
-    if not isinstance(checkpoint, dict) or checkpoint.get("args") is None:
-        raise ModelPackagingError(
-            f"The RF-DETR checkpoint '{checkpoint_path.name}' is missing its 'args' "
-            "metadata; it looks like a bare inference state_dict. Roboflow's weight "
-            "conversion needs the full training checkpoint (args carries the class "
-            "names, class count, and model config). Re-export the checkpoint from your "
-            "training run, or download the deploy checkpoint from Roboflow."
-        )
-
+    # Task detection + mismatch runs for every checkpoint shape (it also rejects
+    # keypoint rf-detr, which is not a supported upload type).
     detected_task = _detect_rfdetr_task(checkpoint)
     if detected_task and detected_task != task_of_model_type(model_type):
         raise TaskMismatchError(
@@ -955,14 +986,43 @@ def _process_rfdetr(
             f"but the checkpoint is a '{detected_task}' RF-DETR model. Use a matching model_type."
         )
 
-    model_type = _resolve_rfdetr_variant(model_type, checkpoint, warnings, allow_size_mismatch)
+    if _is_ptl_checkpoint(checkpoint):
+        # Raw PyTorch-Lightning checkpoint: let rf-detr rebuild a proper upload
+        # bundle (weights.pt with args.resolution + class_names.txt) into build_dir,
+        # so the caller's model_path is never mutated.
+        rfdetr = _require_rfdetr()
+        try:
+            model = rfdetr.RFDETR.from_checkpoint(str(checkpoint_path))
+        except ValueError:
+            # Checkpoint lacks model_name/pretrain_weights signals; fall back to the
+            # already-validated model_type to pick the RFDETR subclass.
+            model_cls = getattr(rfdetr, _RFDETR_MODEL_TYPE_TO_CLASS[model_type])
+            model = model_cls(pretrain_weights=str(checkpoint_path))
+        model.export_for_roboflow(str(build_dir))  # writes weights.pt + class_names.txt
+    else:
+        # Roboflow's server-side RF-DETR conversion reads checkpoint["args"] (the
+        # class names, class count, and model config). A bare inference state_dict —
+        # e.g. {"model": <weights>} with nothing else — would otherwise package and
+        # upload fine, then fail conversion with an opaque KeyError: 'args'. Catch it
+        # here so the caller gets an actionable error before uploading.
+        if not isinstance(checkpoint, dict) or checkpoint.get("args") is None:
+            raise ModelPackagingError(
+                f"The RF-DETR checkpoint '{checkpoint_path.name}' is missing its 'args' "
+                "metadata; it looks like a bare inference state_dict. Roboflow's weight "
+                "conversion needs the full training checkpoint (args carries the class "
+                "names, class count, and model config). Re-export the checkpoint from your "
+                "training run, or download the deploy checkpoint from Roboflow."
+            )
 
-    weights_dest = build_dir / "weights.pt"
-    # In the legacy deploy flow build_dir is model_path, so a checkpoint already
-    # named weights.pt is its own destination; copying would raise SameFileError.
-    if checkpoint_path.resolve() != weights_dest.resolve():
-        shutil.copy(checkpoint_path, weights_dest)
-    _write_rfdetr_class_names(model_path, build_dir, checkpoint)
+        model_type = _resolve_rfdetr_variant(model_type, checkpoint, warnings, allow_size_mismatch)
+
+        weights_dest = build_dir / "weights.pt"
+        # In the legacy deploy flow build_dir is model_path, so a checkpoint already
+        # named weights.pt is its own destination; copying would raise SameFileError.
+        if checkpoint_path.resolve() != weights_dest.resolve():
+            shutil.copy(checkpoint_path, weights_dest)
+        _write_rfdetr_class_names(model_path, build_dir, checkpoint)
+
     archive_path = build_dir / "roboflow_deploy.zip"
     _write_zip(
         archive_path,
