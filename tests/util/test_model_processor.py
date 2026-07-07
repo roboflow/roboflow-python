@@ -17,12 +17,15 @@ from roboflow.util.model_processor import (
     SizeMismatchError,
     TaskMismatchError,
     UnsupportedModelError,
+    _RFDETR_MODEL_TYPE_TO_CLASS,
     _checkpoint_args_as_dict,
     _detect_rfdetr_task,
     _detect_yolo_task,
     _filtered_args,
     _infer_yolo_size,
+    _is_ptl_checkpoint,
     _legacy_yolo_args,
+    _require_rfdetr,
     _resolve_rfdetr_variant,
     _resolve_yolo_size,
     _rfdetr_checkpoint_pe_size,
@@ -97,6 +100,11 @@ class DetectRfdetrTaskTest(unittest.TestCase):
     def test_detection_model_names(self):
         for name in ("RFDETRNano", "RFDETRSmall", "RFDETRMedium", "RFDETRLarge", "RFDETRXLarge"):
             self.assertEqual(_detect_rfdetr_task({"model_name": name}), TASK_DET, name)
+
+    def test_keypoint_model_name_returns_pose(self):
+        # Keypoint checkpoints are unsupported; classifying them as pose lets the
+        # model_type task check reject them instead of uploading them as detection.
+        self.assertEqual(_detect_rfdetr_task({"model_name": "RFDETRKeypointPreview"}), TASK_POSE)
 
     def test_segmentation_head_fallback(self):
         # Roboflow-hosted rf-detr .pt downloads lack `model_name` but always carry
@@ -634,6 +642,150 @@ class PackageCustomWeightsInteractiveTest(unittest.TestCase):
         ):
             with self.assertRaises(SizeMismatchError):
                 package_custom_weights_interactive("yolov8m", "/models")
+
+
+class RfdetrModelTypeToClassTest(unittest.TestCase):
+    def test_representative_mappings(self):
+        self.assertEqual(_RFDETR_MODEL_TYPE_TO_CLASS["rfdetr-seg-medium"], "RFDETRSegMedium")
+        self.assertEqual(_RFDETR_MODEL_TYPE_TO_CLASS["rfdetr-base"], "RFDETRBase")
+
+    def test_keys_are_rfdetr_types_and_values_are_class_names(self):
+        for model_type, class_name in _RFDETR_MODEL_TYPE_TO_CLASS.items():
+            self.assertTrue(model_type.startswith("rfdetr-"), model_type)
+            self.assertTrue(class_name.startswith("RFDETR"), class_name)
+            # Segmentation types map to Seg classes (and detection types must not).
+            self.assertEqual("seg" in model_type, "Seg" in class_name, model_type)
+
+
+class IsPtlCheckpointTest(unittest.TestCase):
+    def test_true_when_lightning_version_present(self):
+        self.assertTrue(_is_ptl_checkpoint({"pytorch-lightning_version": "2.1.0", "args": {}}))
+
+    def test_false_for_plain_checkpoint(self):
+        self.assertFalse(_is_ptl_checkpoint({"args": {}, "model": {}}))
+
+    def test_false_for_non_dict(self):
+        self.assertFalse(_is_ptl_checkpoint(None))
+        self.assertFalse(_is_ptl_checkpoint(SimpleNamespace(**{"pytorch-lightning_version": "2.1.0"})))
+
+
+class _StubBundleModel:
+    """Stub rf-detr model whose export_for_roboflow writes a dummy bundle on disk."""
+
+    def __init__(self, class_names=("cat", "dog")):
+        self.class_names = list(class_names)
+
+    def export_for_roboflow(self, output_dir):
+        (Path(output_dir) / "weights.pt").write_bytes(b"rebuilt-weights")
+        (Path(output_dir) / "class_names.txt").write_text("\n".join(self.class_names) + "\n")
+
+
+def _make_fake_rfdetr(*, from_checkpoint_raises=False, capabilities=True):
+    """Build a fake ``rfdetr`` module for injection via sys.modules."""
+    stub_model = _StubBundleModel()
+    calls = {"from_checkpoint": 0, "fallback_constructed": 0, "constructor_kwargs": None}
+
+    class _RFDETR:
+        @staticmethod
+        def from_checkpoint(path):
+            calls["from_checkpoint"] += 1
+            if from_checkpoint_raises:
+                raise ValueError("cannot infer model class")
+            return stub_model
+
+    class _SizedModel(_StubBundleModel):
+        def __init__(self, *, pretrain_weights):
+            super().__init__()
+            calls["fallback_constructed"] += 1
+            calls["constructor_kwargs"] = {"pretrain_weights": pretrain_weights}
+
+    module = SimpleNamespace()
+    module.RFDETR = _RFDETR
+    # The fallback resolves the subclass by name via _RFDETR_MODEL_TYPE_TO_CLASS,
+    # e.g. "rfdetr-seg-medium" -> getattr(rfdetr, "RFDETRSegMedium").
+    module.RFDETRSegMedium = _SizedModel
+    if capabilities:
+        _RFDETR.export_for_roboflow = _StubBundleModel.export_for_roboflow  # capability marker
+    module._calls = calls
+    return module
+
+
+class RequireRfdetrTest(unittest.TestCase):
+    def test_raises_when_not_installed(self):
+        with mock.patch.dict(sys.modules, {"rfdetr": None}):
+            with self.assertRaises(ModelPackagingError) as ctx:
+                _require_rfdetr()
+        self.assertIn("pip install", str(ctx.exception).lower())
+        self.assertIn("rfdetr", str(ctx.exception).lower())
+
+    def test_raises_when_capability_missing(self):
+        fake = SimpleNamespace(RFDETR=type("RFDETR", (), {}))
+        with mock.patch.dict(sys.modules, {"rfdetr": fake}):
+            with self.assertRaises(ModelPackagingError) as ctx:
+                _require_rfdetr()
+        self.assertIn("upgrade", str(ctx.exception).lower())
+
+    def test_returns_module_when_capable(self):
+        fake = _make_fake_rfdetr()
+        with mock.patch.dict(sys.modules, {"rfdetr": fake}):
+            self.assertIs(_require_rfdetr(), fake)
+
+
+class PackageRfdetrPtlTest(unittest.TestCase):
+    """PyTorch-Lightning rf-detr checkpoints are rebuilt via rfdetr into build_dir."""
+
+    def _package(self, model_type, fake_rfdetr, *, segmentation_head=False):
+        with tempfile.TemporaryDirectory() as model_dir:
+            (Path(model_dir) / "checkpoint_best_ema.pth").write_bytes(b"raw-ptl")
+            ckpt = {
+                "pytorch-lightning_version": "2.1.0",
+                "args": {"segmentation_head": segmentation_head, "class_names": ["cat", "dog"]},
+            }
+            torch = _fake_torch(ckpt)
+            with _import_patch({"torch": torch}), mock.patch.dict(sys.modules, {"rfdetr": fake_rfdetr}):
+                bundle = package_custom_weights(model_type, model_dir, filename="checkpoint_best_ema.pth")
+            try:
+                with zipfile.ZipFile(bundle.archive_path) as archive:
+                    names = archive.namelist()
+            finally:
+                bundle.cleanup()
+            return bundle, names
+
+    def test_from_checkpoint_success_produces_bundle(self):
+        fake = _make_fake_rfdetr()
+        bundle, names = self._package("rfdetr-base", fake)
+        self.assertEqual(bundle.model_type, "rfdetr-base")
+        self.assertEqual(fake._calls["from_checkpoint"], 1)
+        self.assertEqual(fake._calls["fallback_constructed"], 0)
+        self.assertIn("weights.pt", names)
+        self.assertIn("class_names.txt", names)
+
+    def test_from_checkpoint_valueerror_falls_back_to_model_type(self):
+        fake = _make_fake_rfdetr(from_checkpoint_raises=True)
+        bundle, names = self._package("rfdetr-seg-medium", fake, segmentation_head=True)
+        self.assertEqual(bundle.model_type, "rfdetr-seg-medium")
+        self.assertEqual(fake._calls["from_checkpoint"], 1)
+        self.assertEqual(fake._calls["fallback_constructed"], 1)
+        self.assertIn("weights.pt", names)
+
+    def test_ptl_path_raises_when_rfdetr_absent(self):
+        with tempfile.TemporaryDirectory() as model_dir:
+            (Path(model_dir) / "checkpoint_best_ema.pth").write_bytes(b"raw-ptl")
+            ckpt = {"pytorch-lightning_version": "2.1.0", "args": {"segmentation_head": False}}
+            torch = _fake_torch(ckpt)
+            with _import_patch({"torch": torch}), mock.patch.dict(sys.modules, {"rfdetr": None}):
+                with self.assertRaises(ModelPackagingError):
+                    package_custom_weights("rfdetr-base", model_dir, filename="checkpoint_best_ema.pth")
+
+    def test_keypoint_checkpoint_rejected_before_export(self):
+        # A keypoint checkpoint is rejected by the task check before any rfdetr use.
+        with tempfile.TemporaryDirectory() as model_dir:
+            (Path(model_dir) / "checkpoint_best_ema.pth").write_bytes(b"raw-ptl")
+            ckpt = {"pytorch-lightning_version": "2.1.0", "model_name": "RFDETRKeypointPreview"}
+            torch = _fake_torch(ckpt)
+            with _import_patch({"torch": torch}):
+                with self.assertRaises(TaskMismatchError):
+                    package_custom_weights("rfdetr-base", model_dir, filename="checkpoint_best_ema.pth")
 
 
 if __name__ == "__main__":
