@@ -556,11 +556,13 @@ class PackageCustomWeightsTest(unittest.TestCase):
 
     def test_rejects_absolute_filename(self):
         # A hosted caller (the MCP server) forwards filename verbatim; an absolute
-        # path would read weights from outside the model directory.
+        # path — POSIX or Windows-style, regardless of the packaging host's OS —
+        # must be rejected rather than reading weights from outside model_path.
         with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaises(ModelPackagingError) as ctx:
-                package_custom_weights("yolonas", tmp, filename="/etc/passwd")
-        self.assertIn("absolute", str(ctx.exception))
+            for bad in ("/etc/passwd", "C:\\Windows\\System32\\config"):
+                with self.assertRaises(ModelPackagingError) as ctx:
+                    package_custom_weights("yolonas", tmp, filename=bad)
+                self.assertIn("absolute", str(ctx.exception))
 
     def test_rejects_filename_escaping_model_path(self):
         # '..' segments must not let the caller escape the model directory.

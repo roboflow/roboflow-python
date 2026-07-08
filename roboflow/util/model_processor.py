@@ -33,7 +33,7 @@ import tempfile
 import zipfile
 from dataclasses import dataclass
 from importlib import import_module
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 import yaml
@@ -271,8 +271,13 @@ def _resolve_within_source(source_dir: Path, filename: str) -> Path:
     so reject both instead of silently packaging a file the caller never
     intended. ``source_dir`` is already resolved; resolving the join collapses
     ``..`` and follows symlinks before the containment check.
+
+    Absoluteness is tested under both OS conventions, not just the host's: the
+    hosted MCP forwards caller-supplied paths, so a POSIX absolute like
+    ``/etc/passwd`` must be rejected even when packaging happens to run on
+    Windows (where ``Path.is_absolute()`` alone would miss it, and vice versa).
     """
-    if Path(filename).is_absolute():
+    if PurePosixPath(filename).is_absolute() or PureWindowsPath(filename).is_absolute():
         raise ModelPackagingError(f"filename '{filename}' must be a path relative to model_path, not an absolute path.")
     resolved = (source_dir / filename).resolve()
     if resolved != source_dir and source_dir not in resolved.parents:
