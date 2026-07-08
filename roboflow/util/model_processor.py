@@ -262,6 +262,27 @@ def _checkpoint_args_as_dict(raw_args: Any) -> dict[str, Any]:
     return {}
 
 
+def _resolve_within_source(source_dir: Path, filename: str) -> Path:
+    """Resolve ``filename`` against ``source_dir``, refusing to escape it.
+
+    ``filename`` is documented as relative to ``model_path`` and is forwarded
+    verbatim by hosted callers (the MCP server). An absolute path or ``..``
+    segments would let a caller read weights from outside the model directory,
+    so reject both instead of silently packaging a file the caller never
+    intended. ``source_dir`` is already resolved; resolving the join collapses
+    ``..`` and follows symlinks before the containment check.
+    """
+    if Path(filename).is_absolute():
+        raise ModelPackagingError(f"filename '{filename}' must be a path relative to model_path, not an absolute path.")
+    resolved = (source_dir / filename).resolve()
+    if resolved != source_dir and source_dir not in resolved.parents:
+        raise ModelPackagingError(
+            f"filename '{filename}' resolves outside model_path '{source_dir}'. "
+            "It must point to a checkpoint inside the model directory."
+        )
+    return resolved
+
+
 def validate_model_type_for_project(model_type: str, project_type: str, project_id: str) -> None:
     """Raise TaskMismatchError if model_type's task doesn't match the Roboflow project type."""
     expected = {
@@ -322,12 +343,13 @@ def package_custom_weights(
     source_dir = Path(model_path).expanduser().resolve()
     if not source_dir.is_dir():
         raise MissingFileError(f"Model path '{model_path}' does not exist or is not a directory.")
+    _resolve_within_source(source_dir, filename)
 
     owns_build_dir = build_dir is None
     if build_dir is None:
         build_path = Path(tempfile.mkdtemp(prefix="roboflow-package-"))
     else:
-        build_path = Path(build_dir)
+        build_path = Path(build_dir).expanduser().resolve()
         build_path.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -615,6 +637,32 @@ def _resolve_yolo_size(
     )
 
 
+def _require_model_attr(model_instance: Any, attr: str, model_type: str) -> Any:
+    """Return ``model_instance.<attr>`` or raise a ModelPackagingError.
+
+    Roboflow's server-side conversion needs these fields; a stripped checkpoint
+    missing one would otherwise raise a raw ``AttributeError`` outside the
+    ModelPackagingError contract (an opaque 500 for hosted callers).
+    """
+    value = getattr(model_instance, attr, None)
+    if value is None:
+        raise ModelPackagingError(
+            f"The {model_type} checkpoint's model is missing '{attr}'; it does not look "
+            "like a complete Ultralytics training checkpoint. Re-export it from your training run."
+        )
+    return value
+
+
+def _require_checkpoint_field(checkpoint: Any, key: str, model_type: str) -> Any:
+    """Return ``checkpoint[key]`` or raise a ModelPackagingError (see _require_model_attr)."""
+    if not isinstance(checkpoint, dict) or key not in checkpoint:
+        raise ModelPackagingError(
+            f"The {model_type} checkpoint is missing '{key}'; it does not look like a "
+            "complete Ultralytics training checkpoint. Re-export it from your training run."
+        )
+    return checkpoint[key]
+
+
 def _process_yolo(
     model_type: str,
     model_path: Path,
@@ -694,6 +742,7 @@ def _process_yolo(
     if any(name in model_type for name in ULTRALYTICS_YOLO_FAMILIES):
         if ultralytics is None:
             ultralytics = _import_required_module("ultralytics", "pip install ultralytics")
+        model_yaml = _require_model_attr(model_instance, "yaml", model_type)
         if (
             "-cls" in model_type
             or model_type.startswith("yolov10")
@@ -701,14 +750,19 @@ def _process_yolo(
             or model_type.startswith("yolov12")
             or model_type.startswith("yolo26")
         ):
-            nc = model_instance.yaml["nc"]
-            args = checkpoint["train_args"]
+            if not isinstance(model_yaml, dict) or "nc" not in model_yaml:
+                raise ModelPackagingError(
+                    f"The {model_type} checkpoint's model config (model.yaml) is missing 'nc'; "
+                    "it does not look like a complete Ultralytics training checkpoint."
+                )
+            nc = model_yaml["nc"]
+            args = _require_checkpoint_field(checkpoint, "train_args", model_type)
         else:
-            nc = model_instance.nc
-            args = model_instance.args
+            nc = _require_model_attr(model_instance, "nc", model_type)
+            args = _require_model_attr(model_instance, "args", model_type)
         model_artifacts: dict[str, Any] = {
             "names": class_names,
-            "yaml": model_instance.yaml,
+            "yaml": model_yaml,
             "nc": nc,
             "args": _filtered_args(args),
             "ultralytics_version": ultralytics.__version__,
@@ -723,7 +777,7 @@ def _process_yolo(
             opts = yaml.safe_load(stream) or {}
         model_artifacts = {
             "names": class_names,
-            "nc": model_instance.nc,
+            "nc": _require_model_attr(model_instance, "nc", model_type),
             "args": _legacy_yolo_args(opts, opt_path),
             "model_type": model_type,
         }
@@ -902,9 +956,18 @@ def _find_rfdetr_checkpoint(model_path: Path, filename: str, warnings: list[str]
         raise MissingFileError(
             f"No .pt or .pth checkpoint found in '{model_path}' (and '{requested_file}' does not exist)."
         )
-    warnings.append(
-        f"Weights file '{requested_file}' was not found; using discovered checkpoint '{discovered[0].name}' instead."
-    )
+    if len(discovered) > 1:
+        others = ", ".join(path.name for path in discovered)
+        warnings.append(
+            f"Weights file '{requested_file}' was not found and '{model_path}' holds multiple "
+            f"checkpoints ({others}); packaging '{discovered[0].name}'. Set filename to pick a "
+            "specific checkpoint if that is not the one you want."
+        )
+    else:
+        warnings.append(
+            f"Weights file '{requested_file}' was not found; using discovered checkpoint "
+            f"'{discovered[0].name}' instead."
+        )
     return discovered[0]
 
 

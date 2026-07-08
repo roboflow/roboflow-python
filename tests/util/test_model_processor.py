@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import tarfile
 import tempfile
 import types
 import unittest
@@ -12,12 +13,12 @@ from unittest import mock
 from roboflow.config import TASK_CLS, TASK_DET, TASK_OBB, TASK_POSE, TASK_SEG, TASK_SEM
 from roboflow.util import model_processor
 from roboflow.util.model_processor import (
+    _RFDETR_MODEL_TYPE_TO_CLASS,
     MissingFileError,
     ModelPackagingError,
     SizeMismatchError,
     TaskMismatchError,
     UnsupportedModelError,
-    _RFDETR_MODEL_TYPE_TO_CLASS,
     _checkpoint_args_as_dict,
     _detect_rfdetr_task,
     _detect_yolo_task,
@@ -408,7 +409,7 @@ class PackageCustomWeightsTest(unittest.TestCase):
             model_dir = Path(tmp)
             _write_yolonas_inputs(model_dir)
             bundle, _ = self._package_yolonas(model_dir, build_dir=build)
-            self.assertEqual(bundle.build_dir, Path(build))
+            self.assertEqual(bundle.build_dir, Path(build).resolve())
             self.assertFalse(bundle.owns_build_dir)
             bundle.cleanup()
             self.assertTrue(bundle.archive_path.exists())
@@ -552,6 +553,168 @@ class PackageCustomWeightsTest(unittest.TestCase):
                 self.assertEqual(artifacts["args"], {"model": "yolov8n.yaml", "imgsz": 640, "batch": 16})
             finally:
                 bundle.cleanup()
+
+    def test_rejects_absolute_filename(self):
+        # A hosted caller (the MCP server) forwards filename verbatim; an absolute
+        # path would read weights from outside the model directory.
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ModelPackagingError) as ctx:
+                package_custom_weights("yolonas", tmp, filename="/etc/passwd")
+        self.assertIn("absolute", str(ctx.exception))
+
+    def test_rejects_filename_escaping_model_path(self):
+        # '..' segments must not let the caller escape the model directory.
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp) / "model"
+            model_dir.mkdir()
+            (Path(tmp) / "secret.pt").write_bytes(b"outside")
+            with self.assertRaises(ModelPackagingError) as ctx:
+                package_custom_weights("yolonas", str(model_dir), filename="../secret.pt")
+        self.assertIn("outside model_path", str(ctx.exception))
+
+    def _attempt_ultralytics_yolo(self, model_type, checkpoint):
+        fake_ultralytics = types.ModuleType("ultralytics")
+        fake_ultralytics.__version__ = "8.3.0"
+        fake_torch = _fake_torch(checkpoint)
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            weights = model_dir / "weights" / "best.pt"
+            weights.parent.mkdir()
+            weights.write_bytes(b"checkpoint")
+            with (
+                _import_patch({"torch": fake_torch, "ultralytics": fake_ultralytics}),
+                mock.patch.dict(sys.modules, {"ultralytics": fake_ultralytics}),
+            ):
+                # allow_dependency_mismatch keeps a version mismatch from masking the
+                # completeness error under test.
+                return package_custom_weights(model_type, str(model_dir), allow_dependency_mismatch=True)
+
+    def test_yolov8_missing_nc_attr_raises_packaging_error(self):
+        # A stripped Ultralytics checkpoint that lacks model.nc must raise a
+        # ModelPackagingError, not a raw AttributeError (an opaque 500 in the MCP).
+        class DetectionModel:
+            names = {0: "cat"}
+            yaml = {"nc": 1, "depth_multiple": 0.33, "width_multiple": 0.25}
+            args = {"imgsz": 640}
+
+            def state_dict(self):
+                return {}
+
+        with self.assertRaises(ModelPackagingError) as ctx:
+            self._attempt_ultralytics_yolo("yolov8n", {"model": DetectionModel()})
+        self.assertIn("nc", str(ctx.exception))
+
+    def test_yolov8_missing_args_attr_raises_packaging_error(self):
+        class DetectionModel:
+            names = {0: "cat"}
+            nc = 1
+            yaml = {"nc": 1, "depth_multiple": 0.33, "width_multiple": 0.25}
+
+            def state_dict(self):
+                return {}
+
+        with self.assertRaises(ModelPackagingError) as ctx:
+            self._attempt_ultralytics_yolo("yolov8n", {"model": DetectionModel()})
+        self.assertIn("args", str(ctx.exception))
+
+    def test_yolov8_missing_yaml_attr_raises_packaging_error(self):
+        class DetectionModel:
+            names = {0: "cat"}
+            nc = 1
+            args = {"imgsz": 640}
+
+            def state_dict(self):
+                return {}
+
+        with self.assertRaises(ModelPackagingError) as ctx:
+            self._attempt_ultralytics_yolo("yolov8n", {"model": DetectionModel()})
+        self.assertIn("yaml", str(ctx.exception))
+
+    def test_yolov11_missing_train_args_raises_packaging_error(self):
+        # yolov10/11/12/26 read args from checkpoint["train_args"]; a checkpoint
+        # without it must fail with the ModelPackagingError contract.
+        class DetectionModel:
+            names = {0: "cat"}
+            yaml = {"nc": 1, "scale": "n"}
+
+            def state_dict(self):
+                return {}
+
+        with self.assertRaises(ModelPackagingError) as ctx:
+            self._attempt_ultralytics_yolo("yolov11n", {"model": DetectionModel()})
+        self.assertIn("train_args", str(ctx.exception))
+
+    def test_yolov11_missing_nc_in_model_yaml_raises_packaging_error(self):
+        class DetectionModel:
+            names = {0: "cat"}
+            yaml = {"scale": "n"}
+
+            def state_dict(self):
+                return {}
+
+        with self.assertRaises(ModelPackagingError) as ctx:
+            self._attempt_ultralytics_yolo("yolov11n", {"model": DetectionModel(), "train_args": {"imgsz": 640}})
+        self.assertIn("nc", str(ctx.exception))
+
+    def test_rfdetr_multiple_discovered_checkpoints_warns_which_used(self):
+        # With no explicit filename and several checkpoints present, discovery is
+        # ambiguous; the warning must name the candidates and which one was used.
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "alpha.pt").write_bytes(b"checkpoint")
+            (model_dir / "beta.pth").write_bytes(b"checkpoint")
+            torch = _fake_torch({"args": {"class_names": ["widget"]}})
+            with _import_patch({"torch": torch}):
+                bundle = package_custom_weights("rfdetr-base", str(model_dir))
+            try:
+                warning = "\n".join(bundle.warnings)
+                self.assertIn("multiple", warning)
+                self.assertIn("alpha.pt", warning)
+                self.assertIn("beta.pth", warning)
+            finally:
+                bundle.cleanup()
+
+
+class ProcessHuggingfaceTest(unittest.TestCase):
+    """Packaging for HuggingFace-backed models (paligemma / florence-2)."""
+
+    def test_missing_companion_files_raise_missing_file(self):
+        # A safetensors checkpoint without its tokenizer/preprocessor companions
+        # now raises MissingFileError instead of prompting for the files.
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "model.safetensors").write_bytes(b"weights")
+            with mock.patch("builtins.input", side_effect=AssertionError("must not prompt")):
+                with self.assertRaises(MissingFileError) as ctx:
+                    package_custom_weights("florence-2-base", str(model_dir))
+        message = str(ctx.exception)
+        self.assertIn("tokenizer.json", message)
+        self.assertIn("preprocessor_config.json", message)
+
+    def test_no_model_file_raises_missing_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "readme.txt").write_text("no weights here")
+            with self.assertRaises(MissingFileError) as ctx:
+                package_custom_weights("paligemma-3b-pt-224", str(model_dir))
+        self.assertIn("safetensors", str(ctx.exception))
+
+    def test_npz_checkpoint_packages_into_tar(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "model.npz").write_bytes(b"npz-bytes")
+            bundle = package_custom_weights("paligemma-3b-pt-224", str(model_dir))
+            try:
+                self.assertTrue(bundle.archive_path.name.endswith(".tar"))
+                with tarfile.open(bundle.archive_path) as tar:
+                    self.assertIn("model.npz", tar.getnames())
+            finally:
+                bundle.cleanup()
+
+    def test_unsupported_huggingface_type_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(UnsupportedModelError):
+                package_custom_weights("florence-2-tiny", str(tmp))
 
 
 class ProcessCompatTest(unittest.TestCase):
