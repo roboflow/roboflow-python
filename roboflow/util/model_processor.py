@@ -285,6 +285,11 @@ def _resolve_within_source(source_dir: Path, filename: str) -> Path:
             f"filename '{filename}' resolves outside model_path '{source_dir}'. "
             "It must point to a checkpoint inside the model directory."
         )
+    # '' / '.' resolve to model_path itself and a subdirectory passes the
+    # containment check; all would reach torch.load(<dir>) and leak a raw
+    # IsADirectoryError outside the ModelPackagingError contract.
+    if resolved.is_dir():
+        raise ModelPackagingError(f"filename '{filename}' must point to a checkpoint file, not a directory.")
     return resolved
 
 

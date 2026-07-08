@@ -574,6 +574,17 @@ class PackageCustomWeightsTest(unittest.TestCase):
                 package_custom_weights("yolonas", str(model_dir), filename="../secret.pt")
         self.assertIn("outside model_path", str(ctx.exception))
 
+    def test_rejects_filename_pointing_at_a_directory(self):
+        # '' / '.' resolve to model_path itself and a subdirectory stays inside
+        # it; all three would otherwise reach torch.load(<dir>) and leak a raw
+        # IsADirectoryError outside the ModelPackagingError contract.
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "weights").mkdir()
+            for bad in ("", ".", "weights"):
+                with self.assertRaises(ModelPackagingError) as ctx:
+                    package_custom_weights("yolonas", tmp, filename=bad)
+                self.assertIn("not a directory", str(ctx.exception))
+
     def _attempt_ultralytics_yolo(self, model_type, checkpoint):
         fake_ultralytics = types.ModuleType("ultralytics")
         fake_ultralytics.__version__ = "8.3.0"
