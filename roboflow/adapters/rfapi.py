@@ -11,6 +11,10 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
 
+# Module-level session pools TCP connections across all API calls (keep-alive).
+# Each unique host (api.roboflow.com, GCS) gets its own pool automatically.
+_session = requests.Session()
+
 
 class RoboflowError(Exception):
     """Generic API error.
@@ -43,7 +47,7 @@ class AnnotationSaveError(RoboflowError):
 
 def get_workspace(api_key, workspace_url):
     url = f"{API_URL}/{workspace_url}?api_key={api_key}"
-    response = requests.get(url)
+    response = _session.get(url)
     if response.status_code != 200:
         raise RoboflowError(response.text)
     result = response.json()
@@ -52,7 +56,7 @@ def get_workspace(api_key, workspace_url):
 
 def get_project(api_key, workspace_url, project_url):
     url = f"{API_URL}/{workspace_url}/{project_url}?api_key={api_key}"
-    response = requests.get(url)
+    response = _session.get(url)
     if response.status_code != 200:
         raise RoboflowError(response.text)
     result = response.json()
@@ -64,7 +68,7 @@ def get_project_health(api_key, workspace_url, project_url, regenerate=False):
     url = f"{API_URL}/{workspace_url}/{project_url}/health?api_key={api_key}"
     if regenerate:
         url += "&regenerate=true"
-    response = requests.get(url)
+    response = _session.get(url)
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -99,7 +103,7 @@ def start_version_training(
     if epochs is not None:
         data["epochs"] = epochs
 
-    response = requests.post(url, json=data)
+    response = _session.post(url, json=data)
     if not response.ok:
         raise RoboflowError(response.text)
     return True
@@ -122,7 +126,7 @@ def cancel_version_training(
     body: Dict[str, Union[str, int, bool]] = {}
     if continue_if_no_refund:
         body["continueIfNoRefund"] = True
-    response = requests.post(url, json=body)
+    response = _session.post(url, json=body)
     if not response.ok:
         raise RoboflowError(response.text)
     return response.json() if response.content else {"success": True}
@@ -135,7 +139,7 @@ def stop_version_training(api_key: str, workspace_url: str, project_url: str, ve
     phase gracefully (mining or training).
     """
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}/train/stop?api_key={api_key}"
-    response = requests.post(url, json={})
+    response = _session.post(url, json={})
     if not response.ok:
         raise RoboflowError(response.text)
     return response.json() if response.content else {"success": True}
@@ -149,7 +153,7 @@ def get_training_results(api_key: str, workspace_url: str, project_url: str, ver
     returns a minimal bundle with the produced model(s).
     """
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}/training/results?api_key={api_key}"
-    response = requests.get(url)
+    response = _session.get(url)
     if not response.ok:
         raise RoboflowError(response.text)
     return response.json()
@@ -166,7 +170,7 @@ def list_project_models(
     url = f"{API_URL}/{workspace_url}/{project_url}/models?api_key={api_key}"
     if group:
         url += f"&group={urllib.parse.quote(group, safe='')}"
-    response = requests.get(url)
+    response = _session.get(url)
     if not response.ok:
         raise RoboflowError(response.text)
     return response.json()
@@ -176,7 +180,7 @@ def get_model_by_url(api_key: str, workspace_url: str, model_url: str):
     """Fetch a single model by its URL slug."""
     encoded = urllib.parse.quote(model_url, safe="/")
     url = f"{API_URL}/models/{workspace_url}/{encoded}?api_key={api_key}"
-    response = requests.get(url)
+    response = _session.get(url)
     if not response.ok:
         raise RoboflowError(response.text)
     return response.json()
@@ -192,7 +196,7 @@ def favorite_nas_model(api_key: str, workspace_url: str, model_id: str, *, starr
     """
     encoded = urllib.parse.quote(model_id, safe="")
     url = f"{API_URL}/{workspace_url}/models/{encoded}/favorite?api_key={api_key}"
-    response = requests.post(url, json={"starred": bool(starred)})
+    response = _session.post(url, json={"starred": bool(starred)})
     if not response.ok:
         raise RoboflowError(response.text)
     return response.json()
@@ -219,7 +223,7 @@ def get_version(api_key: str, workspace_url: str, project_url: str, version: str
     if nocache:
         url += "&nocache=true"
 
-    response = requests.get(url)
+    response = _session.get(url)
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -242,7 +246,7 @@ def get_version_export(
     Raises RoboflowError on non-200/202 statuses or invalid/missing JSON when 200/202.
     """
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}/{format}?api_key={api_key}&nocache=true"
-    response = requests.get(url)
+    response = _session.get(url)
 
     # Non-success codes other than 202 are errors
     if response.status_code not in (200, 202):
@@ -347,7 +351,7 @@ def workspace_search(
     if continuation_token is not None:
         payload["continuationToken"] = continuation_token
 
-    response = requests.post(url, json=payload)
+    response = _session.post(url, json=payload)
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -372,7 +376,7 @@ def workspace_delete_images(
         RoboflowError: On non-200 response status codes.
     """
     url = f"{API_URL}/{workspace_url}/images?api_key={api_key}"
-    response = requests.delete(url, json={"images": image_ids})
+    response = _session.delete(url, json={"images": image_ids})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -416,7 +420,7 @@ def update_image_metadata(
     if remove_tags is not None:
         body["removeTags"] = remove_tags
 
-    response = requests.post(url, params={"api_key": api_key}, json=body)
+    response = _session.post(url, params={"api_key": api_key}, json=body)
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -442,7 +446,7 @@ def batch_update_image_metadata(
         RoboflowError: On non-202 response.
     """
     url = f"{API_URL}/{workspace_url}/images/metadata"
-    response = requests.post(url, params={"api_key": api_key}, json={"updates": updates})
+    response = _session.post(url, params={"api_key": api_key}, json={"updates": updates})
     if response.status_code != 202:
         raise RoboflowError(response.text)
     return response.json()
@@ -496,7 +500,7 @@ def upload_image(
         m = MultipartEncoder(fields=fields)
 
         try:
-            response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
+            response = _session.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
         except RequestException as e:
             raise ImageUploadError(str(e)) from e
 
@@ -511,7 +515,7 @@ def upload_image(
 
         try:
             # Get response
-            response = requests.post(upload_url, timeout=(300, 300))
+            response = _session.post(upload_url, timeout=(300, 300))
         except RequestException as e:
             raise ImageUploadError(str(e)) from e
 
@@ -569,7 +573,7 @@ def save_annotation(
     )
 
     try:
-        response = requests.post(
+        response = _session.post(
             upload_url,
             data=json.dumps({"annotationFile": annotation_string, "labelmap": annotation_labelmap}),
             headers={"Content-Type": "application/json"},
@@ -682,7 +686,7 @@ def init_zip_upload(api_key, workspace_url, project_url, split=None, tags=None, 
         body["tags"] = tags
     if batch_name is not None:
         body["batchName"] = batch_name
-    response = requests.post(url, params={"api_key": api_key}, json=body)
+    response = _session.post(url, params={"api_key": api_key}, json=body)
     if response.status_code not in (200, 201):
         raise RoboflowError(response.text)
     return response.json()
@@ -691,7 +695,7 @@ def init_zip_upload(api_key, workspace_url, project_url, split=None, tags=None, 
 def upload_zip_to_signed_url(signed_url, zip_path) -> None:
     """PUT the zip file to the GCS signed URL returned by init_zip_upload."""
     with open(zip_path, "rb") as fh:
-        response = requests.put(
+        response = _session.put(
             signed_url,
             data=fh,
             headers={"Content-Type": "application/zip"},
@@ -704,7 +708,7 @@ def upload_zip_to_signed_url(signed_url, zip_path) -> None:
 def get_zip_upload_status(api_key, workspace_url, task_id) -> dict:
     """GET /{ws}/upload/zip/{task_id} — poll status of an async zip upload."""
     url = f"{API_URL}/{workspace_url}/upload/zip/{task_id}"
-    response = requests.get(url, params={"api_key": api_key})
+    response = _session.get(url, params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -717,7 +721,7 @@ def get_zip_upload_status(api_key, workspace_url, task_id) -> dict:
 
 def list_batches(api_key, workspace_url, project_url):
     """GET /{ws}/{proj}/batches — list annotation batches."""
-    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches", params={"api_key": api_key})
+    response = _session.get(f"{API_URL}/{workspace_url}/{project_url}/batches", params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -725,7 +729,7 @@ def list_batches(api_key, workspace_url, project_url):
 
 def get_batch(api_key, workspace_url, project_url, batch_id):
     """GET /{ws}/{proj}/batches/{batch_id} — get batch details."""
-    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches/{batch_id}", params={"api_key": api_key})
+    response = _session.get(f"{API_URL}/{workspace_url}/{project_url}/batches/{batch_id}", params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -733,7 +737,7 @@ def get_batch(api_key, workspace_url, project_url, batch_id):
 
 def list_annotation_jobs(api_key, workspace_url, project_url):
     """GET /{ws}/{proj}/jobs — list annotation jobs."""
-    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs", params={"api_key": api_key})
+    response = _session.get(f"{API_URL}/{workspace_url}/{project_url}/jobs", params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -741,7 +745,7 @@ def list_annotation_jobs(api_key, workspace_url, project_url):
 
 def get_annotation_job(api_key, workspace_url, project_url, job_id):
     """GET /{ws}/{proj}/jobs/{job_id} — get annotation job details."""
-    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs/{job_id}", params={"api_key": api_key})
+    response = _session.get(f"{API_URL}/{workspace_url}/{project_url}/jobs/{job_id}", params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -754,7 +758,7 @@ def create_annotation_job(api_key, workspace_url, project_url, *, name, batch_id
         payload["batchId"] = batch_id
     if assignees:
         payload["assignees"] = assignees
-    response = requests.post(
+    response = _session.post(
         f"{API_URL}/{workspace_url}/{project_url}/jobs",
         params={"api_key": api_key},
         json=payload,
@@ -771,7 +775,7 @@ def create_annotation_job(api_key, workspace_url, project_url, *, name, batch_id
 
 def list_folders(api_key, workspace_url):
     """GET /{ws}/groups — list project folders."""
-    response = requests.get(f"{API_URL}/{workspace_url}/groups", params={"api_key": api_key})
+    response = _session.get(f"{API_URL}/{workspace_url}/groups", params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -779,7 +783,7 @@ def list_folders(api_key, workspace_url):
 
 def get_folder(api_key, workspace_url, group_id):
     """GET /{ws}/groups?groupId={id} — get folder details."""
-    response = requests.get(
+    response = _session.get(
         f"{API_URL}/{workspace_url}/groups",
         params={"api_key": api_key, "groupId": group_id},
     )
@@ -795,7 +799,7 @@ def create_folder(api_key, workspace_url, name, *, parent_id=None, project_ids=N
         payload["parent_id"] = parent_id
     if project_ids:
         payload["projects"] = project_ids
-    response = requests.post(
+    response = _session.post(
         f"{API_URL}/{workspace_url}/groups",
         params={"api_key": api_key},
         json=payload,
@@ -810,7 +814,7 @@ def update_folder(api_key, workspace_url, group_id, *, name=None):
     payload: Dict[str, Optional[str]] = {}
     if name:
         payload["name"] = name
-    response = requests.post(
+    response = _session.post(
         f"{API_URL}/{workspace_url}/groups/{group_id}",
         params={"api_key": api_key},
         json=payload,
@@ -822,7 +826,7 @@ def update_folder(api_key, workspace_url, group_id, *, name=None):
 
 def delete_folder(api_key, workspace_url, group_id):
     """DELETE /{ws}/groups/{id} — delete a project folder."""
-    response = requests.delete(
+    response = _session.delete(
         f"{API_URL}/{workspace_url}/groups/{group_id}",
         params={"api_key": api_key},
     )
@@ -835,7 +839,7 @@ def delete_folder(api_key, workspace_url, group_id):
 
 def add_projects_to_folder(api_key, workspace_url, group_id, project_ids):
     """PATCH /{ws}/groups/{id}/projects — add projects to a folder."""
-    response = requests.patch(
+    response = _session.patch(
         f"{API_URL}/{workspace_url}/groups/{group_id}/projects",
         params={"api_key": api_key},
         json={"projects": project_ids},
@@ -846,7 +850,7 @@ def add_projects_to_folder(api_key, workspace_url, group_id, project_ids):
 
 def remove_projects_from_folder(api_key, workspace_url, group_id, project_ids):
     """DELETE /{ws}/groups/{id}/projects — remove projects from a folder."""
-    response = requests.delete(
+    response = _session.delete(
         f"{API_URL}/{workspace_url}/groups/{group_id}/projects",
         params={"api_key": api_key},
         json={"projects": project_ids},
@@ -909,7 +913,7 @@ def _normalize_workflow_config(config):
 
 def list_workflows(api_key, workspace_url):
     """GET /{ws}/workflows — list workflows."""
-    response = requests.get(f"{API_URL}/{workspace_url}/workflows", params={"api_key": api_key})
+    response = _session.get(f"{API_URL}/{workspace_url}/workflows", params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -917,7 +921,7 @@ def list_workflows(api_key, workspace_url):
 
 def get_workflow(api_key, workspace_url, workflow_url):
     """GET /{ws}/workflows/{url} — get workflow details."""
-    response = requests.get(
+    response = _session.get(
         f"{API_URL}/{workspace_url}/workflows/{workflow_url}",
         params={"api_key": api_key},
     )
@@ -956,7 +960,7 @@ def create_workflow(api_key, workspace_url, *, name, url=None, config=None, temp
         "template": template,
         "config": config,
     }
-    response = requests.post(
+    response = _session.post(
         f"{API_URL}/{workspace_url}/createWorkflow",
         params=params,
     )
@@ -987,7 +991,7 @@ def update_workflow(api_key, workspace_url, *, workflow_id, workflow_name, workf
         "url": workflow_url,
         "config": config,
     }
-    response = requests.post(
+    response = _session.post(
         f"{API_URL}/{workspace_url}/updateWorkflow",
         params={"api_key": api_key},
         json=payload,
@@ -999,7 +1003,7 @@ def update_workflow(api_key, workspace_url, *, workflow_id, workflow_name, workf
 
 def list_workflow_versions(api_key, workspace_url, workflow_url):
     """GET /{ws}/workflows/{url}/versions — list workflow versions."""
-    response = requests.get(
+    response = _session.get(
         f"{API_URL}/{workspace_url}/workflows/{workflow_url}/versions",
         params={"api_key": api_key},
     )
@@ -1026,7 +1030,7 @@ def fork_project(
         payload["url"] = url
     if source_project_slug:
         payload["source_project"] = source_project_slug
-    response = requests.post(
+    response = _session.post(
         f"{API_URL}/{dest_workspace}/projects/fork",
         params={"api_key": api_key},
         json=payload,
@@ -1049,7 +1053,7 @@ def get_async_task(api_key, workspace_url, task_id):
     # ``/``, ``?`` or ``#`` cannot mutate the request path (and still send
     # the api_key with it).
     encoded_task_id = quote(task_id, safe="")
-    response = requests.get(
+    response = _session.get(
         f"{API_URL}/{workspace_url}/asynctasks/{encoded_task_id}",
         params={"api_key": api_key},
     )
@@ -1067,7 +1071,7 @@ def get_async_task_at(api_key, polling_url):
     only attach the api_key. Falls back to ``get_async_task`` callers when
     no server-supplied URL is available.
     """
-    response = requests.get(polling_url, params={"api_key": api_key})
+    response = _session.get(polling_url, params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -1091,7 +1095,7 @@ def fork_workflow(api_key, workspace_url, *, source_workspace, source_workflow, 
         payload["name"] = name
     if url:
         payload["url"] = url
-    response = requests.post(
+    response = _session.post(
         f"{API_URL}/{workspace_url}/forkWorkflow",
         params={"api_key": api_key},
         json=payload,
@@ -1108,7 +1112,7 @@ def fork_workflow(api_key, workspace_url, *, source_workspace, source_workflow, 
 
 def get_billing_usage(api_key, workspace_url):
     """POST /{ws}/billing-usage-report — get billing usage report."""
-    response = requests.post(
+    response = _session.post(
         f"{API_URL}/{workspace_url}/billing-usage-report",
         params={"api_key": api_key},
     )
@@ -1119,7 +1123,7 @@ def get_billing_usage(api_key, workspace_url):
 
 def get_plan_info(api_key):
     """GET /usage/plan — get workspace plan info and limits."""
-    response = requests.get(f"{API_URL}/usage/plan", params={"api_key": api_key})
+    response = _session.get(f"{API_URL}/usage/plan", params={"api_key": api_key})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -1132,7 +1136,7 @@ def get_labeling_stats(api_key, workspace_url, *, start_date=None, end_date=None
         params["startDate"] = start_date
     if end_date:
         params["endDate"] = end_date
-    response = requests.get(f"{API_URL}/{workspace_url}/stats", params=params)
+    response = _session.get(f"{API_URL}/{workspace_url}/stats", params=params)
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -1145,7 +1149,7 @@ def get_labeling_stats(api_key, workspace_url, *, start_date=None, end_date=None
 
 def get_video_job_status(api_key, job_id):
     """GET /videoinfer?jobId={id} — check video inference job status."""
-    response = requests.get(f"{API_URL}/videoinfer", params={"api_key": api_key, "job_id": job_id})
+    response = _session.get(f"{API_URL}/videoinfer", params={"api_key": api_key, "job_id": job_id})
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -1163,7 +1167,7 @@ def search_universe(query, *, api_key=None, project_type=None, limit=12, page=1)
         params["api_key"] = api_key
     if project_type:
         params["type"] = project_type
-    response = requests.get(f"{API_URL}/universe/search", params=params)
+    response = _session.get(f"{API_URL}/universe/search", params=params)
     if response.status_code != 200:
         raise RoboflowError(response.text)
     return response.json()
@@ -1207,7 +1211,7 @@ def delete_project(api_key, workspace_url, project_url):
     window; after 30 days the cleanup cron permanently removes it.
     """
     url = f"{API_URL}/{workspace_url}/{project_url}?api_key={api_key}"
-    response = requests.delete(url)
+    response = _session.delete(url)
     if response.status_code != 200:
         _raise_for_trash_response(response)
     return response.json()
@@ -1219,7 +1223,7 @@ def delete_version(api_key, workspace_url, project_url, version):
     Any in-flight training on the version will be cancelled automatically.
     """
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}?api_key={api_key}"
-    response = requests.delete(url)
+    response = _session.delete(url)
     if response.status_code != 200:
         _raise_for_trash_response(response)
     return response.json()
@@ -1230,7 +1234,7 @@ def delete_workflow(api_key, workspace_url, workflow_url):
     (30-day retention). Restore via `restore_trash_item(..., "workflow", ...)`.
     """
     url = f"{API_URL}/{workspace_url}/workflows/{workflow_url}?api_key={api_key}"
-    response = requests.delete(url)
+    response = _session.delete(url)
     if response.status_code != 200:
         _raise_for_trash_response(response)
     return response.json()
@@ -1244,7 +1248,7 @@ def list_trash(api_key, workspace_url):
     `name`, `deletedAt`, `scheduledCleanupAt`, and (for versions) `parentId`.
     """
     url = f"{API_URL}/{workspace_url}/trash?api_key={api_key}"
-    response = requests.get(url)
+    response = _session.get(url)
     if response.status_code != 200:
         _raise_for_trash_response(response)
     return response.json()
@@ -1260,7 +1264,7 @@ def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=Non
     payload = {"type": item_type, "id": item_id}
     if parent_id is not None:
         payload["parentId"] = parent_id
-    response = requests.post(url, json=payload)
+    response = _session.post(url, json=payload)
     if response.status_code != 200:
         _raise_for_trash_response(response)
     return response.json()
@@ -1340,7 +1344,7 @@ def _eval_get(api_key, workspace_url, path, params=None):
             if value is not None:
                 query[key] = value
     url = f"{API_URL}/{workspace_url}/model-evals{path}"
-    response = requests.get(url, params=query)
+    response = _session.get(url, params=query)
     if response.status_code != 200:
         raise _model_eval_error_for(response)
     return response.json()

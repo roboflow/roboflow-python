@@ -8,7 +8,7 @@ from roboflow.adapters.rfapi import _normalize_workflow_config
 
 
 class TestListBatches(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import list_batches
 
@@ -18,7 +18,7 @@ class TestListBatches(unittest.TestCase):
         mock_get.assert_called_once()
         self.assertIn("/ws/proj/batches", mock_get.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, list_batches
 
@@ -28,7 +28,7 @@ class TestListBatches(unittest.TestCase):
 
 
 class TestGetBatch(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import get_batch
 
@@ -37,7 +37,7 @@ class TestGetBatch(unittest.TestCase):
         self.assertEqual(result, {"batch": {"id": "b1"}})
         self.assertIn("/ws/proj/batches/b1", mock_get.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, get_batch
 
@@ -47,7 +47,7 @@ class TestGetBatch(unittest.TestCase):
 
 
 class TestListAnnotationJobs(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import list_annotation_jobs
 
@@ -56,7 +56,7 @@ class TestListAnnotationJobs(unittest.TestCase):
         self.assertEqual(result, {"jobs": []})
         self.assertIn("/ws/proj/jobs", mock_get.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, list_annotation_jobs
 
@@ -66,7 +66,7 @@ class TestListAnnotationJobs(unittest.TestCase):
 
 
 class TestGetAnnotationJob(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import get_annotation_job
 
@@ -75,7 +75,7 @@ class TestGetAnnotationJob(unittest.TestCase):
         self.assertEqual(result["job"]["id"], "j1")
         self.assertIn("/ws/proj/jobs/j1", mock_get.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, get_annotation_job
 
@@ -85,7 +85,7 @@ class TestGetAnnotationJob(unittest.TestCase):
 
 
 class TestCreateAnnotationJob(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success(self, mock_post):
         from roboflow.adapters.rfapi import create_annotation_job
 
@@ -99,7 +99,7 @@ class TestCreateAnnotationJob(unittest.TestCase):
         self.assertEqual(payload["name"], "my-job")
         self.assertEqual(payload["batchId"], "b1")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success_200(self, mock_post):
         from roboflow.adapters.rfapi import create_annotation_job
 
@@ -107,7 +107,7 @@ class TestCreateAnnotationJob(unittest.TestCase):
         result = create_annotation_job("key", "ws", "proj", name="my-job")
         self.assertEqual(result["job"]["id"], "j3")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_with_assignees(self, mock_post):
         from roboflow.adapters.rfapi import create_annotation_job
 
@@ -116,7 +116,7 @@ class TestCreateAnnotationJob(unittest.TestCase):
         payload = mock_post.call_args[1]["json"]
         self.assertEqual(payload["assignees"], ["a@b.com"])
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_error(self, mock_post):
         from roboflow.adapters.rfapi import RoboflowError, create_annotation_job
 
@@ -126,7 +126,7 @@ class TestCreateAnnotationJob(unittest.TestCase):
 
 
 class TestListFolders(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import list_folders
 
@@ -136,7 +136,7 @@ class TestListFolders(unittest.TestCase):
         mock_get.assert_called_once()
         self.assertIn("/ws/groups", mock_get.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, list_folders
 
@@ -146,7 +146,7 @@ class TestListFolders(unittest.TestCase):
 
 
 class TestGetFolder(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import get_folder
 
@@ -156,7 +156,7 @@ class TestGetFolder(unittest.TestCase):
         call_kwargs = mock_get.call_args[1]
         self.assertEqual(call_kwargs["params"]["groupId"], "g1")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, get_folder
 
@@ -166,7 +166,7 @@ class TestGetFolder(unittest.TestCase):
 
 
 class TestCreateFolder(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success(self, mock_post):
         from roboflow.adapters.rfapi import create_folder
 
@@ -176,7 +176,7 @@ class TestCreateFolder(unittest.TestCase):
         payload = mock_post.call_args[1]["json"]
         self.assertEqual(payload["name"], "NewFolder")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_with_parent_and_projects(self, mock_post):
         from roboflow.adapters.rfapi import create_folder
 
@@ -186,7 +186,7 @@ class TestCreateFolder(unittest.TestCase):
         self.assertEqual(payload["parent_id"], "g1")
         self.assertEqual(payload["projects"], ["p1", "p2"])
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_error(self, mock_post):
         from roboflow.adapters.rfapi import RoboflowError, create_folder
 
@@ -196,7 +196,7 @@ class TestCreateFolder(unittest.TestCase):
 
 
 class TestUpdateFolder(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success(self, mock_post):
         from roboflow.adapters.rfapi import update_folder
 
@@ -207,7 +207,7 @@ class TestUpdateFolder(unittest.TestCase):
         payload = mock_post.call_args[1]["json"]
         self.assertEqual(payload["name"], "Renamed")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_error(self, mock_post):
         from roboflow.adapters.rfapi import RoboflowError, update_folder
 
@@ -217,7 +217,7 @@ class TestUpdateFolder(unittest.TestCase):
 
 
 class TestDeleteFolder(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.delete")
+    @patch("roboflow.adapters.rfapi._session.delete")
     def test_success(self, mock_delete):
         from roboflow.adapters.rfapi import delete_folder
 
@@ -226,7 +226,7 @@ class TestDeleteFolder(unittest.TestCase):
         self.assertEqual(result["status"], "deleted")
         self.assertIn("/ws/groups/g1", mock_delete.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.delete")
+    @patch("roboflow.adapters.rfapi._session.delete")
     def test_error(self, mock_delete):
         from roboflow.adapters.rfapi import RoboflowError, delete_folder
 
@@ -236,7 +236,7 @@ class TestDeleteFolder(unittest.TestCase):
 
 
 class TestListWorkflows(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import list_workflows
 
@@ -245,7 +245,7 @@ class TestListWorkflows(unittest.TestCase):
         self.assertEqual(len(result["workflows"]), 1)
         self.assertIn("/ws/workflows", mock_get.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, list_workflows
 
@@ -255,7 +255,7 @@ class TestListWorkflows(unittest.TestCase):
 
 
 class TestGetWorkflow(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import get_workflow
 
@@ -264,7 +264,7 @@ class TestGetWorkflow(unittest.TestCase):
         self.assertEqual(result["workflow"]["url"], "wf1")
         self.assertIn("/ws/workflows/wf1", mock_get.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, get_workflow
 
@@ -274,7 +274,7 @@ class TestGetWorkflow(unittest.TestCase):
 
 
 class TestCreateWorkflow(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success(self, mock_post):
         from roboflow.adapters.rfapi import create_workflow
 
@@ -286,7 +286,7 @@ class TestCreateWorkflow(unittest.TestCase):
         params = mock_post.call_args[1]["params"]
         self.assertEqual(params["name"], "New Workflow")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_auto_generates_url_slug(self, mock_post):
         from roboflow.adapters.rfapi import create_workflow
 
@@ -295,7 +295,7 @@ class TestCreateWorkflow(unittest.TestCase):
         params = mock_post.call_args[1]["params"]
         self.assertEqual(params["url"], "my-workflow")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_with_config_and_template(self, mock_post):
         from roboflow.adapters.rfapi import create_workflow
 
@@ -306,7 +306,7 @@ class TestCreateWorkflow(unittest.TestCase):
         self.assertEqual(params["config"], '{"a":1}')
         self.assertEqual(params["template"], '{"b":2}')
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_config_dict_serialized_to_string(self, mock_post):
         from roboflow.adapters.rfapi import create_workflow
 
@@ -317,7 +317,7 @@ class TestCreateWorkflow(unittest.TestCase):
         self.assertIsInstance(params["config"], str)
         self.assertIsInstance(params["template"], str)
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_defaults_config_and_template(self, mock_post):
         from roboflow.adapters.rfapi import create_workflow
 
@@ -327,7 +327,7 @@ class TestCreateWorkflow(unittest.TestCase):
         self.assertEqual(params["config"], "{}")
         self.assertEqual(params["template"], "{}")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_error(self, mock_post):
         from roboflow.adapters.rfapi import RoboflowError, create_workflow
 
@@ -335,7 +335,7 @@ class TestCreateWorkflow(unittest.TestCase):
         with self.assertRaises(RoboflowError):
             create_workflow("key", "ws", name="Bad")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_bare_spec_dict_is_auto_wrapped(self, mock_post):
         """Docs-shaped workflow definitions get wrapped in {"specification": ...}
         so they match the backend's stored format and the inference server's
@@ -350,7 +350,7 @@ class TestCreateWorkflow(unittest.TestCase):
         sent_config = _json.loads(mock_post.call_args[1]["params"]["config"])
         self.assertEqual(sent_config, {"specification": bare})
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_already_wrapped_config_is_not_double_wrapped(self, mock_post):
         import json as _json
 
@@ -362,7 +362,7 @@ class TestCreateWorkflow(unittest.TestCase):
         sent_config = _json.loads(mock_post.call_args[1]["params"]["config"])
         self.assertEqual(sent_config, wrapped)
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_bare_spec_json_string_is_auto_wrapped(self, mock_post):
         """JSON strings are parsed, wrapped if bare, and re-serialized."""
         import json as _json
@@ -375,7 +375,7 @@ class TestCreateWorkflow(unittest.TestCase):
         sent_config = _json.loads(mock_post.call_args[1]["params"]["config"])
         self.assertEqual(sent_config, {"specification": {"version": "1.0", "steps": []}})
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_non_workflow_dict_is_not_wrapped(self, mock_post):
         """Dicts that don't look like a workflow spec (no version/inputs/steps/outputs)
         are passed through unchanged to avoid second-guessing custom payloads."""
@@ -471,7 +471,7 @@ class TestNormalizeWorkflowConfig(unittest.TestCase):
 
 
 class TestUpdateWorkflow(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success(self, mock_post):
         from roboflow.adapters.rfapi import update_workflow
 
@@ -488,7 +488,7 @@ class TestUpdateWorkflow(unittest.TestCase):
         # config dict should be serialized to string
         self.assertIsInstance(payload["config"], str)
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_config_string_passthrough(self, mock_post):
         from roboflow.adapters.rfapi import update_workflow
 
@@ -497,7 +497,7 @@ class TestUpdateWorkflow(unittest.TestCase):
         payload = mock_post.call_args[1]["json"]
         self.assertEqual(payload["config"], '{"a":1}')
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_bare_spec_dict_is_auto_wrapped_on_update(self, mock_post):
         import json as _json
 
@@ -509,7 +509,7 @@ class TestUpdateWorkflow(unittest.TestCase):
         sent_config = _json.loads(mock_post.call_args[1]["json"]["config"])
         self.assertEqual(sent_config, {"specification": bare})
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_error(self, mock_post):
         from roboflow.adapters.rfapi import RoboflowError, update_workflow
 
@@ -519,7 +519,7 @@ class TestUpdateWorkflow(unittest.TestCase):
 
 
 class TestListWorkflowVersions(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import list_workflow_versions
 
@@ -528,7 +528,7 @@ class TestListWorkflowVersions(unittest.TestCase):
         self.assertEqual(len(result["versions"]), 1)
         self.assertIn("/ws/workflows/wf1/versions", mock_get.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, list_workflow_versions
 
@@ -538,7 +538,7 @@ class TestListWorkflowVersions(unittest.TestCase):
 
 
 class TestForkProject(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success_with_url(self, mock_post):
         from roboflow.adapters.rfapi import fork_project
 
@@ -551,7 +551,7 @@ class TestForkProject(unittest.TestCase):
         payload = mock_post.call_args[1]["json"]
         self.assertEqual(payload, {"url": "source-ws/source-project"})
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success_with_explicit_source_slug(self, mock_post):
         from roboflow.adapters.rfapi import fork_project
 
@@ -566,7 +566,7 @@ class TestForkProject(unittest.TestCase):
         payload = mock_post.call_args[1]["json"]
         self.assertEqual(payload, {"source_project": "source-project"})
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_error(self, mock_post):
         from roboflow.adapters.rfapi import RoboflowError, fork_project
 
@@ -574,7 +574,7 @@ class TestForkProject(unittest.TestCase):
         with self.assertRaises(RoboflowError):
             fork_project("key", "ws", url="source-ws/source-project")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_any_2xx_accepted(self, mock_post):
         """#8 — accept any 2xx so the SDK doesn't break if the backend ever
         returns 200 (sync result) or 201 (created) instead of 202.
@@ -592,7 +592,7 @@ class TestForkProject(unittest.TestCase):
 
 
 class TestGetAsyncTask(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import get_async_task
 
@@ -603,7 +603,7 @@ class TestGetAsyncTask(unittest.TestCase):
         self.assertEqual(result["status"], "running")
         self.assertIn("/ws/asynctasks/task-1", mock_get.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_malformed_task_id_is_url_encoded(self, mock_get):
         """A task_id containing path/query/fragment characters must not
         silently mutate the request path. Each unsafe char is percent-encoded
@@ -629,7 +629,7 @@ class TestGetAsyncTask(unittest.TestCase):
         self.assertNotIn("/asynctasks/../task", called_url)
         self.assertNotIn("?secret=1", called_url.split("/asynctasks/", 1)[1])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_get_async_task_at_uses_supplied_url(self, mock_get):
         """``get_async_task_at`` hits the server-supplied polling URL
         verbatim (modulo the api_key query param), so polling stays on the
@@ -642,7 +642,7 @@ class TestGetAsyncTask(unittest.TestCase):
         self.assertEqual(mock_get.call_args[0][0], "https://other.host/ws/asynctasks/task-1")
         self.assertEqual(mock_get.call_args[1]["params"], {"api_key": "key"})
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, get_async_task
 
@@ -652,7 +652,7 @@ class TestGetAsyncTask(unittest.TestCase):
 
 
 class TestGetAsyncTaskAt(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_polling_url_used_verbatim(self, mock_get):
         """When the server returns a fully-qualified polling URL, the SDK must
         hit it as-is (potentially on a different host than ``API_URL``) and
@@ -671,7 +671,7 @@ class TestGetAsyncTaskAt(unittest.TestCase):
         # api_key tacked on as a param.
         self.assertEqual(mock_get.call_args[1]["params"], {"api_key": "api-key"})
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error_on_non_200(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, get_async_task_at
 
@@ -681,7 +681,7 @@ class TestGetAsyncTaskAt(unittest.TestCase):
 
 
 class TestForkWorkflow(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success(self, mock_post):
         from roboflow.adapters.rfapi import fork_workflow
 
@@ -693,7 +693,7 @@ class TestForkWorkflow(unittest.TestCase):
         self.assertEqual(payload["source_workspace"], "src-ws")
         self.assertEqual(payload["source_workflow"], "wf1")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success_200(self, mock_post):
         from roboflow.adapters.rfapi import fork_workflow
 
@@ -701,7 +701,7 @@ class TestForkWorkflow(unittest.TestCase):
         result = fork_workflow("key", "ws", source_workspace="src-ws", source_workflow="wf2")
         self.assertEqual(result["workflow"]["url"], "forked2")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_with_name_and_url(self, mock_post):
         from roboflow.adapters.rfapi import fork_workflow
 
@@ -713,7 +713,7 @@ class TestForkWorkflow(unittest.TestCase):
         self.assertEqual(payload["name"], "Custom Fork")
         self.assertEqual(payload["url"], "custom-fork")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_error(self, mock_post):
         from roboflow.adapters.rfapi import RoboflowError, fork_workflow
 
@@ -723,7 +723,7 @@ class TestForkWorkflow(unittest.TestCase):
 
 
 class TestGetBillingUsage(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success(self, mock_post):
         from roboflow.adapters.rfapi import get_billing_usage
 
@@ -732,7 +732,7 @@ class TestGetBillingUsage(unittest.TestCase):
         self.assertEqual(result["usage"]["credits"], 100)
         self.assertIn("/ws/billing-usage-report", mock_post.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_error(self, mock_post):
         from roboflow.adapters.rfapi import RoboflowError, get_billing_usage
 
@@ -742,7 +742,7 @@ class TestGetBillingUsage(unittest.TestCase):
 
 
 class TestGetPlanInfo(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import get_plan_info
 
@@ -751,7 +751,7 @@ class TestGetPlanInfo(unittest.TestCase):
         self.assertEqual(result["plan"], "starter")
         self.assertIn("/usage/plan", mock_get.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, get_plan_info
 
@@ -761,7 +761,7 @@ class TestGetPlanInfo(unittest.TestCase):
 
 
 class TestGetLabelingStats(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import get_labeling_stats
 
@@ -770,7 +770,7 @@ class TestGetLabelingStats(unittest.TestCase):
         self.assertEqual(result["stats"]["labeled"], 50)
         self.assertIn("/ws/stats", mock_get.call_args[0][0])
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, get_labeling_stats
 
@@ -780,7 +780,7 @@ class TestGetLabelingStats(unittest.TestCase):
 
 
 class TestGetVideoJobStatus(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import get_video_job_status
 
@@ -790,7 +790,7 @@ class TestGetVideoJobStatus(unittest.TestCase):
         call_kwargs = mock_get.call_args[1]
         self.assertEqual(call_kwargs["params"]["job_id"], "job-123")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, get_video_job_status
 
@@ -800,7 +800,7 @@ class TestGetVideoJobStatus(unittest.TestCase):
 
 
 class TestSearchUniverse(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         from roboflow.adapters.rfapi import search_universe
 
@@ -812,7 +812,7 @@ class TestSearchUniverse(unittest.TestCase):
         call_kwargs = mock_get.call_args[1]
         self.assertEqual(call_kwargs["params"]["q"], "cats")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_with_type_and_limit(self, mock_get):
         from roboflow.adapters.rfapi import search_universe
 
@@ -823,7 +823,7 @@ class TestSearchUniverse(unittest.TestCase):
         self.assertEqual(call_kwargs["params"]["limit"], 5)
         self.assertEqual(call_kwargs["params"]["page"], 2)
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_error(self, mock_get):
         from roboflow.adapters.rfapi import RoboflowError, search_universe
 
@@ -833,7 +833,7 @@ class TestSearchUniverse(unittest.TestCase):
 
 
 class TestUpdateImageMetadata(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success(self, mock_post):
         from roboflow.adapters.rfapi import update_image_metadata
 
@@ -846,7 +846,7 @@ class TestUpdateImageMetadata(unittest.TestCase):
         self.assertEqual(payload["addTags"], ["tag1"])
         self.assertEqual(payload["removeTags"], ["old"])
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_only_sends_provided_fields(self, mock_post):
         from roboflow.adapters.rfapi import update_image_metadata
 
@@ -855,7 +855,7 @@ class TestUpdateImageMetadata(unittest.TestCase):
         payload = mock_post.call_args[1]["json"]
         self.assertEqual(payload, {"addTags": ["foo"]})
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_metadata_and_tags(self, mock_post):
         from roboflow.adapters.rfapi import update_image_metadata
 
@@ -865,7 +865,7 @@ class TestUpdateImageMetadata(unittest.TestCase):
         self.assertEqual(payload["metadata"], {"cam": "1"})
         self.assertEqual(payload["addTags"], ["review"])
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_error_404(self, mock_post):
         from roboflow.adapters.rfapi import RoboflowError, update_image_metadata
 
@@ -873,7 +873,7 @@ class TestUpdateImageMetadata(unittest.TestCase):
         with self.assertRaises(RoboflowError):
             update_image_metadata("key", "ws", "img-1", add_tags=["x"])
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_image_id_url_encoded(self, mock_post):
         from roboflow.adapters.rfapi import update_image_metadata
 
@@ -885,7 +885,7 @@ class TestUpdateImageMetadata(unittest.TestCase):
 
 
 class TestBatchUpdateImageMetadata(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_success(self, mock_post):
         from roboflow.adapters.rfapi import batch_update_image_metadata
 
@@ -898,7 +898,7 @@ class TestBatchUpdateImageMetadata(unittest.TestCase):
         payload = mock_post.call_args[1]["json"]
         self.assertEqual(payload, {"updates": updates})
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.adapters.rfapi._session.post")
     def test_error_400(self, mock_post):
         from roboflow.adapters.rfapi import RoboflowError, batch_update_image_metadata
 
