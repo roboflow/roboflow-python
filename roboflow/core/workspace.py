@@ -787,8 +787,10 @@ class Workspace:
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
 
-        from roboflow.util.model_processor import process, validate_model_type_for_project
-        from roboflow.util.versions import normalize_yolo_model_type
+        from roboflow.util.model_processor import (
+            package_custom_weights_interactive,
+            validate_model_type_for_project,
+        )
 
         if not project_ids:
             raise ValueError("At least one project ID must be provided")
@@ -800,16 +802,12 @@ class Workspace:
             if project_id not in projects_by_id:
                 raise ValueError(f"Project {project_id} is not accessible in this workspace")
 
-        model_type = normalize_yolo_model_type(model_type)
-        zip_file_name, model_type = process(model_type, model_path, filename)
-
-        if zip_file_name is None:
-            raise RuntimeError("Failed to process model")
+        bundle = package_custom_weights_interactive(model_type, model_path, filename, build_dir=model_path)
 
         for project_id in project_ids:
-            validate_model_type_for_project(model_type, projects_by_id[project_id].get("type", ""), project_id)
+            validate_model_type_for_project(bundle.model_type, projects_by_id[project_id].get("type", ""), project_id)
 
-        self._upload_zip(model_type, model_path, project_ids, model_name, zip_file_name)
+        self._upload_zip(bundle.model_type, model_path, project_ids, model_name, bundle.archive_path.name)
 
     def _upload_zip(
         self,
