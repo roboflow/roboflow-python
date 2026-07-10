@@ -1064,8 +1064,9 @@ def _process_rfdetr(
     checkpoint_path = _find_rfdetr_checkpoint(model_path, filename, warnings)
     checkpoint = _load_checkpoint(torch, checkpoint_path, map_location="cpu")
 
-    # Task detection + mismatch runs for every checkpoint shape (it also rejects
-    # keypoint rf-detr, which is not a supported upload type).
+    # Task detection + mismatch runs for every checkpoint shape, so a checkpoint whose
+    # task disagrees with model_type (e.g. a keypoint checkpoint uploaded as 'rfdetr-base')
+    # is rejected instead of packaged under the wrong task.
     detected_task = _detect_rfdetr_task(checkpoint)
     if detected_task and detected_task != task_of_model_type(model_type):
         raise TaskMismatchError(
