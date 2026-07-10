@@ -473,9 +473,7 @@ class PackageCustomWeightsTest(unittest.TestCase):
             (model_dir / "weights.pt").write_bytes(b"checkpoint")
             torch = _fake_torch({"args": {"class_names": ["goal"], "num_keypoints_per_class": [0, 17]}})
             with _import_patch({"torch": torch}):
-                bundle = package_custom_weights(
-                    "rfdetr-keypoint-preview", str(model_dir), filename="weights.pt"
-                )
+                bundle = package_custom_weights("rfdetr-keypoint-preview", str(model_dir), filename="weights.pt")
             try:
                 self.assertEqual(bundle.model_type, "rfdetr-keypoint-preview")
                 with zipfile.ZipFile(bundle.archive_path) as archive:
