@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Weight upload support for `rfdetr-keypoint-preview` keypoint detection models
+  via `version.deploy()`, `workspace.deploy_model()`, and the `upload_model` CLI
 - Upload raw rf-detr PyTorch-Lightning checkpoints (e.g. `checkpoint_best_ema.pth`):
   `upload_model` detects them and rebuilds a deploy-ready bundle via rf-detr's
   `export_for_roboflow` (requires `rfdetr>=1.8.0`)

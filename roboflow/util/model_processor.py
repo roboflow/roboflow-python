@@ -107,6 +107,8 @@ _RFDETR_MODEL_TYPE_TO_CLASS = {
     "rfdetr-seg-large": "RFDETRSegLarge",
     "rfdetr-seg-xlarge": "RFDETRSegXLarge",
     "rfdetr-seg-2xlarge": "RFDETRSeg2XLarge",
+    # Keypoint detection
+    "rfdetr-keypoint-preview": "RFDETRKeypointPreview",
 }
 
 SUPPORTED_RFDETR_TYPES = tuple(_RFDETR_MODEL_TYPE_TO_CLASS)
@@ -149,6 +151,7 @@ RFDETR_POSITIONAL_ENCODING_SIZE = {
     "rfdetr-seg-large": 42,
     "rfdetr-seg-xlarge": 52,
     "rfdetr-seg-2xlarge": 64,
+    "rfdetr-keypoint-preview": 48,
 }
 
 
@@ -239,9 +242,13 @@ def task_of_model_type(model_type: str) -> str:
     """Canonical task for a deploy model_type string.
 
     Non-detect tasks double as the model_type suffix token
-    (e.g. 'yolov11-seg' -> TASK_SEG). Plain 'yolov11' / 'rfdetr-base' -> TASK_DET.
+    (e.g. 'yolov11-seg' -> TASK_SEG). RF-DETR keypoint types spell the task out
+    instead ('rfdetr-keypoint-preview' -> TASK_POSE). Plain 'yolov11' /
+    'rfdetr-base' -> TASK_DET.
     """
     s = model_type.lower()
+    if "keypoint" in s:
+        return TASK_POSE
     for task in (TASK_SEM, TASK_SEG, TASK_POSE, TASK_CLS, TASK_OBB):
         if task in s:
             return task
@@ -813,20 +820,17 @@ def _process_yolo(
 def _detect_rfdetr_task(checkpoint: Any) -> str | None:
     """Detect the training task of an rf-detr checkpoint.
 
-    rf-detr currently only supports weight upload for detection and instance
-    segmentation. Modern checkpoints (rf-detr v1.7+) store the Python class
-    name at `checkpoint["model_name"]` (e.g. 'RFDETRNano' vs 'RFDETRSegNano');
-    older checkpoints — including those downloaded from Roboflow — lack that
-    field but always carry `args.segmentation_head: bool`.
+    Modern checkpoints (rf-detr v1.7+) store the Python class name at
+    `checkpoint["model_name"]` (e.g. 'RFDETRNano' vs 'RFDETRSegNano' vs
+    'RFDETRKeypointPreview'); older checkpoints — including those downloaded
+    from Roboflow — lack that field but carry the head flags in `args`
+    (`keypoint_head` / `segmentation_head`, both False on detection models).
     """
     if not isinstance(checkpoint, dict):
         return None
     model_name = checkpoint.get("model_name")
     if isinstance(model_name, str):
         name = model_name.lower()
-        # Keypoint rf-detr checkpoints (e.g. 'RFDETRKeypointPreview') are not a
-        # supported upload type; classify them as pose so the task check rejects
-        # them instead of silently uploading a keypoint model as detection.
         if "keypoint" in name:
             return TASK_POSE
         return TASK_SEG if TASK_SEG in name else TASK_DET
@@ -834,6 +838,10 @@ def _detect_rfdetr_task(checkpoint: Any) -> str | None:
     if raw_args is None:
         return None
     args = _checkpoint_args_as_dict(raw_args)
+    # Keypoint configs also carry segmentation_head=False, so check the
+    # keypoint flag first.
+    if args.get("keypoint_head") is True:
+        return TASK_POSE
     segmentation_head = args.get("segmentation_head")
     if segmentation_head is True:
         return TASK_SEG
@@ -1050,8 +1058,8 @@ def _process_rfdetr(
     checkpoint_path = _find_rfdetr_checkpoint(model_path, filename, warnings)
     checkpoint = _load_checkpoint(torch, checkpoint_path, map_location="cpu")
 
-    # Task detection + mismatch runs for every checkpoint shape (it also rejects
-    # keypoint rf-detr, which is not a supported upload type).
+    # Task detection + mismatch runs for every checkpoint shape (e.g. it rejects
+    # a keypoint checkpoint uploaded under a detection model_type and vice versa).
     detected_task = _detect_rfdetr_task(checkpoint)
     if detected_task and detected_task != task_of_model_type(model_type):
         raise TaskMismatchError(

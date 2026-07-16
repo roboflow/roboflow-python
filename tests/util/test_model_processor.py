@@ -62,6 +62,7 @@ class TaskOfModelTypeTest(unittest.TestCase):
 
     def test_pose(self):
         self.assertEqual(task_of_model_type("yolov11-pose"), TASK_POSE)
+        self.assertEqual(task_of_model_type("rfdetr-keypoint-preview"), TASK_POSE)
 
     def test_classify(self):
         self.assertEqual(task_of_model_type("yolov11-cls"), TASK_CLS)
@@ -103,8 +104,6 @@ class DetectRfdetrTaskTest(unittest.TestCase):
             self.assertEqual(_detect_rfdetr_task({"model_name": name}), TASK_DET, name)
 
     def test_keypoint_model_name_returns_pose(self):
-        # Keypoint checkpoints are unsupported; classifying them as pose lets the
-        # model_type task check reject them instead of uploading them as detection.
         self.assertEqual(_detect_rfdetr_task({"model_name": "RFDETRKeypointPreview"}), TASK_POSE)
 
     def test_segmentation_head_fallback(self):
@@ -114,6 +113,14 @@ class DetectRfdetrTaskTest(unittest.TestCase):
         self.assertEqual(_detect_rfdetr_task({"args": SimpleNamespace(segmentation_head=False)}), TASK_DET)
         self.assertEqual(_detect_rfdetr_task({"args": {"segmentation_head": True}}), TASK_SEG)
         self.assertEqual(_detect_rfdetr_task({"args": {"segmentation_head": False}}), TASK_DET)
+
+    def test_keypoint_head_fallback(self):
+        # Keypoint training checkpoints from rf-detr-internal lack `model_name` and
+        # carry segmentation_head=False alongside keypoint_head=True; the keypoint
+        # flag must win so they are not misdetected as detection.
+        args = {"keypoint_head": True, "segmentation_head": False}
+        self.assertEqual(_detect_rfdetr_task({"args": args}), TASK_POSE)
+        self.assertEqual(_detect_rfdetr_task({"args": SimpleNamespace(**args)}), TASK_POSE)
 
     def test_model_name_preferred_over_args(self):
         # When both are present, model_name wins (matches rf-detr's loader).
@@ -185,6 +192,14 @@ class ValidateModelTypeForProjectTest(unittest.TestCase):
 
     def test_unknown_project_type_is_ignored(self):
         validate_model_type_for_project("yolov8", "some-new-type", "widgets")
+
+    def test_accepts_keypoint_model_for_keypoint_project(self):
+        validate_model_type_for_project("rfdetr-keypoint-preview", "keypoint-detection", "widgets")
+
+    def test_rejects_keypoint_model_for_detection_project(self):
+        with self.assertRaises(TaskMismatchError) as ctx:
+            validate_model_type_for_project("rfdetr-keypoint-preview", "object-detection", "widgets")
+        self.assertIn("task 'pose'", str(ctx.exception))
 
 
 class LegacyYoloArgsTest(unittest.TestCase):
@@ -306,6 +321,14 @@ class ResolveRfdetrVariantTest(unittest.TestCase):
         resolved = _resolve_rfdetr_variant("rfdetr-seg-nano", {"args": {"positional_encoding_size": 99}}, warnings)
         self.assertEqual(resolved, "rfdetr-seg-nano")
         self.assertTrue(warnings and "matches no known RF-DETR variant" in warnings[0])
+
+    def test_keypoint_preview_grid_matches_without_warning(self):
+        # RFDETRKeypointPreviewConfig: resolution 576, patch_size 12 -> grid 48.
+        warnings: list = []
+        checkpoint = {"args": {"resolution": 576, "patch_size": 12}}
+        resolved = _resolve_rfdetr_variant("rfdetr-keypoint-preview", checkpoint, warnings)
+        self.assertEqual(resolved, "rfdetr-keypoint-preview")
+        self.assertEqual(warnings, [])
 
     def test_pe_size_derived_from_position_embeddings_tensor(self):
         class FakeTensor:
@@ -499,6 +522,56 @@ class PackageCustomWeightsTest(unittest.TestCase):
             with _import_patch({"torch": torch}):
                 with self.assertRaises(MissingFileError):
                     package_custom_weights("rfdetr-base", str(model_dir), filename="checkpoint_epoch50.pth")
+
+    def test_rfdetr_keypoint_preview_full_flow(self):
+        # A keypoint training checkpoint (rf-detr-internal style: no model_name,
+        # keypoint_head=True in args) packages under 'rfdetr-keypoint-preview'.
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "weights.pt").write_bytes(b"checkpoint")
+            torch = _fake_torch(
+                {
+                    "args": {
+                        "keypoint_head": True,
+                        "segmentation_head": False,
+                        "resolution": 576,
+                        "patch_size": 12,
+                        "num_keypoints_per_class": [17],
+                        "class_names": ["person"],
+                    }
+                }
+            )
+            with _import_patch({"torch": torch}):
+                bundle = package_custom_weights("rfdetr-keypoint-preview", str(model_dir), filename="weights.pt")
+            try:
+                self.assertEqual(bundle.model_type, "rfdetr-keypoint-preview")
+                self.assertEqual(bundle.warnings, ())
+                with zipfile.ZipFile(bundle.archive_path) as archive:
+                    self.assertIn("weights.pt", archive.namelist())
+                    class_names = archive.read("class_names.txt").decode().splitlines()
+                self.assertEqual(class_names, ["background_class83422", "person"])
+            finally:
+                bundle.cleanup()
+
+    def test_rfdetr_keypoint_checkpoint_rejected_for_detection_type(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "weights.pt").write_bytes(b"checkpoint")
+            torch = _fake_torch({"args": {"keypoint_head": True, "segmentation_head": False}})
+            with _import_patch({"torch": torch}):
+                with self.assertRaises(TaskMismatchError) as ctx:
+                    package_custom_weights("rfdetr-base", str(model_dir), filename="weights.pt")
+        self.assertIn("'pose'", str(ctx.exception))
+
+    def test_rfdetr_detection_checkpoint_rejected_for_keypoint_type(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "weights.pt").write_bytes(b"checkpoint")
+            torch = _fake_torch({"args": {"segmentation_head": False, "class_names": ["widget"]}})
+            with _import_patch({"torch": torch}):
+                with self.assertRaises(TaskMismatchError) as ctx:
+                    package_custom_weights("rfdetr-keypoint-preview", str(model_dir), filename="weights.pt")
+        self.assertIn("'det'", str(ctx.exception))
 
     def test_rfdetr_legacy_deploy_layout_does_not_self_copy(self):
         # Legacy deploy passes build_dir=model_path with a top-level weights.pt;
