@@ -3,7 +3,10 @@ idna>=3.7
 cycler
 kiwisolver>=1.3.1
 matplotlib
-numpy>=1.18.5,<2.5  # 2.5.0 ships type stubs using 3.12+ `type` syntax that mypy (pinned to 3.10) rejects
+# numpy 2.4 ships PEP 695 `type` statements in its stubs, which mypy rejects
+# under python_version=3.10 (see [tool.mypy] in pyproject.toml). Cap below 2.4,
+# matching rf-detr's typing constraint.
+numpy>=1.18.5,<2.4
 opencv-python-headless==4.10.0.84
 Pillow>=7.1.2
 # https://github.com/roboflow/roboflow-python/issues/390
