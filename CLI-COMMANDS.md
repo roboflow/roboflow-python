@@ -12,6 +12,46 @@ export ROBOFLOW_API_KEY=rf_xxxxx    # recommended for scripts and agents
 roboflow auth login                  # or interactive login
 ```
 
+### Select a Roboflow region
+
+Roboflow uses the US platform by default. To authenticate with the EU
+data-residency platform, select the region during login:
+
+```bash
+roboflow auth login --region eu
+# The backwards-compatible alias accepts the same option:
+roboflow login --region eu
+```
+
+The selection is saved in the Roboflow config file. You can change it later
+or inspect the effective endpoints with:
+
+```bash
+roboflow auth set-region eu
+roboflow auth status
+```
+
+For CI and other non-interactive environments, set `ROBOFLOW_REGION=eu`.
+`ROBOFLOW_REGION` accepts `us` or `eu` (case-insensitive); an environment
+value takes precedence over the saved region. Explicit per-URL environment or
+config values such as `API_URL` continue to take precedence over the region.
+
+| Endpoint | `us` (default) | `eu` |
+|----------|----------------|------|
+| API | `https://api.roboflow.com` | `https://api.roboflow.eu` |
+| App / CLI authentication | `https://app.roboflow.com` | `https://app.roboflow.eu` |
+| Object detection | `https://serverless.roboflow.com` | `https://serverless.roboflow.eu` |
+| Instance segmentation | `https://serverless.roboflow.com` | `https://serverless.roboflow.eu` |
+| Dedicated deployment | `https://roboflow.cloud` | `https://eu.roboflow.cloud` |
+| Universe | `https://universe.roboflow.com` | `https://universe.roboflow.com` |
+| Semantic segmentation | `https://segment.roboflow.com` | `https://segment.roboflow.com` |
+
+Roboflow Universe remains a single global product, so its URL stays on
+`.com` in the EU region. Semantic segmentation also remains on its current
+`.com` endpoint. EU and US use separate authentication backends; obtain EU
+API keys from `https://app.roboflow.eu` and log in again after switching if
+your existing credentials were issued by the other region.
+
 ## Global flags
 
 | Flag | Short | Description |
@@ -377,7 +417,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 
 | Command | Description |
 |---------|-------------|
-| `auth` | Login, logout, status, set default workspace |
+| `auth` | Login, logout, status, set region or default workspace |
 | `api-key` | List, create, update, protect, disable, revoke workspace API keys |
 | `workspace` | List and inspect workspaces |
 | `project` | List, get, create projects |
