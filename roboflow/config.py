@@ -1,5 +1,32 @@
 import json
 import os
+import sys
+
+REGION_URL_DEFAULTS = {
+    "us": {},
+    "eu": {
+        "API_URL": "https://api.roboflow.eu",
+        "APP_URL": "https://app.roboflow.eu",
+        "OBJECT_DETECTION_URL": "https://serverless.roboflow.eu",
+        "INSTANCE_SEGMENTATION_URL": "https://serverless.roboflow.eu",
+        "DEDICATED_DEPLOYMENT_URL": "https://eu.roboflow.cloud",
+    },
+}
+
+URL_DEFAULTS = {
+    "API_URL": "https://api.roboflow.com",
+    "APP_URL": "https://app.roboflow.com",
+    "UNIVERSE_URL": "https://universe.roboflow.com",
+    "INSTANCE_SEGMENTATION_URL": "https://serverless.roboflow.com",
+    "SEMANTIC_SEGMENTATION_URL": "https://segment.roboflow.com",
+    "OBJECT_DETECTION_URL": "https://serverless.roboflow.com",
+    "CLIP_FEATURIZE_URL": "CLIP FEATURIZE URL NOT IN ENV",
+    "OCR_URL": "OCR URL NOT IN ENV",
+    "DEDICATED_DEPLOYMENT_URL": "https://roboflow.cloud",
+}
+
+_UNSET = object()
+_WARNED_UNKNOWN_REGIONS: set[str] = set()
 
 
 def get_conditional_configuration_variable(key, default):
@@ -42,6 +69,40 @@ def get_conditional_configuration_variable(key, default):
         return default
 
 
+def _normalize_region(region) -> str:
+    normalized_region = region.strip().lower() if isinstance(region, str) else ""
+    if normalized_region in REGION_URL_DEFAULTS:
+        return normalized_region
+
+    warning_key = repr(region)
+    if warning_key not in _WARNED_UNKNOWN_REGIONS:
+        print(
+            f"Warning: unknown Roboflow region {region!r}; falling back to 'us'.",
+            file=sys.stderr,
+        )
+        _WARNED_UNKNOWN_REGIONS.add(warning_key)
+    return "us"
+
+
+def get_effective_region() -> str:
+    """Return the configured Roboflow region, defaulting safely to US."""
+    region = get_conditional_configuration_variable("ROBOFLOW_REGION", default="us")
+    return _normalize_region(region)
+
+
+def resolve_url(key: str, region: str | None = None) -> str:
+    """Resolve a Roboflow URL using explicit overrides before region defaults."""
+    if key not in URL_DEFAULTS:
+        raise KeyError(f"Unknown Roboflow URL configuration key: {key}")
+
+    explicit_url = get_conditional_configuration_variable(key, default=_UNSET)
+    if explicit_url is not _UNSET:
+        return explicit_url
+
+    effective_region = get_effective_region() if region is None else _normalize_region(region)
+    return REGION_URL_DEFAULTS[effective_region].get(key, URL_DEFAULTS[key])
+
+
 CLASSIFICATION_MODEL = os.getenv("CLASSIFICATION_MODEL", "ClassificationModel")
 INSTANCE_SEGMENTATION_MODEL = "InstanceSegmentationModel"
 KEYPOINT_DETECTION_MODEL = "KeypointDetectionModel"
@@ -49,22 +110,18 @@ OBJECT_DETECTION_MODEL = os.getenv("OBJECT_DETECTION_MODEL", "ObjectDetectionMod
 SEMANTIC_SEGMENTATION_MODEL = "SemanticSegmentationModel"
 PREDICTION_OBJECT = os.getenv("PREDICTION_OBJECT", "Prediction")
 
-API_URL = get_conditional_configuration_variable("API_URL", "https://api.roboflow.com")
-APP_URL = get_conditional_configuration_variable("APP_URL", "https://app.roboflow.com")
-UNIVERSE_URL = get_conditional_configuration_variable("UNIVERSE_URL", "https://universe.roboflow.com")
+API_URL = resolve_url("API_URL")
+APP_URL = resolve_url("APP_URL")
+UNIVERSE_URL = resolve_url("UNIVERSE_URL")
 
-INSTANCE_SEGMENTATION_URL = get_conditional_configuration_variable(
-    "INSTANCE_SEGMENTATION_URL", "https://serverless.roboflow.com"
-)
-SEMANTIC_SEGMENTATION_URL = get_conditional_configuration_variable(
-    "SEMANTIC_SEGMENTATION_URL", "https://segment.roboflow.com"
-)
-OBJECT_DETECTION_URL = get_conditional_configuration_variable("OBJECT_DETECTION_URL", "https://serverless.roboflow.com")
+INSTANCE_SEGMENTATION_URL = resolve_url("INSTANCE_SEGMENTATION_URL")
+SEMANTIC_SEGMENTATION_URL = resolve_url("SEMANTIC_SEGMENTATION_URL")
+OBJECT_DETECTION_URL = resolve_url("OBJECT_DETECTION_URL")
 
-CLIP_FEATURIZE_URL = get_conditional_configuration_variable("CLIP_FEATURIZE_URL", "CLIP FEATURIZE URL NOT IN ENV")
-OCR_URL = get_conditional_configuration_variable("OCR_URL", "OCR URL NOT IN ENV")
+CLIP_FEATURIZE_URL = resolve_url("CLIP_FEATURIZE_URL")
+OCR_URL = resolve_url("OCR_URL")
 
-DEDICATED_DEPLOYMENT_URL = get_conditional_configuration_variable("DEDICATED_DEPLOYMENT_URL", "https://roboflow.cloud")
+DEDICATED_DEPLOYMENT_URL = resolve_url("DEDICATED_DEPLOYMENT_URL")
 
 DEMO_KEYS = ["coco-128-sample", "chess-sample-only-api-key"]
 
