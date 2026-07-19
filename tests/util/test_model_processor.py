@@ -62,6 +62,7 @@ class TaskOfModelTypeTest(unittest.TestCase):
 
     def test_pose(self):
         self.assertEqual(task_of_model_type("yolov11-pose"), TASK_POSE)
+        self.assertEqual(task_of_model_type("rfdetr-keypoint-preview"), TASK_POSE)
 
     def test_classify(self):
         self.assertEqual(task_of_model_type("yolov11-cls"), TASK_CLS)
@@ -102,10 +103,18 @@ class DetectRfdetrTaskTest(unittest.TestCase):
         for name in ("RFDETRNano", "RFDETRSmall", "RFDETRMedium", "RFDETRLarge", "RFDETRXLarge"):
             self.assertEqual(_detect_rfdetr_task({"model_name": name}), TASK_DET, name)
 
-    def test_keypoint_model_name_returns_pose(self):
-        # Keypoint checkpoints are unsupported; classifying them as pose lets the
-        # model_type task check reject them instead of uploading them as detection.
+    def test_keypoint_model_names(self):
         self.assertEqual(_detect_rfdetr_task({"model_name": "RFDETRKeypointPreview"}), TASK_POSE)
+
+    def test_keypoint_args_fallback(self):
+        # The deploy bundle from export_for_roboflow carries `args` but not
+        # `model_name`; a non-empty `num_keypoints_per_class` marks a keypoint model.
+        self.assertEqual(_detect_rfdetr_task({"args": SimpleNamespace(num_keypoints_per_class=[0, 17])}), TASK_POSE)
+        self.assertEqual(_detect_rfdetr_task({"args": {"num_keypoints_per_class": [0, 17]}}), TASK_POSE)
+        # Empty / absent keypoint schema must NOT be treated as a keypoint model.
+        self.assertEqual(
+            _detect_rfdetr_task({"args": {"num_keypoints_per_class": [], "segmentation_head": False}}), TASK_DET
+        )
 
     def test_segmentation_head_fallback(self):
         # Roboflow-hosted rf-detr .pt downloads lack `model_name` but always carry
@@ -453,6 +462,37 @@ class PackageCustomWeightsTest(unittest.TestCase):
                     self.assertIn("class_names.txt", archive.namelist())
             finally:
                 bundle.cleanup()
+
+    def test_rfdetr_keypoint_exported_checkpoint_packages(self):
+        # The primary feature: an exported keypoint deploy-checkpoint (non-PTL shape,
+        # args carries class_names + num_keypoints_per_class) packages successfully as
+        # 'rfdetr-keypoint-preview'. num_keypoints_per_class marks it pose, which matches
+        # the model_type's task, so it passes the task check and copies weights.pt.
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "weights.pt").write_bytes(b"checkpoint")
+            torch = _fake_torch({"args": {"class_names": ["goal"], "num_keypoints_per_class": [0, 17]}})
+            with _import_patch({"torch": torch}):
+                bundle = package_custom_weights("rfdetr-keypoint-preview", str(model_dir), filename="weights.pt")
+            try:
+                self.assertEqual(bundle.model_type, "rfdetr-keypoint-preview")
+                with zipfile.ZipFile(bundle.archive_path) as archive:
+                    names = archive.namelist()
+                    self.assertIn("weights.pt", names)
+                    self.assertIn("class_names.txt", names)
+            finally:
+                bundle.cleanup()
+
+    def test_rfdetr_keypoint_checkpoint_rejected_as_detection_type(self):
+        # The same keypoint checkpoint uploaded under a detection model_type is a task
+        # mismatch (pose != detect) and must be rejected, not silently packaged.
+        with tempfile.TemporaryDirectory() as tmp:
+            model_dir = Path(tmp)
+            (model_dir / "weights.pt").write_bytes(b"checkpoint")
+            torch = _fake_torch({"args": {"class_names": ["goal"], "num_keypoints_per_class": [0, 17]}})
+            with _import_patch({"torch": torch}):
+                with self.assertRaises(TaskMismatchError):
+                    package_custom_weights("rfdetr-base", str(model_dir), filename="weights.pt")
 
     def test_rfdetr_without_any_checkpoint_raises(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -824,6 +864,7 @@ class RfdetrModelTypeToClassTest(unittest.TestCase):
     def test_representative_mappings(self):
         self.assertEqual(_RFDETR_MODEL_TYPE_TO_CLASS["rfdetr-seg-medium"], "RFDETRSegMedium")
         self.assertEqual(_RFDETR_MODEL_TYPE_TO_CLASS["rfdetr-base"], "RFDETRBase")
+        self.assertEqual(_RFDETR_MODEL_TYPE_TO_CLASS["rfdetr-keypoint-preview"], "RFDETRKeypointPreview")
 
     def test_keys_are_rfdetr_types_and_values_are_class_names(self):
         for model_type, class_name in _RFDETR_MODEL_TYPE_TO_CLASS.items():
@@ -878,8 +919,10 @@ def _make_fake_rfdetr(*, from_checkpoint_raises=False, capabilities=True):
     module = SimpleNamespace()
     module.RFDETR = _RFDETR
     # The fallback resolves the subclass by name via _RFDETR_MODEL_TYPE_TO_CLASS,
-    # e.g. "rfdetr-seg-medium" -> getattr(rfdetr, "RFDETRSegMedium").
+    # e.g. "rfdetr-seg-medium" -> getattr(rfdetr, "RFDETRSegMedium") and
+    # "rfdetr-keypoint-preview" -> getattr(rfdetr, "RFDETRKeypointPreview").
     module.RFDETRSegMedium = _SizedModel
+    module.RFDETRKeypointPreview = _SizedModel
     if capabilities:
         _RFDETR.export_for_roboflow = _StubBundleModel.export_for_roboflow  # capability marker
     module._calls = calls
@@ -910,13 +953,13 @@ class RequireRfdetrTest(unittest.TestCase):
 class PackageRfdetrPtlTest(unittest.TestCase):
     """PyTorch-Lightning rf-detr checkpoints are rebuilt via rfdetr into build_dir."""
 
-    def _package(self, model_type, fake_rfdetr, *, segmentation_head=False):
+    def _package(self, model_type, fake_rfdetr, *, segmentation_head=False, num_keypoints_per_class=None):
         with tempfile.TemporaryDirectory() as model_dir:
             (Path(model_dir) / "checkpoint_best_ema.pth").write_bytes(b"raw-ptl")
-            ckpt = {
-                "pytorch-lightning_version": "2.1.0",
-                "args": {"segmentation_head": segmentation_head, "class_names": ["cat", "dog"]},
-            }
+            args = {"segmentation_head": segmentation_head, "class_names": ["cat", "dog"]}
+            if num_keypoints_per_class is not None:
+                args["num_keypoints_per_class"] = num_keypoints_per_class
+            ckpt = {"pytorch-lightning_version": "2.1.0", "args": args}
             torch = _fake_torch(ckpt)
             with _import_patch({"torch": torch}), mock.patch.dict(sys.modules, {"rfdetr": fake_rfdetr}):
                 bundle = package_custom_weights(model_type, model_dir, filename="checkpoint_best_ema.pth")
@@ -943,6 +986,28 @@ class PackageRfdetrPtlTest(unittest.TestCase):
         self.assertEqual(fake._calls["from_checkpoint"], 1)
         self.assertEqual(fake._calls["fallback_constructed"], 1)
         self.assertIn("weights.pt", names)
+
+    def test_keypoint_from_checkpoint_success_produces_bundle(self):
+        # A keypoint PTL checkpoint (args.num_keypoints_per_class marks pose, matching
+        # the 'rfdetr-keypoint-preview' model_type) rebuilds via rfdetr.from_checkpoint.
+        fake = _make_fake_rfdetr()
+        bundle, names = self._package("rfdetr-keypoint-preview", fake, num_keypoints_per_class=[0, 17])
+        self.assertEqual(bundle.model_type, "rfdetr-keypoint-preview")
+        self.assertEqual(fake._calls["from_checkpoint"], 1)
+        self.assertEqual(fake._calls["fallback_constructed"], 0)
+        self.assertIn("weights.pt", names)
+        self.assertIn("class_names.txt", names)
+
+    def test_keypoint_from_checkpoint_valueerror_falls_back_to_model_type(self):
+        # When from_checkpoint can't infer the class, the fallback resolves the
+        # RFDETRKeypointPreview subclass from _RFDETR_MODEL_TYPE_TO_CLASS and rebuilds.
+        fake = _make_fake_rfdetr(from_checkpoint_raises=True)
+        bundle, names = self._package("rfdetr-keypoint-preview", fake, num_keypoints_per_class=[0, 17])
+        self.assertEqual(bundle.model_type, "rfdetr-keypoint-preview")
+        self.assertEqual(fake._calls["from_checkpoint"], 1)
+        self.assertEqual(fake._calls["fallback_constructed"], 1)
+        self.assertIn("weights.pt", names)
+        self.assertIn("class_names.txt", names)
 
     def test_ptl_path_raises_when_rfdetr_absent(self):
         with tempfile.TemporaryDirectory() as model_dir:
