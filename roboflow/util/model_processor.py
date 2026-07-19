@@ -108,6 +108,8 @@ _RFDETR_MODEL_TYPE_TO_CLASS = {
     "rfdetr-seg-large": "RFDETRSegLarge",
     "rfdetr-seg-xlarge": "RFDETRSegXLarge",
     "rfdetr-seg-2xlarge": "RFDETRSeg2XLarge",
+    # Keypoint detection
+    "rfdetr-keypoint-preview": "RFDETRKeypointPreview",
 }
 
 SUPPORTED_RFDETR_TYPES = tuple(_RFDETR_MODEL_TYPE_TO_CLASS)
@@ -150,6 +152,8 @@ RFDETR_POSITIONAL_ENCODING_SIZE = {
     "rfdetr-seg-large": 42,
     "rfdetr-seg-xlarge": 52,
     "rfdetr-seg-2xlarge": 64,
+    # Keypoint (576 / patch_size 12 = 48)
+    "rfdetr-keypoint-preview": 48,
 }
 
 
@@ -241,8 +245,13 @@ def task_of_model_type(model_type: str) -> str:
 
     Non-detect tasks double as the model_type suffix token
     (e.g. 'yolov11-seg' -> TASK_SEG). Plain 'yolov11' / 'rfdetr-base' -> TASK_DET.
+
+    Keypoint/pose models may spell the token as either 'pose' (Ultralytics) or
+    'keypoint' (rf-detr, e.g. 'rfdetr-keypoint-preview'); both map to TASK_POSE.
     """
     s = model_type.lower()
+    if "keypoint" in s:
+        return TASK_POSE
     for task in (TASK_SEM, TASK_SEG, TASK_POSE, TASK_CLS, TASK_OBB):
         if task in s:
             return task
@@ -819,20 +828,21 @@ def _process_yolo(
 def _detect_rfdetr_task(checkpoint: Any) -> str | None:
     """Detect the training task of an rf-detr checkpoint.
 
-    rf-detr currently only supports weight upload for detection and instance
-    segmentation. Modern checkpoints (rf-detr v1.7+) store the Python class
-    name at `checkpoint["model_name"]` (e.g. 'RFDETRNano' vs 'RFDETRSegNano');
-    older checkpoints — including those downloaded from Roboflow — lack that
-    field but always carry `args.segmentation_head: bool`.
+    rf-detr supports weight upload for detection, instance segmentation, and
+    keypoint detection. Modern checkpoints (rf-detr v1.7+) store the Python
+    class name at `checkpoint["model_name"]` (e.g. 'RFDETRNano' vs
+    'RFDETRSegNano' vs 'RFDETRKeypointPreview').
+
+    The deploy bundle written by rf-detr's `export_for_roboflow` only serialises
+    `{"model", "args"}` — it drops `model_name` — so detection must also work
+    from `args`: keypoint checkpoints carry a non-empty `args.num_keypoints_per_class`,
+    and detection/segmentation checkpoints carry `args.segmentation_head: bool`.
     """
     if not isinstance(checkpoint, dict):
         return None
     model_name = checkpoint.get("model_name")
     if isinstance(model_name, str):
         name = model_name.lower()
-        # Keypoint rf-detr checkpoints (e.g. 'RFDETRKeypointPreview') are not a
-        # supported upload type; classify them as pose so the task check rejects
-        # them instead of silently uploading a keypoint model as detection.
         if "keypoint" in name:
             return TASK_POSE
         return TASK_SEG if TASK_SEG in name else TASK_DET
@@ -840,6 +850,10 @@ def _detect_rfdetr_task(checkpoint: Any) -> str | None:
     if raw_args is None:
         return None
     args = _checkpoint_args_as_dict(raw_args)
+    # Keypoint checkpoints carry num_keypoints_per_class; classify them as pose so it agrees
+    # with task_of_model_type('rfdetr-keypoint-preview') == TASK_POSE and the upload proceeds.
+    if args.get("num_keypoints_per_class"):
+        return TASK_POSE
     segmentation_head = args.get("segmentation_head")
     if segmentation_head is True:
         return TASK_SEG
@@ -1056,8 +1070,9 @@ def _process_rfdetr(
     checkpoint_path = _find_rfdetr_checkpoint(model_path, filename, warnings)
     checkpoint = _load_checkpoint(torch, checkpoint_path, map_location="cpu")
 
-    # Task detection + mismatch runs for every checkpoint shape (it also rejects
-    # keypoint rf-detr, which is not a supported upload type).
+    # Task detection + mismatch runs for every checkpoint shape, so a checkpoint whose
+    # task disagrees with model_type (e.g. a keypoint checkpoint uploaded as 'rfdetr-base')
+    # is rejected instead of packaged under the wrong task.
     detected_task = _detect_rfdetr_task(checkpoint)
     if detected_task and detected_task != task_of_model_type(model_type):
         raise TaskMismatchError(
