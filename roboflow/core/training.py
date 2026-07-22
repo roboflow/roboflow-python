@@ -261,6 +261,24 @@ class Training:
             self.__api_key, self.workspace, self.project, self.version, training_id=self.training_id
         )
 
+    def delete(self):
+        """Move this run to the workspace Trash (soft delete, DNA ``trainings.delete``).
+
+        The run and every model it produced disappear from listings but stay
+        restorable for 30 days via :meth:`restore` or the Trash UI. The server
+        refuses in-flight runs (stop or cancel first) and the run backing the
+        version's registered model.
+        """
+        return rfapi.delete_version_training(
+            self.__api_key, self.workspace, self.project, self.version, training_id=self.training_id
+        )
+
+    def restore(self):
+        """Restore this run from Trash (DNA ``trainings.restore``)."""
+        return rfapi.restore_version_training(
+            self.__api_key, self.workspace, self.project, self.version, training_id=self.training_id
+        )
+
     def __str__(self):
         return json.dumps(
             {
