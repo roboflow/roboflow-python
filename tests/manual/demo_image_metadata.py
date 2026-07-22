@@ -33,36 +33,37 @@ print(f"image ids: {ids}, tag: {TAG}")
 # --- Single image (workspace) ---
 print("=== workspace.update_image_metadata ===")
 r = workspace.update_image_metadata(ids[0], metadata={"smoke_key": "v1"}, add_tags=[TAG])
-print(r)
 assert r == {"success": True}
+print("ok: single update succeeded")
 
 # --- Single image (project alias) ---
 print("=== project.update_image_metadata ===")
 r = project.update_image_metadata(ids[0], metadata={"smoke_project": True})
-print(r)
 assert r == {"success": True}
+print("ok: project alias update succeeded")
 
 # --- Batch, fire-and-forget ---
 print("=== batch (no wait) + get_async_task ===")
 r = workspace.batch_update_image_metadata([{"imageId": ids[0], "addTags": [TAG]}])
-print(r)
 assert "taskId" in r and "url" in r
+print("ok: batch enqueued (taskId + url returned)")
 for _ in range(20):
     status = workspace.get_async_task(r["taskId"])
     if status["status"] not in ("created", "running"):
         break
     time.sleep(3)
-print(status)
 assert status["status"] == "completed"
+print("ok: async task completed")
 
 # --- Batch, wait=True, with one bogus id -> partial success ---
 print("=== batch (wait=True) with bogus id ===")
 updates = [{"imageId": i, "metadata": {"smoke_batch": "yes"}} for i in ids]
 updates.append({"imageId": "bogus-does-not-exist", "addTags": [TAG]})
 final = workspace.batch_update_image_metadata(updates, wait=True, timeout=300)
-print(final["status"], final["result"])
+assert final["status"] == "completed"
 assert final["result"]["succeeded"] == 2
 assert final["result"]["failedItems"][0]["imageId"] == "bogus-does-not-exist"
+print(f"ok: partial success (succeeded={int(final['result']['succeeded'])}, failed={int(final['result']['failed'])})")
 
 # --- Server-side validation surfaces as RoboflowError ---
 print("=== validation errors ===")
@@ -88,7 +89,7 @@ cleanup = [
     for i in ids
 ]
 final = workspace.batch_update_image_metadata(cleanup, wait=True, timeout=300)
-print(final["status"], final["result"])
 assert final["result"]["succeeded"] == 2
+print("ok: cleanup batch succeeded on both images")
 
 print("\nALL CHECKS PASSED")
