@@ -124,6 +124,59 @@ def stop_training(
     _stop(args)
 
 
+@train_app.command("delete")
+def delete_training(
+    ctx: typer.Context,
+    target: Annotated[
+        str,
+        typer.Argument(help="Training to delete as 'project/version'"),
+    ],
+    training_id: Annotated[
+        Optional[str],
+        typer.Option(
+            "--training-id",
+            help=(
+                "Training id of the run to delete (versions can own several). Omit to target the version's sole run."
+            ),
+        ),
+    ] = None,
+) -> None:
+    """Move a terminal training run to the workspace Trash (soft delete).
+
+    The run and every model it produced disappear from listings but stay
+    restorable for 30 days ('roboflow train restore' or the web Trash view),
+    after which they are permanently deleted. In-flight runs are refused —
+    stop or cancel first — as is the run backing the version's registered
+    model. Permanent deletion is only available in the web UI's Trash view.
+    """
+    args = ctx_to_args(ctx, target=target, training_id=training_id)
+    _delete(args)
+
+
+@train_app.command("restore")
+def restore_training(
+    ctx: typer.Context,
+    target: Annotated[
+        str,
+        typer.Argument(help="Version the trashed training belongs to, as 'project/version'"),
+    ],
+    training_id: Annotated[
+        str,
+        typer.Option(
+            "--training-id",
+            help="Training id of the trashed run to restore (required).",
+        ),
+    ],
+) -> None:
+    """Restore a trashed training run (and its models) back into listings.
+
+    Fails while the parent project or version is itself in Trash — restore
+    those first ('roboflow trash list' shows what is trashed).
+    """
+    args = ctx_to_args(ctx, target=target, training_id=training_id)
+    _restore(args)
+
+
 @train_app.command("results")
 def training_results(
     ctx: typer.Context,
@@ -361,6 +414,79 @@ def _stop(args):  # noqa: ANN001
         args,
         {"status": "stop_requested", "project": project_slug, "version": version_str, **(result or {})},
         text=f"Early-stop requested for {project_slug} version {version_str}.",
+    )
+
+
+def _delete(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_train_target(args)
+    if resolved is None:
+        return
+    api_key, workspace_url, project_slug, version_str = resolved
+
+    try:
+        result = rfapi.delete_version_training(
+            api_key,
+            workspace_url,
+            project_slug,
+            version_str,
+            training_id=getattr(args, "training_id", None),
+        )
+    except rfapi.RoboflowError as exc:
+        msg = str(exc)
+        hint = None
+        if "in progress" in msg:
+            hint = "Stop or cancel the run first: 'roboflow train stop <project>/<version>'."
+        elif "registered model" in msg:
+            hint = "This run backs the version's registered model. Register another model first."
+        elif "MULTIPLE_TRAININGS" in msg:
+            hint = "This version owns several runs. Pass --training-id (see 'roboflow train results')."
+        output_error(args, msg, hint=hint, exit_code=3)
+        return
+
+    output(
+        args,
+        {"status": "in_trash", "project": project_slug, "version": version_str, **(result or {})},
+        text=(
+            f"Training moved to Trash for {project_slug} version {version_str}. "
+            "Restorable for 30 days via 'roboflow train restore'."
+        ),
+    )
+
+
+def _restore(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve_train_target(args)
+    if resolved is None:
+        return
+    api_key, workspace_url, project_slug, version_str = resolved
+
+    try:
+        result = rfapi.restore_version_training(
+            api_key,
+            workspace_url,
+            project_slug,
+            version_str,
+            training_id=args.training_id,
+        )
+    except rfapi.RoboflowError as exc:
+        msg = str(exc)
+        hint = None
+        if "not in trash" in msg.lower():
+            hint = "Only trashed runs can be restored. 'roboflow trash list' shows what is trashed."
+        elif "in trash" in msg.lower():
+            hint = "Restore the parent project/version first ('roboflow trash list')."
+        output_error(args, msg, hint=hint, exit_code=3)
+        return
+
+    output(
+        args,
+        {"status": "restored", "project": project_slug, "version": version_str, **(result or {})},
+        text=f"Training restored for {project_slug} version {version_str}.",
     )
 
 

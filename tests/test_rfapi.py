@@ -6,7 +6,7 @@ from unittest.mock import mock_open, patch
 
 import responses
 
-from roboflow.adapters.rfapi import upload_image
+from roboflow.adapters.rfapi import delete_version_training, restore_version_training, upload_image
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME
 
 
@@ -196,6 +196,53 @@ class TestUploadImage(unittest.TestCase):
 
     def _reset_responses(self):
         responses.reset()
+
+
+class TestTrainingTrash(unittest.TestCase):
+    API_KEY = "test_api_key"
+    WORKSPACE = "test-ws"
+    PROJECT = "test-project"
+    VERSION = "3"
+
+    @responses.activate
+    def test_delete_version_training_posts_training_id(self):
+        expected_url = (
+            f"{API_URL}/{self.WORKSPACE}/{self.PROJECT}/{self.VERSION}/v2/trainings/delete?api_key={self.API_KEY}"
+        )
+        responses.add(
+            responses.POST,
+            expected_url,
+            json={"trainingId": "t-1", "inTrash": True, "alreadyInTrash": False},
+            status=200,
+        )
+
+        result = delete_version_training(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, training_id="t-1")
+
+        self.assertEqual(json.loads(responses.calls[0].request.body), {"trainingId": "t-1"})
+        self.assertEqual(result, {"trainingId": "t-1", "inTrash": True, "alreadyInTrash": False})
+
+    @responses.activate
+    def test_delete_version_training_omits_training_id_for_sole_run(self):
+        expected_url = (
+            f"{API_URL}/{self.WORKSPACE}/{self.PROJECT}/{self.VERSION}/v2/trainings/delete?api_key={self.API_KEY}"
+        )
+        responses.add(responses.POST, expected_url, json={"inTrash": True}, status=200)
+
+        delete_version_training(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION)
+
+        self.assertEqual(json.loads(responses.calls[0].request.body), {})
+
+    @responses.activate
+    def test_restore_version_training_requires_training_id(self):
+        expected_url = (
+            f"{API_URL}/{self.WORKSPACE}/{self.PROJECT}/{self.VERSION}/v2/trainings/restore?api_key={self.API_KEY}"
+        )
+        responses.add(responses.POST, expected_url, json={"trainingId": "t-1", "restored": True}, status=200)
+
+        result = restore_version_training(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, training_id="t-1")
+
+        self.assertEqual(json.loads(responses.calls[0].request.body), {"trainingId": "t-1"})
+        self.assertEqual(result, {"trainingId": "t-1", "restored": True})
 
 
 if __name__ == "__main__":

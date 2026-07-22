@@ -141,6 +141,57 @@ def stop_version_training(api_key: str, workspace_url: str, project_url: str, ve
     return response.json() if response.content else {"success": True}
 
 
+def delete_version_training(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    *,
+    training_id: Optional[str] = None,
+):
+    """Move a terminal training run to the workspace Trash (soft delete).
+
+    POST /{workspace}/{project}/{version}/v2/trainings/delete. The run and
+    every model it produced disappear from listings but stay restorable for
+    30 days via ``restore_version_training`` or the Trash UI, after which
+    they are permanently deleted. The server refuses in-flight runs (stop or
+    cancel first) and the run backing the version's registered model. There
+    is no permanent-delete option on the public API.
+
+    ``training_id`` selects a specific run on the version (MMPV); omit it to
+    target the version's sole run.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/delete?api_key={api_key}"
+    body: Dict[str, str] = {}
+    if training_id:
+        body["trainingId"] = training_id
+    response = requests.post(url, json=body)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"inTrash": True}
+
+
+def restore_version_training(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    *,
+    training_id: str,
+):
+    """Restore a trashed training run (and its models) back into listings.
+
+    POST /{workspace}/{project}/{version}/v2/trainings/restore.
+    ``training_id`` is required — a trashed run is invisible to the sole-run
+    resolver. Fails while the parent project or version is itself in Trash.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/restore?api_key={api_key}"
+    response = requests.post(url, json={"trainingId": training_id})
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"restored": True}
+
+
 def get_training_results(api_key: str, workspace_url: str, project_url: str, version: str):
     """Run-level training results bundle.
 

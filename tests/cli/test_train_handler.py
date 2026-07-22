@@ -159,6 +159,15 @@ class TestTrainSubcommandsRegister(unittest.TestCase):
         result = runner.invoke(app, ["train", "results", "--help"])
         self.assertEqual(result.exit_code, 0)
 
+    def test_delete_help(self) -> None:
+        result = runner.invoke(app, ["train", "delete", "--help"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("trash", result.output.lower())
+
+    def test_restore_help(self) -> None:
+        result = runner.invoke(app, ["train", "restore", "--help"])
+        self.assertEqual(result.exit_code, 0)
+
 
 class TestTrainCancelStopResults(unittest.TestCase):
     """_cancel / _stop / _results business logic."""
@@ -228,6 +237,50 @@ class TestTrainCancelStopResults(unittest.TestCase):
         mock_stop.assert_called_once_with("test-key", "test-ws", "my-project", "3")
         result = json.loads(out)
         self.assertEqual(result["status"], "stop_requested")
+
+    @patch("roboflow.adapters.rfapi.delete_version_training")
+    def test_delete_success(self, mock_delete: MagicMock) -> None:
+        from roboflow.cli.handlers.train import _delete
+
+        mock_delete.return_value = {"trainingId": "t-1", "inTrash": True, "alreadyInTrash": False}
+        out = self._capture_stdout(_delete, self._args(training_id="t-1"))
+
+        mock_delete.assert_called_once_with("test-key", "test-ws", "my-project", "3", training_id="t-1")
+        result = json.loads(out)
+        self.assertEqual(result["status"], "in_trash")
+        self.assertTrue(result["inTrash"])
+
+    @patch("roboflow.adapters.rfapi.delete_version_training")
+    def test_delete_in_progress_surfaces_hint(self, mock_delete: MagicMock) -> None:
+        from roboflow.adapters import rfapi
+        from roboflow.cli.handlers.train import _delete
+
+        mock_delete.side_effect = rfapi.RoboflowError(
+            "This training is still in progress. Stop or cancel it before deleting it."
+        )
+        buf = io.StringIO()
+        old = sys.stderr
+        sys.stderr = buf
+        try:
+            with self.assertRaises(SystemExit) as cm:
+                _delete(self._args(training_id=None))
+        finally:
+            sys.stderr = old
+        self.assertEqual(cm.exception.code, 3)
+        err = json.loads(buf.getvalue())
+        self.assertIn("in progress", err["error"]["message"])
+        self.assertIn("train stop", err["error"].get("hint", ""))
+
+    @patch("roboflow.adapters.rfapi.restore_version_training")
+    def test_restore_success(self, mock_restore: MagicMock) -> None:
+        from roboflow.cli.handlers.train import _restore
+
+        mock_restore.return_value = {"trainingId": "t-1", "restored": True}
+        out = self._capture_stdout(_restore, self._args(training_id="t-1"))
+
+        mock_restore.assert_called_once_with("test-key", "test-ws", "my-project", "3", training_id="t-1")
+        result = json.loads(out)
+        self.assertEqual(result["status"], "restored")
 
     @patch("roboflow.adapters.rfapi.get_training_results")
     def test_results_nas_run(self, mock_get: MagicMock) -> None:
