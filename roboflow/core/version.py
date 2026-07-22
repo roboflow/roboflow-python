@@ -720,6 +720,50 @@ class Version:
             parent_id=match.get("parentId"),
         )
 
+    def delete_training(self, training_id: Optional[str] = None):
+        """
+        Move one of this version's training runs to Trash (soft delete).
+
+        The run and every model it produced disappear from listings but stay
+        restorable for 30 days via `Version.restore_training()` or the Trash
+        UI, after which they are permanently deleted. The server refuses
+        in-flight runs (stop or cancel first) and the run backing the
+        version's registered model.
+
+        Args:
+            training_id: Training id of the run to delete (MMPV versions can
+                own several). Omit to target the version's sole run.
+
+        Returns:
+            dict: Server response with `{trainingId, inTrash: True, alreadyInTrash}`.
+        """
+        return rfapi.delete_version_training(
+            self.__api_key,
+            self.workspace,
+            self.project,
+            self.version,
+            training_id=training_id,
+        )
+
+    def restore_training(self, training_id: str):
+        """
+        Restore one of this version's trashed training runs.
+
+        Args:
+            training_id: Training id of the trashed run (required — trashed
+                runs are invisible to the sole-run fallback).
+
+        Returns:
+            dict: Server response with `{trainingId, restored: True}`.
+        """
+        return rfapi.restore_version_training(
+            self.__api_key,
+            self.workspace,
+            self.project,
+            self.version,
+            training_id=training_id,
+        )
+
     def __str__(self):
         """
         String representation of version object.
