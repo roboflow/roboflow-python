@@ -233,7 +233,6 @@ def create_training_v2(
     model_type: Optional[str] = None,
     epochs: Optional[int] = None,
     train_recipe: Optional[Dict] = None,
-    business_context: Optional[str] = None,
 ):
     """Create a training on a version (DNA ``trainings.create``).
 
@@ -258,8 +257,6 @@ def create_training_v2(
         data["epochs"] = epochs
     if train_recipe is not None:
         data["trainRecipe"] = train_recipe
-    if business_context is not None:
-        data["business_context"] = business_context
     response = requests.post(url, json=data)
     if not response.ok:
         raise RoboflowError(response.text)

@@ -337,7 +337,6 @@ class TestMMPVCompatibility(unittest.TestCase):
             model_type=None,
             epochs=10,
             train_recipe=None,
-            business_context=None,
         )
         self.assertEqual(training.training_id, "training-1")
         self.assertEqual(training.status, "running")
@@ -388,7 +387,7 @@ class TestDescribeTrainRecipe(V2TrainingRecipeTestCase):
 
 
 class TestCreateTrainingWithRecipe(V2TrainingRecipeTestCase):
-    """The train_recipe/business_context extension of Version.create_training."""
+    """The train_recipe extension of Version.create_training."""
 
     CREATE_RESPONSE = {"trainingId": "t-1", "status": "queued", "jobId": "job-1"}
     NOT_GENERATING = {"version": {"generating": False, "progress": 1.0, "images": 10}}
@@ -416,7 +415,6 @@ class TestCreateTrainingWithRecipe(V2TrainingRecipeTestCase):
             epochs=10,
             speed="fast",
             checkpoint="ckpt",
-            business_context="baseline",
         )
 
         self.assertEqual(result.training_id, "t-1")
@@ -433,7 +431,6 @@ class TestCreateTrainingWithRecipe(V2TrainingRecipeTestCase):
             model_type="rfdetr-medium",
             epochs=10,
             train_recipe=None,
-            business_context="baseline",
         )
 
     def test_explicit_recipe_submitted_as_is_without_describe(self):

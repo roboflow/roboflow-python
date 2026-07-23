@@ -43,7 +43,7 @@ models (e.g. a NAS sweep). New object types expose this:
   - `Version.describe_train_recipe(model_type)` — fetch the tunable
     hyperparameter schema, allowed online augmentation/preprocessing steps,
     and a ready-to-edit recipe `template` for a model type.
-  - `train_recipe` and `business_context` on `Version.create_training(...)` —
+  - `train_recipe` on `Version.create_training(...)` —
     pass an edited `describe_train_recipe` template for custom
     hyperparameters/online augmentation (the server dense-fills omitted
     defaults). A top-level `epochs` is folded into the recipe's

@@ -272,7 +272,6 @@ class TestV2Trainings(unittest.TestCase):
             checkpoint="ckpt",
             epochs=10,
             train_recipe=recipe,
-            business_context="sweep run 1",
         )
 
         self.assertEqual(result["trainingId"], "abc123")
@@ -286,7 +285,6 @@ class TestV2Trainings(unittest.TestCase):
                 "checkpoint": "ckpt",
                 "epochs": 10,
                 "trainRecipe": recipe,
-                "business_context": "sweep run 1",
             },
         )
 

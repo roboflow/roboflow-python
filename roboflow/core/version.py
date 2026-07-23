@@ -229,9 +229,7 @@ class Version:
             model_type=model_type,
         )
 
-    def create_training(
-        self, speed=None, model_type=None, checkpoint=None, epochs=None, train_recipe=None, business_context=None
-    ):
+    def create_training(self, speed=None, model_type=None, checkpoint=None, epochs=None, train_recipe=None):
         """Create a v2 training run and return a Training object.
 
         Unlike :meth:`train`, this does not block until completion or return a
@@ -259,7 +257,6 @@ class Version:
                 ``model_type``: recipes are minted per model type, and
                 without one the platform would train the project's default
                 architecture instead.
-            business_context: Free-form context recorded with the training.
 
         Raises:
             ValueError: If ``train_recipe`` is given without ``model_type``.
@@ -318,7 +315,6 @@ class Version:
             model_type=model_type if model_type else None,
             epochs=epochs,
             train_recipe=train_recipe,
-            business_context=business_context if business_context else None,
         )
         return Training(self.__api_key, workspace, project, self.version, raw)
 
