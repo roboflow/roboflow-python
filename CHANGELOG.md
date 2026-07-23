@@ -38,6 +38,24 @@ models (e.g. a NAS sweep). New object types expose this:
   `upload_model` detects them and rebuilds a deploy-ready bundle via rf-detr's
   `export_for_roboflow` (requires `rfdetr>=1.8.0`)
   ([#488](https://github.com/roboflow/roboflow-python/pull/488))
+- Custom train recipes on v2 trainings
+  ([#510](https://github.com/roboflow/roboflow-python/pull/510)):
+  - `Version.describe_train_recipe(model_type)` — fetch the tunable
+    hyperparameter schema, allowed online augmentation/preprocessing steps,
+    and a ready-to-edit recipe `template` for a model type.
+  - `train_recipe` and `business_context` on `Version.create_training(...)` —
+    pass an edited `describe_train_recipe` template for custom
+    hyperparameters/online augmentation (the server dense-fills omitted
+    defaults). A top-level `epochs` is folded into the recipe's
+    hyperparameters (the server resolves recipe epochs ahead of the body
+    value). `train_recipe` requires `model_type` — recipes are minted per
+    model type, and without one the platform would train the project's
+    default architecture.
+  - `roboflow train recipe -p <project> -v <N> -m <model_type>` — print the
+    recipe schema and template as JSON.
+  - `roboflow train start --train-recipe '<json>'` — create the training
+    through the v2 API and print the new `trainingId`. Accepts inline JSON
+    or a curl-style file reference (`--train-recipe @train_recipe.json`).
 
 ### Changed
 
