@@ -22,6 +22,17 @@ def _train_callback(
     checkpoint: Annotated[Optional[str], typer.Option(help="Checkpoint to resume training from")] = None,
     speed: Annotated[Optional[str], typer.Option(help="Training speed preset")] = None,
     epochs: Annotated[Optional[int], typer.Option(help="Number of training epochs")] = None,
+    train_recipe: Annotated[
+        Optional[str],
+        typer.Option(
+            "--train-recipe",
+            help=(
+                "Full trainRecipe as inline JSON or @path/to/file.json (see 'roboflow train "
+                "recipe'); --epochs is folded into its hyperparameters unless the recipe "
+                "already sets epochs"
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Train a model. When invoked without a subcommand, behaves like ``train start``."""
     if ctx.invoked_subcommand is not None:
@@ -47,6 +58,7 @@ def _train_callback(
         checkpoint=checkpoint,
         speed=speed,
         epochs=epochs,
+        train_recipe=train_recipe,
     )
     _start(args)
 
@@ -62,8 +74,26 @@ def start_training(
     checkpoint: Annotated[Optional[str], typer.Option(help="Checkpoint to resume training from")] = None,
     speed: Annotated[Optional[str], typer.Option(help="Training speed preset")] = None,
     epochs: Annotated[Optional[int], typer.Option(help="Number of training epochs")] = None,
+    train_recipe: Annotated[
+        Optional[str],
+        typer.Option(
+            "--train-recipe",
+            help=(
+                "Full trainRecipe as inline JSON or @path/to/file.json (see 'roboflow train "
+                "recipe'); --epochs is folded into its hyperparameters unless the recipe "
+                "already sets epochs"
+            ),
+        ),
+    ] = None,
 ) -> None:
-    """Start training for a dataset version."""
+    """Start training for a dataset version.
+
+    With --train-recipe, the training is created via the v2 trainings API
+    and the new trainingId is printed. Start from the ``template`` field of
+    ``roboflow train recipe`` output, edit it (hyperparameters, online
+    augmentation), and pass it inline or as ``@path/to/file.json``; --epochs is folded into its
+    hyperparameters unless the recipe already sets epochs.
+    """
     args = ctx_to_args(
         ctx,
         project=project,
@@ -72,8 +102,29 @@ def start_training(
         checkpoint=checkpoint,
         speed=speed,
         epochs=epochs,
+        train_recipe=train_recipe,
     )
     _start(args)
+
+
+@train_app.command("recipe")
+def describe_train_recipe(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+    version_number: Annotated[int, typer.Option("-v", "--version", help="Version number")],
+    model_type: Annotated[
+        str,
+        typer.Option("-m", "--model-type", "-t", "--type", help="Model type to describe (e.g. rfdetr-medium)"),
+    ],
+) -> None:
+    """Show the training recipe schema and template for a model type.
+
+    Prints the tunable hyperparameter schema, the allowed online
+    augmentation/preprocessing steps, and a ready-to-submit ``template``
+    that can be edited and passed to ``roboflow train start --train-recipe``.
+    """
+    args = ctx_to_args(ctx, project=project, version_number=version_number, model_type=model_type)
+    _recipe(args)
 
 
 @train_app.command("cancel")
@@ -174,6 +225,11 @@ def _start(args):  # noqa: ANN001
         output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
         return
 
+    # Custom recipes go through the v2 trainings API
+    if getattr(args, "train_recipe", None):
+        _start_v2(args, api_key, workspace_url, project_slug)
+        return
+
     # Ensure the version has the required export format before training
     if args.model_type:
         _ensure_export(args, api_key, workspace_url, project_slug, str(args.version_number), args.model_type)
@@ -208,6 +264,136 @@ def _start(args):  # noqa: ANN001
         "version": args.version_number,
     }
     output(args, data, text=f"Training started for {project_slug} version {args.version_number}.")
+
+
+def _parse_json_flag(args, raw, flag):
+    """Parse a JSON-object CLI flag value; exits with a clean error on invalid input.
+
+    Accepts inline JSON, or ``@path/to/file.json`` to read the JSON from a
+    file (curl-style; unambiguous because ``@`` can never start valid JSON).
+    """
+    import json
+    import os
+
+    from roboflow.cli._output import output_error
+
+    source = "string"
+    if raw.startswith("@"):
+        path = os.path.expanduser(raw[1:])
+        try:
+            with open(path, encoding="utf-8") as f:
+                raw = f.read()
+        except OSError as exc:
+            output_error(
+                args,
+                f"Cannot read {flag} file {path}: {exc.strerror or exc}",
+                hint="Pass inline JSON, or @<path> pointing to a readable JSON file.",
+            )
+            return None  # unreachable: output_error sys.exits
+        source = "file"
+
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        output_error(args, f"Invalid JSON in {flag} {source}: {exc}", hint="Pass a valid JSON string.")
+        return None  # unreachable: output_error sys.exits
+    if not isinstance(parsed, dict):
+        output_error(
+            args,
+            f"{flag} must be a JSON object, got {type(parsed).__name__}",
+            hint="Pass a JSON object string, e.g. '{\"lr\": 0.0002}'.",
+        )
+        return None  # unreachable: output_error sys.exits
+    return parsed
+
+
+def _start_v2(args, api_key, workspace_url, project_slug):
+    """Create a training via the v2 trainings API with a custom trainRecipe."""
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.util.train_recipe import fold_epochs_into_recipe
+
+    version_str = str(args.version_number)
+    if not args.model_type:
+        output_error(
+            args,
+            "--train-recipe requires a model type.",
+            hint=(
+                "Recipes are minted per model type; without -t/--type the platform "
+                "would train the project's default architecture. Pass the model type "
+                "the recipe was described for (e.g. -t rfdetr-medium)."
+            ),
+        )
+        return
+    train_recipe = _parse_json_flag(args, args.train_recipe, "--train-recipe")
+    if args.epochs is not None:
+        # Fold --epochs into the recipe: the server dense-fills recipe
+        # hyperparameters (including a default epochs) and resolves them
+        # ahead of the body's top-level value, which would otherwise be
+        # silently ignored. An epochs set in the recipe wins.
+        train_recipe = fold_epochs_into_recipe(train_recipe, args.epochs)
+
+    # Ensure the version has the required export format before training
+    if args.model_type:
+        _ensure_export(args, api_key, workspace_url, project_slug, version_str, args.model_type)
+
+    try:
+        result = rfapi.create_training_v2(
+            api_key,
+            workspace_url,
+            project_slug,
+            version_str,
+            model_type=args.model_type,
+            speed=args.speed,
+            checkpoint=args.checkpoint,
+            epochs=args.epochs,
+            train_recipe=train_recipe,
+        )
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+
+    data = {
+        "status": "training_created",
+        "project": project_slug,
+        "version": args.version_number,
+        **result,
+    }
+    training_id = result.get("trainingId")
+    output(
+        args,
+        data,
+        text=f"Training created for {project_slug} version {args.version_number}. trainingId: {training_id}",
+    )
+
+
+def _recipe(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.cli._resolver import resolve_resource
+    from roboflow.config import load_roboflow_api_key
+
+    try:
+        workspace_url, project_slug, _version = resolve_resource(args.project, workspace_override=args.workspace)
+    except ValueError as exc:
+        output_error(args, str(exc))
+        return
+
+    api_key = args.api_key or load_roboflow_api_key(workspace_url)
+    if not api_key:
+        output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
+        return
+
+    try:
+        result = rfapi.get_train_recipe(
+            api_key, workspace_url, project_slug, str(args.version_number), model_type=args.model_type
+        )
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc))
+        return
+
+    # No text form — the recipe is structured data; print JSON in both modes.
+    output(args, result)
 
 
 def _ensure_export(args, api_key, workspace_url, project_slug, version_str, model_type):
