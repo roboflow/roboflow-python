@@ -35,8 +35,8 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.models.vlm import VLMModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import extract_zip, write_line
-from roboflow.util.model_processor import process, validate_model_type_for_project
-from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions, normalize_yolo_model_type
+from roboflow.util.model_processor import package_custom_weights_interactive, validate_model_type_for_project
+from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions
 
 if TYPE_CHECKING:
     import numpy as np
@@ -569,14 +569,10 @@ class Version:
             model_path (str): File path to the model weights to be uploaded.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
-        model_type = normalize_yolo_model_type(model_type)
-        zip_file_name, model_type = process(model_type, model_path, filename)
+        bundle = package_custom_weights_interactive(model_type, model_path, filename, build_dir=model_path)
 
-        if zip_file_name is None:
-            raise RuntimeError("Failed to process model")
-
-        self._validate_against_project_type(model_type)
-        self._upload_zip(model_type, model_path, zip_file_name)
+        self._validate_against_project_type(bundle.model_type)
+        self._upload_zip(bundle.model_type, model_path, bundle.archive_path.name)
 
     def _validate_against_project_type(self, model_type: str) -> None:
         validate_model_type_for_project(model_type, self.type, self.project)

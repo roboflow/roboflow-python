@@ -28,6 +28,12 @@ models (e.g. a NAS sweep). New object types expose this:
 
 ### Added
 
+- `workspace.update_image_metadata()` and `workspace.batch_update_image_metadata()`
+  (plus a `project.update_image_metadata()` convenience alias) — public SDK
+  wrappers for updating metadata and tags on existing images, previously only
+  reachable via the internal `rfapi` adapter or the CLI. The batch method
+  accepts `wait=True` to poll the async task until completion and return
+  per-image results.
 - Upload raw rf-detr PyTorch-Lightning checkpoints (e.g. `checkpoint_best_ema.pth`):
   `upload_model` detects them and rebuilds a deploy-ready bundle via rf-detr's
   `export_for_roboflow` (requires `rfdetr>=1.8.0`)

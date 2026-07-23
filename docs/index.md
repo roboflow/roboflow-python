@@ -164,6 +164,44 @@ Or from the CLI:
 roboflow upload image.jpg -p my-project -M '{"camera_id":"cam001","location":"warehouse-3"}'
 ```
 
+### Update Metadata on Existing Images
+
+Update metadata and tags on images already in your workspace. Values in
+`metadata` are upserted: new keys are added, existing keys are overwritten.
+
+```python
+workspace = rf.workspace("my-workspace")
+
+# Single image (synchronous)
+workspace.update_image_metadata(
+    "IMAGE_ID",
+    metadata={"quality_score": 95, "reviewed": True},
+    remove_metadata=["old_key"],
+    add_tags=["reviewed"],
+    remove_tags=["pending"],
+)
+
+# Also available from a project object
+project.update_image_metadata("IMAGE_ID", metadata={"reviewed": True})
+
+# Batch update up to 1,000 images (asynchronous); wait=True polls until done
+final = workspace.batch_update_image_metadata(
+    [
+        {"imageId": "img1", "metadata": {"batch": "june"}, "addTags": ["processed"]},
+        {"imageId": "img2", "metadata": {"batch": "june"}, "addTags": ["processed"]},
+    ],
+    wait=True,
+)
+print(final["result"]["succeeded"], final["result"]["failedItems"])
+```
+
+Or from the CLI:
+
+```bash
+roboflow image metadata IMAGE_ID -m '{"quality_score": 95}' --tags "reviewed"
+roboflow image metadata img1,img2 --tags "processed" --poll
+```
+
 ## Library Structure
 
 The Roboflow Python library is structured using the same Workspace, Project, and Version ontology that you will see in the Roboflow application.

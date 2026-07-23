@@ -158,6 +158,118 @@ class Workspace:
         """Return the current status of an async task owned by this workspace."""
         return rfapi.get_async_task(self.__api_key, self.url, task_id)
 
+    def update_image_metadata(
+        self,
+        image_id: str,
+        *,
+        metadata: Optional[Dict] = None,
+        remove_metadata: Optional[List[str]] = None,
+        add_tags: Optional[List[str]] = None,
+        remove_tags: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Update metadata and tags on a single image (synchronous).
+
+        Values in ``metadata`` are upserted: new keys are added, existing keys
+        are overwritten. At least one argument must be provided; validation
+        (key/tag format, mutual exclusions) is performed server-side and
+        surfaces as :class:`~roboflow.adapters.rfapi.RoboflowError`.
+
+        Args:
+            image_id: ID of an image in this workspace.
+            metadata: Key-value pairs to set (string, number, or boolean values).
+            remove_metadata: Metadata keys to delete.
+            add_tags: Tags to add.
+            remove_tags: Tags to remove.
+
+        Returns:
+            ``{"success": True}`` on success.
+
+        Example:
+            >>> import roboflow
+            >>> rf = roboflow.Roboflow(api_key="")
+            >>> workspace = rf.workspace("WORKSPACE_URL")
+            >>> workspace.update_image_metadata(
+            ...     "IMAGE_ID",
+            ...     metadata={"quality_score": 95, "reviewed": True},
+            ...     add_tags=["reviewed"],
+            ... )
+        """
+        return rfapi.update_image_metadata(
+            api_key=self.__api_key,
+            workspace_url=self.url,
+            image_id=image_id,
+            metadata=metadata,
+            remove_metadata=remove_metadata,
+            add_tags=add_tags,
+            remove_tags=remove_tags,
+        )
+
+    def batch_update_image_metadata(
+        self,
+        updates: List[Dict],
+        *,
+        wait: bool = False,
+        poll_interval: float = 4.0,
+        timeout: float = 1800.0,
+    ) -> Dict[str, Any]:
+        """Update metadata and tags on up to 1,000 images in one call (asynchronous).
+
+        Each update dict must contain ``imageId`` plus at least one of
+        ``metadata``, ``removeMetadata``, ``addTags``, ``removeTags``.
+        Validation happens server-side before anything is enqueued; an invalid
+        item rejects the whole batch with :class:`~roboflow.adapters.rfapi.RoboflowError`.
+        Missing images do not fail the task — they are reported per-item in
+        the final result's ``failedItems`` while the rest succeed.
+
+        The endpoint is workspace-scoped; to target a single project's images,
+        gather their IDs first (e.g. via ``project.search(fields=["id"])``).
+
+        Args:
+            updates: List of update dicts, e.g.
+                ``[{"imageId": "abc", "metadata": {"k": "v"}, "addTags": ["t"]}]``.
+            wait: When ``True``, poll until the task finishes and return the
+                final task status instead of the enqueue response.
+            poll_interval: Seconds between polls when ``wait`` is ``True``.
+            timeout: Max seconds to wait when ``wait`` is ``True``; raises
+                ``TimeoutError`` when exceeded. Non-positive disables the timeout.
+
+        Returns:
+            With ``wait=False``: ``{"taskId": "...", "url": "..."}`` — check later
+            with :meth:`get_async_task`. With ``wait=True``: the final task status,
+            including ``result`` (``succeeded``/``failed``/``failedItems``) when completed.
+
+        Example:
+            >>> import roboflow
+            >>> rf = roboflow.Roboflow(api_key="")
+            >>> workspace = rf.workspace("WORKSPACE_URL")
+            >>> final = workspace.batch_update_image_metadata(
+            ...     [
+            ...         {"imageId": "img1", "metadata": {"batch": "june"}},
+            ...         {"imageId": "img2", "addTags": ["processed"]},
+            ...     ],
+            ...     wait=True,
+            ... )
+            >>> final["result"]["succeeded"]
+        """
+        result = rfapi.batch_update_image_metadata(
+            api_key=self.__api_key,
+            workspace_url=self.url,
+            updates=updates,
+        )
+        if not wait:
+            return result
+
+        from roboflow.core.async_tasks import poll_until_terminal
+
+        return poll_until_terminal(
+            self.__api_key,
+            self.url,
+            result["taskId"],
+            interval=poll_interval,
+            timeout=timeout,
+            polling_url=result.get("url"),
+        )
+
     def devices(self) -> List["Device"]:
         """List v2 devices registered in this workspace.
 
@@ -790,8 +902,10 @@ class Workspace:
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
 
-        from roboflow.util.model_processor import process, validate_model_type_for_project
-        from roboflow.util.versions import normalize_yolo_model_type
+        from roboflow.util.model_processor import (
+            package_custom_weights_interactive,
+            validate_model_type_for_project,
+        )
 
         if not project_ids:
             raise ValueError("At least one project ID must be provided")
@@ -803,16 +917,12 @@ class Workspace:
             if project_id not in projects_by_id:
                 raise ValueError(f"Project {project_id} is not accessible in this workspace")
 
-        model_type = normalize_yolo_model_type(model_type)
-        zip_file_name, model_type = process(model_type, model_path, filename)
-
-        if zip_file_name is None:
-            raise RuntimeError("Failed to process model")
+        bundle = package_custom_weights_interactive(model_type, model_path, filename, build_dir=model_path)
 
         for project_id in project_ids:
-            validate_model_type_for_project(model_type, projects_by_id[project_id].get("type", ""), project_id)
+            validate_model_type_for_project(bundle.model_type, projects_by_id[project_id].get("type", ""), project_id)
 
-        self._upload_zip(model_type, model_path, project_ids, model_name, zip_file_name)
+        self._upload_zip(bundle.model_type, model_path, project_ids, model_name, bundle.archive_path.name)
 
     def _upload_zip(
         self,
