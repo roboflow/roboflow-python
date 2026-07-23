@@ -36,6 +36,7 @@ from roboflow.models.vlm import VLMModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import extract_zip, write_line
 from roboflow.util.model_processor import package_custom_weights_interactive, validate_model_type_for_project
+from roboflow.util.train_recipe import fold_epochs_into_recipe
 from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions
 
 if TYPE_CHECKING:
@@ -204,15 +205,97 @@ class Version:
             result.extend(training.models)
         return result
 
-    def create_training(self, speed=None, model_type=None, checkpoint=None, epochs=None):
+    def describe_train_recipe(self, model_type: str) -> dict:
+        """Fetch the v2 training recipe schema and template for a model type.
+
+        Args:
+            model_type: The model type to describe (e.g. ``"rfdetr-medium"``).
+
+        Returns:
+            dict: The API response with the tunable ``schema``
+            (hyperparameters, allowed online augmentation/preprocessing
+            steps, input constraints) and a ready-to-submit ``template``
+            that can be edited and passed to :meth:`create_training`.
+
+        Raises:
+            RoboflowError: If the Roboflow API returns an error.
+        """
+        workspace, project, *_ = self.id.rsplit("/")
+        return rfapi.get_train_recipe(
+            api_key=self.__api_key,
+            workspace_url=workspace,
+            project_url=project,
+            version=self.version,
+            model_type=model_type,
+        )
+
+    def create_training(self, speed=None, model_type=None, checkpoint=None, epochs=None, train_recipe=None):
         """Create a v2 training run and return a Training object.
 
         Unlike :meth:`train`, this does not block until completion or return a
         legacy task-specific model. It exposes the MMPV-aware training id so
         callers can refresh the run, enumerate produced models, and select the
         model they want.
+
+        To customize hyperparameters or online augmentation, fetch the recipe
+        template via :meth:`describe_train_recipe`, edit it, and pass it as
+        ``train_recipe``; the server dense-fills any defaults the recipe
+        omits.
+
+        Args:
+            speed: Training speed preset (e.g. ``"fast"``).
+            model_type: The model type to train (e.g. ``"rfdetr-medium"``).
+            checkpoint: Checkpoint to start training from.
+            epochs: Number of epochs to train. When a ``train_recipe`` is
+                given, this is folded into the recipe's hyperparameters
+                unless they already set ``"epochs"``, because the server
+                resolves the recipe's dense-filled epochs ahead of this
+                top-level value.
+            train_recipe: A full recipe to submit — typically the
+                ``template`` from :meth:`describe_train_recipe` with edited
+                ``hyperparameters`` / ``online_augmentation``. Requires
+                ``model_type``: recipes are minted per model type, and
+                without one the platform would train the project's default
+                architecture instead.
+
+        Raises:
+            ValueError: If ``train_recipe`` is given without ``model_type``.
+            RoboflowError: If the Roboflow API returns an error.
+
+        Example:
+            Launch a small learning-rate sweep and poll for completion::
+
+                import copy
+                import time
+
+                template = version.describe_train_recipe("rfdetr-medium")["template"]
+                trainings = []
+                for lr in (1e-4, 3e-4, 1e-3):
+                    recipe = copy.deepcopy(template)
+                    recipe["hyperparameters"] = {"lr": lr}
+                    trainings.append(
+                        version.create_training(model_type="rfdetr-medium", train_recipe=recipe)
+                    )
+                pending = list(trainings)
+                while pending:
+                    for training in list(pending):
+                        if training.refresh().status in ("finished", "failed"):
+                            pending.remove(training)
+                    time.sleep(60)
         """
         from roboflow.core.training import Training
+
+        if train_recipe is not None and not model_type:
+            raise ValueError(
+                "model_type is required when passing train_recipe: recipes are "
+                "minted per model type (see describe_train_recipe)."
+            )
+        if train_recipe is not None and epochs is not None:
+            # Fold epochs into the recipe: the server dense-fills recipe
+            # hyperparameters (including a default epochs) and resolves them
+            # ahead of the body's top-level epochs, which would otherwise be
+            # silently ignored. An epochs set in the recipe wins.
+            train_recipe = fold_epochs_into_recipe(train_recipe, epochs)
 
         self.__wait_if_generating()
 
@@ -231,6 +314,7 @@ class Version:
             checkpoint=checkpoint if checkpoint else None,
             model_type=model_type if model_type else None,
             epochs=epochs,
+            train_recipe=train_recipe,
         )
         return Training(self.__api_key, workspace, project, self.version, raw)
 

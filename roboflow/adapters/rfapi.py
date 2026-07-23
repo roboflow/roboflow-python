@@ -197,6 +197,31 @@ def get_training(api_key: str, workspace_url: str, project_url: str, version: st
     return response.json()
 
 
+def get_train_recipe(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    *,
+    model_type: str,
+):
+    """GET /{ws}/{proj}/{version}/v2/trainings/recipe — training schema for a model type.
+
+    Returns the tunable-hyperparameter schema, the allowed online
+    augmentation/preprocessing steps, and a ready-to-submit ``template``
+    that can be edited and passed to ``create_training_v2`` as ``train_recipe``.
+    """
+    encoded_model_type = quote(model_type, safe="")
+    url = (
+        f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/recipe"
+        f"?api_key={api_key}&modelType={encoded_model_type}"
+    )
+    response = requests.get(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
 def create_training_v2(
     api_key: str,
     workspace_url: str,
@@ -207,15 +232,21 @@ def create_training_v2(
     checkpoint: Optional[str] = None,
     model_type: Optional[str] = None,
     epochs: Optional[int] = None,
+    train_recipe: Optional[Dict] = None,
 ):
     """Create a training on a version (DNA ``trainings.create``).
 
     POST /{ws}/{proj}/{version}/v2/trainings. A version may own many trainings,
     so repeated/concurrent runs are allowed; the backend rejects a second run on
     a legacy (SMPV) version. Returns ``{trainingId, status, jobId}``.
+
+    ``train_recipe`` submits a full recipe (camelCase ``trainRecipe`` body
+    key) — typically the ``template`` from ``get_train_recipe`` with edited
+    hyperparameters/online augmentation; the server dense-fills omitted
+    defaults. Only non-None arguments are sent.
     """
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings?api_key={api_key}"
-    data: Dict[str, Union[str, int]] = {}
+    data: Dict[str, Union[str, int, Dict]] = {}
     if speed is not None:
         data["speed"] = speed
     if checkpoint is not None:
@@ -224,6 +255,8 @@ def create_training_v2(
         data["modelType"] = model_type
     if epochs is not None:
         data["epochs"] = epochs
+    if train_recipe is not None:
+        data["trainRecipe"] = train_recipe
     response = requests.post(url, json=data)
     if not response.ok:
         raise RoboflowError(response.text)
