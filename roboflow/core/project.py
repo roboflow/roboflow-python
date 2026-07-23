@@ -409,6 +409,12 @@ class Project:
             metadata (dict, optional): custom key-value metadata to attach to the image.
                 Example: {"camera_id": "cam001", "location": "warehouse"}
 
+        Returns:
+            For a single image: the dict returned by ``single_upload`` (keys: ``image``,
+            ``annotation``, ``upload_time``, ``annotation_time``, ``upload_retry_attempts``,
+            ``annotation_upload_retry_attempts``). For a directory: a list of such dicts,
+            one per successfully uploaded image. Skipped (non-image) files are excluded.
+
         Example:
             >>> import roboflow
 
@@ -445,7 +451,7 @@ class Project:
                     )
                 )
 
-            self.single_upload(
+            return self.single_upload(
                 image_path=image_path,
                 annotation_path=annotation_path,
                 hosted_image=hosted_image,
@@ -460,11 +466,12 @@ class Project:
             )
 
         else:
+            results = []
             images = os.listdir(image_path)
             for image in images:
                 path = image_path + "/" + image
                 if self.check_valid_image(path):
-                    self.single_upload(
+                    result = self.single_upload(
                         image_path=path,
                         annotation_path=annotation_path,
                         hosted_image=hosted_image,
@@ -477,10 +484,12 @@ class Project:
                         metadata=metadata,
                         **kwargs,
                     )
+                    results.append(result)
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
                     print("[ " + path + " ] was skipped.")
                     continue
+            return results
 
     def upload_image(
         self,
