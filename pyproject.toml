@@ -20,6 +20,7 @@ ignore = [
     "BLE",
     "C",
     "COM",
+    "CPY",
     "D",
     "DTZ",
     "EM",
