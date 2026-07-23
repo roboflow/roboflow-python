@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="https://media.roboflow.com/roboflow_logomark_white.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
       
       
 
@@ -362,6 +362,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#update-metadata-on-existing-images" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update Metadata on Existing Images
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -645,6 +656,34 @@
     
   
     Versions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="core/training/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trainings
   
 
     
@@ -960,6 +999,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#update-metadata-on-existing-images" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update Metadata on Existing Images
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1085,8 +1135,8 @@ You can also authenticate with an API key by using the following code:
 <span class="c1"># upload model weights - yolov10</span>
 <span class="n">version</span><span class="o">.</span><span class="n">deploy</span><span class="p">(</span><span class="n">model_type</span><span class="o">=</span><span class="s2">&quot;yolov10&quot;</span><span class="p">,</span> <span class="n">model_path</span><span class="o">=</span><span class="n">f</span><span class="err">”</span><span class="p">{</span><span class="n">HOME</span><span class="p">}</span><span class="o">/</span><span class="n">runs</span><span class="o">/</span><span class="n">detect</span><span class="o">/</span><span class="n">train</span><span class="o">/</span><span class="err">”</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;weights.pt&quot;</span><span class="p">)</span>
 
-<span class="c1"># run inference</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">version</span><span class="o">.</span><span class="n">model</span>
+<span class="c1"># run inference (a version may own several trained models; models() returns all of them)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">version</span><span class="o">.</span><span class="n">models</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
 
 <span class="n">img_url</span> <span class="o">=</span> <span class="s2">&quot;https://media.roboflow.com/quickstart/aerial_drone.jpeg&quot;</span>
 
@@ -1135,6 +1185,37 @@ You can also authenticate with an API key by using the following code:
 </code></pre></div>
 <p>Or from the CLI:</p>
 <div class="highlight"><pre><span></span><code>roboflow<span class="w"> </span>upload<span class="w"> </span>image.jpg<span class="w"> </span>-p<span class="w"> </span>my-project<span class="w"> </span>-M<span class="w"> </span><span class="s1">&#39;{&quot;camera_id&quot;:&quot;cam001&quot;,&quot;location&quot;:&quot;warehouse-3&quot;}&#39;</span>
+</code></pre></div>
+<h3 id="update-metadata-on-existing-images">Update Metadata on Existing Images<a class="headerlink" href="#update-metadata-on-existing-images" title="Permanent link">&para;</a></h3>
+<p>Update metadata and tags on images already in your workspace. Values in
+<code>metadata</code> are upserted: new keys are added, existing keys are overwritten.</p>
+<div class="highlight"><pre><span></span><code><span class="n">workspace</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">(</span><span class="s2">&quot;my-workspace&quot;</span><span class="p">)</span>
+
+<span class="c1"># Single image (synchronous)</span>
+<span class="n">workspace</span><span class="o">.</span><span class="n">update_image_metadata</span><span class="p">(</span>
+    <span class="s2">&quot;IMAGE_ID&quot;</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;quality_score&quot;</span><span class="p">:</span> <span class="mi">95</span><span class="p">,</span> <span class="s2">&quot;reviewed&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+    <span class="n">remove_metadata</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;old_key&quot;</span><span class="p">],</span>
+    <span class="n">add_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;reviewed&quot;</span><span class="p">],</span>
+    <span class="n">remove_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;pending&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="c1"># Also available from a project object</span>
+<span class="n">project</span><span class="o">.</span><span class="n">update_image_metadata</span><span class="p">(</span><span class="s2">&quot;IMAGE_ID&quot;</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;reviewed&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+
+<span class="c1"># Batch update up to 1,000 images (asynchronous); wait=True polls until done</span>
+<span class="n">final</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">batch_update_image_metadata</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;imageId&quot;</span><span class="p">:</span> <span class="s2">&quot;img1&quot;</span><span class="p">,</span> <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="s2">&quot;june&quot;</span><span class="p">},</span> <span class="s2">&quot;addTags&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;processed&quot;</span><span class="p">]},</span>
+        <span class="p">{</span><span class="s2">&quot;imageId&quot;</span><span class="p">:</span> <span class="s2">&quot;img2&quot;</span><span class="p">,</span> <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="s2">&quot;june&quot;</span><span class="p">},</span> <span class="s2">&quot;addTags&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;processed&quot;</span><span class="p">]},</span>
+    <span class="p">],</span>
+    <span class="n">wait</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">final</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;succeeded&quot;</span><span class="p">],</span> <span class="n">final</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;failedItems&quot;</span><span class="p">])</span>
+</code></pre></div>
+<p>Or from the CLI:</p>
+<div class="highlight"><pre><span></span><code>roboflow<span class="w"> </span>image<span class="w"> </span>metadata<span class="w"> </span>IMAGE_ID<span class="w"> </span>-m<span class="w"> </span><span class="s1">&#39;{&quot;quality_score&quot;: 95}&#39;</span><span class="w"> </span>--tags<span class="w"> </span><span class="s2">&quot;reviewed&quot;</span>
+roboflow<span class="w"> </span>image<span class="w"> </span>metadata<span class="w"> </span>img1,img2<span class="w"> </span>--tags<span class="w"> </span><span class="s2">&quot;processed&quot;</span><span class="w"> </span>--poll
 </code></pre></div>
 <h2 id="library-structure">Library Structure<a class="headerlink" href="#library-structure" title="Permanent link">&para;</a></h2>
 <p>The Roboflow Python library is structured using the same Workspace, Project, and Version ontology that you will see in the Roboflow application.</p>
@@ -1305,7 +1386,7 @@ You can also authenticate with an API key by using the following code:
       <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": [], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
