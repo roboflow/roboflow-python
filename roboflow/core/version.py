@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import time
+import warnings
 from typing import TYPE_CHECKING, Optional, Union
 
 import requests
@@ -50,8 +51,6 @@ class Version:
     Class representing a Roboflow dataset version.
     """
 
-    model: Optional[InferenceModel]
-
     def __init__(
         self,
         version_dict,
@@ -94,12 +93,11 @@ class Version:
 
             version_without_workspace = os.path.basename(str(version))
 
-            try:
-                version_response = rfapi.get_version(self.__api_key, workspace, project, self.version)
-                version_info = version_response.get("version", {})
-                has_model = bool(version_info.get("train", {}).get("model"))
-            except rfapi.RoboflowError:
-                has_model = False
+            # Derive the legacy single-model flag from the payload the caller
+            # already fetched. Keeping __init__ free of network side effects means
+            # a transient/mocked request failure can't break basic version
+            # retrieval; the v2 surface (models()/trainings()) does its own reads.
+            has_model = bool(version_dict.get("model"))
 
             if not has_model:
                 self.model = None
@@ -161,6 +159,80 @@ class Version:
                 self.name = "chess-pieces-new"
                 self.version = "23"
                 self.id = "joseph-nelson/chess-pieces-new"
+
+    @property
+    def model(self):
+        """Deprecated. The version's legacy single inference model, or ``None``.
+
+        A version may now own many trained models (MMPV). This single-model
+        attribute cannot represent that, so it is deprecated in favor of
+        :meth:`models`, which returns every trained model for the version, and
+        :meth:`trainings`, which exposes the runs that produced them.
+        """
+        warnings.warn(
+            "version.model is deprecated and will be removed in a future release; "
+            "use version.models() (all trained models) or version.trainings() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(self, "_model", None)
+
+    @model.setter
+    def model(self, value):
+        self._model = value
+
+    def trainings(self):
+        """List this version's trainings as Training objects (DNA ``trainings.list``).
+
+        An MMPV version may own many; a legacy (SMPV) version reports its single
+        run. Returns a list of :class:`~roboflow.core.training.Training`.
+        """
+        from roboflow.core.training import Training
+
+        raw = rfapi.list_trainings_for_version(self.__api_key, self.workspace, self.project, self.version)
+        return [Training(self.__api_key, self.workspace, self.project, self.version, t) for t in raw]
+
+    def models(self):
+        """All trained models for this version — the union across its trainings.
+
+        Mirrors the backend's "a version's models are the union across its
+        trainings" rule. Returns a list of
+        :class:`~roboflow.core.training.TrainedModel`.
+        """
+        result = []
+        for training in self.trainings():
+            result.extend(training.models)
+        return result
+
+    def create_training(self, speed=None, model_type=None, checkpoint=None, epochs=None):
+        """Create a v2 training run and return a Training object.
+
+        Unlike :meth:`train`, this does not block until completion or return a
+        legacy task-specific model. It exposes the MMPV-aware training id so
+        callers can refresh the run, enumerate produced models, and select the
+        model they want.
+        """
+        from roboflow.core.training import Training
+
+        self.__wait_if_generating()
+
+        if model_type:
+            train_model_format = get_model_format(model_type)
+            if train_model_format not in self.exports:
+                self.export(train_model_format)
+
+        workspace, project, *_ = self.id.rsplit("/")
+        raw = rfapi.create_training_v2(
+            api_key=self.__api_key,
+            workspace_url=workspace,
+            project_url=project,
+            version=self.version,
+            speed=speed if speed else None,
+            checkpoint=checkpoint if checkpoint else None,
+            model_type=model_type if model_type else None,
+            epochs=epochs,
+        )
+        return Training(self.__api_key, workspace, project, self.version, raw)
 
     def __check_if_generating(self):
         # check Roboflow API to see if this version is still generating
@@ -451,7 +523,7 @@ class Version:
 
             time.sleep(5)
 
-        if not self.model:
+        if not getattr(self, "_model", None):
             if self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
                     self.__api_key,
@@ -485,8 +557,8 @@ class Version:
                 raise ValueError(f"Unsupported model type: {self.type}")
 
         # return the model object
-        assert self.model
-        return self.model
+        assert self._model
+        return self._model
 
     # @warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])
     def deploy(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:

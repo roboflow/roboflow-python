@@ -155,6 +155,139 @@ def get_training_results(api_key: str, workspace_url: str, project_url: str, ver
     return response.json()
 
 
+# ---------------------------------------------------------------------------
+# DNA v2 trainings surface (MMPV-aware). Mirrors the MCP's rf_api.py 1:1: a
+# version owns many trainings, each owning one or more models (a NAS run owns
+# many). trainingId rides in the query/body, never the path, because legacy ids
+# contain slashes. The legacy-vs-MMPV branch lives entirely on the backend.
+# ---------------------------------------------------------------------------
+
+
+def list_trainings_for_version(api_key: str, workspace_url: str, project_url: str, version: str):
+    """List a version's trainings (DNA ``trainings.list``).
+
+    GET /{ws}/{proj}/{version}/v2/trainings. MMPV versions return every run;
+    SMPV versions return a single entry synthesized from ``version.train``.
+    Returns the raw ``trainings`` array — each entry carries
+    ``{trainingId, status, modelType, modelGroup, modelIds, start}``.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings?api_key={api_key}"
+    response = requests.get(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    data = response.json()
+    return data.get("trainings", []) or []
+
+
+def get_training(api_key: str, workspace_url: str, project_url: str, version: str, training_id=None):
+    """A single run's results bundle (DNA ``trainings.get``).
+
+    GET /{ws}/{proj}/{version}/v2/trainings/get[?trainingId=]. Omitting
+    ``training_id`` targets the version's sole run; a version that owns several
+    runs responds 409 (list them and pass a specific id). Returns
+    ``{trainingId, status, modelType, modelGroup, modelCount, models: [...]}``,
+    each model carrying an inference-style ``modelId`` (``<workspace>/<slug>``).
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/get?api_key={api_key}"
+    if training_id:
+        url += f"&trainingId={quote(str(training_id), safe='')}"
+    response = requests.get(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def create_training_v2(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    *,
+    speed: Optional[str] = None,
+    checkpoint: Optional[str] = None,
+    model_type: Optional[str] = None,
+    epochs: Optional[int] = None,
+):
+    """Create a training on a version (DNA ``trainings.create``).
+
+    POST /{ws}/{proj}/{version}/v2/trainings. A version may own many trainings,
+    so repeated/concurrent runs are allowed; the backend rejects a second run on
+    a legacy (SMPV) version. Returns ``{trainingId, status, jobId}``.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings?api_key={api_key}"
+    data: Dict[str, Union[str, int]] = {}
+    if speed is not None:
+        data["speed"] = speed
+    if checkpoint is not None:
+        data["checkpoint"] = checkpoint
+    if model_type is not None:
+        data["modelType"] = model_type
+    if epochs is not None:
+        data["epochs"] = epochs
+    response = requests.post(url, json=data)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"status": "training_started"}
+
+
+def cancel_training_v2(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    training_id=None,
+    continue_if_no_refund: bool = False,
+):
+    """Cancel an in-flight run (DNA ``trainings.cancel``).
+
+    POST /{ws}/{proj}/{version}/v2/trainings/cancel. ``training_id`` selects a
+    specific run; omit it to target the version's sole run.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/cancel?api_key={api_key}"
+    body: Dict[str, Union[str, bool]] = {}
+    if training_id:
+        body["trainingId"] = training_id
+    if continue_if_no_refund:
+        body["continueIfNoRefund"] = True
+    response = requests.post(url, json=body)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"success": True}
+
+
+def stop_training_v2(api_key: str, workspace_url: str, project_url: str, version: str, training_id=None):
+    """Request an early stop on an in-flight run (DNA ``trainings.stop``).
+
+    POST /{ws}/{proj}/{version}/v2/trainings/stop. ``training_id`` selects a
+    specific run; omit it to target the version's sole run.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/stop?api_key={api_key}"
+    body: Dict[str, str] = {}
+    if training_id:
+        body["trainingId"] = training_id
+    response = requests.post(url, json=body)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"success": True}
+
+
+def get_model_weights_url(api_key: str, workspace_url: str, project_url: str, model_id: str, model_format: str = "pt"):
+    """Resolve a signed PyTorch weights URL for a single trained model.
+
+    GET /{ws}/{proj}/{model_id}/ptFile, where ``model_id`` is the addressable
+    segment of an inference-style id — a model slug (MMPV) or a version number
+    (SMPV). Returns the signed ``weightsUrl``.
+    """
+    if model_format != "pt":
+        raise RoboflowError(f"Unsupported weights format '{model_format}'. Only 'pt' is supported.")
+    encoded = quote(str(model_id), safe="")
+    url = f"{API_URL}/{workspace_url}/{project_url}/{encoded}/ptFile?api_key={api_key}"
+    response = requests.get(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json()["weightsUrl"]
+
+
 def list_project_models(
     api_key: str,
     workspace_url: str,

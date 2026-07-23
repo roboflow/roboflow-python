@@ -789,8 +789,11 @@ class Workspace:
         else:
             local = None
 
-        inference_model = (
-            self.project(inference_endpoint[0]).version(version_number=inference_endpoint[1], local=local).model
+        # version.model is deprecated; read the underlying legacy model directly.
+        inference_model = getattr(
+            self.project(inference_endpoint[0]).version(version_number=inference_endpoint[1], local=local),
+            "_model",
+            None,
         )
         upload_project = self.project(upload_destination)
 
@@ -830,7 +833,7 @@ class Workspace:
                     print(image2 + " --> similarity too high to --> " + image1)
                     continue  # skip this image if too similar or counter hits limit
 
-            predictions = inference_model.predict(image).json()["predictions"]  # type: ignore[attribute-error]
+            predictions = inference_model.predict(image).json()["predictions"]  # type: ignore[union-attr]
             # collect all predictions to return to user at end
             prediction_results.append({"image": image, "predictions": predictions})
 

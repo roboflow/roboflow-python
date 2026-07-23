@@ -21,7 +21,7 @@ except ImportError:
     CLIPModel = None  # type: ignore[assignment,misc]
     GazeModel = None  # type: ignore[assignment,misc]
 
-__version__ = "1.3.14"
+__version__ = "1.4.0"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -168,7 +168,9 @@ def load_model(model_url):
 
     project = operate_workspace.project(project)
     version = project.version(version)
-    model = version.model
+    # version.model is deprecated; read the underlying legacy model directly so
+    # load_model keeps its single-model return contract without emitting the warning.
+    model = getattr(version, "_model", None)
     return model
 
 

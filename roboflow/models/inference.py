@@ -124,7 +124,7 @@ class InferenceModel:
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> model = project.version("1").model
+            >>> model = project.version("1").models()[0]
 
             >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
@@ -170,7 +170,7 @@ class InferenceModel:
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> model = project.version("1").model
+            >>> model = project.version("1").models()[0]
 
             >>> job_id,signed_url,signed_url_expires = model.predict_video("video.mp4"
                 ,fps=5, inference_type="object-detection")
@@ -307,7 +307,7 @@ class InferenceModel:
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> model = project.version("1").model
+            >>> model = project.version("1").models()[0]
 
             >>> prediction = model.predict("video.mp4")
 
@@ -355,7 +355,7 @@ class InferenceModel:
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> model = project.version("1").model
+            >>> model = project.version("1").models()[0]
 
             >>> prediction = model.predict("video.mp4")
 
