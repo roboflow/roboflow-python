@@ -35,7 +35,7 @@ from roboflow.models.vlm import VLMModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import extract_zip, write_line
 from roboflow.util.model_processor import package_custom_weights_interactive, validate_model_type_for_project
-from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions
+from roboflow.util.versions import get_model_format
 
 if TYPE_CHECKING:
     import numpy as np
@@ -644,33 +644,62 @@ class Version:
         return friendly_formats.get(format, format)
 
     def __reformat_yaml(self, location: str, format: str):
-        """
-        Certain formats seem to require reformatting the downloaded YAML.
+        """Reformat the downloaded ``data.yaml`` for specific YOLO formats.
+
+        The ZIP downloaded from Roboflow contains a ``data.yaml`` whose
+        ``train`` / ``val`` / ``test`` paths are prefixed with ``../`` which
+        is incorrect — the split directories are siblings of ``data.yaml``,
+        not in the parent directory.  This method rewrites those paths so
+        that training works out-of-the-box.
+
+        * Modern formats (``yolov8``, ``yolov9``) use relative paths
+          (``train/images``, ``valid/images``, ``test/images``) as expected
+          by current ultralytics releases.
+        * Legacy formats (``yolov5pytorch``, ``yolov7pytorch``,
+          ``mt-yolov6``) use absolute paths constructed from *location*.
+
+        The ``test`` key is only written when the version actually has a
+        test split (``self.splits["test"] > 0``).
 
         Args:
-            location (str): filepath of the data directory that contains the yaml file
-            format (str): the format identifier string
-        """  # noqa: E501 // docs
+            location: Filepath of the data directory that contains the yaml file.
+            format: The format identifier string.
+        """
         data_path = os.path.join(location, "data.yaml")
 
+        def _strip_rel_prefix(path: str) -> str:
+            """Remove all leading ``../`` and ``./`` prefixes from *path*."""
+            while True:
+                if path.startswith("../"):
+                    path = path[3:]
+                elif path.startswith("./"):
+                    path = path[2:]
+                else:
+                    return path
+
         def data_yaml_callback(content: dict) -> dict:
-            if format == "mt-yolov6":
-                content["train"] = location + content["train"].lstrip(".")
-                content["val"] = location + content["val"].lstrip(".")
-                content["test"] = location + content["test"].lstrip(".")
-            if format in ["yolov5pytorch", "yolov7pytorch"]:
-                content["train"] = location + content["train"].lstrip("..")
-                content["val"] = location + content["val"].lstrip("..")
-            try:
-                # get_wrong_dependencies_versions raises exception if ultralytics is not installed at all  # noqa: E501 // docs
-                if format == "yolov8" and not get_wrong_dependencies_versions(
-                    dependencies_versions=[("ultralytics", "==", "8.0.196")]
-                ):
-                    content["train"] = "train/images"
-                    content["val"] = "valid/images"
+            has_test_split = self.splits.get("test", 0) > 0
+
+            # Modern ultralytics formats — relative paths
+            if format in ("yolov8", "yolov9"):
+                content["train"] = "train/images"
+                content["val"] = "valid/images"
+                if has_test_split:
                     content["test"] = "test/images"
-            except ModuleNotFoundError:
-                pass
+                elif "test" in content:
+                    del content["test"]
+                return content
+
+            # Legacy formats — absolute paths
+            if format in ("yolov5pytorch", "yolov7pytorch", "mt-yolov6"):
+                for key in ("train", "val", "test"):
+                    if key in content:
+                        if key == "test" and not has_test_split:
+                            del content["test"]
+                        else:
+                            content[key] = os.path.join(location, _strip_rel_prefix(content[key]))
+                return content
+
             return content
 
         if format in ["yolov5pytorch", "mt-yolov6", "yolov7pytorch", "yolov8", "yolov9"]:

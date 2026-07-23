@@ -1,8 +1,10 @@
 import os
+import tempfile
 import unittest
 from unittest.mock import patch
 
 import responses
+import yaml
 
 from roboflow.adapters import rfapi
 from roboflow.config import (
@@ -266,3 +268,199 @@ class TestValidateAgainstProjectType(unittest.TestCase):
     def test_classification_project_rejects_detection(self):
         with self.assertRaises(ValueError):
             self._version(TYPE_CLASSICATION)._validate_against_project_type("yolov11")
+
+
+# ---------------------------------------------------------------------------
+# __reformat_yaml — fixing issue #240 (Incorrect Data Path in YOLOv8 Dataset)
+# ---------------------------------------------------------------------------
+
+_INITIAL_YAML = {
+    "train": "../train/images",
+    "val": "../valid/images",
+    "test": "../test/images",
+    "nc": 3,
+    "names": ["cat", "dog", "bird"],
+    "roboflow": {"license": "MIT", "project": "test-project", "version": 1},
+}
+
+
+def _write_data_yaml(directory: str, content: dict) -> str:
+    """Write a ``data.yaml`` file in *directory* and return its path."""
+    path = os.path.join(directory, "data.yaml")
+    with open(path, "w") as fh:
+        yaml.dump(content, fh)
+    return path
+
+
+def _read_data_yaml(directory: str) -> dict:
+    """Read the ``data.yaml`` file from *directory*."""
+    with open(os.path.join(directory, "data.yaml")) as fh:
+        return yaml.safe_load(fh)
+
+
+class TestReformatYaml(unittest.TestCase):
+    """Tests for ``Version.__reformat_yaml`` (issue #240)."""
+
+    # ------------------------------------------------------------------
+    # helpers
+    # ------------------------------------------------------------------
+
+    def _version_with_test(self):
+        return get_version(splits={"train": 210, "valid": 20, "test": 10})
+
+    def _version_without_test(self):
+        return get_version(splits={"train": 210, "valid": 20, "test": 0})
+
+    def _reformat(self, version, location, fmt):
+        """Invoke the name-mangled private method."""
+        version._Version__reformat_yaml(location, fmt)
+
+    # ------------------------------------------------------------------
+    # yolov8 — relative paths
+    # ------------------------------------------------------------------
+
+    def test_yolov8_paths_are_relative(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, dict(_INITIAL_YAML))
+            self._reformat(self._version_with_test(), tmp, "yolov8")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], "train/images")
+            self.assertEqual(content["val"], "valid/images")
+            self.assertEqual(content["test"], "test/images")
+
+    def test_yolov8_without_test_split_removes_test_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, dict(_INITIAL_YAML))
+            self._reformat(self._version_without_test(), tmp, "yolov8")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], "train/images")
+            self.assertEqual(content["val"], "valid/images")
+            self.assertNotIn("test", content)
+
+    def test_yolov8_preserves_other_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, dict(_INITIAL_YAML))
+            self._reformat(self._version_with_test(), tmp, "yolov8")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["nc"], 3)
+            self.assertEqual(content["names"], ["cat", "dog", "bird"])
+            self.assertEqual(content["roboflow"]["license"], "MIT")
+
+    # ------------------------------------------------------------------
+    # yolov9 — relative paths (was completely missing before fix)
+    # ------------------------------------------------------------------
+
+    def test_yolov9_paths_are_relative(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, dict(_INITIAL_YAML))
+            self._reformat(self._version_with_test(), tmp, "yolov9")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], "train/images")
+            self.assertEqual(content["val"], "valid/images")
+            self.assertEqual(content["test"], "test/images")
+
+    def test_yolov9_without_test_split_removes_test_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, dict(_INITIAL_YAML))
+            self._reformat(self._version_without_test(), tmp, "yolov9")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], "train/images")
+            self.assertEqual(content["val"], "valid/images")
+            self.assertNotIn("test", content)
+
+    # ------------------------------------------------------------------
+    # Legacy formats — absolute paths
+    # ------------------------------------------------------------------
+
+    def test_yolov5pytorch_uses_absolute_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, dict(_INITIAL_YAML))
+            self._reformat(self._version_with_test(), tmp, "yolov5pytorch")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], os.path.join(tmp, "train/images"))
+            self.assertEqual(content["val"], os.path.join(tmp, "valid/images"))
+            self.assertEqual(content["test"], os.path.join(tmp, "test/images"))
+
+    def test_yolov5pytorch_without_test_split_removes_test_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, dict(_INITIAL_YAML))
+            self._reformat(self._version_without_test(), tmp, "yolov5pytorch")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], os.path.join(tmp, "train/images"))
+            self.assertEqual(content["val"], os.path.join(tmp, "valid/images"))
+            self.assertNotIn("test", content)
+
+    def test_yolov7pytorch_uses_absolute_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, dict(_INITIAL_YAML))
+            self._reformat(self._version_with_test(), tmp, "yolov7pytorch")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], os.path.join(tmp, "train/images"))
+            self.assertEqual(content["val"], os.path.join(tmp, "valid/images"))
+            self.assertEqual(content["test"], os.path.join(tmp, "test/images"))
+
+    def test_mt_yolov6_uses_absolute_paths(self):
+        initial = dict(_INITIAL_YAML)
+        initial["train"] = "./train/images"
+        initial["val"] = "./valid/images"
+        initial["test"] = "./test/images"
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, initial)
+            self._reformat(self._version_with_test(), tmp, "mt-yolov6")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], os.path.join(tmp, "train/images"))
+            self.assertEqual(content["val"], os.path.join(tmp, "valid/images"))
+            self.assertEqual(content["test"], os.path.join(tmp, "test/images"))
+
+    # ------------------------------------------------------------------
+    # Edge cases
+    # ------------------------------------------------------------------
+
+    def test_strips_double_parent_prefix(self):
+        """``../../train/images`` should become ``<location>/train/images``."""
+        initial = dict(_INITIAL_YAML)
+        initial["train"] = "../../train/images"
+        initial["val"] = "../../valid/images"
+        initial["test"] = "../../test/images"
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, initial)
+            self._reformat(self._version_with_test(), tmp, "yolov5pytorch")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], os.path.join(tmp, "train/images"))
+            self.assertEqual(content["val"], os.path.join(tmp, "valid/images"))
+
+    def test_non_yolo_format_not_modified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, dict(_INITIAL_YAML))
+            self._reformat(self._version_with_test(), tmp, "coco")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], "../train/images")
+            self.assertEqual(content["val"], "../valid/images")
+
+    # ------------------------------------------------------------------
+    # Independence from ultralytics (the root cause of issue #240)
+    # ------------------------------------------------------------------
+
+    def test_yolov8_works_without_ultralytics(self):
+        """Paths must be fixed even when ultralytics is not installed."""
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, dict(_INITIAL_YAML))
+            with patch(
+                "roboflow.util.versions.import_module",
+                side_effect=ModuleNotFoundError,
+            ):
+                self._reformat(self._version_with_test(), tmp, "yolov8")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], "train/images")
+            self.assertEqual(content["val"], "valid/images")
+            self.assertEqual(content["test"], "test/images")
+
+    def test_yolov8_works_with_any_ultralytics_version(self):
+        """Paths must be fixed regardless of the installed ultralytics version."""
+        with tempfile.TemporaryDirectory() as tmp:
+            _write_data_yaml(tmp, dict(_INITIAL_YAML))
+            self._reformat(self._version_with_test(), tmp, "yolov8")
+            content = _read_data_yaml(tmp)
+            self.assertEqual(content["train"], "train/images")
+            self.assertEqual(content["val"], "valid/images")
+            self.assertEqual(content["test"], "test/images")
