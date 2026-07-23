@@ -6,7 +6,14 @@ from unittest.mock import mock_open, patch
 
 import responses
 
-from roboflow.adapters.rfapi import upload_image
+from roboflow.adapters.rfapi import (
+    RoboflowError,
+    create_training_v2,
+    get_train_recipe,
+    get_training,
+    list_trainings_for_version,
+    upload_image,
+)
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME
 
 
@@ -196,6 +203,151 @@ class TestUploadImage(unittest.TestCase):
 
     def _reset_responses(self):
         responses.reset()
+
+
+class TestV2Trainings(unittest.TestCase):
+    API_KEY = "test_api_key"
+    WORKSPACE = "test-workspace"
+    PROJECT = "test-project"
+    VERSION = "3"
+    BASE_URL = f"{API_URL}/{WORKSPACE}/{PROJECT}/{VERSION}/v2/trainings"
+
+    RECIPE_RESPONSE = {
+        "modelType": "rfdetr-medium",
+        "family": "rf-detr",
+        "taskType": "object-detection",
+        "schema": {"hyperparameters": [{"key": "lr", "type": "float"}]},
+        "template": {
+            "schema_version": 1,
+            "input": {},
+            "online_preprocessing": [],
+            "online_augmentation": {"splits": ["train"], "steps": []},
+            "source_version": {},
+            "hyperparameters": {},
+        },
+        "usage": "...",
+    }
+
+    def _request_query(self):
+        return dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(responses.calls[0].request.url).query))
+
+    def _request_body(self):
+        return json.loads(responses.calls[0].request.body)
+
+    @responses.activate
+    def test_get_train_recipe(self):
+        responses.add(responses.GET, f"{self.BASE_URL}/recipe", json=self.RECIPE_RESPONSE, status=200)
+
+        result = get_train_recipe(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, model_type="rfdetr-medium")
+
+        self.assertEqual(result, self.RECIPE_RESPONSE)
+        query = self._request_query()
+        self.assertEqual(query["api_key"], self.API_KEY)
+        self.assertEqual(query["modelType"], "rfdetr-medium")
+
+    @responses.activate
+    def test_get_train_recipe_raises_on_error(self):
+        responses.add(responses.GET, f"{self.BASE_URL}/recipe", json={"error": "bad model type"}, status=400)
+
+        with self.assertRaises(RoboflowError):
+            get_train_recipe(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, model_type="nope")
+
+    @responses.activate
+    def test_create_training_v2_sends_only_provided_keys_in_camel_case(self):
+        responses.add(
+            responses.POST,
+            self.BASE_URL,
+            json={"trainingId": "abc123", "status": "queued", "jobId": "job-1"},
+            status=200,
+        )
+
+        recipe = {"schema_version": 1, "hyperparameters": {"lr": 0.0002}}
+        result = create_training_v2(
+            self.API_KEY,
+            self.WORKSPACE,
+            self.PROJECT,
+            self.VERSION,
+            model_type="rfdetr-medium",
+            speed="fast",
+            checkpoint="ckpt",
+            epochs=10,
+            train_recipe=recipe,
+            business_context="sweep run 1",
+        )
+
+        self.assertEqual(result["trainingId"], "abc123")
+        self.assertEqual(self._request_query()["api_key"], self.API_KEY)
+        body = self._request_body()
+        self.assertEqual(
+            body,
+            {
+                "modelType": "rfdetr-medium",
+                "speed": "fast",
+                "checkpoint": "ckpt",
+                "epochs": 10,
+                "trainRecipe": recipe,
+                "business_context": "sweep run 1",
+            },
+        )
+
+    @responses.activate
+    def test_create_training_v2_omits_none_keys(self):
+        responses.add(responses.POST, self.BASE_URL, json={"trainingId": "abc123"}, status=200)
+
+        create_training_v2(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION)
+
+        self.assertEqual(self._request_body(), {})
+
+    @responses.activate
+    def test_create_training_v2_raises_on_error(self):
+        responses.add(responses.POST, self.BASE_URL, json={"error": "nope"}, status=500)
+
+        with self.assertRaises(RoboflowError):
+            create_training_v2(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, model_type="rfdetr-medium")
+
+    @responses.activate
+    def test_list_trainings_for_version_unwraps_trainings_key(self):
+        payload = {"trainings": [{"trainingId": "t-1"}, {"trainingId": "t-2"}]}
+        responses.add(responses.GET, self.BASE_URL, json=payload, status=200)
+
+        result = list_trainings_for_version(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION)
+
+        self.assertEqual(result, payload["trainings"])
+        self.assertEqual(self._request_query(), {"api_key": self.API_KEY})
+
+    @responses.activate
+    def test_list_trainings_for_version_raises_on_error(self):
+        responses.add(responses.GET, self.BASE_URL, json={"error": "nope"}, status=404)
+
+        with self.assertRaises(RoboflowError):
+            list_trainings_for_version(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION)
+
+    @responses.activate
+    def test_get_training_with_training_id(self):
+        responses.add(responses.GET, f"{self.BASE_URL}/get", json={"trainingId": "t-1"}, status=200)
+
+        result = get_training(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, training_id="t-1")
+
+        self.assertEqual(result, {"trainingId": "t-1"})
+        query = self._request_query()
+        self.assertEqual(query["api_key"], self.API_KEY)
+        self.assertEqual(query["trainingId"], "t-1")
+
+    @responses.activate
+    def test_get_training_without_training_id(self):
+        responses.add(responses.GET, f"{self.BASE_URL}/get", json={"trainingId": "latest"}, status=200)
+
+        result = get_training(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION)
+
+        self.assertEqual(result, {"trainingId": "latest"})
+        self.assertNotIn("trainingId", self._request_query())
+
+    @responses.activate
+    def test_get_training_raises_on_error(self):
+        responses.add(responses.GET, f"{self.BASE_URL}/get", json={"error": "nope"}, status=404)
+
+        with self.assertRaises(RoboflowError):
+            get_training(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, training_id="missing")
 
 
 if __name__ == "__main__":
