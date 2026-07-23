@@ -335,6 +335,30 @@ class TestTrainStartV2(unittest.TestCase):
         self.assertIn("list", err["error"]["message"])
         mock_create.assert_not_called()  # rejected before any network call
 
+    @patch("roboflow.adapters.rfapi.start_version_training")
+    @patch("roboflow.adapters.rfapi.create_training_v2")
+    def test_start_with_empty_train_recipe_errors_without_training(
+        self, mock_create: MagicMock, mock_legacy: MagicMock
+    ) -> None:
+        """--train-recipe "" (e.g. an unset shell variable) must error, not
+        fall through to the legacy endpoint and start a different training."""
+        from roboflow.cli.handlers.train import _start
+
+        args = self._make_args(train_recipe="")
+        buf = io.StringIO()
+        old = sys.stderr
+        sys.stderr = buf
+        try:
+            with self.assertRaises(SystemExit) as ctx:
+                _start(args)
+        finally:
+            sys.stderr = old
+        self.assertEqual(ctx.exception.code, 1)
+        err = json.loads(buf.getvalue())
+        self.assertIn("Invalid JSON", err["error"]["message"])
+        mock_create.assert_not_called()
+        mock_legacy.assert_not_called()  # the real hazard: no legacy fallback
+
     @patch("roboflow.adapters.rfapi.create_training_v2")
     def test_start_train_recipe_requires_model_type(self, mock_create: MagicMock) -> None:
         from roboflow.cli.handlers.train import _start

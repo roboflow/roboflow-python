@@ -225,8 +225,11 @@ def _start(args):  # noqa: ANN001
         output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
         return
 
-    # Custom recipes go through the v2 trainings API
-    if getattr(args, "train_recipe", None):
+    # Custom recipes go through the v2 trainings API. Presence, not
+    # truthiness: an explicitly supplied empty value (e.g. an unset shell
+    # variable) must fail JSON validation, not fall through and start a
+    # legacy training.
+    if getattr(args, "train_recipe", None) is not None:
         _start_v2(args, api_key, workspace_url, project_slug)
         return
 
