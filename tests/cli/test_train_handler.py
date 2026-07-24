@@ -488,6 +488,10 @@ class TestTrainSubcommandsRegister(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("trash", result.output.lower())
 
+    def test_list_help(self) -> None:
+        result = runner.invoke(app, ["train", "list", "--help"])
+        self.assertEqual(result.exit_code, 0)
+
     def test_restore_help(self) -> None:
         result = runner.invoke(app, ["train", "restore", "--help"])
         self.assertEqual(result.exit_code, 0)
@@ -594,6 +598,39 @@ class TestTrainCancelStopResults(unittest.TestCase):
         err = json.loads(buf.getvalue())
         self.assertIn("in progress", err["error"]["message"])
         self.assertIn("train stop", err["error"].get("hint", ""))
+
+    @patch("roboflow.adapters.rfapi.delete_version_training")
+    def test_delete_multiple_trainings_hint_points_to_train_list(self, mock_delete: MagicMock) -> None:
+        from roboflow.adapters import rfapi
+        from roboflow.cli.handlers.train import _delete
+
+        mock_delete.side_effect = rfapi.RoboflowError(
+            '{"error":{"message":"multiple runs","code":"MULTIPLE_TRAININGS"}}'
+        )
+        buf = io.StringIO()
+        old = sys.stderr
+        sys.stderr = buf
+        try:
+            with self.assertRaises(SystemExit):
+                _delete(self._args(training_id=None))
+        finally:
+            sys.stderr = old
+        err = json.loads(buf.getvalue())
+        self.assertIn("roboflow train list", err["error"].get("hint", ""))
+
+    @patch("roboflow.adapters.rfapi.list_trainings_for_version")
+    def test_list_enumerates_training_ids(self, mock_list: MagicMock) -> None:
+        from roboflow.cli.handlers.train import _list
+
+        mock_list.return_value = [
+            {"trainingId": "t-1", "status": "finished", "modelType": "yolo26n", "modelIds": ["m1"]},
+            {"trainingId": "t-2", "status": "stopped", "modelType": "yolo26n", "modelIds": []},
+        ]
+        out = self._capture_stdout(_list, self._args())
+
+        mock_list.assert_called_once_with("test-key", "test-ws", "my-project", "3")
+        result = json.loads(out)
+        self.assertEqual([t["trainingId"] for t in result["trainings"]], ["t-1", "t-2"])
 
     @patch("roboflow.adapters.rfapi.restore_version_training")
     def test_restore_success(self, mock_restore: MagicMock) -> None:

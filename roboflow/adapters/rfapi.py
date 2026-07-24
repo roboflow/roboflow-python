@@ -158,12 +158,15 @@ def delete_version_training(
     cancel first) and the run backing the version's registered model. There
     is no permanent-delete option on the public API.
 
-    ``training_id`` selects a specific run on the version (MMPV); omit it to
-    target the version's sole run.
+    ``training_id`` selects a specific run on the version (MMPV); omit it
+    (``None``) to target the version's sole run. A blank id is rejected — on a
+    destructive call an empty selector must not silently fall back.
     """
+    if training_id is not None and not str(training_id).strip():
+        raise ValueError("training_id must be a non-empty string when provided")
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/delete?api_key={api_key}"
     body: Dict[str, str] = {}
-    if training_id:
+    if training_id is not None:
         body["trainingId"] = training_id
     response = requests.post(url, json=body)
     if not response.ok:
@@ -185,6 +188,8 @@ def restore_version_training(
     ``training_id`` is required — a trashed run is invisible to the sole-run
     resolver. Fails while the parent project or version is itself in Trash.
     """
+    if not training_id or not str(training_id).strip():
+        raise ValueError("training_id is required")
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/restore?api_key={api_key}"
     response = requests.post(url, json={"trainingId": training_id})
     if not response.ok:

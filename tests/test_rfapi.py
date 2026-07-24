@@ -384,6 +384,16 @@ class TestTrainingTrash(unittest.TestCase):
 
         self.assertEqual(json.loads(responses.calls[0].request.body), {})
 
+    def test_delete_version_training_rejects_blank_training_id(self):
+        for blank in ["", "   "]:
+            with self.assertRaises(ValueError):
+                delete_version_training(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, training_id=blank)
+
+    def test_restore_version_training_rejects_blank_training_id(self):
+        for blank in ["", "   "]:
+            with self.assertRaises(ValueError):
+                restore_version_training(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, training_id=blank)
+
     @responses.activate
     def test_restore_version_training_requires_training_id(self):
         expected_url = (

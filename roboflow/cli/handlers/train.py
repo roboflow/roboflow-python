@@ -228,6 +228,23 @@ def restore_training(
     _restore(args)
 
 
+@train_app.command("list")
+def list_trainings(
+    ctx: typer.Context,
+    target: Annotated[
+        str,
+        typer.Argument(help="Version whose trainings to list, as 'project/version'"),
+    ],
+) -> None:
+    """List a version's training runs with their ids.
+
+    An MMPV version may own several runs; use the TRAINING_ID column with
+    'roboflow train delete/restore --training-id' or 'train cancel/stop'.
+    """
+    args = ctx_to_args(ctx, target=target)
+    _list(args)
+
+
 @train_app.command("results")
 def training_results(
     ctx: typer.Context,
@@ -631,7 +648,7 @@ def _delete(args):  # noqa: ANN001
         elif "registered model" in msg:
             hint = "This run backs the version's registered model. Register another model first."
         elif "MULTIPLE_TRAININGS" in msg:
-            hint = "This version owns several runs. Pass --training-id (see 'roboflow train results')."
+            hint = "This version owns several runs. Pass --training-id (see 'roboflow train list <project>/<version>')."
         output_error(args, msg, hint=hint, exit_code=3)
         return
 
@@ -677,6 +694,41 @@ def _restore(args):  # noqa: ANN001
         {"status": "restored", "project": project_slug, "version": version_str, **(result or {})},
         text=f"Training restored for {project_slug} version {version_str}.",
     )
+
+
+def _list(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.cli._table import format_table
+
+    resolved = _resolve_train_target(args)
+    if resolved is None:
+        return
+    api_key, workspace_url, project_slug, version_str = resolved
+
+    try:
+        trainings = rfapi.list_trainings_for_version(api_key, workspace_url, project_slug, version_str)
+    except rfapi.RoboflowError as exc:
+        output_error(args, str(exc), exit_code=3)
+        return
+
+    rows = [
+        {
+            "trainingId": t.get("trainingId", ""),
+            "status": t.get("status", ""),
+            "modelType": t.get("modelType", ""),
+            "models": len(t.get("modelIds") or []),
+        }
+        for t in trainings
+    ]
+    table = format_table(
+        rows,
+        columns=["trainingId", "status", "modelType", "models"],
+        headers=["TRAINING_ID", "STATUS", "MODEL_TYPE", "MODELS"],
+    )
+    if not rows:
+        table = "(No trainings on this version)"
+    output(args, {"trainings": trainings}, text=table)
 
 
 def _results(args):  # noqa: ANN001
