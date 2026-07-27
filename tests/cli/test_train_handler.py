@@ -608,7 +608,7 @@ class TestTrainCancelStopResults(unittest.TestCase):
 
         # The sole-run resolution is client-side now: several runs abort the
         # delete before any request is made, with the train-list hint.
-        mock_list.return_value = [{"trainingId": "t-1"}, {"trainingId": "t-2"}]
+        mock_list.return_value = [{"id": "t-1"}, {"id": "t-2"}]
         buf = io.StringIO()
         old = sys.stderr
         sys.stderr = buf
@@ -626,14 +626,15 @@ class TestTrainCancelStopResults(unittest.TestCase):
         from roboflow.cli.handlers.train import _list
 
         mock_list.return_value = [
-            {"trainingId": "t-1", "status": "finished", "modelType": "yolo26n", "modelIds": ["m1"]},
-            {"trainingId": "t-2", "status": "stopped", "modelType": "yolo26n", "modelIds": []},
+            {"id": "t-1", "status": "finished", "modelType": "yolo26n", "modelIds": ["m1"]},
+            {"id": "t-2", "status": "stopped", "modelType": "yolo26n", "modelIds": []},
         ]
         out = self._capture_stdout(_list, self._args())
 
         mock_list.assert_called_once_with("test-key", "test-ws", "my-project", "3")
         result = json.loads(out)
-        self.assertEqual([t["trainingId"] for t in result["trainings"]], ["t-1", "t-2"])
+        self.assertEqual([t["id"] for t in result["trainings"]], ["t-1", "t-2"])
+        self.assertIn("t-1", out)
 
     @patch("roboflow.adapters.rfapi.restore_trash_item")
     def test_restore_success(self, mock_restore: MagicMock) -> None:

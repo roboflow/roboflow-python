@@ -718,7 +718,7 @@ def _list(args):  # noqa: ANN001
 
     rows = [
         {
-            "trainingId": t.get("trainingId", ""),
+            "trainingId": t.get("id", ""),
             "status": t.get("status", ""),
             "modelType": t.get("modelType", ""),
             "models": len(t.get("modelIds") or []),

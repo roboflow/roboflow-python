@@ -162,11 +162,11 @@ def resolve_version_training_id(
     if not trainings:
         raise RoboflowError(f"No training runs found for {project_url}/{version}.")
     if len(trainings) > 1:
-        ids = ", ".join(str(t.get("trainingId") or t.get("id")) for t in trainings)
+        ids = ", ".join(str(t.get("id")) for t in trainings)
         raise RoboflowError(
             f"MULTIPLE_TRAININGS: version {project_url}/{version} owns several runs ({ids}); pass training_id."
         )
-    return str(trainings[0].get("trainingId") or trainings[0].get("id"))
+    return str(trainings[0].get("id"))
 
 
 def delete_version_training(
@@ -228,7 +228,7 @@ def list_trainings_for_version(api_key: str, workspace_url: str, project_url: st
     GET /{ws}/{proj}/{version}/v2/trainings. MMPV versions return every run;
     SMPV versions return a single entry synthesized from ``version.train``.
     Returns the raw ``trainings`` array — each entry carries
-    ``{trainingId, status, modelType, modelGroup, modelIds, start}``.
+    ``{id, versionId, status, start, end, jobType, modelType, modelGroup, modelIds}``.
     """
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings?api_key={api_key}"
     response = requests.get(url)

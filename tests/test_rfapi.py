@@ -308,7 +308,7 @@ class TestV2Trainings(unittest.TestCase):
 
     @responses.activate
     def test_list_trainings_for_version_unwraps_trainings_key(self):
-        payload = {"trainings": [{"trainingId": "t-1"}, {"trainingId": "t-2"}]}
+        payload = {"trainings": [{"id": "t-1"}, {"id": "t-2"}]}
         responses.add(responses.GET, self.BASE_URL, json=payload, status=200)
 
         result = list_trainings_for_version(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION)
@@ -395,7 +395,7 @@ class TestTrainingTrash(unittest.TestCase):
     @responses.activate
     def test_resolve_version_training_id_resolves_the_sole_run(self):
         list_url = f"{API_URL}/{self.WORKSPACE}/{self.PROJECT}/{self.VERSION}/v2/trainings?api_key={self.API_KEY}"
-        responses.add(responses.GET, list_url, json={"trainings": [{"trainingId": "t-1"}]}, status=200)
+        responses.add(responses.GET, list_url, json={"trainings": [{"id": "t-1"}]}, status=200)
 
         resolved = resolve_version_training_id(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION)
 
@@ -407,7 +407,7 @@ class TestTrainingTrash(unittest.TestCase):
         responses.add(
             responses.GET,
             list_url,
-            json={"trainings": [{"trainingId": "t-1"}, {"trainingId": "t-2"}]},
+            json={"trainings": [{"id": "t-1"}, {"id": "t-2"}]},
             status=200,
         )
 
