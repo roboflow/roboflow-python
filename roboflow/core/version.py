@@ -37,7 +37,7 @@ from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import extract_zip, write_line
 from roboflow.util.model_processor import package_custom_weights_interactive, validate_model_type_for_project
 from roboflow.util.train_recipe import fold_epochs_into_recipe
-from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions
+from roboflow.util.versions import get_model_format
 
 if TYPE_CHECKING:
     import numpy as np

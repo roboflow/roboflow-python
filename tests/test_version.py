@@ -472,6 +472,8 @@ class TestCreateTrainingWithRecipe(V2TrainingRecipeTestCase):
         self.version.exports = ["coco"]
         _, _, _, mock_export = self._create(model_type="rfdetr-medium")
         mock_export.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # __reformat_yaml — fixing issue #240 (Incorrect Data Path in YOLOv8 Dataset)
 # ---------------------------------------------------------------------------
