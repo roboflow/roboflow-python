@@ -123,23 +123,23 @@ class TestTrainingTrash(unittest.TestCase):
 
         with patch(
             "roboflow.core.training.rfapi.delete_version_training",
-            return_value={"trainingId": "training-1", "inTrash": True, "alreadyInTrash": False},
+            return_value={"deleted": True, "type": "training", "trainingId": "training-1", "trash": True},
         ) as delete:
             result = training.delete()
 
         delete.assert_called_once_with("key", "ws", "proj", "1", training_id="training-1")
-        self.assertTrue(result["inTrash"])
+        self.assertTrue(result["trash"])
 
-    def test_restore_brings_run_back(self):
+    def test_restore_goes_through_the_shared_trash_route(self):
         training = Training("key", "ws", "proj", "1", {"trainingId": "training-1"})
 
         with patch(
-            "roboflow.core.training.rfapi.restore_version_training",
-            return_value={"trainingId": "training-1", "restored": True},
+            "roboflow.core.training.rfapi.restore_trash_item",
+            return_value={"restored": True},
         ) as restore:
             result = training.restore()
 
-        restore.assert_called_once_with("key", "ws", "proj", "1", training_id="training-1")
+        restore.assert_called_once_with("key", "ws", "training", "training-1")
         self.assertTrue(result["restored"])
 
 

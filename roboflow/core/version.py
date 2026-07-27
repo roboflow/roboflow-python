@@ -888,37 +888,45 @@ class Version:
 
         Args:
             training_id: Training id of the run to delete (MMPV versions can
-                own several). Omit to target the version's sole run.
+                own several). Omit to target the version's sole run — resolved
+                client-side; several runs raise with their ids listed.
 
         Returns:
-            dict: Server response with `{trainingId, inTrash: True, alreadyInTrash}`.
+            dict: Server response with `{deleted: True, type: "training", ..., trash: True}`
+                (the same shape as project/version/workflow deletion).
         """
+        resolved_id = rfapi.resolve_version_training_id(
+            self.__api_key,
+            self.workspace,
+            self.project,
+            self.version,
+            training_id,
+        )
         return rfapi.delete_version_training(
             self.__api_key,
             self.workspace,
             self.project,
             self.version,
-            training_id=training_id,
+            training_id=resolved_id,
         )
 
     def restore_training(self, training_id: str):
         """
         Restore one of this version's trashed training runs.
 
+        Goes through the shared workspace trash-restore route (the same one
+        project/version/workflow restores use) with `type: "training"`.
+
         Args:
             training_id: Training id of the trashed run (required — trashed
                 runs are invisible to the sole-run fallback).
 
         Returns:
-            dict: Server response with `{trainingId, restored: True}`.
+            dict: Server response from the trash restore route.
         """
-        return rfapi.restore_version_training(
-            self.__api_key,
-            self.workspace,
-            self.project,
-            self.version,
-            training_id=training_id,
-        )
+        if not training_id or not str(training_id).strip():
+            raise ValueError("training_id is required")
+        return rfapi.restore_trash_item(self.__api_key, self.workspace, "training", training_id)
 
     def __str__(self):
         """

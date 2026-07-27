@@ -274,10 +274,8 @@ class Training:
         )
 
     def restore(self):
-        """Restore this run from Trash (DNA ``trainings.restore``)."""
-        return rfapi.restore_version_training(
-            self.__api_key, self.workspace, self.project, self.version, training_id=self.training_id
-        )
+        """Restore this run from Trash via the shared workspace trash-restore route."""
+        return rfapi.restore_trash_item(self.__api_key, self.workspace, "training", self.training_id)
 
     def __str__(self):
         return json.dumps(

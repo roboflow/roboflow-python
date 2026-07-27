@@ -141,40 +141,35 @@ def stop_version_training(api_key: str, workspace_url: str, project_url: str, ve
     return response.json() if response.content else {"success": True}
 
 
-def delete_version_training(
+def resolve_version_training_id(
     api_key: str,
     workspace_url: str,
     project_url: str,
     version: str,
-    *,
     training_id: Optional[str] = None,
-):
-    """Move a terminal training run to the workspace Trash (soft delete).
+) -> str:
+    """Resolve the training run a version-scoped call targets.
 
-    POST /{workspace}/{project}/{version}/v2/trainings/delete. The run and
-    every model it produced disappear from listings but stay restorable for
-    30 days via ``restore_version_training`` or the Trash UI, after which
-    they are permanently deleted. The server refuses in-flight runs (stop or
-    cancel first) and the run backing the version's registered model. There
-    is no permanent-delete option on the public API.
-
-    ``training_id`` selects a specific run on the version (MMPV); omit it
-    (``None``) to target the version's sole run. A blank id is rejected — on a
-    destructive call an empty selector must not silently fall back.
+    A supplied id is returned as-is (blank → ``ValueError``). When omitted,
+    the version's sole run is resolved via ``list_trainings_for_version``;
+    zero or multiple runs raise with the run ids so the caller can pick one.
     """
-    if training_id is not None and not str(training_id).strip():
-        raise ValueError("training_id must be a non-empty string when provided")
-    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/delete?api_key={api_key}"
-    body: Dict[str, str] = {}
     if training_id is not None:
-        body["trainingId"] = training_id
-    response = requests.post(url, json=body)
-    if not response.ok:
-        raise RoboflowError(response.text)
-    return response.json() if response.content else {"inTrash": True}
+        if not str(training_id).strip():
+            raise ValueError("training_id must be a non-empty string when provided")
+        return training_id
+    trainings = list_trainings_for_version(api_key, workspace_url, project_url, version)
+    if not trainings:
+        raise RoboflowError(f"No training runs found for {project_url}/{version}.")
+    if len(trainings) > 1:
+        ids = ", ".join(str(t.get("trainingId") or t.get("id")) for t in trainings)
+        raise RoboflowError(
+            f"MULTIPLE_TRAININGS: version {project_url}/{version} owns several runs ({ids}); pass training_id."
+        )
+    return str(trainings[0].get("trainingId") or trainings[0].get("id"))
 
 
-def restore_version_training(
+def delete_version_training(
     api_key: str,
     workspace_url: str,
     project_url: str,
@@ -182,19 +177,27 @@ def restore_version_training(
     *,
     training_id: str,
 ):
-    """Restore a trashed training run (and its models) back into listings.
+    """Move a terminal training run to the workspace Trash (soft delete).
 
-    POST /{workspace}/{project}/{version}/v2/trainings/restore.
-    ``training_id`` is required — a trashed run is invisible to the sole-run
-    resolver. Fails while the parent project or version is itself in Trash.
+    DELETE /{workspace}/{project}/{version}/v2/trainings/{training_id} — the
+    same resource-DELETE pattern as project/version/workflow deletion, and the
+    same ``{deleted, type, ..., trash: true}`` response shape. The run and
+    every model it produced disappear from listings but stay restorable for
+    30 days via ``restore_trash_item(..., "training", ...)`` or the Trash UI,
+    after which they are permanently deleted. The server refuses in-flight
+    runs (stop or cancel first) and the run backing the version's registered
+    model. There is no permanent-delete option on the public API.
+
+    ``training_id`` is required (it is the resource path). Use
+    ``resolve_version_training_id`` to target a version's sole run.
     """
     if not training_id or not str(training_id).strip():
         raise ValueError("training_id is required")
-    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/restore?api_key={api_key}"
-    response = requests.post(url, json={"trainingId": training_id})
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/{training_id}?api_key={api_key}"
+    response = requests.delete(url)
     if not response.ok:
         raise RoboflowError(response.text)
-    return response.json() if response.content else {"restored": True}
+    return response.json() if response.content else {"deleted": True}
 
 
 def get_training_results(api_key: str, workspace_url: str, project_url: str, version: str):
@@ -1475,7 +1478,7 @@ def list_trash(api_key, workspace_url):
 def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=None):
     """POST /{workspace}/trash/restore — restore an item from Trash.
 
-    `item_type` must be one of "project", "version", "workflow".
+    `item_type` must be one of "project", "version", "workflow", "training".
     `parent_id` is required when restoring a version (the parent project id).
     """
     url = f"{API_URL}/{workspace_url}/trash/restore?api_key={api_key}"

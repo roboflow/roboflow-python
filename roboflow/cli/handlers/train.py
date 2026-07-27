@@ -633,12 +633,19 @@ def _delete(args):  # noqa: ANN001
     api_key, workspace_url, project_slug, version_str = resolved
 
     try:
+        training_id = rfapi.resolve_version_training_id(
+            api_key,
+            workspace_url,
+            project_slug,
+            version_str,
+            getattr(args, "training_id", None),
+        )
         result = rfapi.delete_version_training(
             api_key,
             workspace_url,
             project_slug,
             version_str,
-            training_id=getattr(args, "training_id", None),
+            training_id=training_id,
         )
     except rfapi.RoboflowError as exc:
         msg = str(exc)
@@ -672,17 +679,14 @@ def _restore(args):  # noqa: ANN001
     api_key, workspace_url, project_slug, version_str = resolved
 
     try:
-        result = rfapi.restore_version_training(
-            api_key,
-            workspace_url,
-            project_slug,
-            version_str,
-            training_id=args.training_id,
-        )
+        result = rfapi.restore_trash_item(api_key, workspace_url, "training", args.training_id)
     except rfapi.RoboflowError as exc:
         msg = str(exc)
         hint = None
-        if "not in trash" in msg.lower():
+        # The shared trash route reports a non-trashed id as "not found in
+        # trash"; the service-level guard says "not in trash". Match both
+        # before the parent-blocked case, which also mentions "in trash".
+        if "not found in trash" in msg.lower() or "not in trash" in msg.lower():
             hint = "Only trashed runs can be restored. 'roboflow trash list' shows what is trashed."
         elif "in trash" in msg.lower():
             hint = "Restore the parent project/version first ('roboflow trash list')."
