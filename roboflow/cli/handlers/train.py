@@ -647,6 +647,9 @@ def _delete(args):  # noqa: ANN001
             version_str,
             training_id=training_id,
         )
+    except ValueError as exc:
+        output_error(args, str(exc), hint="Pass a non-empty --training-id.", exit_code=2)
+        return
     except rfapi.RoboflowError as exc:
         msg = str(exc)
         hint = None
@@ -680,6 +683,9 @@ def _restore(args):  # noqa: ANN001
 
     try:
         result = rfapi.restore_trash_item(api_key, workspace_url, "training", args.training_id)
+    except ValueError as exc:
+        output_error(args, str(exc), hint="Pass a non-empty --training-id.", exit_code=2)
+        return
     except rfapi.RoboflowError as exc:
         msg = str(exc)
         hint = None

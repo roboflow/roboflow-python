@@ -1481,6 +1481,8 @@ def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=Non
     `item_type` must be one of "project", "version", "workflow", "training".
     `parent_id` is required when restoring a version (the parent project id).
     """
+    if not item_id or not str(item_id).strip():
+        raise ValueError("item_id is required")
     url = f"{API_URL}/{workspace_url}/trash/restore?api_key={api_key}"
     payload = {"type": item_type, "id": item_id}
     if parent_id is not None:

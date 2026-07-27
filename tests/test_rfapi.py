@@ -416,6 +416,11 @@ class TestTrainingTrash(unittest.TestCase):
         self.assertIn("MULTIPLE_TRAININGS", str(ctx.exception))
         self.assertIn("t-2", str(ctx.exception))
 
+    def test_restore_trash_item_rejects_blank_ids(self):
+        for blank in ["", "   ", None]:
+            with self.assertRaises(ValueError):
+                restore_trash_item(self.API_KEY, self.WORKSPACE, "training", blank)
+
     @responses.activate
     def test_restore_trash_item_restores_a_training(self):
         expected_url = f"{API_URL}/{self.WORKSPACE}/trash/restore?api_key={self.API_KEY}"

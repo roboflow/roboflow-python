@@ -130,6 +130,12 @@ class TestTrainingTrash(unittest.TestCase):
         delete.assert_called_once_with("key", "ws", "proj", "1", training_id="training-1")
         self.assertTrue(result["trash"])
 
+    def test_restore_rejects_a_blank_training_id(self):
+        training = Training("key", "ws", "proj", "1", {"trainingId": "   "})
+
+        with self.assertRaises(ValueError):
+            training.restore()
+
     def test_restore_goes_through_the_shared_trash_route(self):
         training = Training("key", "ws", "proj", "1", {"trainingId": "training-1"})
 

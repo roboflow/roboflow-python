@@ -636,6 +636,40 @@ class TestTrainCancelStopResults(unittest.TestCase):
         self.assertEqual([t["id"] for t in result["trainings"]], ["t-1", "t-2"])
         self.assertIn("t-1", out)
 
+    @patch("roboflow.adapters.rfapi.delete_version_training")
+    def test_delete_blank_training_id_is_a_structured_usage_error(self, mock_delete: MagicMock) -> None:
+        from roboflow.cli.handlers.train import _delete
+
+        buf = io.StringIO()
+        old = sys.stderr
+        sys.stderr = buf
+        try:
+            with self.assertRaises(SystemExit) as cm:
+                _delete(self._args(training_id="   "))
+        finally:
+            sys.stderr = old
+        self.assertEqual(cm.exception.code, 2)
+        mock_delete.assert_not_called()
+        err = json.loads(buf.getvalue())
+        self.assertIn("non-empty", err["error"]["message"])
+        self.assertIn("--training-id", err["error"].get("hint", ""))
+
+    def test_restore_blank_training_id_is_a_structured_usage_error(self) -> None:
+        from roboflow.cli.handlers.train import _restore
+
+        buf = io.StringIO()
+        old = sys.stderr
+        sys.stderr = buf
+        try:
+            with self.assertRaises(SystemExit) as cm:
+                _restore(self._args(training_id="   "))
+        finally:
+            sys.stderr = old
+        self.assertEqual(cm.exception.code, 2)
+        err = json.loads(buf.getvalue())
+        self.assertIn("required", err["error"]["message"])
+        self.assertIn("--training-id", err["error"].get("hint", ""))
+
     @patch("roboflow.adapters.rfapi.restore_trash_item")
     def test_restore_success(self, mock_restore: MagicMock) -> None:
         from roboflow.cli.handlers.train import _restore
