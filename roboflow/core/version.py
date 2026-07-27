@@ -887,8 +887,8 @@ class Version:
         version's registered model.
 
         Args:
-            training_id: Training id of the run to delete (MMPV versions can
-                own several). Omit to target the version's sole run — resolved
+            training_id: Training id of the run to delete (a version can own
+                several runs). Omit to target the version's sole run — resolved
                 client-side; several runs raise with their ids listed.
 
         Returns:

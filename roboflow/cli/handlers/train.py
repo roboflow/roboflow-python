@@ -238,7 +238,7 @@ def list_trainings(
 ) -> None:
     """List a version's training runs with their ids.
 
-    An MMPV version may own several runs; use the TRAINING_ID column with
+    A version may own several training runs; use the TRAINING_ID column with
     'roboflow train delete/restore --training-id' or 'train cancel/stop'.
     """
     args = ctx_to_args(ctx, target=target)

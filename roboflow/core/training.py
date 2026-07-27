@@ -262,7 +262,7 @@ class Training:
         )
 
     def delete(self):
-        """Move this run to the workspace Trash (soft delete, DNA ``trainings.delete``).
+        """Move this run to the workspace Trash (soft delete).
 
         The run and every model it produced disappear from listings but stay
         restorable for 30 days via :meth:`restore` or the Trash UI. The server
