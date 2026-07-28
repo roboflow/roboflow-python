@@ -637,6 +637,43 @@ class TestTrainCancelStopResults(unittest.TestCase):
         self.assertIn("t-1", out)
 
     @patch("roboflow.adapters.rfapi.delete_version_training")
+    def test_delete_notes_the_serving_switch(self, mock_delete: MagicMock) -> None:
+        from roboflow.cli.handlers.train import _delete
+
+        mock_delete.return_value = {
+            "deleted": True,
+            "type": "training",
+            "trainingId": "t-1",
+            "trash": True,
+            "versionAliasAction": "repointed",
+            "versionAliasTarget": "test-ws/next-oldest-model",
+        }
+        args = self._args(training_id="t-1")
+        args.json = False
+        out = self._capture_stdout(_delete, args)
+
+        self.assertIn("switched to", out)
+        self.assertIn("next-oldest-model", out)
+
+    @patch("roboflow.adapters.rfapi.delete_version_training")
+    def test_delete_notes_the_serving_stop_when_no_model_remains(self, mock_delete: MagicMock) -> None:
+        from roboflow.cli.handlers.train import _delete
+
+        mock_delete.return_value = {
+            "deleted": True,
+            "type": "training",
+            "trainingId": "t-1",
+            "trash": True,
+            "versionAliasAction": "deleted",
+        }
+        args = self._args(training_id="t-1")
+        args.json = False
+        out = self._capture_stdout(_delete, args)
+
+        self.assertIn("stops serving", out)
+        self.assertIn("my-project/3", out)
+
+    @patch("roboflow.adapters.rfapi.delete_version_training")
     def test_delete_blank_training_id_is_a_structured_usage_error(self, mock_delete: MagicMock) -> None:
         from roboflow.cli.handlers.train import _delete
 

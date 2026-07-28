@@ -266,8 +266,12 @@ class Training:
 
         The run and every model it produced disappear from listings but stay
         restorable for 30 days via :meth:`restore` or the Trash UI. The server
-        refuses in-flight runs (stop or cancel first) and the run backing the
-        version's registered model.
+        refuses in-flight runs (stop or cancel first). The version's hosted
+        endpoint always serves the oldest remaining run's model: if this run
+        was serving, serving switches to the next-oldest run (the response
+        reports ``versionAliasAction: "repointed"`` and the new target) or
+        stops when no other run survives (``"deleted"``); restoring the
+        oldest run hands serving back.
         """
         return rfapi.delete_version_training(
             self.__api_key, self.workspace, self.project, self.version, training_id=self.training_id

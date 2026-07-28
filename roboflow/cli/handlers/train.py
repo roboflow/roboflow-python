@@ -197,8 +197,10 @@ def delete_training(
     The run and every model it produced disappear from listings but stay
     restorable for 30 days ('roboflow train restore' or the web Trash view),
     after which they are permanently deleted. In-flight runs are refused —
-    stop or cancel first — as is the run backing the version's registered
-    model. Permanent deletion is only available in the web UI's Trash view.
+    stop or cancel first. The version's hosted endpoint always serves the
+    oldest remaining run's model, so deleting the serving run switches
+    serving to the next-oldest run, or stops it when none survives.
+    Permanent deletion is only available in the web UI's Trash view.
     """
     args = ctx_to_args(ctx, target=target, training_id=training_id)
     _delete(args)
@@ -655,19 +657,30 @@ def _delete(args):  # noqa: ANN001
         hint = None
         if "in progress" in msg:
             hint = "Stop or cancel the run first: 'roboflow train stop <project>/<version>'."
-        elif "registered model" in msg:
-            hint = "This run backs the version's registered model. Register another model first."
         elif "MULTIPLE_TRAININGS" in msg:
             hint = "This version owns several runs. Pass --training-id (see 'roboflow train list <project>/<version>')."
         output_error(args, msg, hint=hint, exit_code=3)
         return
 
+    alias_action = (result or {}).get("versionAliasAction")
+    if alias_action == "repointed":
+        alias_note = (
+            f" Serving for '{project_slug}/{version_str}' switched to "
+            f"'{(result or {}).get('versionAliasTarget', 'the next-oldest model')}'."
+        )
+    elif alias_action == "deleted":
+        alias_note = (
+            f" No other model remains, so '{project_slug}/{version_str}' stops serving "
+            "until a new training completes or this run is restored."
+        )
+    else:
+        alias_note = ""
     output(
         args,
         {"status": "in_trash", "project": project_slug, "version": version_str, **(result or {})},
         text=(
             f"Training moved to Trash for {project_slug} version {version_str}. "
-            "Restorable for 30 days via 'roboflow train restore'."
+            f"Restorable for 30 days via 'roboflow train restore'.{alias_note}"
         ),
     )
 

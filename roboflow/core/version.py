@@ -883,8 +883,11 @@ class Version:
         The run and every model it produced disappear from listings but stay
         restorable for 30 days via `Version.restore_training()` or the Trash
         UI, after which they are permanently deleted. The server refuses
-        in-flight runs (stop or cancel first) and the run backing the
-        version's registered model.
+        in-flight runs (stop or cancel first). The version's hosted endpoint
+        always serves the oldest remaining run's model: deleting the serving
+        run switches serving to the next-oldest run (`versionAliasAction:
+        "repointed"`) or stops it when no other run survives (`"deleted"`);
+        restoring the oldest run hands serving back.
 
         Args:
             training_id: Training id of the run to delete (a version can own
