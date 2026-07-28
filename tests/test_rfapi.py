@@ -9,9 +9,12 @@ import responses
 from roboflow.adapters.rfapi import (
     RoboflowError,
     create_training_v2,
+    delete_version_training,
     get_train_recipe,
     get_training,
     list_trainings_for_version,
+    resolve_version_training_id,
+    restore_trash_item,
     upload_image,
 )
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME
@@ -305,7 +308,7 @@ class TestV2Trainings(unittest.TestCase):
 
     @responses.activate
     def test_list_trainings_for_version_unwraps_trainings_key(self):
-        payload = {"trainings": [{"trainingId": "t-1"}, {"trainingId": "t-2"}]}
+        payload = {"trainings": [{"id": "t-1"}, {"id": "t-2"}]}
         responses.add(responses.GET, self.BASE_URL, json=payload, status=200)
 
         result = list_trainings_for_version(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION)
@@ -346,6 +349,87 @@ class TestV2Trainings(unittest.TestCase):
 
         with self.assertRaises(RoboflowError):
             get_training(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, training_id="missing")
+
+
+class TestTrainingTrash(unittest.TestCase):
+    API_KEY = "test_api_key"
+    WORKSPACE = "test-ws"
+    PROJECT = "test-project"
+    VERSION = "3"
+
+    @responses.activate
+    def test_delete_version_training_deletes_the_training_resource(self):
+        expected_url = (
+            f"{API_URL}/{self.WORKSPACE}/{self.PROJECT}/{self.VERSION}/v2/trainings/t-1?api_key={self.API_KEY}"
+        )
+        payload = {
+            "deleted": True,
+            "type": "training",
+            "workspace": self.WORKSPACE,
+            "project": self.PROJECT,
+            "projectId": "ds-1",
+            "version": self.VERSION,
+            "trainingId": "t-1",
+            "trash": True,
+        }
+        responses.add(responses.DELETE, expected_url, json=payload, status=200)
+
+        result = delete_version_training(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, training_id="t-1")
+
+        self.assertEqual(result, payload)
+
+    def test_delete_version_training_rejects_blank_training_id(self):
+        for blank in ["", "   "]:
+            with self.assertRaises(ValueError):
+                delete_version_training(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, training_id=blank)
+
+    def test_resolve_version_training_id_returns_supplied_id_without_listing(self):
+        resolved = resolve_version_training_id(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, "t-9")
+        self.assertEqual(resolved, "t-9")
+
+    def test_resolve_version_training_id_rejects_blank_id(self):
+        for blank in ["", "   "]:
+            with self.assertRaises(ValueError):
+                resolve_version_training_id(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION, blank)
+
+    @responses.activate
+    def test_resolve_version_training_id_resolves_the_sole_run(self):
+        list_url = f"{API_URL}/{self.WORKSPACE}/{self.PROJECT}/{self.VERSION}/v2/trainings?api_key={self.API_KEY}"
+        responses.add(responses.GET, list_url, json={"trainings": [{"id": "t-1"}]}, status=200)
+
+        resolved = resolve_version_training_id(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION)
+
+        self.assertEqual(resolved, "t-1")
+
+    @responses.activate
+    def test_resolve_version_training_id_raises_when_the_version_owns_several_runs(self):
+        list_url = f"{API_URL}/{self.WORKSPACE}/{self.PROJECT}/{self.VERSION}/v2/trainings?api_key={self.API_KEY}"
+        responses.add(
+            responses.GET,
+            list_url,
+            json={"trainings": [{"id": "t-1"}, {"id": "t-2"}]},
+            status=200,
+        )
+
+        with self.assertRaises(RoboflowError) as ctx:
+            resolve_version_training_id(self.API_KEY, self.WORKSPACE, self.PROJECT, self.VERSION)
+        self.assertIn("MULTIPLE_TRAININGS", str(ctx.exception))
+        self.assertIn("t-2", str(ctx.exception))
+
+    def test_restore_trash_item_rejects_blank_ids(self):
+        for blank in ["", "   ", None]:
+            with self.assertRaises(ValueError):
+                restore_trash_item(self.API_KEY, self.WORKSPACE, "training", blank)
+
+    @responses.activate
+    def test_restore_trash_item_restores_a_training(self):
+        expected_url = f"{API_URL}/{self.WORKSPACE}/trash/restore?api_key={self.API_KEY}"
+        responses.add(responses.POST, expected_url, json={"restored": True}, status=200)
+
+        result = restore_trash_item(self.API_KEY, self.WORKSPACE, "training", "t-1")
+
+        self.assertEqual(json.loads(responses.calls[0].request.body), {"type": "training", "id": "t-1"})
+        self.assertEqual(result, {"restored": True})
 
 
 if __name__ == "__main__":

@@ -141,6 +141,65 @@ def stop_version_training(api_key: str, workspace_url: str, project_url: str, ve
     return response.json() if response.content else {"success": True}
 
 
+def resolve_version_training_id(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    training_id: Optional[str] = None,
+) -> str:
+    """Resolve the training run a version-scoped call targets.
+
+    A supplied id is returned as-is (blank → ``ValueError``). When omitted,
+    the version's sole run is resolved via ``list_trainings_for_version``;
+    zero or multiple runs raise with the run ids so the caller can pick one.
+    """
+    if training_id is not None:
+        if not str(training_id).strip():
+            raise ValueError("training_id must be a non-empty string when provided")
+        return training_id
+    trainings = list_trainings_for_version(api_key, workspace_url, project_url, version)
+    if not trainings:
+        raise RoboflowError(f"No training runs found for {project_url}/{version}.")
+    if len(trainings) > 1:
+        ids = ", ".join(str(t.get("id")) for t in trainings)
+        raise RoboflowError(
+            f"MULTIPLE_TRAININGS: version {project_url}/{version} owns several runs ({ids}); pass training_id."
+        )
+    return str(trainings[0].get("id"))
+
+
+def delete_version_training(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    *,
+    training_id: str,
+):
+    """Move a terminal training run to the workspace Trash (soft delete).
+
+    DELETE /{workspace}/{project}/{version}/v2/trainings/{training_id} — the
+    same resource-DELETE pattern as project/version/workflow deletion, and the
+    same ``{deleted, type, ..., trash: true}`` response shape. The run and
+    every model it produced disappear from listings but stay restorable for
+    30 days via ``restore_trash_item(..., "training", ...)`` or the Trash UI,
+    after which they are permanently deleted. The server refuses in-flight
+    runs (stop or cancel first) and the run backing the version's registered
+    model. There is no permanent-delete option on the public API.
+
+    ``training_id`` is required (it is the resource path). Use
+    ``resolve_version_training_id`` to target a version's sole run.
+    """
+    if not training_id or not str(training_id).strip():
+        raise ValueError("training_id is required")
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/{training_id}?api_key={api_key}"
+    response = requests.delete(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"deleted": True}
+
+
 def get_training_results(api_key: str, workspace_url: str, project_url: str, version: str):
     """Run-level training results bundle.
 
@@ -169,7 +228,7 @@ def list_trainings_for_version(api_key: str, workspace_url: str, project_url: st
     GET /{ws}/{proj}/{version}/v2/trainings. MMPV versions return every run;
     SMPV versions return a single entry synthesized from ``version.train``.
     Returns the raw ``trainings`` array — each entry carries
-    ``{trainingId, status, modelType, modelGroup, modelIds, start}``.
+    ``{id, versionId, status, start, end, jobType, modelType, modelGroup, modelIds}``.
     """
     url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings?api_key={api_key}"
     response = requests.get(url)
@@ -1419,9 +1478,11 @@ def list_trash(api_key, workspace_url):
 def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=None):
     """POST /{workspace}/trash/restore — restore an item from Trash.
 
-    `item_type` must be one of "project", "version", "workflow".
+    `item_type` must be one of "project", "version", "workflow", "training".
     `parent_id` is required when restoring a version (the parent project id).
     """
+    if not item_id or not str(item_id).strip():
+        raise ValueError("item_id is required")
     url = f"{API_URL}/{workspace_url}/trash/restore?api_key={api_key}"
     payload = {"type": item_type, "id": item_id}
     if parent_id is not None:

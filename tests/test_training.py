@@ -117,5 +117,37 @@ class TestTrainingModels(unittest.TestCase):
         self.assertEqual(get_training.call_count, 3)
 
 
+class TestTrainingTrash(unittest.TestCase):
+    def test_delete_moves_run_to_trash(self):
+        training = Training("key", "ws", "proj", "1", {"trainingId": "training-1"})
+
+        with patch(
+            "roboflow.core.training.rfapi.delete_version_training",
+            return_value={"deleted": True, "type": "training", "trainingId": "training-1", "trash": True},
+        ) as delete:
+            result = training.delete()
+
+        delete.assert_called_once_with("key", "ws", "proj", "1", training_id="training-1")
+        self.assertTrue(result["trash"])
+
+    def test_restore_rejects_a_blank_training_id(self):
+        training = Training("key", "ws", "proj", "1", {"trainingId": "   "})
+
+        with self.assertRaises(ValueError):
+            training.restore()
+
+    def test_restore_goes_through_the_shared_trash_route(self):
+        training = Training("key", "ws", "proj", "1", {"trainingId": "training-1"})
+
+        with patch(
+            "roboflow.core.training.rfapi.restore_trash_item",
+            return_value={"restored": True},
+        ) as restore:
+            result = training.restore()
+
+        restore.assert_called_once_with("key", "ws", "training", "training-1")
+        self.assertTrue(result["restored"])
+
+
 if __name__ == "__main__":
     unittest.main()
