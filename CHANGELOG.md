@@ -89,6 +89,8 @@ models (e.g. a NAS sweep). New object types expose this:
 
 - Weight upload support for yolo26-sem semantic segmentation models via
   `version.deploy()` and `workspace.deploy_model()`
+- `ROBOFLOW_DISABLE_CLASS_SORTING` environment variable to preserve custom
+  class ordering during YOLO model deployment (opt-in, defaults to false)
 
 ## 1.3.9
 

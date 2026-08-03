@@ -39,6 +39,7 @@ from typing import Any
 import yaml
 
 from roboflow.config import (
+    DISABLE_CLASS_SORTING,
     TASK_CLS,
     TASK_DET,
     TASK_OBB,
@@ -535,7 +536,12 @@ def _class_names_from_model_instance(model_instance: Any) -> list[str]:
     if isinstance(names, list):
         return names
     if isinstance(names, dict):
-        return [name for _, name in sorted(names.items(), key=lambda item: item[0])]
+        # NOTE: When DISABLE_CLASS_SORTING is enabled, users are responsible for ensuring
+        # their model's names dict has properly ordered/sequential keys. Non-sequential keys
+        # may result in incorrect class-to-index mappings.
+        if not DISABLE_CLASS_SORTING:
+            return [name for _, name in sorted(names.items(), key=lambda item: item[0])]
+        return [name for _, name in names.items()]
     raise ModelPackagingError("Could not extract class names from the model checkpoint.")
 
 
