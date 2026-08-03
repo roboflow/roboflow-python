@@ -94,8 +94,8 @@ version = project.version("VERSION_NUMBER")
 # upload model weights - yolov10
 version.deploy(model_type="yolov10", model_path=f”{HOME}/runs/detect/train/”, filename="weights.pt")
 
-# run inference
-model = version.model
+# run inference (a version may own several trained models; models() returns all of them)
+model = version.models()[0]
 
 img_url = "https://media.roboflow.com/quickstart/aerial_drone.jpeg"
 
@@ -162,6 +162,44 @@ Or from the CLI:
 
 ```bash
 roboflow upload image.jpg -p my-project -M '{"camera_id":"cam001","location":"warehouse-3"}'
+```
+
+### Update Metadata on Existing Images
+
+Update metadata and tags on images already in your workspace. Values in
+`metadata` are upserted: new keys are added, existing keys are overwritten.
+
+```python
+workspace = rf.workspace("my-workspace")
+
+# Single image (synchronous)
+workspace.update_image_metadata(
+    "IMAGE_ID",
+    metadata={"quality_score": 95, "reviewed": True},
+    remove_metadata=["old_key"],
+    add_tags=["reviewed"],
+    remove_tags=["pending"],
+)
+
+# Also available from a project object
+project.update_image_metadata("IMAGE_ID", metadata={"reviewed": True})
+
+# Batch update up to 1,000 images (asynchronous); wait=True polls until done
+final = workspace.batch_update_image_metadata(
+    [
+        {"imageId": "img1", "metadata": {"batch": "june"}, "addTags": ["processed"]},
+        {"imageId": "img2", "metadata": {"batch": "june"}, "addTags": ["processed"]},
+    ],
+    wait=True,
+)
+print(final["result"]["succeeded"], final["result"]["failedItems"])
+```
+
+Or from the CLI:
+
+```bash
+roboflow image metadata IMAGE_ID -m '{"quality_score": 95}' --tags "reviewed"
+roboflow image metadata img1,img2 --tags "processed" --poll
 ```
 
 ## Library Structure

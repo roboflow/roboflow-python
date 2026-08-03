@@ -141,6 +141,65 @@ def stop_version_training(api_key: str, workspace_url: str, project_url: str, ve
     return response.json() if response.content else {"success": True}
 
 
+def resolve_version_training_id(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    training_id: Optional[str] = None,
+) -> str:
+    """Resolve the training run a version-scoped call targets.
+
+    A supplied id is returned as-is (blank → ``ValueError``). When omitted,
+    the version's sole run is resolved via ``list_trainings_for_version``;
+    zero or multiple runs raise with the run ids so the caller can pick one.
+    """
+    if training_id is not None:
+        if not str(training_id).strip():
+            raise ValueError("training_id must be a non-empty string when provided")
+        return training_id
+    trainings = list_trainings_for_version(api_key, workspace_url, project_url, version)
+    if not trainings:
+        raise RoboflowError(f"No training runs found for {project_url}/{version}.")
+    if len(trainings) > 1:
+        ids = ", ".join(str(t.get("id")) for t in trainings)
+        raise RoboflowError(
+            f"MULTIPLE_TRAININGS: version {project_url}/{version} owns several runs ({ids}); pass training_id."
+        )
+    return str(trainings[0].get("id"))
+
+
+def delete_version_training(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    *,
+    training_id: str,
+):
+    """Move a terminal training run to the workspace Trash (soft delete).
+
+    DELETE /{workspace}/{project}/{version}/v2/trainings/{training_id} — the
+    same resource-DELETE pattern as project/version/workflow deletion, and the
+    same ``{deleted, type, ..., trash: true}`` response shape. The run and
+    every model it produced disappear from listings but stay restorable for
+    30 days via ``restore_trash_item(..., "training", ...)`` or the Trash UI,
+    after which they are permanently deleted. The server refuses in-flight
+    runs (stop or cancel first) and the run backing the version's registered
+    model. There is no permanent-delete option on the public API.
+
+    ``training_id`` is required (it is the resource path). Use
+    ``resolve_version_training_id`` to target a version's sole run.
+    """
+    if not training_id or not str(training_id).strip():
+        raise ValueError("training_id is required")
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/{training_id}?api_key={api_key}"
+    response = requests.delete(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"deleted": True}
+
+
 def get_training_results(api_key: str, workspace_url: str, project_url: str, version: str):
     """Run-level training results bundle.
 
@@ -153,6 +212,172 @@ def get_training_results(api_key: str, workspace_url: str, project_url: str, ver
     if not response.ok:
         raise RoboflowError(response.text)
     return response.json()
+
+
+# ---------------------------------------------------------------------------
+# DNA v2 trainings surface (MMPV-aware). Mirrors the MCP's rf_api.py 1:1: a
+# version owns many trainings, each owning one or more models (a NAS run owns
+# many). trainingId rides in the query/body, never the path, because legacy ids
+# contain slashes. The legacy-vs-MMPV branch lives entirely on the backend.
+# ---------------------------------------------------------------------------
+
+
+def list_trainings_for_version(api_key: str, workspace_url: str, project_url: str, version: str):
+    """List a version's trainings (DNA ``trainings.list``).
+
+    GET /{ws}/{proj}/{version}/v2/trainings. MMPV versions return every run;
+    SMPV versions return a single entry synthesized from ``version.train``.
+    Returns the raw ``trainings`` array — each entry carries
+    ``{id, versionId, status, start, end, jobType, modelType, modelGroup, modelIds}``.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings?api_key={api_key}"
+    response = requests.get(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    data = response.json()
+    return data.get("trainings", []) or []
+
+
+def get_training(api_key: str, workspace_url: str, project_url: str, version: str, training_id=None):
+    """A single run's results bundle (DNA ``trainings.get``).
+
+    GET /{ws}/{proj}/{version}/v2/trainings/get[?trainingId=]. Omitting
+    ``training_id`` targets the version's sole run; a version that owns several
+    runs responds 409 (list them and pass a specific id). Returns
+    ``{trainingId, status, modelType, modelGroup, modelCount, models: [...]}``,
+    each model carrying an inference-style ``modelId`` (``<workspace>/<slug>``).
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/get?api_key={api_key}"
+    if training_id:
+        url += f"&trainingId={quote(str(training_id), safe='')}"
+    response = requests.get(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def get_train_recipe(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    *,
+    model_type: str,
+):
+    """GET /{ws}/{proj}/{version}/v2/trainings/recipe — training schema for a model type.
+
+    Returns the tunable-hyperparameter schema, the allowed online
+    augmentation/preprocessing steps, and a ready-to-submit ``template``
+    that can be edited and passed to ``create_training_v2`` as ``train_recipe``.
+    """
+    encoded_model_type = quote(model_type, safe="")
+    url = (
+        f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/recipe"
+        f"?api_key={api_key}&modelType={encoded_model_type}"
+    )
+    response = requests.get(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json()
+
+
+def create_training_v2(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    *,
+    speed: Optional[str] = None,
+    checkpoint: Optional[str] = None,
+    model_type: Optional[str] = None,
+    epochs: Optional[int] = None,
+    train_recipe: Optional[Dict] = None,
+):
+    """Create a training on a version (DNA ``trainings.create``).
+
+    POST /{ws}/{proj}/{version}/v2/trainings. A version may own many trainings,
+    so repeated/concurrent runs are allowed; the backend rejects a second run on
+    a legacy (SMPV) version. Returns ``{trainingId, status, jobId}``.
+
+    ``train_recipe`` submits a full recipe (camelCase ``trainRecipe`` body
+    key) — typically the ``template`` from ``get_train_recipe`` with edited
+    hyperparameters/online augmentation; the server dense-fills omitted
+    defaults. Only non-None arguments are sent.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings?api_key={api_key}"
+    data: Dict[str, Union[str, int, Dict]] = {}
+    if speed is not None:
+        data["speed"] = speed
+    if checkpoint is not None:
+        data["checkpoint"] = checkpoint
+    if model_type is not None:
+        data["modelType"] = model_type
+    if epochs is not None:
+        data["epochs"] = epochs
+    if train_recipe is not None:
+        data["trainRecipe"] = train_recipe
+    response = requests.post(url, json=data)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"status": "training_started"}
+
+
+def cancel_training_v2(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    version: str,
+    training_id=None,
+    continue_if_no_refund: bool = False,
+):
+    """Cancel an in-flight run (DNA ``trainings.cancel``).
+
+    POST /{ws}/{proj}/{version}/v2/trainings/cancel. ``training_id`` selects a
+    specific run; omit it to target the version's sole run.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/cancel?api_key={api_key}"
+    body: Dict[str, Union[str, bool]] = {}
+    if training_id:
+        body["trainingId"] = training_id
+    if continue_if_no_refund:
+        body["continueIfNoRefund"] = True
+    response = requests.post(url, json=body)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"success": True}
+
+
+def stop_training_v2(api_key: str, workspace_url: str, project_url: str, version: str, training_id=None):
+    """Request an early stop on an in-flight run (DNA ``trainings.stop``).
+
+    POST /{ws}/{proj}/{version}/v2/trainings/stop. ``training_id`` selects a
+    specific run; omit it to target the version's sole run.
+    """
+    url = f"{API_URL}/{workspace_url}/{project_url}/{version}/v2/trainings/stop?api_key={api_key}"
+    body: Dict[str, str] = {}
+    if training_id:
+        body["trainingId"] = training_id
+    response = requests.post(url, json=body)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json() if response.content else {"success": True}
+
+
+def get_model_weights_url(api_key: str, workspace_url: str, project_url: str, model_id: str, model_format: str = "pt"):
+    """Resolve a signed PyTorch weights URL for a single trained model.
+
+    GET /{ws}/{proj}/{model_id}/ptFile, where ``model_id`` is the addressable
+    segment of an inference-style id — a model slug (MMPV) or a version number
+    (SMPV). Returns the signed ``weightsUrl``.
+    """
+    if model_format != "pt":
+        raise RoboflowError(f"Unsupported weights format '{model_format}'. Only 'pt' is supported.")
+    encoded = quote(str(model_id), safe="")
+    url = f"{API_URL}/{workspace_url}/{project_url}/{encoded}/ptFile?api_key={api_key}"
+    response = requests.get(url)
+    if not response.ok:
+        raise RoboflowError(response.text)
+    return response.json()["weightsUrl"]
 
 
 def list_project_models(
@@ -1253,9 +1478,11 @@ def list_trash(api_key, workspace_url):
 def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=None):
     """POST /{workspace}/trash/restore — restore an item from Trash.
 
-    `item_type` must be one of "project", "version", "workflow".
+    `item_type` must be one of "project", "version", "workflow", "training".
     `parent_id` is required when restoring a version (the parent project id).
     """
+    if not item_id or not str(item_id).strip():
+        raise ValueError("item_id is required")
     url = f"{API_URL}/{workspace_url}/trash/restore?api_key={api_key}"
     payload = {"type": item_type, "id": item_id}
     if parent_id is not None:

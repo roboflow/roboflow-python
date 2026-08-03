@@ -1014,6 +1014,51 @@ class Project:
 
         return response.json()
 
+    def update_image_metadata(
+        self,
+        image_id: str,
+        *,
+        metadata: Optional[Dict] = None,
+        remove_metadata: Optional[List[str]] = None,
+        add_tags: Optional[List[str]] = None,
+        remove_tags: Optional[List[str]] = None,
+    ) -> Dict:
+        """Update metadata and tags on a single image (synchronous).
+
+        Values in ``metadata`` are upserted: new keys are added, existing keys
+        are overwritten. The underlying endpoint is workspace-scoped, so the
+        image only needs to belong to this project's workspace.
+
+        Args:
+            image_id: ID of an image in this workspace.
+            metadata: Key-value pairs to set (string, number, or boolean values).
+            remove_metadata: Metadata keys to delete.
+            add_tags: Tags to add.
+            remove_tags: Tags to remove.
+
+        Returns:
+            ``{"success": True}`` on success.
+
+        Example:
+            >>> import roboflow
+            >>> rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+            >>> project = rf.workspace().project("PROJECT_ID")
+            >>> project.update_image_metadata(
+            ...     "IMAGE_ID",
+            ...     metadata={"camera_id": "cam001"},
+            ...     add_tags=["reviewed"],
+            ... )
+        """
+        return rfapi.update_image_metadata(
+            api_key=self.__api_key,
+            workspace_url=self.__workspace,
+            image_id=image_id,
+            metadata=metadata,
+            remove_metadata=remove_metadata,
+            add_tags=add_tags,
+            remove_tags=remove_tags,
+        )
+
     def delete_images(self, image_ids: List[str]):
         """
         Delete images from a project.

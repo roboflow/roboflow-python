@@ -44,6 +44,7 @@ def get_conditional_configuration_variable(key, default):
 
 CLASSIFICATION_MODEL = os.getenv("CLASSIFICATION_MODEL", "ClassificationModel")
 INSTANCE_SEGMENTATION_MODEL = "InstanceSegmentationModel"
+KEYPOINT_DETECTION_MODEL = "KeypointDetectionModel"
 OBJECT_DETECTION_MODEL = os.getenv("OBJECT_DETECTION_MODEL", "ObjectDetectionModel")
 SEMANTIC_SEGMENTATION_MODEL = "SemanticSegmentationModel"
 PREDICTION_OBJECT = os.getenv("PREDICTION_OBJECT", "Prediction")

@@ -8,7 +8,7 @@ from typing import Optional
 import requests
 from PIL import Image
 
-from roboflow.config import CLASSIFICATION_MODEL
+from roboflow.config import KEYPOINT_DETECTION_MODEL
 from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
@@ -52,6 +52,7 @@ class KeypointDetectionModel(InferenceModel):
         self.name = name
         self.confidence = confidence
         self.version = version
+        self.colors = {}
         self.base_url = "https://serverless.roboflow.com/"
 
         if self.name is not None and version is not None:
@@ -79,7 +80,7 @@ class KeypointDetectionModel(InferenceModel):
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> model = project.version("1").model
+            >>> model = project.version("1").models()[0]
 
             >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """
@@ -119,7 +120,7 @@ class KeypointDetectionModel(InferenceModel):
             resp.json(),
             image_dims=img_dims,
             image_path=image_path,
-            prediction_type=CLASSIFICATION_MODEL,
+            prediction_type=KEYPOINT_DETECTION_MODEL,
             colors=self.colors,
         )
 

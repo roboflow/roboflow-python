@@ -1,7 +1,9 @@
 import os
 import unittest
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
+import requests
 import responses
 
 from roboflow.adapters import rfapi
@@ -13,6 +15,7 @@ from roboflow.config import (
     TYPE_SEMANTIC_SEGMENTATION,
 )
 from roboflow.core.version import Version, unwrap_version_id
+from roboflow.models.object_detection import ObjectDetectionModel
 from tests.helpers import get_version
 
 
@@ -266,3 +269,204 @@ class TestValidateAgainstProjectType(unittest.TestCase):
     def test_classification_project_rejects_detection(self):
         with self.assertRaises(ValueError):
             self._version(TYPE_CLASSICATION)._validate_against_project_type("yolov11")
+
+
+class TestConstructionDoesNotProbeNetwork(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.get_version", side_effect=AssertionError("get_version should not be called"))
+    def test_construction_makes_no_request_when_payload_has_no_model(self, _mock_get_version: MagicMock):
+        version = get_version()
+        self.assertIsNone(version._model)
+
+    @patch(
+        "roboflow.adapters.rfapi.get_version",
+        side_effect=requests.exceptions.ConnectionError("network down"),
+    )
+    def test_construction_survives_request_layer_failure(self, _mock_get_version: MagicMock):
+        # A transient/mocked request failure must not break basic version retrieval.
+        version = get_version()
+        self.assertIsNone(version._model)
+
+    @patch("roboflow.adapters.rfapi.get_version", side_effect=AssertionError("get_version should not be called"))
+    def test_legacy_model_is_derived_from_payload(self, _mock_get_version: MagicMock):
+        version = get_version(type=TYPE_OBJECT_DETECTION, model={"id": "test-workspace/test-project/2"})
+        self.assertIsInstance(version._model, ObjectDetectionModel)
+
+
+class TestMMPVCompatibility(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.get_version", return_value={"version": {}})
+    def test_model_property_is_deprecated_and_does_not_enumerate_models(self, _mock_get_version: MagicMock):
+        version = get_version()
+        with patch.object(Version, "models", side_effect=AssertionError("models should not be called")):
+            with self.assertWarns(DeprecationWarning):
+                self.assertIsNone(version.model)
+
+    @patch("roboflow.adapters.rfapi.get_version", return_value={"version": {}})
+    def test_models_returns_union_across_trainings(self, _mock_get_version: MagicMock):
+        version = get_version()
+        a, b, c = object(), object(), object()
+        training_one = SimpleNamespace(models=[a, b])
+        training_two = SimpleNamespace(models=[c])
+        with patch.object(Version, "trainings", return_value=[training_one, training_two]):
+            self.assertEqual(version.models(), [a, b, c])
+
+    @patch.object(Version, "_Version__wait_if_generating")
+    @patch("roboflow.adapters.rfapi.create_training_v2")
+    @patch("roboflow.adapters.rfapi.get_version", return_value={"version": {}})
+    def test_create_training_returns_v2_training(
+        self,
+        _mock_get_version: MagicMock,
+        mock_create_training: MagicMock,
+        _mock_wait_if_generating: MagicMock,
+    ):
+        mock_create_training.return_value = {
+            "trainingId": "training-1",
+            "status": "running",
+            "modelType": "yolov11",
+        }
+        version = get_version(version_number="4")
+
+        training = version.create_training(speed="fast", model_type=None, checkpoint="ckpt", epochs=10)
+
+        mock_create_training.assert_called_once_with(
+            api_key="test-api-key",
+            workspace_url="test-workspace",
+            project_url="test-project",
+            version="4",
+            speed="fast",
+            checkpoint="ckpt",
+            model_type=None,
+            epochs=10,
+            train_recipe=None,
+        )
+        self.assertEqual(training.training_id, "training-1")
+        self.assertEqual(training.status, "running")
+        self.assertEqual(training.model_type, "yolov11")
+
+
+class V2TrainingRecipeTestCase(unittest.TestCase):
+    """Base fixture for v2 train-recipe tests: an offline Version fixture."""
+
+    RECIPE_RESPONSE = {
+        "modelType": "rfdetr-medium",
+        "family": "rf-detr",
+        "taskType": "object-detection",
+        "schema": {"hyperparameters": [{"key": "lr", "type": "float"}]},
+        "template": {
+            "schema_version": 1,
+            "input": {},
+            "online_preprocessing": [],
+            "online_augmentation": {"splits": ["train"], "steps": []},
+            "source_version": {},
+            "hyperparameters": {},
+        },
+        "usage": "...",
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.version = get_version(
+            project_name="Test Dataset",
+            id="test-workspace/test-project/2",
+            version_number="4",
+        )
+
+
+class TestDescribeTrainRecipe(V2TrainingRecipeTestCase):
+    def test_describe_train_recipe_passes_through(self):
+        with patch.object(rfapi, "get_train_recipe", return_value=self.RECIPE_RESPONSE) as mock_recipe:
+            result = self.version.describe_train_recipe("rfdetr-medium")
+
+        self.assertEqual(result, self.RECIPE_RESPONSE)
+        mock_recipe.assert_called_once_with(
+            api_key="test-api-key",
+            workspace_url="test-workspace",
+            project_url="test-project",
+            version="4",
+            model_type="rfdetr-medium",
+        )
+
+
+class TestCreateTrainingWithRecipe(V2TrainingRecipeTestCase):
+    """The train_recipe extension of Version.create_training."""
+
+    CREATE_RESPONSE = {"trainingId": "t-1", "status": "queued", "jobId": "job-1"}
+    NOT_GENERATING = {"version": {"generating": False, "progress": 1.0, "images": 10}}
+
+    def _create(self, **kwargs):
+        with (
+            patch.object(rfapi, "get_version", return_value=self.NOT_GENERATING),
+            patch.object(rfapi, "get_train_recipe", return_value=self.RECIPE_RESPONSE) as mock_recipe,
+            patch.object(rfapi, "create_training_v2", return_value=self.CREATE_RESPONSE) as mock_create,
+            patch.object(Version, "export", return_value=True) as mock_export,
+        ):
+            result = self.version.create_training(**kwargs)
+        return result, mock_recipe, mock_create, mock_export
+
+    def test_create_training_requires_model_type_for_train_recipe(self):
+        # Raised before any network call: neither create nor generation polling runs.
+        with patch.object(rfapi, "create_training_v2") as mock_create:
+            with self.assertRaises(ValueError):
+                self.version.create_training(train_recipe={"schema_version": 1})
+        mock_create.assert_not_called()
+
+    def test_recipe_kwargs_pass_through_to_canonical_create(self):
+        result, mock_recipe, mock_create, mock_export = self._create(
+            model_type="rfdetr-medium",
+            epochs=10,
+            speed="fast",
+            checkpoint="ckpt",
+        )
+
+        self.assertEqual(result.training_id, "t-1")
+        self.assertEqual(result.status, "queued")
+        mock_recipe.assert_not_called()
+        mock_export.assert_called_once_with("coco")
+        mock_create.assert_called_once_with(
+            api_key="test-api-key",
+            workspace_url="test-workspace",
+            project_url="test-project",
+            version="4",
+            speed="fast",
+            checkpoint="ckpt",
+            model_type="rfdetr-medium",
+            epochs=10,
+            train_recipe=None,
+        )
+
+    def test_explicit_recipe_submitted_as_is_without_describe(self):
+        recipe = {"schema_version": 1, "hyperparameters": {"lr": 0.5}}
+        _, mock_recipe, mock_create, mock_export = self._create(model_type="rfdetr-medium", train_recipe=recipe)
+
+        mock_recipe.assert_not_called()  # no describe fetch on the explicit-recipe path
+        mock_export.assert_called_once_with("coco")  # model_type is required, so export is ensured
+        self.assertEqual(mock_create.call_args.kwargs["train_recipe"], recipe)
+        self.assertEqual(mock_create.call_args.kwargs["model_type"], "rfdetr-medium")
+
+    def test_epochs_folded_into_explicit_recipe(self):
+        recipe = {"schema_version": 1, "hyperparameters": {"lr": 0.5}}
+        _, mock_recipe, mock_create, _ = self._create(model_type="rfdetr-medium", train_recipe=recipe, epochs=50)
+
+        mock_recipe.assert_not_called()
+        submitted = mock_create.call_args.kwargs["train_recipe"]
+        self.assertEqual(submitted["hyperparameters"], {"lr": 0.5, "epochs": 50})
+        self.assertEqual(mock_create.call_args.kwargs["epochs"], 50)
+        # The caller's recipe dict is not mutated by the fold.
+        self.assertEqual(recipe["hyperparameters"], {"lr": 0.5})
+
+    def test_explicit_recipe_epochs_wins_over_argument(self):
+        recipe = {"schema_version": 1, "hyperparameters": {"epochs": 25}}
+        _, _, mock_create, _ = self._create(model_type="rfdetr-medium", train_recipe=recipe, epochs=50)
+
+        submitted = mock_create.call_args.kwargs["train_recipe"]
+        self.assertEqual(submitted["hyperparameters"]["epochs"], 25)
+
+    def test_epochs_fold_creates_hyperparameters_in_explicit_recipe(self):
+        _, _, mock_create, _ = self._create(model_type="rfdetr-medium", train_recipe={"schema_version": 1}, epochs=50)
+
+        submitted = mock_create.call_args.kwargs["train_recipe"]
+        self.assertEqual(submitted["hyperparameters"], {"epochs": 50})
+
+    def test_export_skipped_when_format_already_present(self):
+        self.version.exports = ["coco"]
+        _, _, _, mock_export = self._create(model_type="rfdetr-medium")
+        mock_export.assert_not_called()

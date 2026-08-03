@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import time
+import warnings
 from typing import TYPE_CHECKING, Optional, Union
 
 import requests
@@ -35,6 +36,7 @@ from roboflow.models.vlm import VLMModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import extract_zip, write_line
 from roboflow.util.model_processor import package_custom_weights_interactive, validate_model_type_for_project
+from roboflow.util.train_recipe import fold_epochs_into_recipe
 from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions
 
 if TYPE_CHECKING:
@@ -49,8 +51,6 @@ class Version:
     """
     Class representing a Roboflow dataset version.
     """
-
-    model: Optional[InferenceModel]
 
     def __init__(
         self,
@@ -94,12 +94,11 @@ class Version:
 
             version_without_workspace = os.path.basename(str(version))
 
-            try:
-                version_response = rfapi.get_version(self.__api_key, workspace, project, self.version)
-                version_info = version_response.get("version", {})
-                has_model = bool(version_info.get("train", {}).get("model"))
-            except rfapi.RoboflowError:
-                has_model = False
+            # Derive the legacy single-model flag from the payload the caller
+            # already fetched. Keeping __init__ free of network side effects means
+            # a transient/mocked request failure can't break basic version
+            # retrieval; the v2 surface (models()/trainings()) does its own reads.
+            has_model = bool(version_dict.get("model"))
 
             if not has_model:
                 self.model = None
@@ -161,6 +160,163 @@ class Version:
                 self.name = "chess-pieces-new"
                 self.version = "23"
                 self.id = "joseph-nelson/chess-pieces-new"
+
+    @property
+    def model(self):
+        """Deprecated. The version's legacy single inference model, or ``None``.
+
+        A version may now own many trained models (MMPV). This single-model
+        attribute cannot represent that, so it is deprecated in favor of
+        :meth:`models`, which returns every trained model for the version, and
+        :meth:`trainings`, which exposes the runs that produced them.
+        """
+        warnings.warn(
+            "version.model is deprecated and will be removed in a future release; "
+            "use version.models() (all trained models) or version.trainings() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(self, "_model", None)
+
+    @model.setter
+    def model(self, value):
+        self._model = value
+
+    def trainings(self):
+        """List this version's trainings as Training objects (DNA ``trainings.list``).
+
+        An MMPV version may own many; a legacy (SMPV) version reports its single
+        run. Returns a list of :class:`~roboflow.core.training.Training`.
+        """
+        from roboflow.core.training import Training
+
+        raw = rfapi.list_trainings_for_version(self.__api_key, self.workspace, self.project, self.version)
+        return [Training(self.__api_key, self.workspace, self.project, self.version, t) for t in raw]
+
+    def models(self):
+        """All trained models for this version — the union across its trainings.
+
+        Mirrors the backend's "a version's models are the union across its
+        trainings" rule. Returns a list of
+        :class:`~roboflow.core.training.TrainedModel`.
+        """
+        result = []
+        for training in self.trainings():
+            result.extend(training.models)
+        return result
+
+    def describe_train_recipe(self, model_type: str) -> dict:
+        """Fetch the v2 training recipe schema and template for a model type.
+
+        Args:
+            model_type: The model type to describe (e.g. ``"rfdetr-medium"``).
+
+        Returns:
+            dict: The API response with the tunable ``schema``
+            (hyperparameters, allowed online augmentation/preprocessing
+            steps, input constraints) and a ready-to-submit ``template``
+            that can be edited and passed to :meth:`create_training`.
+
+        Raises:
+            RoboflowError: If the Roboflow API returns an error.
+        """
+        workspace, project, *_ = self.id.rsplit("/")
+        return rfapi.get_train_recipe(
+            api_key=self.__api_key,
+            workspace_url=workspace,
+            project_url=project,
+            version=self.version,
+            model_type=model_type,
+        )
+
+    def create_training(self, speed=None, model_type=None, checkpoint=None, epochs=None, train_recipe=None):
+        """Create a v2 training run and return a Training object.
+
+        Unlike :meth:`train`, this does not block until completion or return a
+        legacy task-specific model. It exposes the MMPV-aware training id so
+        callers can refresh the run, enumerate produced models, and select the
+        model they want.
+
+        To customize hyperparameters or online augmentation, fetch the recipe
+        template via :meth:`describe_train_recipe`, edit it, and pass it as
+        ``train_recipe``; the server dense-fills any defaults the recipe
+        omits.
+
+        Args:
+            speed: Training speed preset (e.g. ``"fast"``).
+            model_type: The model type to train (e.g. ``"rfdetr-medium"``).
+            checkpoint: Checkpoint to start training from.
+            epochs: Number of epochs to train. When a ``train_recipe`` is
+                given, this is folded into the recipe's hyperparameters
+                unless they already set ``"epochs"``, because the server
+                resolves the recipe's dense-filled epochs ahead of this
+                top-level value.
+            train_recipe: A full recipe to submit — typically the
+                ``template`` from :meth:`describe_train_recipe` with edited
+                ``hyperparameters`` / ``online_augmentation``. Requires
+                ``model_type``: recipes are minted per model type, and
+                without one the platform would train the project's default
+                architecture instead.
+
+        Raises:
+            ValueError: If ``train_recipe`` is given without ``model_type``.
+            RoboflowError: If the Roboflow API returns an error.
+
+        Example:
+            Launch a small learning-rate sweep and poll for completion::
+
+                import copy
+                import time
+
+                template = version.describe_train_recipe("rfdetr-medium")["template"]
+                trainings = []
+                for lr in (1e-4, 3e-4, 1e-3):
+                    recipe = copy.deepcopy(template)
+                    recipe["hyperparameters"] = {"lr": lr}
+                    trainings.append(
+                        version.create_training(model_type="rfdetr-medium", train_recipe=recipe)
+                    )
+                pending = list(trainings)
+                while pending:
+                    for training in list(pending):
+                        if training.refresh().status in ("finished", "failed"):
+                            pending.remove(training)
+                    time.sleep(60)
+        """
+        from roboflow.core.training import Training
+
+        if train_recipe is not None and not model_type:
+            raise ValueError(
+                "model_type is required when passing train_recipe: recipes are "
+                "minted per model type (see describe_train_recipe)."
+            )
+        if train_recipe is not None and epochs is not None:
+            # Fold epochs into the recipe: the server dense-fills recipe
+            # hyperparameters (including a default epochs) and resolves them
+            # ahead of the body's top-level epochs, which would otherwise be
+            # silently ignored. An epochs set in the recipe wins.
+            train_recipe = fold_epochs_into_recipe(train_recipe, epochs)
+
+        self.__wait_if_generating()
+
+        if model_type:
+            train_model_format = get_model_format(model_type)
+            if train_model_format not in self.exports:
+                self.export(train_model_format)
+
+        workspace, project, *_ = self.id.rsplit("/")
+        raw = rfapi.create_training_v2(
+            api_key=self.__api_key,
+            workspace_url=workspace,
+            project_url=project,
+            version=self.version,
+            speed=speed if speed else None,
+            checkpoint=checkpoint if checkpoint else None,
+            model_type=model_type if model_type else None,
+            epochs=epochs,
+            train_recipe=train_recipe,
+        )
+        return Training(self.__api_key, workspace, project, self.version, raw)
 
     def __check_if_generating(self):
         # check Roboflow API to see if this version is still generating
@@ -451,7 +607,7 @@ class Version:
 
             time.sleep(5)
 
-        if not self.model:
+        if not getattr(self, "_model", None):
             if self.type == TYPE_OBJECT_DETECTION:
                 self.model = ObjectDetectionModel(
                     self.__api_key,
@@ -485,8 +641,8 @@ class Version:
                 raise ValueError(f"Unsupported model type: {self.type}")
 
         # return the model object
-        assert self.model
-        return self.model
+        assert self._model
+        return self._model
 
     # @warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])
     def deploy(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
@@ -719,6 +875,61 @@ class Version:
             match["id"],
             parent_id=match.get("parentId"),
         )
+
+    def delete_training(self, training_id: Optional[str] = None):
+        """
+        Move one of this version's training runs to Trash (soft delete).
+
+        The run and every model it produced disappear from listings but stay
+        restorable for 30 days via `Version.restore_training()` or the Trash
+        UI, after which they are permanently deleted. The server refuses
+        in-flight runs (stop or cancel first). The version's hosted endpoint
+        always serves the oldest remaining run's model: deleting the serving
+        run switches serving to the next-oldest run (`versionAliasAction:
+        "repointed"`) or stops it when no other run survives (`"deleted"`);
+        restoring the oldest run hands serving back.
+
+        Args:
+            training_id: Training id of the run to delete (a version can own
+                several runs). Omit to target the version's sole run — resolved
+                client-side; several runs raise with their ids listed.
+
+        Returns:
+            dict: Server response with `{deleted: True, type: "training", ..., trash: True}`
+                (the same shape as project/version/workflow deletion).
+        """
+        resolved_id = rfapi.resolve_version_training_id(
+            self.__api_key,
+            self.workspace,
+            self.project,
+            self.version,
+            training_id,
+        )
+        return rfapi.delete_version_training(
+            self.__api_key,
+            self.workspace,
+            self.project,
+            self.version,
+            training_id=resolved_id,
+        )
+
+    def restore_training(self, training_id: str):
+        """
+        Restore one of this version's trashed training runs.
+
+        Goes through the shared workspace trash-restore route (the same one
+        project/version/workflow restores use) with `type: "training"`.
+
+        Args:
+            training_id: Training id of the trashed run (required — trashed
+                runs are invisible to the sole-run fallback).
+
+        Returns:
+            dict: Server response from the trash restore route.
+        """
+        if not training_id or not str(training_id).strip():
+            raise ValueError("training_id is required")
+        return rfapi.restore_trash_item(self.__api_key, self.workspace, "training", training_id)
 
     def __str__(self):
         """

@@ -643,6 +643,27 @@ class TestProject(RoboflowTest):
 
         self.assertEqual(str(context.exception), "Failed to delete images")
 
+    def test_update_image_metadata_delegates_with_workspace_slug(self):
+        with patch("roboflow.adapters.rfapi.update_image_metadata") as mock_update:
+            mock_update.return_value = {"success": True}
+
+            result = self.project.update_image_metadata(
+                "img-1",
+                metadata={"camera_id": "cam001"},
+                add_tags=["reviewed"],
+            )
+
+        self.assertEqual(result, {"success": True})
+        mock_update.assert_called_once_with(
+            api_key=ROBOFLOW_API_KEY,
+            workspace_url=WORKSPACE_NAME,
+            image_id="img-1",
+            metadata={"camera_id": "cam001"},
+            remove_metadata=None,
+            add_tags=["reviewed"],
+            remove_tags=None,
+        )
+
     def test_classification_dataset_upload(self):
         from roboflow.util import folderparser
 
