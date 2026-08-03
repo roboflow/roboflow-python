@@ -409,6 +409,13 @@ class Project:
             metadata (dict, optional): custom key-value metadata to attach to the image.
                 Example: {"camera_id": "cam001", "location": "warehouse"}
 
+        Returns:
+            A list of result dicts (one per successfully uploaded image), regardless of
+            whether a single file or a directory was provided. Each dict is the return
+            value of ``single_upload`` (keys: ``image``, ``annotation``, ``upload_time``,
+            ``annotation_time``, ``upload_retry_attempts``, ``annotation_upload_retry_attempts``).
+            Skipped (non-image) files in directory mode are excluded from the list.
+
         Example:
             >>> import roboflow
 
@@ -445,26 +452,29 @@ class Project:
                     )
                 )
 
-            self.single_upload(
-                image_path=image_path,
-                annotation_path=annotation_path,
-                hosted_image=hosted_image,
-                image_id=image_id,
-                split=split,
-                num_retry_uploads=num_retry_uploads,
-                batch_name=batch_name,
-                tag_names=tag_names,
-                is_prediction=is_prediction,
-                metadata=metadata,
-                **kwargs,
-            )
+            return [
+                self.single_upload(
+                    image_path=image_path,
+                    annotation_path=annotation_path,
+                    hosted_image=hosted_image,
+                    image_id=image_id,
+                    split=split,
+                    num_retry_uploads=num_retry_uploads,
+                    batch_name=batch_name,
+                    tag_names=tag_names,
+                    is_prediction=is_prediction,
+                    metadata=metadata,
+                    **kwargs,
+                )
+            ]
 
         else:
+            results = []
             images = os.listdir(image_path)
             for image in images:
                 path = image_path + "/" + image
                 if self.check_valid_image(path):
-                    self.single_upload(
+                    result = self.single_upload(
                         image_path=path,
                         annotation_path=annotation_path,
                         hosted_image=hosted_image,
@@ -477,10 +487,12 @@ class Project:
                         metadata=metadata,
                         **kwargs,
                     )
+                    results.append(result)
                     print("[ " + path + " ] was uploaded succesfully.")
                 else:
                     print("[ " + path + " ] was skipped.")
                     continue
+            return results
 
     def upload_image(
         self,
