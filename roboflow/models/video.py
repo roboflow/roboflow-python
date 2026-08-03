@@ -90,7 +90,7 @@ class VideoInferenceModel(InferenceModel):
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> model = project.version("1").model
+            >>> model = project.version("1").models()[0]
 
             >>> prediction = model.predict("video.mp4", fps=5, inference_type="object-detection")
         """  # noqa: E501 // docs
@@ -164,7 +164,7 @@ class VideoInferenceModel(InferenceModel):
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> model = project.version("1").model
+            >>> model = project.version("1").models()[0]
 
             >>> prediction = model.predict("video.mp4")
 
@@ -216,7 +216,7 @@ class VideoInferenceModel(InferenceModel):
 
             >>> project = rf.workspace().project("PROJECT_ID")
 
-            >>> model = project.version("1").model
+            >>> model = project.version("1").models()[0]
 
             >>> prediction = model.predict("video.mp4")
 

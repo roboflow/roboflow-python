@@ -10,6 +10,7 @@ from PIL import Image
 from roboflow.config import (
     CLASSIFICATION_MODEL,
     INSTANCE_SEGMENTATION_MODEL,
+    KEYPOINT_DETECTION_MODEL,
     OBJECT_DETECTION_MODEL,
     PREDICTION_OBJECT,
     SEMANTIC_SEGMENTATION_MODEL,
@@ -57,7 +58,7 @@ def plot_annotation(axes, prediction=None, stroke=1, transparency=60, colors=Non
     prediction = prediction or {}
     stroke_color = "r"
 
-    if prediction["prediction_type"] == OBJECT_DETECTION_MODEL:
+    if prediction["prediction_type"] in (OBJECT_DETECTION_MODEL, KEYPOINT_DETECTION_MODEL):
         if prediction["class"] in colors.keys():
             stroke_color = colors[prediction["class"]]
 
@@ -158,7 +159,7 @@ class Prediction:
         image = self.__load_image()
         stroke_color = (255, 0, 0)
 
-        if self["prediction_type"] == OBJECT_DETECTION_MODEL:
+        if self["prediction_type"] in (OBJECT_DETECTION_MODEL, KEYPOINT_DETECTION_MODEL):
             # Get different dimensions/coordinates
             x = self["x"]
             y = self["y"]
@@ -346,7 +347,7 @@ class PredictionGroup:
         # Iterate through predictions and add prediction to image
         for prediction in self.predictions:
             # Check what type of prediction it is
-            if self.base_prediction_type == OBJECT_DETECTION_MODEL:
+            if self.base_prediction_type in (OBJECT_DETECTION_MODEL, KEYPOINT_DETECTION_MODEL):
                 # Get different dimensions/coordinates
                 x = prediction["x"]
                 y = prediction["y"]
@@ -509,7 +510,7 @@ class PredictionGroup:
         colors = {} if colors is None else colors
         prediction_list = []
 
-        if prediction_type in [OBJECT_DETECTION_MODEL, INSTANCE_SEGMENTATION_MODEL]:
+        if prediction_type in [OBJECT_DETECTION_MODEL, INSTANCE_SEGMENTATION_MODEL, KEYPOINT_DETECTION_MODEL]:
             for prediction in json_response["predictions"]:
                 prediction = Prediction(
                     prediction,

@@ -72,6 +72,27 @@ roboflow train results my-project/3
 NAS sweeps require the version's validation split to have at least 15 images;
 the server returns `code: "insufficient_validation_images_for_nas"` otherwise.
 
+### Train recipes — custom hyperparameters & augmentation (v2)
+
+```bash
+# Inspect a model type's tunable hyperparameter schema, allowed online
+# augmentation/preprocessing steps, and a ready-to-edit recipe template:
+roboflow train recipe -p my-project -v 3 -m rfdetr-medium
+
+# Start a training from an edited recipe: take the `template` field, tweak
+# it (hyperparameters, online augmentation), and submit it. The server
+# dense-fills any defaults the recipe leaves out:
+roboflow --json train recipe -p my-project -v 3 -m rfdetr-medium | jq .template > recipe.json
+# ... edit recipe.json (e.g. set .hyperparameters.lr) ...
+roboflow train start -p my-project -v 3 -t rfdetr-medium --train-recipe @recipe.json
+```
+
+--train-recipe accepts inline JSON or a curl-style @file reference; it creates
+the training through the v2 trainings API and prints
+the new `trainingId` instead of blocking — handy for launching sweeps and
+polling status separately. --epochs is folded into the recipe's
+hyperparameters unless the recipe already sets epochs.
+
 ### NAS models — list, star, deploy
 
 ```bash

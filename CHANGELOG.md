@@ -2,14 +2,77 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 1.4.1
 
 ### Added
 
+- Custom train recipes on v2 trainings
+  ([#510](https://github.com/roboflow/roboflow-python/pull/510)):
+  - `Version.describe_train_recipe(model_type)` — fetch the tunable
+    hyperparameter schema, allowed online augmentation/preprocessing steps,
+    and a ready-to-edit recipe `template` for a model type.
+  - `train_recipe` on `Version.create_training(...)` —
+    pass an edited `describe_train_recipe` template for custom
+    hyperparameters/online augmentation (the server dense-fills omitted
+    defaults). A top-level `epochs` is folded into the recipe's
+    hyperparameters (the server resolves recipe epochs ahead of the body
+    value). `train_recipe` requires `model_type` — recipes are minted per
+    model type, and without one the platform would train the project's
+    default architecture.
+  - `roboflow train recipe -p <project> -v <N> -m <model_type>` — print the
+    recipe schema and template as JSON.
+  - `roboflow train start --train-recipe '<json>'` — create the training
+    through the v2 API and print the new `trainingId`. Accepts inline JSON
+    or a curl-style file reference (`--train-recipe @train_recipe.json`).
+
+## 1.4.0
+
+### Added — Support for multiple models per version
+
+A dataset version can now own many trainings, and a training can produce many
+models (e.g. a NAS sweep). New object types expose this:
+
+**SDK (`roboflow/core/training.py`, `roboflow/core/version.py`):**
+- `Version.trainings()` — list the version's training runs as `Training` objects.
+- `Version.models()` — every trained model for the version (the union across its
+  trainings), as `TrainedModel` objects. This is now the canonical way to get a
+  version's models.
+- `Version.create_training(speed=, model_type=, checkpoint=, epochs=)` — launch a
+  run without blocking, returning a `Training`.
+- `Training` — `.models`, `.refresh()`, `.cancel()`, `.stop()`, plus
+  `.training_id` / `.status` / `.model_type`.
+- `TrainedModel` — `.predict()`, `.predict_video()`, `.download()`, plus
+  `.model_id` / `.model_type` / `.metrics`. A `TrainedModel` does everything the
+  old `version.model` could; you just reach it through `version.models()`.
+
+**Adapters (`roboflow/adapters/rfapi.py`):** v2 trainings endpoints —
+`list_trainings_for_version`, `get_training`, `create_training_v2`,
+`cancel_training_v2`, `stop_training_v2`, `get_model_weights_url`.
+
+### Added
+
+- `workspace.update_image_metadata()` and `workspace.batch_update_image_metadata()`
+  (plus a `project.update_image_metadata()` convenience alias) — public SDK
+  wrappers for updating metadata and tags on existing images, previously only
+  reachable via the internal `rfapi` adapter or the CLI. The batch method
+  accepts `wait=True` to poll the async task until completion and return
+  per-image results.
 - Upload raw rf-detr PyTorch-Lightning checkpoints (e.g. `checkpoint_best_ema.pth`):
   `upload_model` detects them and rebuilds a deploy-ready bundle via rf-detr's
   `export_for_roboflow` (requires `rfdetr>=1.8.0`)
   ([#488](https://github.com/roboflow/roboflow-python/pull/488))
+
+### Changed
+
+- Keypoint detection inference now reports its prediction type correctly
+  (previously mislabeled as classification), fixing rendering/plotting of
+  keypoint predictions.
+
+### Deprecated
+
+- `version.model` (the singular attribute) is deprecated and emits a
+  `DeprecationWarning`. It cannot represent a version with multiple models;
+  use `version.models()` instead.
 
 ## 1.3.11
 

@@ -196,15 +196,15 @@ def _list_models(args):  # noqa: ANN001
 
     models = []
     for v in versions:
-        if v.model:
+        # version.model is deprecated; read the underlying legacy model directly.
+        v_model = getattr(v, "_model", None)
+        if v_model:
             models.append(
                 {
                     "version": v.version,
                     "id": v.id,
                     "model": getattr(v, "model_format", ""),
-                    "map": getattr(v, "model", {}).get("map", "")
-                    if isinstance(getattr(v, "model", None), dict)
-                    else "",
+                    "map": v_model.get("map", "") if isinstance(v_model, dict) else "",
                 }
             )
 
