@@ -60,8 +60,9 @@ class TestQueries(RoboflowTest):
         self.assertEqual(len(version_information), 2)
         self.assertIsNone(print_versions)
         self.assertTrue(all(map(lambda x: isinstance(x, Version), list_versions)))
-        self.assertIsInstance(upload, dict)
-        self.assertEqual(upload["image"]["id"], "hbALkCFdNr9rssgOUXug")
+        self.assertIsInstance(upload, list)
+        self.assertEqual(len(upload), 1)
+        self.assertEqual(upload[0]["image"]["id"], "hbALkCFdNr9rssgOUXug")
 
     @ordered
     def test_version_fields(self):

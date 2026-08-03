@@ -157,7 +157,7 @@ class TestProject(RoboflowTest):
         self.assertEqual(str(error.exception), "Image was already annotated.")
 
     def test_upload_single_file_returns_result(self):
-        """upload() should return the single_upload result dict for a single file (#254)."""
+        """upload() should return a list with the single_upload result dict for a single file (#254)."""
         image_id = "test-upload-id"
 
         responses.add(
@@ -169,10 +169,13 @@ class TestProject(RoboflowTest):
 
         result = self.project.upload("tests/images/rabbit.JPG")
 
-        self.assertIsInstance(result, dict)
-        self.assertEqual(result["image"]["id"], image_id)
-        self.assertIn("upload_time", result)
-        self.assertIn("upload_retry_attempts", result)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 1)
+        entry = result[0]
+        self.assertIsInstance(entry, dict)
+        self.assertEqual(entry["image"]["id"], image_id)
+        self.assertIn("upload_time", entry)
+        self.assertIn("upload_retry_attempts", entry)
 
     def test_upload_directory_returns_list_of_results(self):
         """upload() should return a list of single_upload results for a directory (#254)."""
