@@ -18,7 +18,7 @@ def _resp(status: int, body):
 
 
 class TestListModelEvals(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success_no_filters(self, mock_get):
         mock_get.return_value = _resp(200, {"evals": [{"id": "e1", "status": "done"}]})
 
@@ -30,7 +30,7 @@ class TestListModelEvals(unittest.TestCase):
         self.assertEqual(url, f"{API_URL}/ws/model-evals")
         self.assertEqual(params, {"api_key": "k"})
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success_with_filters(self, mock_get):
         mock_get.return_value = _resp(200, {"evals": []})
 
@@ -49,7 +49,7 @@ class TestListModelEvals(unittest.TestCase):
             },
         )
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_omits_none_filters(self, mock_get):
         mock_get.return_value = _resp(200, {"evals": []})
 
@@ -59,7 +59,7 @@ class TestListModelEvals(unittest.TestCase):
         self.assertNotIn("limit", params)
         self.assertEqual(params["status"], "done")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_404_raises_not_found(self, mock_get):
         mock_get.return_value = _resp(404, {"error": "model_eval_not_found", "message": "nope"})
 
@@ -69,7 +69,7 @@ class TestListModelEvals(unittest.TestCase):
 
 
 class TestGetModelEval(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_success(self, mock_get):
         mock_get.return_value = _resp(200, {"id": "e1", "status": "done", "summary": {"mAP": 0.9}})
 
@@ -83,7 +83,7 @@ class TestGetModelEval(unittest.TestCase):
 class TestPanelEndpoints(unittest.TestCase):
     """Each panel endpoint forwards path + params correctly."""
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_map_results_url(self, mock_get):
         mock_get.return_value = _resp(200, {"splits": {}})
 
@@ -92,7 +92,7 @@ class TestPanelEndpoints(unittest.TestCase):
         url = mock_get.call_args[0][0]
         self.assertEqual(url, f"{API_URL}/ws/model-evals/e1/map-results")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_confidence_sweep_url(self, mock_get):
         mock_get.return_value = _resp(200, {"splits": {}})
 
@@ -101,7 +101,7 @@ class TestPanelEndpoints(unittest.TestCase):
         url = mock_get.call_args[0][0]
         self.assertEqual(url, f"{API_URL}/ws/model-evals/e1/confidence-sweep")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_performance_by_class_passes_split(self, mock_get):
         mock_get.return_value = _resp(200, {"split": "valid", "classes": []})
 
@@ -110,7 +110,7 @@ class TestPanelEndpoints(unittest.TestCase):
         params = mock_get.call_args.kwargs["params"]
         self.assertEqual(params["split"], "valid")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_confusion_matrix_passes_params(self, mock_get):
         mock_get.return_value = _resp(200, {"matrix": []})
 
@@ -120,7 +120,7 @@ class TestPanelEndpoints(unittest.TestCase):
         self.assertEqual(params["split"], "test")
         self.assertEqual(params["confidence"], 30)
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_image_predictions_pagination(self, mock_get):
         mock_get.return_value = _resp(200, {"images": []})
 
@@ -130,7 +130,7 @@ class TestPanelEndpoints(unittest.TestCase):
         self.assertEqual(params["limit"], 50)
         self.assertEqual(params["offset"], 100)
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_recommendations_url(self, mock_get):
         mock_get.return_value = _resp(200, {"recommendations": []})
 
@@ -139,7 +139,7 @@ class TestPanelEndpoints(unittest.TestCase):
         url = mock_get.call_args[0][0]
         self.assertEqual(url, f"{API_URL}/ws/model-evals/e1/recommendations")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_vector_analysis_passes_confidence(self, mock_get):
         mock_get.return_value = _resp(200, {"clusters": []})
 
@@ -152,7 +152,7 @@ class TestPanelEndpoints(unittest.TestCase):
 class TestErrorMapping(unittest.TestCase):
     """Typed errors are routed to the right exception subclass."""
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_404_flat_envelope(self, mock_get):
         # Server returns the flat shape: {"error": "code", "message": "..."}
         mock_get.return_value = _resp(404, {"error": "model_eval_not_found", "message": "Eval 'x' not found"})
@@ -161,7 +161,7 @@ class TestErrorMapping(unittest.TestCase):
             rfapi.get_model_eval("k", "ws", "x")
         self.assertIn("Eval 'x' not found", str(ctx.exception))
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_404_status_code_fallback(self, mock_get):
         # No `error` field at all — fall back to the status code mapping.
         mock_get.return_value = _resp(404, {"message": "something went wrong"})
@@ -169,28 +169,28 @@ class TestErrorMapping(unittest.TestCase):
         with self.assertRaises(rfapi.ModelEvalNotFoundError):
             rfapi.get_model_eval("k", "ws", "x")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_409_not_done(self, mock_get):
         mock_get.return_value = _resp(409, {"error": "model_eval_not_done", "message": "Eval still running"})
 
         with self.assertRaises(rfapi.ModelEvalNotDoneError):
             rfapi.get_model_eval_map_results("k", "ws", "x")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_400_invalid_split(self, mock_get):
         mock_get.return_value = _resp(400, {"error": "invalid_split", "message": "Invalid split"})
 
         with self.assertRaises(rfapi.InvalidSplitError):
             rfapi.get_model_eval_performance_by_class("k", "ws", "x", split="all")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_400_invalid_confidence(self, mock_get):
         mock_get.return_value = _resp(400, {"error": "invalid_confidence", "message": "out of range"})
 
         with self.assertRaises(rfapi.InvalidConfidenceError):
             rfapi.get_model_eval_confusion_matrix("k", "ws", "x", confidence=200)
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_unknown_404_falls_back_to_not_found(self, mock_get):
         # 404 without a recognised code still maps by status code (forward-compat).
         mock_get.return_value = _resp(404, {"error": "some_new_code", "message": "?"})
@@ -198,7 +198,7 @@ class TestErrorMapping(unittest.TestCase):
         with self.assertRaises(rfapi.ModelEvalNotFoundError):
             rfapi.get_model_eval("k", "ws", "x")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_unknown_500_raises_generic_roboflow_error(self, mock_get):
         mock_get.return_value = _resp(500, {"error": "server_oops", "message": "boom"})
 
@@ -208,7 +208,7 @@ class TestErrorMapping(unittest.TestCase):
         self.assertNotIsInstance(ctx.exception, rfapi.ModelEvalNotFoundError)
         self.assertNotIsInstance(ctx.exception, rfapi.ModelEvalNotDoneError)
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.adapters.rfapi._session.get")
     def test_non_json_body_falls_back_to_text(self, mock_get):
         # Some misbehaving proxies return HTML 502s — make sure we don't crash.
         bad = MagicMock(status_code=502, text="<html>Bad Gateway</html>")
