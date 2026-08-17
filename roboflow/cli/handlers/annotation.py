@@ -221,7 +221,7 @@ def job_create(
     """Create an annotation job from a batch."""
     _simple_command(
         ctx_to_args(ctx, project=project),
-        "create_annotation_job",
+        "create_annotation_job_from_batch",
         batch_id=batch,
         labeler_email=labeler,
         reviewer_email=reviewer,

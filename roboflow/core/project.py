@@ -999,7 +999,7 @@ class Project:
         if not batch_id or not labeler_email or not reviewer_email:
             raise ValueError("batch_id, labeler_email, and reviewer_email are required")
         try:
-            return rfapi.create_annotation_job(
+            return rfapi.create_annotation_job_from_batch(
                 self.__api_key,
                 self.__workspace,
                 self.__project_name,

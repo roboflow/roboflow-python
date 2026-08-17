@@ -1056,7 +1056,22 @@ def list_annotation_job_images(api_key, workspace_url, project_url, job_id, *, l
     return _annotation_administration_response(response)
 
 
-def create_annotation_job(
+def create_annotation_job(api_key, workspace_url, project_url, *, name, batch_id=None, assignees=None):
+    """Create an annotation job with the established low-level adapter contract."""
+    payload = {"name": name}
+    if batch_id:
+        payload["batchId"] = batch_id
+    if assignees:
+        payload["assignees"] = assignees
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/jobs",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    return _annotation_administration_response(response)
+
+
+def create_annotation_job_from_batch(
     api_key,
     workspace_url,
     project_url,
@@ -1068,7 +1083,7 @@ def create_annotation_job(
     num_images=None,
     instructions=None,
 ):
-    """Create a job through the established jobs endpoint."""
+    """Create a fully assigned job through the established jobs endpoint."""
     payload = {
         "name": name,
         "batch": batch_id,

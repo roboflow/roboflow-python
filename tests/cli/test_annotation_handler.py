@@ -187,7 +187,7 @@ class TestJobGet(unittest.TestCase):
 class TestJobCreate(unittest.TestCase):
     """annotation job create"""
 
-    @patch("roboflow.adapters.rfapi.create_annotation_job")
+    @patch("roboflow.adapters.rfapi.create_annotation_job_from_batch")
     @patch(_RESOLVE, return_value=("key", "ws", "proj"))
     def test_text_output(self, _resolve, mock_api):
         mock_api.return_value = {"id": "42", "name": "new-job"}
@@ -225,7 +225,7 @@ class TestJobCreate(unittest.TestCase):
             instructions=None,
         )
 
-    @patch("roboflow.adapters.rfapi.create_annotation_job")
+    @patch("roboflow.adapters.rfapi.create_annotation_job_from_batch")
     @patch(_RESOLVE, return_value=("key", "ws", "proj"))
     def test_json_output(self, _resolve, mock_api):
         mock_api.return_value = {"id": "42", "name": "new-job"}

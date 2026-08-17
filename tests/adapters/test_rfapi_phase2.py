@@ -91,58 +91,31 @@ class TestCreateAnnotationJob(unittest.TestCase):
         from roboflow.adapters.rfapi import create_annotation_job
 
         mock_post.return_value = MagicMock(status_code=201, json=lambda: {"job": {"id": "j2"}})
-        result = create_annotation_job(
-            "key",
-            "ws",
-            "proj",
-            name="my-job",
-            batch_id="b1",
-            labeler_email="labeler@example.com",
-            reviewer_email="reviewer@example.com",
-        )
+        result = create_annotation_job("key", "ws", "proj", name="my-job", batch_id="b1")
         self.assertEqual(result["job"]["id"], "j2")
         # Verify URL and payload
         call_args = mock_post.call_args
         self.assertIn("/ws/proj/jobs", call_args[0][0])
         payload = call_args[1]["json"]
         self.assertEqual(payload["name"], "my-job")
-        self.assertEqual(payload["batch"], "b1")
-        self.assertEqual(payload["labelerEmail"], "labeler@example.com")
-        self.assertEqual(payload["reviewerEmail"], "reviewer@example.com")
+        self.assertEqual(payload["batchId"], "b1")
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_success_200(self, mock_post):
         from roboflow.adapters.rfapi import create_annotation_job
 
         mock_post.return_value = MagicMock(status_code=200, json=lambda: {"job": {"id": "j3"}})
-        result = create_annotation_job(
-            "key",
-            "ws",
-            "proj",
-            batch_id="b1",
-            labeler_email="labeler@example.com",
-            reviewer_email="reviewer@example.com",
-        )
+        result = create_annotation_job("key", "ws", "proj", name="my-job")
         self.assertEqual(result["job"]["id"], "j3")
 
     @patch("roboflow.adapters.rfapi.requests.post")
-    def test_with_optional_fields(self, mock_post):
+    def test_with_assignees(self, mock_post):
         from roboflow.adapters.rfapi import create_annotation_job
 
         mock_post.return_value = MagicMock(status_code=201, json=lambda: {"job": {"id": "j4"}})
-        create_annotation_job(
-            "key",
-            "ws",
-            "proj",
-            batch_id="b1",
-            labeler_email="labeler@example.com",
-            reviewer_email="reviewer@example.com",
-            num_images=10,
-            instructions="Use the guide",
-        )
+        create_annotation_job("key", "ws", "proj", name="j", assignees=["a@b.com"])
         payload = mock_post.call_args[1]["json"]
-        self.assertEqual(payload["num_images"], 10)
-        self.assertEqual(payload["instructionText"], "Use the guide")
+        self.assertEqual(payload["assignees"], ["a@b.com"])
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_error(self, mock_post):
@@ -150,14 +123,7 @@ class TestCreateAnnotationJob(unittest.TestCase):
 
         mock_post.return_value = MagicMock(status_code=400, text="Bad request")
         with self.assertRaises(RoboflowError):
-            create_annotation_job(
-                "key",
-                "ws",
-                "proj",
-                batch_id="b1",
-                labeler_email="labeler@example.com",
-                reviewer_email="reviewer@example.com",
-            )
+            create_annotation_job("key", "ws", "proj", name="j")
 
 
 class TestListFolders(unittest.TestCase):

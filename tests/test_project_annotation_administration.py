@@ -60,7 +60,7 @@ class TestProjectAnnotationAdministration(RoboflowTest):
                     "reviewer_email": "reviewer@example.com",
                     "instructions": "Guide",
                 },
-                "create_annotation_job",
+                "create_annotation_job_from_batch",
             ),
             (
                 "create_annotation_job_admin",
