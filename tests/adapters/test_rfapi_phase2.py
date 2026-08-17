@@ -54,9 +54,8 @@ class TestListAnnotationJobs(unittest.TestCase):
         mock_get.return_value = MagicMock(status_code=200, json=lambda: {"jobs": []})
         result = list_annotation_jobs("key", "ws", "proj")
         self.assertEqual(result, {"jobs": []})
-        self.assertIn("/ws/proj/annotation-jobs", mock_get.call_args[0][0])
-        self.assertEqual(mock_get.call_args.kwargs["params"]["limit"], 50)
-        self.assertEqual(mock_get.call_args.kwargs["params"]["showEmpty"], "false")
+        self.assertIn("/ws/proj/jobs", mock_get.call_args[0][0])
+        self.assertEqual(mock_get.call_args.kwargs["params"], {"api_key": "key"})
 
     @patch("roboflow.adapters.rfapi.requests.get")
     def test_error(self, mock_get):

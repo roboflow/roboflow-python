@@ -41,7 +41,13 @@ class TestProjectAnnotationAdministration(RoboflowTest):
 
     def test_job_wrappers_delegate_to_rfapi(self):
         cases = [
-            ("get_annotation_jobs", (), {"limit": 10, "after": "cursor", "show_empty": True}, "list_annotation_jobs"),
+            ("get_annotation_jobs", (), {}, "list_annotation_jobs"),
+            (
+                "get_annotation_jobs_admin",
+                (),
+                {"limit": 10, "after": "cursor", "show_empty": True},
+                "list_annotation_jobs_admin",
+            ),
             ("get_annotation_job", ("job-1",), {}, "get_annotation_job"),
             ("get_annotation_job_images", ("job-1",), {"limit": 5, "after": "next"}, "list_annotation_job_images"),
             (

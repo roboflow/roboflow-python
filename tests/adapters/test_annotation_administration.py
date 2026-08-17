@@ -72,7 +72,7 @@ class TestAnnotationJobAdministration(unittest.TestCase):
     def test_read_contracts(self, mock_get):
         mock_get.return_value = _response()
 
-        rfapi.list_annotation_jobs("key", "ws", "proj", limit=20, after="cursor", show_empty=True)
+        rfapi.list_annotation_jobs_admin("key", "ws", "proj", limit=20, after="cursor", show_empty=True)
         self.assertTrue(mock_get.call_args.args[0].endswith("/ws/proj/annotation-jobs"))
         self.assertEqual(
             mock_get.call_args.kwargs["params"],

@@ -146,12 +146,9 @@ def batch_delete(
 def job_list(
     ctx: typer.Context,
     project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
-    limit: Annotated[int, typer.Option(help="Maximum jobs to return, from 1 to 200")] = 50,
-    after: Annotated[Optional[str], typer.Option(help="Continuation token from the previous page")] = None,
-    show_empty: Annotated[bool, typer.Option("--show-empty", help="Include jobs with no images")] = False,
 ) -> None:
     """List annotation jobs with legacy list-only output."""
-    _job_list(ctx_to_args(ctx, project=project), limit=limit, after=after, show_empty=show_empty)
+    _job_list(ctx_to_args(ctx, project=project))
 
 
 @job_app.command("admin-list")
@@ -165,7 +162,7 @@ def job_admin_list(
     """List annotation jobs with the full paginated response."""
     _simple_command(
         ctx_to_args(ctx, project=project),
-        "list_annotation_jobs",
+        "list_annotation_jobs_admin",
         limit=limit,
         after=after,
         show_empty=show_empty,
@@ -486,17 +483,12 @@ def _batch_list(args: Any) -> None:
     output(args, batches, text=table)
 
 
-def _job_list(args: Any, *, limit: int, after: Optional[str], show_empty: bool) -> None:
+def _job_list(args: Any) -> None:
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output
     from roboflow.cli._table import format_table
 
-    data = _call(
-        args,
-        lambda key, workspace, project: rfapi.list_annotation_jobs(
-            key, workspace, project, limit=limit, after=after, show_empty=show_empty
-        ),
-    )
+    data = _call(args, lambda key, workspace, project: rfapi.list_annotation_jobs(key, workspace, project))
     if data is None:
         return
     jobs = data if isinstance(data, list) else data.get("jobs", data)

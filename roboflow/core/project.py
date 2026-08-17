@@ -941,9 +941,13 @@ class Project:
             permanent=permanent,
         )
 
-    def get_annotation_jobs(self, limit: int = 50, after: Optional[str] = None, show_empty: bool = False) -> Dict:
-        """List annotation jobs with cursor pagination."""
-        return rfapi.list_annotation_jobs(
+    def get_annotation_jobs(self) -> Dict:
+        """List all annotation jobs through the established jobs endpoint."""
+        return rfapi.list_annotation_jobs(self.__api_key, self.__workspace, self.__project_name)
+
+    def get_annotation_jobs_admin(self, limit: int = 50, after: Optional[str] = None, show_empty: bool = False) -> Dict:
+        """List annotation jobs through the administration endpoint with cursor pagination."""
+        return rfapi.list_annotation_jobs_admin(
             self.__api_key,
             self.__workspace,
             self.__project_name,

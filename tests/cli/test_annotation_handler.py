@@ -276,7 +276,7 @@ class TestJobCreate(unittest.TestCase):
 
 
 class TestAnnotationAdministrationCommands(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.list_annotation_jobs")
+    @patch("roboflow.adapters.rfapi.list_annotation_jobs_admin")
     @patch(_RESOLVE, return_value=("key", "ws", "proj"))
     def test_admin_list_preserves_pagination_response(self, _resolve, mock_api):
         mock_api.return_value = {"jobs": [{"id": "job-1"}], "continuationToken": "next"}

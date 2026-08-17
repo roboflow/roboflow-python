@@ -1011,8 +1011,17 @@ def delete_annotation_batch(api_key, workspace_url, project_url, batch_id, *, pe
     return _annotation_administration_response(response)
 
 
-def list_annotation_jobs(api_key, workspace_url, project_url, *, limit=50, after=None, show_empty=False):
-    """List annotation jobs with cursor pagination."""
+def list_annotation_jobs(api_key, workspace_url, project_url):
+    """List all annotation jobs through the established jobs endpoint."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/{project_url}/jobs",
+        params={"api_key": api_key},
+    )
+    return _annotation_administration_response(response)
+
+
+def list_annotation_jobs_admin(api_key, workspace_url, project_url, *, limit=50, after=None, show_empty=False):
+    """List annotation jobs through the administration endpoint with cursor pagination."""
     response = requests.get(
         f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs",
         params=_annotation_pagination_params(api_key, limit=limit, after=after, show_empty=show_empty),
