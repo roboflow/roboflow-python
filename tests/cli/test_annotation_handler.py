@@ -400,6 +400,28 @@ class TestAnnotationAdministrationCommands(unittest.TestCase):
         self.assertEqual(result.exit_code, 0, result.output)
         mock_api.assert_called_once_with("key", "ws", "proj", source_batch_ids=["source"], target_batch_id="target")
 
+    @patch("roboflow.adapters.rfapi.add_images_to_annotation_job")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_job_add_images_requires_yes_non_interactively(self, _resolve, mock_api):
+        command = [
+            "annotation",
+            "job",
+            "add-images",
+            "job-1",
+            "-p",
+            "ws/proj",
+            "--image-id",
+            "image-1",
+        ]
+        result = runner.invoke(app, command)
+        self.assertEqual(result.exit_code, 1)
+        mock_api.assert_not_called()
+
+        mock_api.return_value = {"movedImageCount": 1}
+        result = runner.invoke(app, [*command, "--yes"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with("key", "ws", "proj", "job-1", image_ids=["image-1"])
+
     @patch("roboflow.adapters.rfapi.accept_annotation_job_images")
     @patch(_RESOLVE, return_value=("key", "ws", "proj"))
     def test_job_accept_maps_lists_and_split_counts(self, _resolve, mock_api):

@@ -288,15 +288,18 @@ def job_add_images(
     job_id: Annotated[str, typer.Argument(help="Target annotation job ID")],
     project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
     image_ids: Annotated[list[str], typer.Option("--image-id", help="Image ID to add; repeat for multiple images")],
+    yes: Annotated[bool, typer.Option("-y", "--yes", help="Confirm reassignment of the images")] = False,
 ) -> None:
     """Move selected images into an existing annotation job."""
-    _simple_command(
-        ctx_to_args(ctx, project=project),
-        "add_images_to_annotation_job",
-        job_id,
-        image_ids=image_ids,
-        success="Added images to the annotation job.",
-    )
+    args = ctx_to_args(ctx, project=project, yes=yes)
+    if _confirm(args, "Move these images out of their current assignments and into this job?"):
+        _simple_command(
+            args,
+            "add_images_to_annotation_job",
+            job_id,
+            image_ids=image_ids,
+            success="Added images to the annotation job.",
+        )
 
 
 @job_app.command("update")
