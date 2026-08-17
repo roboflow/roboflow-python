@@ -179,6 +179,16 @@ def job_get(
     _simple_command(ctx_to_args(ctx, project=project), "get_annotation_job", job_id)
 
 
+@job_app.command("admin-get")
+def job_admin_get(
+    ctx: typer.Context,
+    job_id: Annotated[str, typer.Argument(help="Annotation job ID")],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+) -> None:
+    """Get an annotation job through the administration endpoint."""
+    _simple_command(ctx_to_args(ctx, project=project), "get_annotation_job_admin", job_id)
+
+
 @job_app.command("images")
 def job_images(
     ctx: typer.Context,
@@ -212,6 +222,31 @@ def job_create(
     _simple_command(
         ctx_to_args(ctx, project=project),
         "create_annotation_job",
+        batch_id=batch,
+        labeler_email=labeler,
+        reviewer_email=reviewer,
+        name=name,
+        num_images=num_images,
+        instructions=instructions,
+        success=f"Created annotation job{f': {name}' if name else '.'}",
+    )
+
+
+@job_app.command("admin-create")
+def job_admin_create(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+    batch: Annotated[str, typer.Option(help="Source batch ID")],
+    labeler: Annotated[str, typer.Option(help="Labeler email")],
+    reviewer: Annotated[str, typer.Option(help="Reviewer email")],
+    name: Annotated[Optional[str], typer.Option(help="Optional job name")] = None,
+    num_images: Annotated[Optional[int], typer.Option("--num-images", help="Number of images")] = None,
+    instructions: Annotated[Optional[str], typer.Option(help="Labeling instructions")] = None,
+) -> None:
+    """Create an annotation job through the administration endpoint."""
+    _simple_command(
+        ctx_to_args(ctx, project=project),
+        "create_annotation_job_admin",
         batch_id=batch,
         labeler_email=labeler,
         reviewer_email=reviewer,

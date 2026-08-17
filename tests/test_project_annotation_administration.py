@@ -49,6 +49,7 @@ class TestProjectAnnotationAdministration(RoboflowTest):
                 "list_annotation_jobs_admin",
             ),
             ("get_annotation_job", ("job-1",), {}, "get_annotation_job"),
+            ("get_annotation_job_admin", ("job-1",), {}, "get_annotation_job_admin"),
             ("get_annotation_job_images", ("job-1",), {"limit": 5, "after": "next"}, "list_annotation_job_images"),
             (
                 "create_annotation_job",
@@ -60,6 +61,17 @@ class TestProjectAnnotationAdministration(RoboflowTest):
                     "instructions": "Guide",
                 },
                 "create_annotation_job",
+            ),
+            (
+                "create_annotation_job_admin",
+                (),
+                {
+                    "batch_id": "batch-1",
+                    "labeler_email": "labeler@example.com",
+                    "reviewer_email": "reviewer@example.com",
+                    "instructions": "Guide",
+                },
+                "create_annotation_job_admin",
             ),
             (
                 "reassign_annotation_job_images",

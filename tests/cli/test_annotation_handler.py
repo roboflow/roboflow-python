@@ -42,6 +42,8 @@ class TestAnnotationParserRegistration(unittest.TestCase):
             "batch": ["admin-list", "admin-get", "images", "create", "merge", "delete"],
             "job": [
                 "admin-list",
+                "admin-get",
+                "admin-create",
                 "images",
                 "reassign-images",
                 "add-images",
@@ -299,6 +301,48 @@ class TestAnnotationAdministrationCommands(unittest.TestCase):
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(json.loads(result.output)["continuationToken"], "next")
         mock_api.assert_called_once_with("key", "ws", "proj", limit=10, after="cursor", show_empty=True)
+
+    @patch("roboflow.adapters.rfapi.get_annotation_job_admin")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_admin_get_uses_administration_adapter(self, _resolve, mock_api):
+        mock_api.return_value = {"id": "job-1"}
+        result = runner.invoke(app, ["--json", "annotation", "job", "admin-get", "job-1", "-p", "ws/proj"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with("key", "ws", "proj", "job-1")
+
+    @patch("roboflow.adapters.rfapi.create_annotation_job_admin")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_admin_create_uses_administration_adapter(self, _resolve, mock_api):
+        mock_api.return_value = {"id": "job-1"}
+        result = runner.invoke(
+            app,
+            [
+                "--json",
+                "annotation",
+                "job",
+                "admin-create",
+                "-p",
+                "ws/proj",
+                "--batch",
+                "batch-1",
+                "--labeler",
+                "labeler@example.com",
+                "--reviewer",
+                "reviewer@example.com",
+            ],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with(
+            "key",
+            "ws",
+            "proj",
+            batch_id="batch-1",
+            labeler_email="labeler@example.com",
+            reviewer_email="reviewer@example.com",
+            name=None,
+            num_images=None,
+            instructions=None,
+        )
 
     @patch("roboflow.adapters.rfapi.create_annotation_batch")
     @patch(_RESOLVE, return_value=("key", "ws", "proj"))

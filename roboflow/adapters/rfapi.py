@@ -1030,7 +1030,16 @@ def list_annotation_jobs_admin(api_key, workspace_url, project_url, *, limit=50,
 
 
 def get_annotation_job(api_key, workspace_url, project_url, job_id):
-    """Get one annotation job."""
+    """Get one annotation job through the established jobs endpoint."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/{project_url}/jobs/{job_id}",
+        params={"api_key": api_key},
+    )
+    return _annotation_administration_response(response)
+
+
+def get_annotation_job_admin(api_key, workspace_url, project_url, job_id):
+    """Get one annotation job through the administration endpoint."""
     response = requests.get(
         f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}",
         params={"api_key": api_key},
@@ -1059,7 +1068,37 @@ def create_annotation_job(
     num_images=None,
     instructions=None,
 ):
-    """Create a job and move images from a batch into it."""
+    """Create a job through the established jobs endpoint."""
+    payload = {
+        "name": name,
+        "batch": batch_id,
+        "num_images": num_images,
+        "labelerEmail": labeler_email,
+        "reviewerEmail": reviewer_email,
+    }
+    if instructions is not None:
+        payload["instructionText"] = instructions
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/jobs",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    return _annotation_administration_response(response)
+
+
+def create_annotation_job_admin(
+    api_key,
+    workspace_url,
+    project_url,
+    *,
+    batch_id,
+    labeler_email,
+    reviewer_email,
+    name=None,
+    num_images=None,
+    instructions=None,
+):
+    """Create a job through the administration endpoint."""
     payload = {
         "batchId": batch_id,
         "labelerEmail": labeler_email,

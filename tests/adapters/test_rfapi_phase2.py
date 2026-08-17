@@ -74,7 +74,7 @@ class TestGetAnnotationJob(unittest.TestCase):
         mock_get.return_value = MagicMock(status_code=200, json=lambda: {"job": {"id": "j1", "name": "job1"}})
         result = get_annotation_job("key", "ws", "proj", "j1")
         self.assertEqual(result["job"]["id"], "j1")
-        self.assertIn("/ws/proj/annotation-jobs/j1", mock_get.call_args[0][0])
+        self.assertIn("/ws/proj/jobs/j1", mock_get.call_args[0][0])
 
     @patch("roboflow.adapters.rfapi.requests.get")
     def test_error(self, mock_get):
@@ -103,10 +103,10 @@ class TestCreateAnnotationJob(unittest.TestCase):
         self.assertEqual(result["job"]["id"], "j2")
         # Verify URL and payload
         call_args = mock_post.call_args
-        self.assertIn("/ws/proj/annotation-jobs", call_args[0][0])
+        self.assertIn("/ws/proj/jobs", call_args[0][0])
         payload = call_args[1]["json"]
         self.assertEqual(payload["name"], "my-job")
-        self.assertEqual(payload["batchId"], "b1")
+        self.assertEqual(payload["batch"], "b1")
         self.assertEqual(payload["labelerEmail"], "labeler@example.com")
         self.assertEqual(payload["reviewerEmail"], "reviewer@example.com")
 
@@ -141,8 +141,8 @@ class TestCreateAnnotationJob(unittest.TestCase):
             instructions="Use the guide",
         )
         payload = mock_post.call_args[1]["json"]
-        self.assertEqual(payload["numImages"], 10)
-        self.assertEqual(payload["instructions"], "Use the guide")
+        self.assertEqual(payload["num_images"], 10)
+        self.assertEqual(payload["instructionText"], "Use the guide")
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_error(self, mock_post):

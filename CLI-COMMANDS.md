@@ -178,6 +178,9 @@ roboflow annotation batch merge -p my-project --source-batch-id <source-id> \
   --target-batch-id <target-id> --yes
 
 roboflow annotation job admin-list -p my-project --limit 50
+roboflow annotation job admin-get <job-id> -p my-project
+roboflow annotation job admin-create -p my-project --batch <batch-id> \
+  --labeler a@co.com --reviewer b@co.com --name "Label round 1"
 roboflow annotation job create -p my-project --name "Label round 1" \
   --batch <batch-id> --num-images 100 --labeler a@co.com --reviewer b@co.com
 roboflow annotation job images <job-id> -p my-project
@@ -197,7 +200,7 @@ The same operations are available from a `Project` in Python:
 
 ```python
 batches = project.get_annotation_batches(limit=50)
-job = project.create_annotation_job(
+job = project.create_annotation_job_admin(
     batch_id="batch-id",
     labeler_email="labeler@example.com",
     reviewer_email="reviewer@example.com",

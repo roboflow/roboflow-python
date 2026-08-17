@@ -967,6 +967,10 @@ class Project:
         """
         return rfapi.get_annotation_job(self.__api_key, self.__workspace, self.__project_name, job_id)
 
+    def get_annotation_job_admin(self, job_id: str) -> Dict:
+        """Get one annotation job through the administration endpoint."""
+        return rfapi.get_annotation_job_admin(self.__api_key, self.__workspace, self.__project_name, job_id)
+
     def get_annotation_job_images(self, job_id: str, limit: int = 50, after: Optional[str] = None) -> Dict:
         """List image IDs assigned to an annotation job with cursor pagination."""
         return rfapi.list_annotation_job_images(
@@ -1009,6 +1013,30 @@ class Project:
         except rfapi.RoboflowError as exc:
             # This public method historically raised RuntimeError for API failures.
             raise RuntimeError(str(exc)) from exc
+
+    def create_annotation_job_admin(
+        self,
+        name: Optional[str] = None,
+        batch_id: Optional[str] = None,
+        num_images: Optional[int] = None,
+        labeler_email: Optional[str] = None,
+        reviewer_email: Optional[str] = None,
+        instructions: Optional[str] = None,
+    ) -> Dict:
+        """Create a job through the administration endpoint."""
+        if not batch_id or not labeler_email or not reviewer_email:
+            raise ValueError("batch_id, labeler_email, and reviewer_email are required")
+        return rfapi.create_annotation_job_admin(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            batch_id=batch_id,
+            labeler_email=labeler_email,
+            reviewer_email=reviewer_email,
+            name=name,
+            num_images=num_images,
+            instructions=instructions,
+        )
 
     def reassign_annotation_job_images(
         self,

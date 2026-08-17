@@ -79,7 +79,7 @@ class TestAnnotationJobAdministration(unittest.TestCase):
             {"api_key": "key", "limit": 20, "after": "cursor", "showEmpty": "true"},
         )
 
-        rfapi.get_annotation_job("key", "ws", "proj", "job-1")
+        rfapi.get_annotation_job_admin("key", "ws", "proj", "job-1")
         self.assertTrue(mock_get.call_args.args[0].endswith("/annotation-jobs/job-1"))
 
         rfapi.list_annotation_job_images("key", "ws", "proj", "job-1", limit=5, after="next")
@@ -93,7 +93,7 @@ class TestAnnotationJobAdministration(unittest.TestCase):
     def test_create_reassign_and_add_contracts(self, mock_post):
         mock_post.return_value = _response()
 
-        rfapi.create_annotation_job(
+        rfapi.create_annotation_job_admin(
             "key",
             "ws",
             "proj",
