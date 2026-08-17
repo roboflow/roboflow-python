@@ -54,7 +54,9 @@ class TestListAnnotationJobs(unittest.TestCase):
         mock_get.return_value = MagicMock(status_code=200, json=lambda: {"jobs": []})
         result = list_annotation_jobs("key", "ws", "proj")
         self.assertEqual(result, {"jobs": []})
-        self.assertIn("/ws/proj/jobs", mock_get.call_args[0][0])
+        self.assertIn("/ws/proj/annotation-jobs", mock_get.call_args[0][0])
+        self.assertEqual(mock_get.call_args.kwargs["params"]["limit"], 50)
+        self.assertEqual(mock_get.call_args.kwargs["params"]["showEmpty"], "false")
 
     @patch("roboflow.adapters.rfapi.requests.get")
     def test_error(self, mock_get):
@@ -73,7 +75,7 @@ class TestGetAnnotationJob(unittest.TestCase):
         mock_get.return_value = MagicMock(status_code=200, json=lambda: {"job": {"id": "j1", "name": "job1"}})
         result = get_annotation_job("key", "ws", "proj", "j1")
         self.assertEqual(result["job"]["id"], "j1")
-        self.assertIn("/ws/proj/jobs/j1", mock_get.call_args[0][0])
+        self.assertIn("/ws/proj/annotation-jobs/j1", mock_get.call_args[0][0])
 
     @patch("roboflow.adapters.rfapi.requests.get")
     def test_error(self, mock_get):
@@ -90,31 +92,58 @@ class TestCreateAnnotationJob(unittest.TestCase):
         from roboflow.adapters.rfapi import create_annotation_job
 
         mock_post.return_value = MagicMock(status_code=201, json=lambda: {"job": {"id": "j2"}})
-        result = create_annotation_job("key", "ws", "proj", name="my-job", batch_id="b1")
+        result = create_annotation_job(
+            "key",
+            "ws",
+            "proj",
+            name="my-job",
+            batch_id="b1",
+            labeler_email="labeler@example.com",
+            reviewer_email="reviewer@example.com",
+        )
         self.assertEqual(result["job"]["id"], "j2")
         # Verify URL and payload
         call_args = mock_post.call_args
-        self.assertIn("/ws/proj/jobs", call_args[0][0])
+        self.assertIn("/ws/proj/annotation-jobs", call_args[0][0])
         payload = call_args[1]["json"]
         self.assertEqual(payload["name"], "my-job")
         self.assertEqual(payload["batchId"], "b1")
+        self.assertEqual(payload["labelerEmail"], "labeler@example.com")
+        self.assertEqual(payload["reviewerEmail"], "reviewer@example.com")
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_success_200(self, mock_post):
         from roboflow.adapters.rfapi import create_annotation_job
 
         mock_post.return_value = MagicMock(status_code=200, json=lambda: {"job": {"id": "j3"}})
-        result = create_annotation_job("key", "ws", "proj", name="my-job")
+        result = create_annotation_job(
+            "key",
+            "ws",
+            "proj",
+            batch_id="b1",
+            labeler_email="labeler@example.com",
+            reviewer_email="reviewer@example.com",
+        )
         self.assertEqual(result["job"]["id"], "j3")
 
     @patch("roboflow.adapters.rfapi.requests.post")
-    def test_with_assignees(self, mock_post):
+    def test_with_optional_fields(self, mock_post):
         from roboflow.adapters.rfapi import create_annotation_job
 
         mock_post.return_value = MagicMock(status_code=201, json=lambda: {"job": {"id": "j4"}})
-        create_annotation_job("key", "ws", "proj", name="j", assignees=["a@b.com"])
+        create_annotation_job(
+            "key",
+            "ws",
+            "proj",
+            batch_id="b1",
+            labeler_email="labeler@example.com",
+            reviewer_email="reviewer@example.com",
+            num_images=10,
+            instructions="Use the guide",
+        )
         payload = mock_post.call_args[1]["json"]
-        self.assertEqual(payload["assignees"], ["a@b.com"])
+        self.assertEqual(payload["numImages"], 10)
+        self.assertEqual(payload["instructions"], "Use the guide")
 
     @patch("roboflow.adapters.rfapi.requests.post")
     def test_error(self, mock_post):
@@ -122,7 +151,14 @@ class TestCreateAnnotationJob(unittest.TestCase):
 
         mock_post.return_value = MagicMock(status_code=400, text="Bad request")
         with self.assertRaises(RoboflowError):
-            create_annotation_job("key", "ws", "proj", name="j")
+            create_annotation_job(
+                "key",
+                "ws",
+                "proj",
+                batch_id="b1",
+                labeler_email="labeler@example.com",
+                reviewer_email="reviewer@example.com",
+            )
 
 
 class TestListFolders(unittest.TestCase):

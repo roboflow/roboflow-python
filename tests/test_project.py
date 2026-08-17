@@ -282,7 +282,7 @@ class TestProject(RoboflowTest):
             },
         }
 
-        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/jobs?api_key={ROBOFLOW_API_KEY}"
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/annotation-jobs?api_key={ROBOFLOW_API_KEY}"
 
         responses.add(
             responses.POST,
@@ -293,8 +293,8 @@ class TestProject(RoboflowTest):
                 json_params_matcher(
                     {
                         "name": job_name,
-                        "batch": batch_id,
-                        "num_images": num_images,
+                        "batchId": batch_id,
+                        "numImages": num_images,
                         "labelerEmail": labeler_email,
                         "reviewerEmail": reviewer_email,
                     }
@@ -324,7 +324,7 @@ class TestProject(RoboflowTest):
 
         error_response = {"error": "Batch not found"}
 
-        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/jobs?api_key={ROBOFLOW_API_KEY}"
+        expected_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/annotation-jobs?api_key={ROBOFLOW_API_KEY}"
 
         responses.add(responses.POST, expected_url, json=error_response, status=404)
 

@@ -936,56 +936,325 @@ def get_zip_upload_status(api_key, workspace_url, task_id) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Phase 2: Annotation batch & job endpoints
+# Annotation batch & job endpoints
 # ---------------------------------------------------------------------------
 
 
 def list_batches(api_key, workspace_url, project_url):
-    """GET /{ws}/{proj}/batches — list annotation batches."""
+    """GET /{ws}/{proj}/batches — list established upload batches."""
     response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches", params={"api_key": api_key})
-    if response.status_code != 200:
-        raise RoboflowError(response.text)
-    return response.json()
+    return _annotation_administration_response(response)
 
 
 def get_batch(api_key, workspace_url, project_url, batch_id):
-    """GET /{ws}/{proj}/batches/{batch_id} — get batch details."""
+    """GET /{ws}/{proj}/batches/{batch_id} — get an established upload batch."""
     response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/batches/{batch_id}", params={"api_key": api_key})
-    if response.status_code != 200:
-        raise RoboflowError(response.text)
-    return response.json()
+    return _annotation_administration_response(response)
 
 
-def list_annotation_jobs(api_key, workspace_url, project_url):
-    """GET /{ws}/{proj}/jobs — list annotation jobs."""
-    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs", params={"api_key": api_key})
-    if response.status_code != 200:
-        raise RoboflowError(response.text)
-    return response.json()
+def list_annotation_batches(api_key, workspace_url, project_url, *, limit=50, after=None, show_empty=False):
+    """List annotation-board batches with cursor pagination."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-batches",
+        params=_annotation_pagination_params(api_key, limit=limit, after=after, show_empty=show_empty),
+    )
+    return _annotation_administration_response(response)
 
 
-def get_annotation_job(api_key, workspace_url, project_url, job_id):
-    """GET /{ws}/{proj}/jobs/{job_id} — get annotation job details."""
-    response = requests.get(f"{API_URL}/{workspace_url}/{project_url}/jobs/{job_id}", params={"api_key": api_key})
-    if response.status_code != 200:
-        raise RoboflowError(response.text)
-    return response.json()
+def get_annotation_batch(api_key, workspace_url, project_url, batch_id):
+    """Get one annotation-board batch."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-batches/{batch_id}",
+        params={"api_key": api_key},
+    )
+    return _annotation_administration_response(response)
 
 
-def create_annotation_job(api_key, workspace_url, project_url, *, name, batch_id=None, assignees=None):
-    """POST /{ws}/{proj}/jobs — create an annotation job."""
-    payload = {"name": name}
-    if batch_id:
-        payload["batchId"] = batch_id
-    if assignees:
-        payload["assignees"] = assignees
+def list_annotation_batch_images(api_key, workspace_url, project_url, batch_id, *, limit=50, after=None):
+    """List image IDs in an annotation batch with cursor pagination."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-batches/{batch_id}/images",
+        params=_annotation_pagination_params(api_key, limit=limit, after=after),
+    )
+    return _annotation_administration_response(response)
+
+
+def create_annotation_batch(api_key, workspace_url, project_url, *, source_batch_id, image_ids, name=None):
+    """Move selected images from one batch into a new annotation batch."""
+    payload = {"sourceBatchId": source_batch_id, "imageIds": image_ids}
+    if name:
+        payload["name"] = name
     response = requests.post(
-        f"{API_URL}/{workspace_url}/{project_url}/jobs",
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-batches",
         params={"api_key": api_key},
         json=payload,
     )
-    if response.status_code not in (200, 201):
-        raise RoboflowError(response.text)
+    return _annotation_administration_response(response)
+
+
+def merge_annotation_batches(api_key, workspace_url, project_url, *, source_batch_ids, target_batch_id):
+    """Move source-batch images into a target batch and remove the emptied sources."""
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-batches/merge",
+        params={"api_key": api_key},
+        json={"sourceBatchIds": source_batch_ids, "targetBatchId": target_batch_id},
+    )
+    return _annotation_administration_response(response)
+
+
+def delete_annotation_batch(api_key, workspace_url, project_url, batch_id, *, permanent=False):
+    """Delete a batch, retaining its images as unassigned unless permanent is true."""
+    response = requests.delete(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-batches/{batch_id}",
+        params={"api_key": api_key, "permanent": str(permanent).lower()},
+    )
+    return _annotation_administration_response(response)
+
+
+def list_annotation_jobs(api_key, workspace_url, project_url, *, limit=50, after=None, show_empty=False):
+    """List annotation jobs with cursor pagination."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs",
+        params=_annotation_pagination_params(api_key, limit=limit, after=after, show_empty=show_empty),
+    )
+    return _annotation_administration_response(response)
+
+
+def get_annotation_job(api_key, workspace_url, project_url, job_id):
+    """Get one annotation job."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}",
+        params={"api_key": api_key},
+    )
+    return _annotation_administration_response(response)
+
+
+def list_annotation_job_images(api_key, workspace_url, project_url, job_id, *, limit=50, after=None):
+    """List image IDs assigned to a job with cursor pagination."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}/images",
+        params=_annotation_pagination_params(api_key, limit=limit, after=after),
+    )
+    return _annotation_administration_response(response)
+
+
+def create_annotation_job(
+    api_key,
+    workspace_url,
+    project_url,
+    *,
+    batch_id,
+    labeler_email,
+    reviewer_email,
+    name=None,
+    num_images=None,
+    instructions=None,
+):
+    """Create a job and move images from a batch into it."""
+    payload = {
+        "batchId": batch_id,
+        "labelerEmail": labeler_email,
+        "reviewerEmail": reviewer_email,
+    }
+    payload.update(
+        {
+            key: value
+            for key, value in {"name": name, "numImages": num_images, "instructions": instructions}.items()
+            if value is not None
+        }
+    )
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    return _annotation_administration_response(response)
+
+
+def reassign_annotation_job_images(
+    api_key,
+    workspace_url,
+    project_url,
+    *,
+    image_ids,
+    labeler_email,
+    reviewer_email=None,
+    instructions=None,
+    name=None,
+):
+    """Create a job by removing selected images from their prior assignment."""
+    payload = {"imageIds": image_ids, "labelerEmail": labeler_email}
+    payload.update(
+        {
+            key: value
+            for key, value in {
+                "reviewerEmail": reviewer_email,
+                "instructions": instructions,
+                "name": name,
+            }.items()
+            if value is not None
+        }
+    )
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/reassign-images",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    return _annotation_administration_response(response)
+
+
+def add_images_to_annotation_job(api_key, workspace_url, project_url, job_id, *, image_ids):
+    """Move selected images into an existing annotation job."""
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}/images",
+        params={"api_key": api_key},
+        json={"imageIds": image_ids},
+    )
+    return _annotation_administration_response(response)
+
+
+def update_annotation_job(
+    api_key,
+    workspace_url,
+    project_url,
+    job_id,
+    *,
+    labeler_email=None,
+    reviewer_email=None,
+    instructions=None,
+):
+    """Update exactly one of a job's labeler, reviewer, or instructions."""
+    payload = {
+        key: value
+        for key, value in {
+            "labelerEmail": labeler_email,
+            "reviewerEmail": reviewer_email,
+            "instructions": instructions,
+        }.items()
+        if value is not None
+    }
+    if len(payload) != 1:
+        raise ValueError("Provide exactly one of labeler_email, reviewer_email, or instructions")
+    response = requests.patch(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    return _annotation_administration_response(response)
+
+
+def submit_annotation_job_for_review(api_key, workspace_url, project_url, job_id):
+    """Advance a labeling job into review."""
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}/submit-review",
+        params={"api_key": api_key},
+        json={},
+    )
+    return _annotation_administration_response(response)
+
+
+def return_annotation_job_for_edits(api_key, workspace_url, project_url, job_id, *, new_labeler_email=None):
+    """Move a review job back to labeling, optionally with a new labeler."""
+    payload = {"newLabelerEmail": new_labeler_email} if new_labeler_email else {}
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}/return-edits",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    return _annotation_administration_response(response)
+
+
+def review_annotation_job_image(api_key, workspace_url, project_url, job_id, image_id, *, status):
+    """Set the review status for one image in a job."""
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}/images/{image_id}/status",
+        params={"api_key": api_key},
+        json={"status": status},
+    )
+    return _annotation_administration_response(response)
+
+
+def review_annotation_job_images(api_key, workspace_url, project_url, job_id, *, status, current_status):
+    """Set a status for every job image matching the supplied current status."""
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}/images/status",
+        params={"api_key": api_key},
+        json={"status": status, "currentStatus": current_status},
+    )
+    return _annotation_administration_response(response)
+
+
+def accept_annotation_job_images(
+    api_key,
+    workspace_url,
+    project_url,
+    job_id,
+    *,
+    split_method,
+    statuses_to_include,
+    train_count,
+    valid_count,
+    test_count,
+    image_ids=None,
+):
+    """Accept selected job images into Dataset and assign their splits."""
+    payload = {
+        "splitMethod": split_method,
+        "statusesToInclude": statuses_to_include,
+        "trainCount": train_count,
+        "validCount": valid_count,
+        "testCount": test_count,
+    }
+    if image_ids is not None:
+        payload["imageIds"] = image_ids
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}/accept",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    return _annotation_administration_response(response)
+
+
+def move_annotation_job_to_unassigned(api_key, workspace_url, project_url, job_id):
+    """Remove a job while retaining its images in an unassigned batch."""
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}/move-to-unassigned",
+        params={"api_key": api_key},
+        json={},
+    )
+    return _annotation_administration_response(response)
+
+
+def delete_annotation_job_annotations(api_key, workspace_url, project_url, job_id):
+    """Delete project annotations from all images assigned to a job."""
+    response = requests.delete(
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-jobs/{job_id}/annotations",
+        params={"api_key": api_key},
+    )
+    return _annotation_administration_response(response)
+
+
+def _annotation_pagination_params(api_key, *, limit, after=None, show_empty=None):
+    params = {"api_key": api_key, "limit": limit}
+    if after:
+        params["after"] = after
+    if show_empty is not None:
+        params["showEmpty"] = str(show_empty).lower()
+    return params
+
+
+def _annotation_administration_response(response):
+    if not 200 <= response.status_code < 300:
+        message = response.text
+        try:
+            error = response.json().get("error")
+            if isinstance(error, dict):
+                message = error.get("message", str(error))
+            elif error:
+                message = str(error)
+        except (AttributeError, ValueError):
+            pass
+        raise RoboflowError(message, status_code=response.status_code)
     return response.json()
 
 
