@@ -422,6 +422,38 @@ class TestAnnotationAdministrationCommands(unittest.TestCase):
         self.assertEqual(result.exit_code, 0, result.output)
         mock_api.assert_called_once_with("key", "ws", "proj", "job-1", image_ids=["image-1"])
 
+    @patch("roboflow.adapters.rfapi.reassign_annotation_job_images")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_job_reassign_images_requires_yes_non_interactively(self, _resolve, mock_api):
+        command = [
+            "annotation",
+            "job",
+            "reassign-images",
+            "-p",
+            "ws/proj",
+            "--image-id",
+            "image-1",
+            "--labeler",
+            "labeler@example.com",
+        ]
+        result = runner.invoke(app, command)
+        self.assertEqual(result.exit_code, 1)
+        mock_api.assert_not_called()
+
+        mock_api.return_value = {"jobId": "job-1"}
+        result = runner.invoke(app, [*command, "--yes"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with(
+            "key",
+            "ws",
+            "proj",
+            image_ids=["image-1"],
+            labeler_email="labeler@example.com",
+            reviewer_email=None,
+            instructions=None,
+            name=None,
+        )
+
     @patch("roboflow.adapters.rfapi.accept_annotation_job_images")
     @patch(_RESOLVE, return_value=("key", "ws", "proj"))
     def test_job_accept_maps_lists_and_split_counts(self, _resolve, mock_api):
