@@ -181,6 +181,8 @@ roboflow annotation job admin-list -p my-project --limit 50
 roboflow annotation job admin-get <job-id> -p my-project
 roboflow annotation job admin-create -p my-project --batch <batch-id> \
   --labeler a@co.com --reviewer b@co.com --name "Label round 1"
+roboflow annotation job reassign-images -p my-project --image-id <image-id> \
+  --labeler a@co.com --yes
 roboflow annotation job create -p my-project --name "Label round 1" \
   --batch <batch-id> --num-images 100 --labeler a@co.com --reviewer b@co.com
 roboflow annotation job images <job-id> -p my-project

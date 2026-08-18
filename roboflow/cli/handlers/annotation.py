@@ -268,18 +268,21 @@ def job_reassign_images(
     reviewer: Annotated[Optional[str], typer.Option(help="Reviewer email")] = None,
     instructions: Annotated[Optional[str], typer.Option(help="Labeling instructions")] = None,
     name: Annotated[Optional[str], typer.Option(help="Optional job name")] = None,
+    yes: Annotated[bool, typer.Option("-y", "--yes", help="Confirm reassignment of the images")] = False,
 ) -> None:
     """Create a job by explicitly reassigning images."""
-    _simple_command(
-        ctx_to_args(ctx, project=project),
-        "reassign_annotation_job_images",
-        image_ids=image_ids,
-        labeler_email=labeler,
-        reviewer_email=reviewer,
-        instructions=instructions,
-        name=name,
-        success="Reassigned images to a new annotation job.",
-    )
+    args = ctx_to_args(ctx, project=project, yes=yes)
+    if _confirm(args, "Remove these images from their current assignments and reassign them to a new job?"):
+        _simple_command(
+            args,
+            "reassign_annotation_job_images",
+            image_ids=image_ids,
+            labeler_email=labeler,
+            reviewer_email=reviewer,
+            instructions=instructions,
+            name=name,
+            success="Reassigned images to a new annotation job.",
+        )
 
 
 @job_app.command("add-images")
