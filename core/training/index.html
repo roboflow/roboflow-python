@@ -703,10 +703,32 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.training.Training.delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        delete
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.training.Training.refresh" class="md-nav__link">
     <span class="md-ellipsis">
       
         refresh
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.training.Training.restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        restore
       
     </span>
   </a>
@@ -1089,10 +1111,32 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.training.Training.delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        delete
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.training.Training.refresh" class="md-nav__link">
     <span class="md-ellipsis">
       
         refresh
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.training.Training.restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        restore
       
     </span>
   </a>
@@ -1324,13 +1368,13 @@ task); weights download keys off the id's addressable segment.</p>
 <span class="normal">179</span>
 <span class="normal">180</span>
 <span class="normal">181</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">TrainedModel</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A single trained model produced by a Training.</span>
+<span class="w">    </span><span class="sd">"""A single trained model produced by a Training.</span>
 
 <span class="sd">    Wraps an inference-style model id of either form — ``&lt;dataset&gt;/&lt;version&gt;``</span>
 <span class="sd">    (SMPV) or ``&lt;workspace&gt;/&lt;model-slug&gt;`` (MMPV). Inference goes to the</span>
 <span class="sd">    serverless host by that id (which the server resolves to the model and its</span>
-<span class="sd">    task); weights download keys off the id&#39;s addressable segment.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    task); weights download keys off the id's addressable segment.</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">api_key</span><span class="p">,</span> <span class="n">workspace</span><span class="p">,</span> <span class="n">project</span><span class="p">,</span> <span class="n">model_id</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span> <span class="o">=</span> <span class="n">api_key</span>
@@ -1341,35 +1385,35 @@ task); weights download keys off the id's addressable segment.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span>
         <span class="c1"># The second segment addresses the model on /ptFile: a model slug for</span>
         <span class="c1"># MMPV, a version number for SMPV.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_weights_id</span> <span class="o">=</span> <span class="n">model_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;/&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_id</span><span class="p">)</span> <span class="k">else</span> <span class="n">model_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_weights_id</span> <span class="o">=</span> <span class="n">model_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="s2">"/"</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_id</span><span class="p">)</span> <span class="k">else</span> <span class="n">model_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_video_model_cache</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">hosted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run hosted inference on an image by this model&#39;s id.</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">hosted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"json"</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Run hosted inference on an image by this model's id.</span>
 
 <span class="sd">        The id is passed straight to serverless, which resolves the model and</span>
 <span class="sd">        its task. Returns a ``PredictionGroup``. Set ``hosted=True`` when</span>
 <span class="sd">        ``image_path`` is a public URL.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">task</span> <span class="o">=</span> <span class="n">task_of_model_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="sd">        """</span>
+        <span class="n">task</span> <span class="o">=</span> <span class="n">task_of_model_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
         <span class="n">prediction_type</span> <span class="o">=</span> <span class="n">_prediction_type_for_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
-        <span class="n">base_url</span> <span class="o">=</span> <span class="n">_serverless_base_url_for_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="n">InferenceModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="s2">&quot;BASE_MODEL&quot;</span><span class="p">)</span>
-        <span class="n">model</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">base_url</span> <span class="o">=</span> <span class="n">_serverless_base_url_for_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">InferenceModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="s2">"BASE_MODEL"</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
         <span class="n">model</span><span class="o">.</span><span class="n">colors</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="n">confidence</span><span class="p">,</span> <span class="s2">&quot;overlap&quot;</span><span class="p">:</span> <span class="n">overlap</span><span class="p">,</span> <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="nb">format</span><span class="p">}</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"confidence"</span><span class="p">:</span> <span class="n">confidence</span><span class="p">,</span> <span class="s2">"overlap"</span><span class="p">:</span> <span class="n">overlap</span><span class="p">,</span> <span class="s2">"format"</span><span class="p">:</span> <span class="nb">format</span><span class="p">}</span>
         <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">prediction_type</span><span class="o">=</span><span class="n">prediction_type</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_video_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build (and cache) the legacy inference model used for video inference.</span>
+<span class="w">        </span><span class="sd">"""Build (and cache) the legacy inference model used for video inference.</span>
 
 <span class="sd">        Video upload and result polling still flow through the legacy</span>
 <span class="sd">        ``/videoinfer`` endpoints, which the task-specific models implement.</span>
 <span class="sd">        Caching keeps ``predict_video`` and the poll methods on one underlying</span>
 <span class="sd">        object, so a job started here can be polled without re-passing its id.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_video_model_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_video_model_cache</span>
 
@@ -1379,7 +1423,7 @@ task); weights download keys off the id's addressable segment.</p>
         <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.models.object_detection</span><span class="w"> </span><span class="kn">import</span> <span class="n">ObjectDetectionModel</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.models.semantic_segmentation</span><span class="w"> </span><span class="kn">import</span> <span class="n">SemanticSegmentationModel</span>
 
-        <span class="n">task</span> <span class="o">=</span> <span class="n">task_of_model_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">task</span> <span class="o">=</span> <span class="n">task_of_model_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
         <span class="n">legacy_class</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">TASK_CLS</span><span class="p">:</span> <span class="n">ClassificationModel</span><span class="p">,</span>
             <span class="n">TASK_SEG</span><span class="p">:</span> <span class="n">InstanceSegmentationModel</span><span class="p">,</span>
@@ -1387,16 +1431,16 @@ task); weights download keys off the id's addressable segment.</p>
             <span class="n">TASK_POSE</span><span class="p">:</span> <span class="n">KeypointDetectionModel</span><span class="p">,</span>
         <span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">ObjectDetectionModel</span><span class="p">)</span>
 
-        <span class="n">legacy_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_weights_id</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">legacy_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_weights_id</span><span class="si">}</span><span class="s2">"</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_video_model_cache</span> <span class="o">=</span> <span class="n">legacy_class</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="n">legacy_id</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_video_model_cache</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">predict_video</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">video_path</span><span class="p">,</span> <span class="n">fps</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">additional_models</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prediction_type</span><span class="o">=</span><span class="s2">&quot;batch-video&quot;</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run hosted video inference for this model (DNA-era equivalent of the</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict_video</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">video_path</span><span class="p">,</span> <span class="n">fps</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">additional_models</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prediction_type</span><span class="o">=</span><span class="s2">"batch-video"</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Run hosted video inference for this model (DNA-era equivalent of the</span>
 <span class="sd">        legacy ``version.model.predict_video``).</span>
 
 <span class="sd">        Delegates to the task-appropriate legacy inference model built from this</span>
-<span class="sd">        model&#39;s id, so a ``TrainedModel`` can do everything the old</span>
+<span class="sd">        model's id, so a ``TrainedModel`` can do everything the old</span>
 <span class="sd">        ``version.model`` could. Returns ``(job_id, signed_url, expires)``; poll</span>
 <span class="sd">        with :meth:`poll_until_video_results` on the same object.</span>
 
@@ -1404,40 +1448,40 @@ task); weights download keys off the id's addressable segment.</p>
 <span class="sd">        For MMPV models addressed by ``&lt;workspace&gt;/&lt;model-slug&gt;`` this routes the</span>
 <span class="sd">        slug through as the version segment; verify against staging before relying</span>
 <span class="sd">        on it for slug-addressed models.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_video_model</span><span class="p">()</span><span class="o">.</span><span class="n">predict_video</span><span class="p">(</span>
             <span class="n">video_path</span><span class="p">,</span> <span class="n">fps</span><span class="o">=</span><span class="n">fps</span><span class="p">,</span> <span class="n">additional_models</span><span class="o">=</span><span class="n">additional_models</span><span class="p">,</span> <span class="n">prediction_type</span><span class="o">=</span><span class="n">prediction_type</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">poll_for_video_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check once for this model&#39;s video inference results (DNA-era equivalent</span>
+<span class="w">        </span><span class="sd">"""Check once for this model's video inference results (DNA-era equivalent</span>
 <span class="sd">        of the legacy ``version.model.poll_for_video_results``).</span>
 
 <span class="sd">        Returns ``{}`` while the job is still running. Defaults to the job started</span>
 <span class="sd">        by the most recent :meth:`predict_video` call on this object.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_video_model</span><span class="p">()</span><span class="o">.</span><span class="n">poll_for_video_results</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">poll_until_video_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Block until this model&#39;s video inference job completes, returning the</span>
+<span class="w">        </span><span class="sd">"""Block until this model's video inference job completes, returning the</span>
 <span class="sd">        results (DNA-era equivalent of the legacy</span>
 <span class="sd">        ``version.model.poll_until_video_results``).</span>
 
 <span class="sd">        Defaults to the job started by the most recent :meth:`predict_video` call</span>
 <span class="sd">        on this object.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_video_model</span><span class="p">()</span><span class="o">.</span><span class="n">poll_until_video_results</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Download this model&#39;s PyTorch weights to ``location/weights.pt``.&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"pt"</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s2">"."</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Download this model's PyTorch weights to ``location/weights.pt``."""</span>
         <span class="n">weights_url</span> <span class="o">=</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_model_weights_url</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weights_id</span><span class="p">,</span> <span class="n">model_format</span><span class="o">=</span><span class="nb">format</span>
         <span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">out_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="s2">&quot;weights.pt&quot;</span><span class="p">)</span>
+        <span class="n">out_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="s2">"weights.pt"</span><span class="p">)</span>
         <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">weights_url</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out_path</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">8192</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">chunk</span><span class="p">:</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
@@ -1445,7 +1489,7 @@ task); weights download keys off the id's addressable segment.</p>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
-            <span class="p">{</span><span class="s2">&quot;model_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">,</span> <span class="s2">&quot;model_type&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span><span class="p">,</span> <span class="s2">&quot;metrics&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">},</span>
+            <span class="p">{</span><span class="s2">"model_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">,</span> <span class="s2">"model_type"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span><span class="p">,</span> <span class="s2">"metrics"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">},</span>
             <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
         <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -1468,7 +1512,7 @@ task); weights download keys off the id's addressable segment.</p>
 
 
 <h3 id="roboflow.core.training.TrainedModel.download" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">download</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s1">&#39;pt&#39;</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">download</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s1">'pt'</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s1">'.'</span><span class="p">)</span></code>
 
 <a href="#roboflow.core.training.TrainedModel.download" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -1493,16 +1537,16 @@ task); weights download keys off the id's addressable segment.</p>
 <span class="normal">172</span>
 <span class="normal">173</span>
 <span class="normal">174</span>
-<span class="normal">175</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Download this model&#39;s PyTorch weights to ``location/weights.pt``.&quot;&quot;&quot;</span>
+<span class="normal">175</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"pt"</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s2">"."</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Download this model's PyTorch weights to ``location/weights.pt``."""</span>
     <span class="n">weights_url</span> <span class="o">=</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_model_weights_url</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weights_id</span><span class="p">,</span> <span class="n">model_format</span><span class="o">=</span><span class="nb">format</span>
     <span class="p">)</span>
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">out_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="s2">&quot;weights.pt&quot;</span><span class="p">)</span>
+    <span class="n">out_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="s2">"weights.pt"</span><span class="p">)</span>
     <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">weights_url</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out_path</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">8192</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">chunk</span><span class="p">:</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
@@ -1540,12 +1584,12 @@ by the most recent :meth:<code>predict_video</code> call on this object.</p>
 <span class="normal">148</span>
 <span class="normal">149</span>
 <span class="normal">150</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">poll_for_video_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check once for this model&#39;s video inference results (DNA-era equivalent</span>
+<span class="w">    </span><span class="sd">"""Check once for this model's video inference results (DNA-era equivalent</span>
 <span class="sd">    of the legacy ``version.model.poll_for_video_results``).</span>
 
 <span class="sd">    Returns ``{}`` while the job is still running. Defaults to the job started</span>
 <span class="sd">    by the most recent :meth:`predict_video` call on this object.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_video_model</span><span class="p">()</span><span class="o">.</span><span class="n">poll_for_video_results</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -1582,13 +1626,13 @@ on this object.</p>
 <span class="normal">158</span>
 <span class="normal">159</span>
 <span class="normal">160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">poll_until_video_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Block until this model&#39;s video inference job completes, returning the</span>
+<span class="w">    </span><span class="sd">"""Block until this model's video inference job completes, returning the</span>
 <span class="sd">    results (DNA-era equivalent of the legacy</span>
 <span class="sd">    ``version.model.poll_until_video_results``).</span>
 
 <span class="sd">    Defaults to the job started by the most recent :meth:`predict_video` call</span>
 <span class="sd">    on this object.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_video_model</span><span class="p">()</span><span class="o">.</span><span class="n">poll_until_video_results</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -1600,7 +1644,7 @@ on this object.</p>
 
 
 <h3 id="roboflow.core.training.TrainedModel.predict" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">predict</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">hosted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">predict</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">hosted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">'json'</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
 <a href="#roboflow.core.training.TrainedModel.predict" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -1631,21 +1675,21 @@ its task. Returns a <code>PredictionGroup</code>. Set <code>hosted=True</code> w
 <span class="normal">91</span>
 <span class="normal">92</span>
 <span class="normal">93</span>
-<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">hosted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run hosted inference on an image by this model&#39;s id.</span>
+<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">hosted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"json"</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Run hosted inference on an image by this model's id.</span>
 
 <span class="sd">    The id is passed straight to serverless, which resolves the model and</span>
 <span class="sd">    its task. Returns a ``PredictionGroup``. Set ``hosted=True`` when</span>
 <span class="sd">    ``image_path`` is a public URL.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">task</span> <span class="o">=</span> <span class="n">task_of_model_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="sd">    """</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">task_of_model_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
     <span class="n">prediction_type</span> <span class="o">=</span> <span class="n">_prediction_type_for_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
-    <span class="n">base_url</span> <span class="o">=</span> <span class="n">_serverless_base_url_for_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
-    <span class="n">model</span> <span class="o">=</span> <span class="n">InferenceModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="s2">&quot;BASE_MODEL&quot;</span><span class="p">)</span>
-    <span class="n">model</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">base_url</span> <span class="o">=</span> <span class="n">_serverless_base_url_for_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">InferenceModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="s2">"BASE_MODEL"</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
     <span class="n">model</span><span class="o">.</span><span class="n">colors</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="n">confidence</span><span class="p">,</span> <span class="s2">&quot;overlap&quot;</span><span class="p">:</span> <span class="n">overlap</span><span class="p">,</span> <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="nb">format</span><span class="p">}</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"confidence"</span><span class="p">:</span> <span class="n">confidence</span><span class="p">,</span> <span class="s2">"overlap"</span><span class="p">:</span> <span class="n">overlap</span><span class="p">,</span> <span class="s2">"format"</span><span class="p">:</span> <span class="nb">format</span><span class="p">}</span>
     <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">prediction_type</span><span class="o">=</span><span class="n">prediction_type</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -1658,7 +1702,7 @@ its task. Returns a <code>PredictionGroup</code>. Set <code>hosted=True</code> w
 
 
 <h3 id="roboflow.core.training.TrainedModel.predict_video" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">predict_video</span><span class="p">(</span><span class="n">video_path</span><span class="p">,</span> <span class="n">fps</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">additional_models</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prediction_type</span><span class="o">=</span><span class="s1">&#39;batch-video&#39;</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">predict_video</span><span class="p">(</span><span class="n">video_path</span><span class="p">,</span> <span class="n">fps</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">additional_models</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prediction_type</span><span class="o">=</span><span class="s1">'batch-video'</span><span class="p">)</span></code>
 
 <a href="#roboflow.core.training.TrainedModel.predict_video" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -1695,12 +1739,12 @@ on it for slug-addressed models.</p>
 <span class="normal">138</span>
 <span class="normal">139</span>
 <span class="normal">140</span>
-<span class="normal">141</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">predict_video</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">video_path</span><span class="p">,</span> <span class="n">fps</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">additional_models</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prediction_type</span><span class="o">=</span><span class="s2">&quot;batch-video&quot;</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run hosted video inference for this model (DNA-era equivalent of the</span>
+<span class="normal">141</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">predict_video</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">video_path</span><span class="p">,</span> <span class="n">fps</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">additional_models</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prediction_type</span><span class="o">=</span><span class="s2">"batch-video"</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Run hosted video inference for this model (DNA-era equivalent of the</span>
 <span class="sd">    legacy ``version.model.predict_video``).</span>
 
 <span class="sd">    Delegates to the task-appropriate legacy inference model built from this</span>
-<span class="sd">    model&#39;s id, so a ``TrainedModel`` can do everything the old</span>
+<span class="sd">    model's id, so a ``TrainedModel`` can do everything the old</span>
 <span class="sd">    ``version.model`` could. Returns ``(job_id, signed_url, expires)``; poll</span>
 <span class="sd">    with :meth:`poll_until_video_results` on the same object.</span>
 
@@ -1708,7 +1752,7 @@ on it for slug-addressed models.</p>
 <span class="sd">    For MMPV models addressed by ``&lt;workspace&gt;/&lt;model-slug&gt;`` this routes the</span>
 <span class="sd">    slug through as the version segment; verify against staging before relying</span>
 <span class="sd">    on it for slug-addressed models.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_video_model</span><span class="p">()</span><span class="o">.</span><span class="n">predict_video</span><span class="p">(</span>
         <span class="n">video_path</span><span class="p">,</span> <span class="n">fps</span><span class="o">=</span><span class="n">fps</span><span class="p">,</span> <span class="n">additional_models</span><span class="o">=</span><span class="n">additional_models</span><span class="p">,</span> <span class="n">prediction_type</span><span class="o">=</span><span class="n">prediction_type</span>
     <span class="p">)</span>
@@ -1844,13 +1888,33 @@ the v2 trainings adapter — <code>.models</code> resolves the run's produced mo
 <span class="normal">270</span>
 <span class="normal">271</span>
 <span class="normal">272</span>
-<span class="normal">273</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Training</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;One training run on a dataset version.</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Training</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""One training run on a dataset version.</span>
 
 <span class="sd">    A version may own many trainings; a NAS run produces many models. Couples to</span>
-<span class="sd">    the v2 trainings adapter — ``.models`` resolves the run&#39;s produced models via</span>
+<span class="sd">    the v2 trainings adapter — ``.models`` resolves the run's produced models via</span>
 <span class="sd">    ``trainings.get``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">api_key</span><span class="p">,</span> <span class="n">workspace</span><span class="p">,</span> <span class="n">project</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">raw</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span> <span class="o">=</span> <span class="n">api_key</span>
@@ -1858,26 +1922,26 @@ the v2 trainings adapter — <code>.models</code> resolves the run's produced mo
         <span class="bp">self</span><span class="o">.</span><span class="n">project</span> <span class="o">=</span> <span class="n">project</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span> <span class="o">=</span> <span class="n">raw</span> <span class="ow">or</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;trainingId&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;status&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelType&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelGroup&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelIds&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"trainingId"</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"status"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelType"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelGroup"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelIds"</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_models_cache</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">models</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="s2">&quot;TrainedModel&quot;</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;The models this run produced (DNA ``trainings.get`` → ``models[]``).&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">models</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="s2">"TrainedModel"</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The models this run produced (DNA ``trainings.get`` → ``models[]``)."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models_cache</span>
 
         <span class="n">bundle</span> <span class="o">=</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_training</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">training_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_id</span>
         <span class="p">)</span>
-        <span class="n">bundle_model_type</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelType&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span>
+        <span class="n">bundle_model_type</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelType"</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span>
         <span class="n">models</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;models&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]:</span>
-            <span class="n">model_id</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelId&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"models"</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[]:</span>
+            <span class="n">model_id</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelId"</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">model_id</span><span class="p">:</span>
                 <span class="k">continue</span>
             <span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -1886,29 +1950,29 @@ the v2 trainings adapter — <code>.models</code> resolves the run's produced mo
                     <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span>
                     <span class="n">model_id</span><span class="p">,</span>
-                    <span class="n">model_type</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelType&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">bundle_model_type</span><span class="p">,</span>
-                    <span class="n">metrics</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;metrics&quot;</span><span class="p">),</span>
+                    <span class="n">model_type</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelType"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">bundle_model_type</span><span class="p">,</span>
+                    <span class="n">metrics</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metrics"</span><span class="p">),</span>
                 <span class="p">)</span>
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_models_cache</span> <span class="o">=</span> <span class="n">models</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models_cache</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Training&quot;</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Re-read this run&#39;s status/results from the backend in place.&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Training"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Re-read this run's status/results from the backend in place."""</span>
         <span class="n">bundle</span> <span class="o">=</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_training</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">training_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_id</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">bundle</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;trainingId&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;status&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelType&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelGroup&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model_ids</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelIds&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_ids</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"trainingId"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"status"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelType"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelGroup"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_ids</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelIds"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_ids</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_models_cache</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">continue_if_no_refund</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cancel this run immediately (DNA ``trainings.cancel``).&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Cancel this run immediately (DNA ``trainings.cancel``)."""</span>
         <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">cancel_training_v2</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span>
@@ -1919,18 +1983,38 @@ the v2 trainings adapter — <code>.models</code> resolves the run's produced mo
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Request a graceful early stop on this run (DNA ``trainings.stop``).&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Request a graceful early stop on this run (DNA ``trainings.stop``)."""</span>
         <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">stop_training_v2</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">training_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_id</span>
         <span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Move this run to the workspace Trash (soft delete).</span>
+
+<span class="sd">        The run and every model it produced disappear from listings but stay</span>
+<span class="sd">        restorable for 30 days via :meth:`restore` or the Trash UI. The server</span>
+<span class="sd">        refuses in-flight runs (stop or cancel first). The version's hosted</span>
+<span class="sd">        endpoint always serves the oldest remaining run's model: if this run</span>
+<span class="sd">        was serving, serving switches to the next-oldest run (the response</span>
+<span class="sd">        reports ``versionAliasAction: "repointed"`` and the new target) or</span>
+<span class="sd">        stops when no other run survives (``"deleted"``); restoring the</span>
+<span class="sd">        oldest run hands serving back.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">delete_version_training</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">training_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_id</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Restore this run from Trash via the shared workspace trash-restore route."""</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">restore_trash_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="s2">"training"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span><span class="p">)</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
             <span class="p">{</span>
-                <span class="s2">&quot;training_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span><span class="p">,</span>
-                <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
-                <span class="s2">&quot;model_type&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span><span class="p">,</span>
-                <span class="s2">&quot;model_group&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span><span class="p">,</span>
+                <span class="s2">"training_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span><span class="p">,</span>
+                <span class="s2">"status"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">,</span>
+                <span class="s2">"model_type"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span><span class="p">,</span>
+                <span class="s2">"model_group"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span><span class="p">,</span>
             <span class="p">},</span>
             <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1998,7 +2082,7 @@ the v2 trainings adapter — <code>.models</code> resolves the run's produced mo
 <span class="normal">254</span>
 <span class="normal">255</span>
 <span class="normal">256</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">continue_if_no_refund</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cancel this run immediately (DNA ``trainings.cancel``).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Cancel this run immediately (DNA ``trainings.cancel``)."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">cancel_training_v2</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span>
@@ -2006,6 +2090,65 @@ the v2 trainings adapter — <code>.models</code> resolves the run's produced mo
         <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
         <span class="n">training_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_id</span><span class="p">,</span>
         <span class="n">continue_if_no_refund</span><span class="o">=</span><span class="n">continue_if_no_refund</span><span class="p">,</span>
+    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.training.Training.delete" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">delete</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.training.Training.delete" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Move this run to the workspace Trash (soft delete).</p>
+<p>The run and every model it produced disappear from listings but stay
+restorable for 30 days via :meth:<code>restore</code> or the Trash UI. The server
+refuses in-flight runs (stop or cancel first). The version's hosted
+endpoint always serves the oldest remaining run's model: if this run
+was serving, serving switches to the next-oldest run (the response
+reports <code>versionAliasAction: "repointed"</code> and the new target) or
+stops when no other run survives (<code>"deleted"</code>); restoring the
+oldest run hands serving back.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/training.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Move this run to the workspace Trash (soft delete).</span>
+
+<span class="sd">    The run and every model it produced disappear from listings but stay</span>
+<span class="sd">    restorable for 30 days via :meth:`restore` or the Trash UI. The server</span>
+<span class="sd">    refuses in-flight runs (stop or cancel first). The version's hosted</span>
+<span class="sd">    endpoint always serves the oldest remaining run's model: if this run</span>
+<span class="sd">    was serving, serving switches to the next-oldest run (the response</span>
+<span class="sd">    reports ``versionAliasAction: "repointed"`` and the new target) or</span>
+<span class="sd">    stops when no other run survives (``"deleted"``); restoring the</span>
+<span class="sd">    oldest run hands serving back.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">delete_version_training</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">training_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_id</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -2041,19 +2184,46 @@ the v2 trainings adapter — <code>.models</code> resolves the run's produced mo
 <span class="normal">242</span>
 <span class="normal">243</span>
 <span class="normal">244</span>
-<span class="normal">245</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Training&quot;</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Re-read this run&#39;s status/results from the backend in place.&quot;&quot;&quot;</span>
+<span class="normal">245</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Training"</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Re-read this run's status/results from the backend in place."""</span>
     <span class="n">bundle</span> <span class="o">=</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_training</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">training_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_id</span>
     <span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">bundle</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;trainingId&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;status&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelType&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelGroup&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">model_ids</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modelIds&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_ids</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"trainingId"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"status"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelType"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelGroup"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_group</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">model_ids</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"modelIds"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_ids</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_models_cache</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="bp">self</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.training.Training.restore" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">restore</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.training.Training.restore" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Restore this run from Trash via the shared workspace trash-restore route.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/training.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Restore this run from Trash via the shared workspace trash-restore route."""</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">restore_trash_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="s2">"training"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_id</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2081,7 +2251,7 @@ the v2 trainings adapter — <code>.models</code> resolves the run's produced mo
 <span class="normal">260</span>
 <span class="normal">261</span>
 <span class="normal">262</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Request a graceful early stop on this run (DNA ``trainings.stop``).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Request a graceful early stop on this run (DNA ``trainings.stop``)."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">stop_training_v2</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">training_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_id</span>
     <span class="p">)</span>

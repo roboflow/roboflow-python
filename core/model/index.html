@@ -959,18 +959,18 @@
 <span class="normal">12</span>
 <span class="normal">13</span>
 <span class="normal">14</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Model</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    A Roboflow model.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">model</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">endpoint</span> <span class="o">=</span> <span class="n">model</span><span class="p">[</span><span class="s2">&quot;endpoint&quot;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">duration</span> <span class="o">=</span> <span class="n">model</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">model</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">model</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endpoint</span> <span class="o">=</span> <span class="n">model</span><span class="p">[</span><span class="s2">"endpoint"</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">duration</span> <span class="o">=</span> <span class="n">model</span><span class="p">[</span><span class="s2">"end"</span><span class="p">]</span> <span class="o">-</span> <span class="n">model</span><span class="p">[</span><span class="s2">"start"</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">statistics</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;recall&quot;</span><span class="p">:</span> <span class="n">model</span><span class="p">[</span><span class="s2">&quot;recall&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;precision&quot;</span><span class="p">:</span> <span class="n">model</span><span class="p">[</span><span class="s2">&quot;precision&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;map&quot;</span><span class="p">:</span> <span class="n">model</span><span class="p">[</span><span class="s2">&quot;map&quot;</span><span class="p">],</span>
+            <span class="s2">"recall"</span><span class="p">:</span> <span class="n">model</span><span class="p">[</span><span class="s2">"recall"</span><span class="p">],</span>
+            <span class="s2">"precision"</span><span class="p">:</span> <span class="n">model</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">],</span>
+            <span class="s2">"map"</span><span class="p">:</span> <span class="n">model</span><span class="p">[</span><span class="s2">"map"</span><span class="p">],</span>
         <span class="p">}</span>
 </code></pre></div></td></tr></table></div>
               </details>

@@ -1262,10 +1262,10 @@
 <span class="normal">184</span>
 <span class="normal">185</span>
 <span class="normal">186</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ClassificationModel</span><span class="p">(</span><span class="n">InferenceModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Run inference on a classification model hosted on Roboflow or served through</span>
 <span class="sd">        Roboflow Inference.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1277,7 +1277,7 @@
         <span class="n">colors</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">preprocessing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Create a ClassificationModel object through which you can run inference.</span>
 
 <span class="sd">        Args:</span>
@@ -1291,14 +1291,14 @@
 
 <span class="sd">        Returns:</span>
 <span class="sd">            ClassificationModel Object</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># Instantiate different API URL parameters</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">api_key</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span> <span class="o">=</span> <span class="n">api_key</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">=</span> <span class="s2">&quot;https://serverless.roboflow.com/&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">=</span> <span class="s2">"https://serverless.roboflow.com/"</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">version</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__generate_url</span><span class="p">()</span>
@@ -1307,16 +1307,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">preprocessing</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">preprocessing</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">preprocessing</span>
 
         <span class="k">if</span> <span class="n">local</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;initalizing local classification model hosted at : </span><span class="si">{</span><span class="n">local</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"initalizing local classification model hosted at : </span><span class="si">{</span><span class="n">local</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">=</span> <span class="n">local</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">hosted</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Run inference on an image.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            image_path (str): path to the image you&#39;d like to perform prediction on</span>
-<span class="sd">            hosted (bool): whether the image you&#39;re providing is hosted on Roboflow</span>
+<span class="sd">            image_path (str): path to the image you'd like to perform prediction on</span>
+<span class="sd">            hosted (bool): whether the image you're providing is hosted on Roboflow</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            PredictionGroup Object</span>
@@ -1324,39 +1324,39 @@
 <span class="sd">        Example:</span>
 <span class="sd">            &gt;&gt;&gt; import roboflow</span>
 
-<span class="sd">            &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; rf = roboflow.Roboflow(api_key="")</span>
 
-<span class="sd">            &gt;&gt;&gt; project = rf.workspace().project(&quot;PROJECT_ID&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; project = rf.workspace().project("PROJECT_ID")</span>
 
-<span class="sd">            &gt;&gt;&gt; model = project.version(&quot;1&quot;).models()[0]</span>
+<span class="sd">            &gt;&gt;&gt; model = project.version("1").models()[0]</span>
 
-<span class="sd">            &gt;&gt;&gt; prediction = model.predict(&quot;YOUR_IMAGE.jpg&quot;)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">            &gt;&gt;&gt; prediction = model.predict("YOUR_IMAGE.jpg")</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__generate_url</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__exception_check</span><span class="p">(</span><span class="n">image_path_check</span><span class="o">=</span><span class="n">image_path</span><span class="p">)</span>
         <span class="c1"># If image is local image</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">hosted</span><span class="p">:</span>
             <span class="c1"># Open Image in RGB Format</span>
-            <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&quot;RGB&quot;</span><span class="p">)</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">"RGB"</span><span class="p">)</span>
             <span class="c1"># Create buffer</span>
             <span class="n">buffered</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
-            <span class="n">image</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffered</span><span class="p">,</span> <span class="n">quality</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;JPEG&quot;</span><span class="p">)</span>
+            <span class="n">image</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffered</span><span class="p">,</span> <span class="n">quality</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"JPEG"</span><span class="p">)</span>
             <span class="n">img_dims</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">size</span>
             <span class="c1"># Base64 encode image</span>
             <span class="n">img_str</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">buffered</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
-            <span class="n">img_str</span> <span class="o">=</span> <span class="n">img_str</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+            <span class="n">img_str</span> <span class="o">=</span> <span class="n">img_str</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"ascii"</span><span class="p">)</span>
             <span class="c1"># Post to API and return response</span>
             <span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="p">,</span>
                 <span class="n">data</span><span class="o">=</span><span class="n">img_str</span><span class="p">,</span>
-                <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s2">&quot;application/x-www-form-urlencoded&quot;</span><span class="p">},</span>
+                <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/x-www-form-urlencoded"</span><span class="p">},</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Create API URL for hosted image (slightly different)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">+=</span> <span class="s2">&quot;&amp;image=&quot;</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote_plus</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">+=</span> <span class="s2">"&amp;image="</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote_plus</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
             <span class="c1"># POST to the API</span>
             <span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="p">)</span>
-            <span class="n">img_dims</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">}</span>
+            <span class="n">img_dims</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"width"</span><span class="p">:</span> <span class="s2">"0"</span><span class="p">,</span> <span class="s2">"height"</span><span class="p">:</span> <span class="s2">"0"</span><span class="p">}</span>
 
         <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="mi">200</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
@@ -1370,43 +1370,43 @@
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Load a model.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            name (str): is the name of the model you&#39;d like to load</span>
+<span class="sd">            name (str): is the name of the model you'd like to load</span>
 <span class="sd">            version (int): version number</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># Load model based on user defined characteristics</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__generate_url</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__generate_url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Generate a Roboflow API URL on which to run inference.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            url (str): the url on which to run inference</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="c1"># Generates URL based on all parameters</span>
-        <span class="n">splitted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+        <span class="n">splitted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
         <span class="n">without_workspace</span> <span class="o">=</span> <span class="n">splitted</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">version</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">splitted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="n">version</span> <span class="o">=</span> <span class="n">splitted</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="p">[</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="n">without_workspace</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">),</span>
-                <span class="s2">&quot;?api_key=&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
-                <span class="s2">&quot;&amp;name=YOUR_IMAGE.jpg&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="n">without_workspace</span> <span class="o">+</span> <span class="s2">"/"</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">),</span>
+                <span class="s2">"?api_key="</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
+                <span class="s2">"&amp;name=YOUR_IMAGE.jpg"</span><span class="p">,</span>
             <span class="p">]</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__exception_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path_check</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Check to see if an image exists.</span>
 
 <span class="sd">        Args:</span>
@@ -1414,20 +1414,20 @@
 
 <span class="sd">        Raises:</span>
 <span class="sd">            Exception: if image does not exist</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="c1"># Checks if image exists</span>
         <span class="k">if</span> <span class="n">image_path_check</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">image_path_check</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">check_image_url</span><span class="p">(</span><span class="n">image_path_check</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Image does not exist at &quot;</span> <span class="o">+</span> <span class="n">image_path_check</span> <span class="o">+</span> <span class="s2">&quot;!&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"Image does not exist at "</span> <span class="o">+</span> <span class="n">image_path_check</span> <span class="o">+</span> <span class="s2">"!"</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        String representation of classification object</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">json_value</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
-            <span class="s2">&quot;base_url&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="p">,</span>
+            <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">"version"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
+            <span class="s2">"base_url"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="p">,</span>
         <span class="p">}</span>
 
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">json_value</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
@@ -1531,7 +1531,7 @@
 <span class="normal">172</span>
 <span class="normal">173</span>
 <span class="normal">174</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__exception_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path_check</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Check to see if an image exists.</span>
 
 <span class="sd">    Args:</span>
@@ -1539,11 +1539,11 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        Exception: if image does not exist</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># Checks if image exists</span>
     <span class="k">if</span> <span class="n">image_path_check</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">image_path_check</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">check_image_url</span><span class="p">(</span><span class="n">image_path_check</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Image does not exist at &quot;</span> <span class="o">+</span> <span class="n">image_path_check</span> <span class="o">+</span> <span class="s2">&quot;!&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"Image does not exist at "</span> <span class="o">+</span> <span class="n">image_path_check</span> <span class="o">+</span> <span class="s2">"!"</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -1611,25 +1611,25 @@
 <span class="normal">157</span>
 <span class="normal">158</span>
 <span class="normal">159</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__generate_url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Generate a Roboflow API URL on which to run inference.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        url (str): the url on which to run inference</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="c1"># Generates URL based on all parameters</span>
-    <span class="n">splitted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+    <span class="n">splitted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
     <span class="n">without_workspace</span> <span class="o">=</span> <span class="n">splitted</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">version</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">splitted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
         <span class="n">version</span> <span class="o">=</span> <span class="n">splitted</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="p">[</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="n">without_workspace</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">),</span>
-            <span class="s2">&quot;?api_key=&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
-            <span class="s2">&quot;&amp;name=YOUR_IMAGE.jpg&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">+</span> <span class="n">without_workspace</span> <span class="o">+</span> <span class="s2">"/"</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">),</span>
+            <span class="s2">"?api_key="</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
+            <span class="s2">"&amp;name=YOUR_IMAGE.jpg"</span><span class="p">,</span>
         <span class="p">]</span>
     <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -1854,7 +1854,7 @@
     <span class="n">colors</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">preprocessing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Create a ClassificationModel object through which you can run inference.</span>
 
 <span class="sd">    Args:</span>
@@ -1868,14 +1868,14 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        ClassificationModel Object</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># Instantiate different API URL parameters</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">api_key</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span> <span class="o">=</span> <span class="n">api_key</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">id</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">=</span> <span class="s2">&quot;https://serverless.roboflow.com/&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">=</span> <span class="s2">"https://serverless.roboflow.com/"</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">version</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__generate_url</span><span class="p">()</span>
@@ -1884,7 +1884,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">preprocessing</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">preprocessing</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">preprocessing</span>
 
     <span class="k">if</span> <span class="n">local</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;initalizing local classification model hosted at : </span><span class="si">{</span><span class="n">local</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"initalizing local classification model hosted at : </span><span class="si">{</span><span class="n">local</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">=</span> <span class="n">local</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -1919,13 +1919,13 @@
 <span class="normal">184</span>
 <span class="normal">185</span>
 <span class="normal">186</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    String representation of classification object</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">json_value</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-        <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
-        <span class="s2">&quot;base_url&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="p">,</span>
+        <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="s2">"version"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
+        <span class="s2">"base_url"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="p">,</span>
     <span class="p">}</span>
 
     <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">json_value</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
@@ -2010,13 +2010,13 @@
 <span class="normal">134</span>
 <span class="normal">135</span>
 <span class="normal">136</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Load a model.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        name (str): is the name of the model you&#39;d like to load</span>
+<span class="sd">        name (str): is the name of the model you'd like to load</span>
 <span class="sd">        version (int): version number</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># Load model based on user defined characteristics</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
@@ -2185,12 +2185,12 @@
 <span class="normal">121</span>
 <span class="normal">122</span>
 <span class="normal">123</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">,</span> <span class="n">hosted</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Run inference on an image.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        image_path (str): path to the image you&#39;d like to perform prediction on</span>
-<span class="sd">        hosted (bool): whether the image you&#39;re providing is hosted on Roboflow</span>
+<span class="sd">        image_path (str): path to the image you'd like to perform prediction on</span>
+<span class="sd">        hosted (bool): whether the image you're providing is hosted on Roboflow</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        PredictionGroup Object</span>
@@ -2198,39 +2198,39 @@
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; import roboflow</span>
 
-<span class="sd">        &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; rf = roboflow.Roboflow(api_key="")</span>
 
-<span class="sd">        &gt;&gt;&gt; project = rf.workspace().project(&quot;PROJECT_ID&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; project = rf.workspace().project("PROJECT_ID")</span>
 
-<span class="sd">        &gt;&gt;&gt; model = project.version(&quot;1&quot;).models()[0]</span>
+<span class="sd">        &gt;&gt;&gt; model = project.version("1").models()[0]</span>
 
-<span class="sd">        &gt;&gt;&gt; prediction = model.predict(&quot;YOUR_IMAGE.jpg&quot;)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">        &gt;&gt;&gt; prediction = model.predict("YOUR_IMAGE.jpg")</span>
+<span class="sd">    """</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">__generate_url</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">__exception_check</span><span class="p">(</span><span class="n">image_path_check</span><span class="o">=</span><span class="n">image_path</span><span class="p">)</span>
     <span class="c1"># If image is local image</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">hosted</span><span class="p">:</span>
         <span class="c1"># Open Image in RGB Format</span>
-        <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&quot;RGB&quot;</span><span class="p">)</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">"RGB"</span><span class="p">)</span>
         <span class="c1"># Create buffer</span>
         <span class="n">buffered</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
-        <span class="n">image</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffered</span><span class="p">,</span> <span class="n">quality</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;JPEG&quot;</span><span class="p">)</span>
+        <span class="n">image</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">buffered</span><span class="p">,</span> <span class="n">quality</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"JPEG"</span><span class="p">)</span>
         <span class="n">img_dims</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">size</span>
         <span class="c1"># Base64 encode image</span>
         <span class="n">img_str</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">buffered</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
-        <span class="n">img_str</span> <span class="o">=</span> <span class="n">img_str</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+        <span class="n">img_str</span> <span class="o">=</span> <span class="n">img_str</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"ascii"</span><span class="p">)</span>
         <span class="c1"># Post to API and return response</span>
         <span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="p">,</span>
             <span class="n">data</span><span class="o">=</span><span class="n">img_str</span><span class="p">,</span>
-            <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s2">&quot;application/x-www-form-urlencoded&quot;</span><span class="p">},</span>
+            <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/x-www-form-urlencoded"</span><span class="p">},</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Create API URL for hosted image (slightly different)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">+=</span> <span class="s2">&quot;&amp;image=&quot;</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote_plus</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">+=</span> <span class="s2">"&amp;image="</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">quote_plus</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
         <span class="c1"># POST to the API</span>
         <span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="p">)</span>
-        <span class="n">img_dims</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="s2">&quot;height&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">}</span>
+        <span class="n">img_dims</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"width"</span><span class="p">:</span> <span class="s2">"0"</span><span class="p">,</span> <span class="s2">"height"</span><span class="p">:</span> <span class="s2">"0"</span><span class="p">}</span>
 
     <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="mi">200</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>

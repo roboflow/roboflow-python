@@ -1047,27 +1047,27 @@
 <span class="normal">48</span>
 <span class="normal">49</span>
 <span class="normal">50</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SemanticSegmentationModel</span><span class="p">(</span><span class="n">InferenceModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Run inference on a semantic segmentation model hosted on Roboflow or served through Roboflow Inference.</span>
-<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<span class="sd">    """</span>  <span class="c1"># noqa: E501 // docs</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">version_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Create a SemanticSegmentationModel object through which you can run inference.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            api_key (str): private roboflow api key</span>
 <span class="sd">            version_id (str): the workspace/project id</span>
-<span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<span class="sd">        """</span>  <span class="c1"># noqa: E501 // docs</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">api_key</span><span class="p">,</span> <span class="n">version_id</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">SEMANTIC_SEGMENTATION_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">SEMANTIC_SEGMENTATION_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">confidence</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Infers detections based on image from a specified model and image path.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            image_path (str): path to the image you&#39;d like to perform prediction on</span>
+<span class="sd">            image_path (str): path to the image you'd like to perform prediction on</span>
 <span class="sd">            confidence (int): confidence threshold for predictions, on a scale from 0-100</span>
 
 <span class="sd">        Returns:</span>
@@ -1076,14 +1076,14 @@
 <span class="sd">        Example:</span>
 <span class="sd">            &gt;&gt;&gt; import roboflow</span>
 
-<span class="sd">            &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; rf = roboflow.Roboflow(api_key="")</span>
 
-<span class="sd">            &gt;&gt;&gt; project = rf.workspace().project(&quot;PROJECT_ID&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; project = rf.workspace().project("PROJECT_ID")</span>
 
-<span class="sd">            &gt;&gt;&gt; model = project.version(&quot;1&quot;).models()[0]</span>
+<span class="sd">            &gt;&gt;&gt; model = project.version("1").models()[0]</span>
 
-<span class="sd">            &gt;&gt;&gt; prediction = model.predict(&quot;YOUR_IMAGE.jpg&quot;)</span>
-<span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<span class="sd">            &gt;&gt;&gt; prediction = model.predict("YOUR_IMAGE.jpg")</span>
+<span class="sd">        """</span>  <span class="c1"># noqa: E501 // docs</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
             <span class="n">image_path</span><span class="p">,</span>
             <span class="n">confidence</span><span class="o">=</span><span class="n">confidence</span><span class="p">,</span>
@@ -1091,7 +1091,7 @@
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">, api_url=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="si">}</span><span class="s2">&gt;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"&lt;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">, api_url=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="si">}</span><span class="s2">&gt;"</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -1181,15 +1181,15 @@
 <span class="normal">17</span>
 <span class="normal">18</span>
 <span class="normal">19</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">version_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Create a SemanticSegmentationModel object through which you can run inference.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        api_key (str): private roboflow api key</span>
 <span class="sd">        version_id (str): the workspace/project id</span>
-<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<span class="sd">    """</span>  <span class="c1"># noqa: E501 // docs</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">api_key</span><span class="p">,</span> <span class="n">version_id</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">SEMANTIC_SEGMENTATION_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">SEMANTIC_SEGMENTATION_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">"</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -1323,11 +1323,11 @@
 <span class="normal">45</span>
 <span class="normal">46</span>
 <span class="normal">47</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">confidence</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Infers detections based on image from a specified model and image path.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        image_path (str): path to the image you&#39;d like to perform prediction on</span>
+<span class="sd">        image_path (str): path to the image you'd like to perform prediction on</span>
 <span class="sd">        confidence (int): confidence threshold for predictions, on a scale from 0-100</span>
 
 <span class="sd">    Returns:</span>
@@ -1336,14 +1336,14 @@
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; import roboflow</span>
 
-<span class="sd">        &gt;&gt;&gt; rf = roboflow.Roboflow(api_key=&quot;&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; rf = roboflow.Roboflow(api_key="")</span>
 
-<span class="sd">        &gt;&gt;&gt; project = rf.workspace().project(&quot;PROJECT_ID&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; project = rf.workspace().project("PROJECT_ID")</span>
 
-<span class="sd">        &gt;&gt;&gt; model = project.version(&quot;1&quot;).models()[0]</span>
+<span class="sd">        &gt;&gt;&gt; model = project.version("1").models()[0]</span>
 
-<span class="sd">        &gt;&gt;&gt; prediction = model.predict(&quot;YOUR_IMAGE.jpg&quot;)</span>
-<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<span class="sd">        &gt;&gt;&gt; prediction = model.predict("YOUR_IMAGE.jpg")</span>
+<span class="sd">    """</span>  <span class="c1"># noqa: E501 // docs</span>
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
         <span class="n">image_path</span><span class="p">,</span>
         <span class="n">confidence</span><span class="o">=</span><span class="n">confidence</span><span class="p">,</span>

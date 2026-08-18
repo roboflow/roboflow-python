@@ -1098,7 +1098,7 @@ You can also authenticate with an API key by using the following code:
 
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">roboflow</span>
 
-<span class="n">rf</span> <span class="o">=</span> <span class="n">roboflow</span><span class="o">.</span><span class="n">Roboflow</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="n">rf</span> <span class="o">=</span> <span class="n">roboflow</span><span class="o">.</span><span class="n">Roboflow</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
 </code></pre></div>
 
 [Learn how to retrieve your Roboflow API key](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
@@ -1110,35 +1110,35 @@ You can also authenticate with an API key by using the following code:
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">roboflow</span>
 
 <span class="c1"># Pass API key or use roboflow.login()</span>
-<span class="n">rf</span> <span class="o">=</span> <span class="n">roboflow</span><span class="o">.</span><span class="n">Roboflow</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;MY_API_KEY&quot;</span><span class="p">)</span>
+<span class="n">rf</span> <span class="o">=</span> <span class="n">roboflow</span><span class="o">.</span><span class="n">Roboflow</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">"MY_API_KEY"</span><span class="p">)</span>
 
 <span class="n">workspace</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">()</span>
 <span class="c1"># creating object detection model that will detect flowers</span>
 <span class="n">project</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">create_project</span><span class="p">(</span>
-    <span class="n">project_name</span><span class="o">=</span><span class="s2">&quot;Flower detector&quot;</span><span class="p">,</span>
-    <span class="n">project_type</span><span class="o">=</span><span class="s2">&quot;object-detection&quot;</span><span class="p">,</span> <span class="c1"># Or &quot;classification&quot;, &quot;instance-segmentation&quot;, &quot;semantic-segmentation&quot;</span>
-    <span class="n">project_license</span><span class="o">=</span><span class="s2">&quot;MIT&quot;</span><span class="p">,</span> <span class="c1"># &quot;private&quot; for private projects, only available for paid customers</span>
-    <span class="n">annotation</span><span class="o">=</span><span class="s2">&quot;flowers&quot;</span> <span class="c1"># If you plan to annotate lillys, sunflowers, etc.</span>
+    <span class="n">project_name</span><span class="o">=</span><span class="s2">"Flower detector"</span><span class="p">,</span>
+    <span class="n">project_type</span><span class="o">=</span><span class="s2">"object-detection"</span><span class="p">,</span> <span class="c1"># Or "classification", "instance-segmentation", "semantic-segmentation"</span>
+    <span class="n">project_license</span><span class="o">=</span><span class="s2">"MIT"</span><span class="p">,</span> <span class="c1"># "private" for private projects, only available for paid customers</span>
+    <span class="n">annotation</span><span class="o">=</span><span class="s2">"flowers"</span> <span class="c1"># If you plan to annotate lillys, sunflowers, etc.</span>
 <span class="p">)</span>
 
 <span class="c1"># upload a dataset</span>
 <span class="n">workspace</span><span class="o">.</span><span class="n">upload_dataset</span><span class="p">(</span>
-    <span class="n">dataset_path</span><span class="o">=</span><span class="s2">&quot;./dataset/&quot;</span><span class="p">,</span>
+    <span class="n">dataset_path</span><span class="o">=</span><span class="s2">"./dataset/"</span><span class="p">,</span>
     <span class="n">num_workers</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-    <span class="n">dataset_format</span><span class="o">=</span><span class="s2">&quot;yolov8&quot;</span><span class="p">,</span> <span class="c1"># supports yolov8, yolov5, and Pascal VOC</span>
-    <span class="n">project_license</span><span class="o">=</span><span class="s2">&quot;MIT&quot;</span><span class="p">,</span>
-    <span class="n">project_type</span><span class="o">=</span><span class="s2">&quot;object-detection&quot;</span>
+    <span class="n">dataset_format</span><span class="o">=</span><span class="s2">"yolov8"</span><span class="p">,</span> <span class="c1"># supports yolov8, yolov5, and Pascal VOC</span>
+    <span class="n">project_license</span><span class="o">=</span><span class="s2">"MIT"</span><span class="p">,</span>
+    <span class="n">project_type</span><span class="o">=</span><span class="s2">"object-detection"</span>
 <span class="p">)</span>
 
-<span class="n">version</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">version</span><span class="p">(</span><span class="s2">&quot;VERSION_NUMBER&quot;</span><span class="p">)</span>
+<span class="n">version</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">version</span><span class="p">(</span><span class="s2">"VERSION_NUMBER"</span><span class="p">)</span>
 
 <span class="c1"># upload model weights - yolov10</span>
-<span class="n">version</span><span class="o">.</span><span class="n">deploy</span><span class="p">(</span><span class="n">model_type</span><span class="o">=</span><span class="s2">&quot;yolov10&quot;</span><span class="p">,</span> <span class="n">model_path</span><span class="o">=</span><span class="n">f</span><span class="err">”</span><span class="p">{</span><span class="n">HOME</span><span class="p">}</span><span class="o">/</span><span class="n">runs</span><span class="o">/</span><span class="n">detect</span><span class="o">/</span><span class="n">train</span><span class="o">/</span><span class="err">”</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;weights.pt&quot;</span><span class="p">)</span>
+<span class="n">version</span><span class="o">.</span><span class="n">deploy</span><span class="p">(</span><span class="n">model_type</span><span class="o">=</span><span class="s2">"yolov10"</span><span class="p">,</span> <span class="n">model_path</span><span class="o">=</span><span class="n">f</span><span class="err">”</span><span class="p">{</span><span class="n">HOME</span><span class="p">}</span><span class="o">/</span><span class="n">runs</span><span class="o">/</span><span class="n">detect</span><span class="o">/</span><span class="n">train</span><span class="o">/</span><span class="err">”</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">"weights.pt"</span><span class="p">)</span>
 
 <span class="c1"># run inference (a version may own several trained models; models() returns all of them)</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">version</span><span class="o">.</span><span class="n">models</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
 
-<span class="n">img_url</span> <span class="o">=</span> <span class="s2">&quot;https://media.roboflow.com/quickstart/aerial_drone.jpeg&quot;</span>
+<span class="n">img_url</span> <span class="o">=</span> <span class="s2">"https://media.roboflow.com/quickstart/aerial_drone.jpeg"</span>
 
 <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">img_url</span><span class="p">,</span> <span class="n">hosted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
 
@@ -1150,72 +1150,72 @@ You can also authenticate with an API key by using the following code:
 
 <span class="c1"># Export images matching a search query</span>
 <span class="n">workspace</span><span class="o">.</span><span class="n">search_export</span><span class="p">(</span>
-    <span class="n">query</span><span class="o">=</span><span class="s2">&quot;class:person&quot;</span><span class="p">,</span>       <span class="c1"># search query (e.g. &quot;tag:review&quot;, &quot;class:dog&quot;, &quot;*&quot;)</span>
-    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;coco&quot;</span><span class="p">,</span>              <span class="c1"># annotation format: coco, yolov8, yolov5, voc, etc.</span>
-    <span class="n">dataset</span><span class="o">=</span><span class="s2">&quot;my-project&quot;</span><span class="p">,</span>       <span class="c1"># optional: limit to a specific project</span>
-    <span class="n">location</span><span class="o">=</span><span class="s2">&quot;./my-export&quot;</span><span class="p">,</span>     <span class="c1"># optional: output directory</span>
+    <span class="n">query</span><span class="o">=</span><span class="s2">"class:person"</span><span class="p">,</span>       <span class="c1"># search query (e.g. "tag:review", "class:dog", "*")</span>
+    <span class="nb">format</span><span class="o">=</span><span class="s2">"coco"</span><span class="p">,</span>              <span class="c1"># annotation format: coco, yolov8, yolov5, voc, etc.</span>
+    <span class="n">dataset</span><span class="o">=</span><span class="s2">"my-project"</span><span class="p">,</span>       <span class="c1"># optional: limit to a specific project</span>
+    <span class="n">location</span><span class="o">=</span><span class="s2">"./my-export"</span><span class="p">,</span>     <span class="c1"># optional: output directory</span>
 <span class="p">)</span>
 </code></pre></div>
 <p>Or from the CLI:</p>
-<div class="highlight"><pre><span></span><code>roboflow<span class="w"> </span>search-export<span class="w"> </span><span class="s2">&quot;class:person&quot;</span><span class="w"> </span>-f<span class="w"> </span>coco<span class="w"> </span>-d<span class="w"> </span>my-project<span class="w"> </span>-l<span class="w"> </span>./my-export
+<div class="highlight"><pre><span></span><code>roboflow<span class="w"> </span>search-export<span class="w"> </span><span class="s2">"class:person"</span><span class="w"> </span>-f<span class="w"> </span>coco<span class="w"> </span>-d<span class="w"> </span>my-project<span class="w"> </span>-l<span class="w"> </span>./my-export
 </code></pre></div>
 <h3 id="delete-workspace-images">Delete Workspace Images<a class="headerlink" href="#delete-workspace-images" title="Permanent link">&para;</a></h3>
 <p>Delete orphan images (not in any project) from your workspace:</p>
 <div class="highlight"><pre><span></span><code><span class="n">workspace</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">()</span>
 
 <span class="c1"># Delete orphan images by ID</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">delete_images</span><span class="p">([</span><span class="s2">&quot;image_id_1&quot;</span><span class="p">,</span> <span class="s2">&quot;image_id_2&quot;</span><span class="p">])</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;deletedSources&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, Skipped: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;skippedSources&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">delete_images</span><span class="p">([</span><span class="s2">"image_id_1"</span><span class="p">,</span> <span class="s2">"image_id_2"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Deleted: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">'deletedSources'</span><span class="p">]</span><span class="si">}</span><span class="s2">, Skipped: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">'skippedSources'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="upload-with-metadata">Upload with Metadata<a class="headerlink" href="#upload-with-metadata" title="Permanent link">&para;</a></h3>
 <p>Attach custom key-value metadata to images during upload:</p>
-<div class="highlight"><pre><span></span><code><span class="n">project</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">&quot;my-project&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">project</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">"my-project"</span><span class="p">)</span>
 
 <span class="c1"># Upload a local image with metadata</span>
 <span class="n">project</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span>
-    <span class="n">image_path</span><span class="o">=</span><span class="s2">&quot;./image.jpg&quot;</span><span class="p">,</span>
-    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;camera_id&quot;</span><span class="p">:</span> <span class="s2">&quot;cam001&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="s2">&quot;warehouse-3&quot;</span><span class="p">},</span>
+    <span class="n">image_path</span><span class="o">=</span><span class="s2">"./image.jpg"</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"camera_id"</span><span class="p">:</span> <span class="s2">"cam001"</span><span class="p">,</span> <span class="s2">"location"</span><span class="p">:</span> <span class="s2">"warehouse-3"</span><span class="p">},</span>
 <span class="p">)</span>
 
 <span class="c1"># Upload a hosted image with metadata</span>
 <span class="n">project</span><span class="o">.</span><span class="n">upload</span><span class="p">(</span>
-    <span class="n">image_path</span><span class="o">=</span><span class="s2">&quot;https://example.com/image.jpg&quot;</span><span class="p">,</span>
-    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;camera_id&quot;</span><span class="p">:</span> <span class="s2">&quot;cam002&quot;</span><span class="p">,</span> <span class="s2">&quot;shift&quot;</span><span class="p">:</span> <span class="s2">&quot;night&quot;</span><span class="p">},</span>
+    <span class="n">image_path</span><span class="o">=</span><span class="s2">"https://example.com/image.jpg"</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"camera_id"</span><span class="p">:</span> <span class="s2">"cam002"</span><span class="p">,</span> <span class="s2">"shift"</span><span class="p">:</span> <span class="s2">"night"</span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
 <p>Or from the CLI:</p>
-<div class="highlight"><pre><span></span><code>roboflow<span class="w"> </span>upload<span class="w"> </span>image.jpg<span class="w"> </span>-p<span class="w"> </span>my-project<span class="w"> </span>-M<span class="w"> </span><span class="s1">&#39;{&quot;camera_id&quot;:&quot;cam001&quot;,&quot;location&quot;:&quot;warehouse-3&quot;}&#39;</span>
+<div class="highlight"><pre><span></span><code>roboflow<span class="w"> </span>upload<span class="w"> </span>image.jpg<span class="w"> </span>-p<span class="w"> </span>my-project<span class="w"> </span>-M<span class="w"> </span><span class="s1">'{"camera_id":"cam001","location":"warehouse-3"}'</span>
 </code></pre></div>
 <h3 id="update-metadata-on-existing-images">Update Metadata on Existing Images<a class="headerlink" href="#update-metadata-on-existing-images" title="Permanent link">&para;</a></h3>
 <p>Update metadata and tags on images already in your workspace. Values in
 <code>metadata</code> are upserted: new keys are added, existing keys are overwritten.</p>
-<div class="highlight"><pre><span></span><code><span class="n">workspace</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">(</span><span class="s2">&quot;my-workspace&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">workspace</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">(</span><span class="s2">"my-workspace"</span><span class="p">)</span>
 
 <span class="c1"># Single image (synchronous)</span>
 <span class="n">workspace</span><span class="o">.</span><span class="n">update_image_metadata</span><span class="p">(</span>
-    <span class="s2">&quot;IMAGE_ID&quot;</span><span class="p">,</span>
-    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;quality_score&quot;</span><span class="p">:</span> <span class="mi">95</span><span class="p">,</span> <span class="s2">&quot;reviewed&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
-    <span class="n">remove_metadata</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;old_key&quot;</span><span class="p">],</span>
-    <span class="n">add_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;reviewed&quot;</span><span class="p">],</span>
-    <span class="n">remove_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;pending&quot;</span><span class="p">],</span>
+    <span class="s2">"IMAGE_ID"</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"quality_score"</span><span class="p">:</span> <span class="mi">95</span><span class="p">,</span> <span class="s2">"reviewed"</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+    <span class="n">remove_metadata</span><span class="o">=</span><span class="p">[</span><span class="s2">"old_key"</span><span class="p">],</span>
+    <span class="n">add_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">"reviewed"</span><span class="p">],</span>
+    <span class="n">remove_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">"pending"</span><span class="p">],</span>
 <span class="p">)</span>
 
 <span class="c1"># Also available from a project object</span>
-<span class="n">project</span><span class="o">.</span><span class="n">update_image_metadata</span><span class="p">(</span><span class="s2">&quot;IMAGE_ID&quot;</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;reviewed&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="n">project</span><span class="o">.</span><span class="n">update_image_metadata</span><span class="p">(</span><span class="s2">"IMAGE_ID"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"reviewed"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 
 <span class="c1"># Batch update up to 1,000 images (asynchronous); wait=True polls until done</span>
 <span class="n">final</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">batch_update_image_metadata</span><span class="p">(</span>
     <span class="p">[</span>
-        <span class="p">{</span><span class="s2">&quot;imageId&quot;</span><span class="p">:</span> <span class="s2">&quot;img1&quot;</span><span class="p">,</span> <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="s2">&quot;june&quot;</span><span class="p">},</span> <span class="s2">&quot;addTags&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;processed&quot;</span><span class="p">]},</span>
-        <span class="p">{</span><span class="s2">&quot;imageId&quot;</span><span class="p">:</span> <span class="s2">&quot;img2&quot;</span><span class="p">,</span> <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="s2">&quot;june&quot;</span><span class="p">},</span> <span class="s2">&quot;addTags&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;processed&quot;</span><span class="p">]},</span>
+        <span class="p">{</span><span class="s2">"imageId"</span><span class="p">:</span> <span class="s2">"img1"</span><span class="p">,</span> <span class="s2">"metadata"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"batch"</span><span class="p">:</span> <span class="s2">"june"</span><span class="p">},</span> <span class="s2">"addTags"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"processed"</span><span class="p">]},</span>
+        <span class="p">{</span><span class="s2">"imageId"</span><span class="p">:</span> <span class="s2">"img2"</span><span class="p">,</span> <span class="s2">"metadata"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"batch"</span><span class="p">:</span> <span class="s2">"june"</span><span class="p">},</span> <span class="s2">"addTags"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"processed"</span><span class="p">]},</span>
     <span class="p">],</span>
     <span class="n">wait</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">final</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;succeeded&quot;</span><span class="p">],</span> <span class="n">final</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">][</span><span class="s2">&quot;failedItems&quot;</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">final</span><span class="p">[</span><span class="s2">"result"</span><span class="p">][</span><span class="s2">"succeeded"</span><span class="p">],</span> <span class="n">final</span><span class="p">[</span><span class="s2">"result"</span><span class="p">][</span><span class="s2">"failedItems"</span><span class="p">])</span>
 </code></pre></div>
 <p>Or from the CLI:</p>
-<div class="highlight"><pre><span></span><code>roboflow<span class="w"> </span>image<span class="w"> </span>metadata<span class="w"> </span>IMAGE_ID<span class="w"> </span>-m<span class="w"> </span><span class="s1">&#39;{&quot;quality_score&quot;: 95}&#39;</span><span class="w"> </span>--tags<span class="w"> </span><span class="s2">&quot;reviewed&quot;</span>
-roboflow<span class="w"> </span>image<span class="w"> </span>metadata<span class="w"> </span>img1,img2<span class="w"> </span>--tags<span class="w"> </span><span class="s2">&quot;processed&quot;</span><span class="w"> </span>--poll
+<div class="highlight"><pre><span></span><code>roboflow<span class="w"> </span>image<span class="w"> </span>metadata<span class="w"> </span>IMAGE_ID<span class="w"> </span>-m<span class="w"> </span><span class="s1">'{"quality_score": 95}'</span><span class="w"> </span>--tags<span class="w"> </span><span class="s2">"reviewed"</span>
+roboflow<span class="w"> </span>image<span class="w"> </span>metadata<span class="w"> </span>img1,img2<span class="w"> </span>--tags<span class="w"> </span><span class="s2">"processed"</span><span class="w"> </span>--poll
 </code></pre></div>
 <h2 id="library-structure">Library Structure<a class="headerlink" href="#library-structure" title="Permanent link">&para;</a></h2>
 <p>The Roboflow Python library is structured using the same Workspace, Project, and Version ontology that you will see in the Roboflow application.</p>
@@ -1225,9 +1225,9 @@ roboflow<span class="w"> </span>image<span class="w"> </span>metadata<span class
 
 <span class="n">rf</span> <span class="o">=</span> <span class="n">roboflow</span><span class="o">.</span><span class="n">Roboflow</span><span class="p">()</span>
 
-<span class="n">workspace</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">(</span><span class="s2">&quot;WORKSPACE_URL&quot;</span><span class="p">)</span>
-<span class="n">project</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">&quot;PROJECT_URL&quot;</span><span class="p">)</span>
-<span class="n">version</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">version</span><span class="p">(</span><span class="s2">&quot;VERSION_NUMBER&quot;</span><span class="p">)</span>
+<span class="n">workspace</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">workspace</span><span class="p">(</span><span class="s2">"WORKSPACE_URL"</span><span class="p">)</span>
+<span class="n">project</span> <span class="o">=</span> <span class="n">workspace</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">"PROJECT_URL"</span><span class="p">)</span>
+<span class="n">version</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">version</span><span class="p">(</span><span class="s2">"VERSION_NUMBER"</span><span class="p">)</span>
 </code></pre></div>
 <p>The workspace, project, and version parameters are the same as those you will find in the URL addresses at app.roboflow.com and universe.roboflow.com.</p>
 <p>Within the workspace object you can perform actions like making a new project, listing your projects, or performing active learning where you are using predictions from one project's model to upload images to a new project.</p>
