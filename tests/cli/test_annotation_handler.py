@@ -5,7 +5,7 @@ import json
 import sys
 import types
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from typer.testing import CliRunner
 
@@ -36,6 +36,32 @@ class TestAnnotationParserRegistration(unittest.TestCase):
     def test_annotation_job_create(self):
         result = runner.invoke(app, ["annotation", "job", "create", "--help"])
         self.assertEqual(result.exit_code, 0)
+
+    def test_full_annotation_administration_surface(self):
+        commands = {
+            "batch": ["admin-list", "admin-get", "images", "create", "merge", "delete"],
+            "job": [
+                "admin-list",
+                "admin-get",
+                "admin-create",
+                "images",
+                "reassign-images",
+                "add-images",
+                "update",
+                "submit-review",
+                "return-edits",
+                "review-image",
+                "review-images",
+                "accept",
+                "move-to-unassigned",
+                "delete-annotations",
+            ],
+        }
+        for group, names in commands.items():
+            for name in names:
+                with self.subTest(command=f"{group} {name}"):
+                    result = runner.invoke(app, ["annotation", group, name, "--help"])
+                    self.assertEqual(result.exit_code, 0, result.output)
 
 
 class TestAnnotationStub(unittest.TestCase):
@@ -161,12 +187,10 @@ class TestJobGet(unittest.TestCase):
 class TestJobCreate(unittest.TestCase):
     """annotation job create"""
 
-    @patch("roboflow.Roboflow")
+    @patch("roboflow.adapters.rfapi.create_annotation_job_from_batch")
     @patch(_RESOLVE, return_value=("key", "ws", "proj"))
-    def test_text_output(self, _resolve, mock_rf_cls):
-        mock_project = MagicMock()
-        mock_project.create_annotation_job.return_value = {"id": "42", "name": "new-job"}
-        mock_rf_cls.return_value.workspace.return_value.project.return_value = mock_project
+    def test_text_output(self, _resolve, mock_api):
+        mock_api.return_value = {"id": "42", "name": "new-job"}
 
         result = runner.invoke(
             app,
@@ -189,20 +213,22 @@ class TestJobCreate(unittest.TestCase):
             ],
         )
         self.assertIn("new-job", result.output)
-        mock_project.create_annotation_job.assert_called_once_with(
-            name="new-job",
+        mock_api.assert_called_once_with(
+            "key",
+            "ws",
+            "proj",
             batch_id="b1",
-            num_images=5,
             labeler_email="a@b.com",
             reviewer_email="c@d.com",
+            name="new-job",
+            num_images=5,
+            instructions=None,
         )
 
-    @patch("roboflow.Roboflow")
+    @patch("roboflow.adapters.rfapi.create_annotation_job_from_batch")
     @patch(_RESOLVE, return_value=("key", "ws", "proj"))
-    def test_json_output(self, _resolve, mock_rf_cls):
-        mock_project = MagicMock()
-        mock_project.create_annotation_job.return_value = {"id": "42", "name": "new-job"}
-        mock_rf_cls.return_value.workspace.return_value.project.return_value = mock_project
+    def test_json_output(self, _resolve, mock_api):
+        mock_api.return_value = {"id": "42", "name": "new-job"}
 
         result = runner.invoke(
             app,
@@ -249,6 +275,215 @@ class TestJobCreate(unittest.TestCase):
             ],
         )
         self.assertNotEqual(result.exit_code, 0)
+
+
+class TestAnnotationAdministrationCommands(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.list_annotation_jobs_admin")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_admin_list_preserves_pagination_response(self, _resolve, mock_api):
+        mock_api.return_value = {"jobs": [{"id": "job-1"}], "continuationToken": "next"}
+        result = runner.invoke(
+            app,
+            [
+                "--json",
+                "annotation",
+                "job",
+                "admin-list",
+                "-p",
+                "ws/proj",
+                "--limit",
+                "10",
+                "--after",
+                "cursor",
+                "--show-empty",
+            ],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(json.loads(result.output)["continuationToken"], "next")
+        mock_api.assert_called_once_with("key", "ws", "proj", limit=10, after="cursor", show_empty=True)
+
+    @patch("roboflow.adapters.rfapi.get_annotation_job_admin")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_admin_get_uses_administration_adapter(self, _resolve, mock_api):
+        mock_api.return_value = {"id": "job-1"}
+        result = runner.invoke(app, ["--json", "annotation", "job", "admin-get", "job-1", "-p", "ws/proj"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with("key", "ws", "proj", "job-1")
+
+    @patch("roboflow.adapters.rfapi.create_annotation_job_admin")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_admin_create_uses_administration_adapter(self, _resolve, mock_api):
+        mock_api.return_value = {"id": "job-1"}
+        result = runner.invoke(
+            app,
+            [
+                "--json",
+                "annotation",
+                "job",
+                "admin-create",
+                "-p",
+                "ws/proj",
+                "--batch",
+                "batch-1",
+                "--labeler",
+                "labeler@example.com",
+                "--reviewer",
+                "reviewer@example.com",
+            ],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with(
+            "key",
+            "ws",
+            "proj",
+            batch_id="batch-1",
+            labeler_email="labeler@example.com",
+            reviewer_email="reviewer@example.com",
+            name=None,
+            num_images=None,
+            instructions=None,
+        )
+
+    @patch("roboflow.adapters.rfapi.create_annotation_batch")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_batch_create_accepts_repeated_image_ids(self, _resolve, mock_api):
+        mock_api.return_value = {"id": "batch-2"}
+        result = runner.invoke(
+            app,
+            [
+                "--json",
+                "annotation",
+                "batch",
+                "create",
+                "-p",
+                "ws/proj",
+                "--source-batch-id",
+                "batch-1",
+                "--image-id",
+                "image-1",
+                "--image-id",
+                "image-2",
+                "--name",
+                "Round two",
+            ],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with(
+            "key",
+            "ws",
+            "proj",
+            source_batch_id="batch-1",
+            image_ids=["image-1", "image-2"],
+            name="Round two",
+        )
+
+    @patch("roboflow.adapters.rfapi.merge_annotation_batches")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_batch_merge_requires_yes_non_interactively(self, _resolve, mock_api):
+        command = [
+            "annotation",
+            "batch",
+            "merge",
+            "-p",
+            "ws/proj",
+            "--source-batch-id",
+            "source",
+            "--target-batch-id",
+            "target",
+        ]
+        result = runner.invoke(app, command)
+        self.assertEqual(result.exit_code, 1)
+        mock_api.assert_not_called()
+
+        mock_api.return_value = {"success": True}
+        result = runner.invoke(app, [*command, "--yes"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with("key", "ws", "proj", source_batch_ids=["source"], target_batch_id="target")
+
+    @patch("roboflow.adapters.rfapi.add_images_to_annotation_job")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_job_add_images_requires_yes_non_interactively(self, _resolve, mock_api):
+        command = [
+            "annotation",
+            "job",
+            "add-images",
+            "job-1",
+            "-p",
+            "ws/proj",
+            "--image-id",
+            "image-1",
+        ]
+        result = runner.invoke(app, command)
+        self.assertEqual(result.exit_code, 1)
+        mock_api.assert_not_called()
+
+        mock_api.return_value = {"movedImageCount": 1}
+        result = runner.invoke(app, [*command, "--yes"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with("key", "ws", "proj", "job-1", image_ids=["image-1"])
+
+    @patch("roboflow.adapters.rfapi.accept_annotation_job_images")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_job_accept_maps_lists_and_split_counts(self, _resolve, mock_api):
+        mock_api.return_value = {"success": True, "numImagesAdded": 1}
+        result = runner.invoke(
+            app,
+            [
+                "--json",
+                "annotation",
+                "job",
+                "accept",
+                "job-1",
+                "-p",
+                "ws/proj",
+                "--split-method",
+                "split",
+                "--status",
+                "approved",
+                "--status",
+                "annotated",
+                "--train-count",
+                "1",
+                "--valid-count",
+                "0",
+                "--test-count",
+                "0",
+                "--image-id",
+                "image-1",
+                "--yes",
+            ],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with(
+            "key",
+            "ws",
+            "proj",
+            "job-1",
+            split_method="split",
+            statuses_to_include=["approved", "annotated"],
+            train_count=1,
+            valid_count=0,
+            test_count=0,
+            image_ids=["image-1"],
+        )
+
+    @patch("roboflow.adapters.rfapi.update_annotation_job", side_effect=ValueError("Provide exactly one field"))
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_job_update_surfaces_validation_error(self, _resolve, _mock_api):
+        result = runner.invoke(app, ["annotation", "job", "update", "job-1", "-p", "ws/proj"])
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn("exactly one", result.output)
+
+    @patch("roboflow.adapters.rfapi.delete_annotation_job_annotations")
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_delete_annotations_executes_with_yes(self, _resolve, mock_api):
+        mock_api.return_value = {"success": True}
+        result = runner.invoke(
+            app,
+            ["annotation", "job", "delete-annotations", "job-1", "-p", "ws/proj", "--yes"],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with("key", "ws", "proj", "job-1")
 
 
 if __name__ == "__main__":

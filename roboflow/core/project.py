@@ -884,15 +884,77 @@ class Project:
 
         return image_details
 
+    def get_annotation_batches(self, limit: int = 50, after: Optional[str] = None, show_empty: bool = False) -> Dict:
+        """List annotation-board batches with cursor pagination."""
+        return rfapi.list_annotation_batches(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            limit=limit,
+            after=after,
+            show_empty=show_empty,
+        )
+
+    def get_annotation_batch(self, batch_id: str) -> Dict:
+        """Get one annotation-board batch."""
+        return rfapi.get_annotation_batch(self.__api_key, self.__workspace, self.__project_name, batch_id)
+
+    def get_annotation_batch_images(self, batch_id: str, limit: int = 50, after: Optional[str] = None) -> Dict:
+        """List image IDs in an annotation batch with cursor pagination."""
+        return rfapi.list_annotation_batch_images(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            batch_id,
+            limit=limit,
+            after=after,
+        )
+
+    def create_annotation_batch(self, source_batch_id: str, image_ids: List[str], name: Optional[str] = None) -> Dict:
+        """Move selected images from one batch into a new annotation batch."""
+        return rfapi.create_annotation_batch(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            source_batch_id=source_batch_id,
+            image_ids=image_ids,
+            name=name,
+        )
+
+    def merge_annotation_batches(self, source_batch_ids: List[str], target_batch_id: str) -> Dict:
+        """Move source-batch images into a target batch and remove the emptied sources."""
+        return rfapi.merge_annotation_batches(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            source_batch_ids=source_batch_ids,
+            target_batch_id=target_batch_id,
+        )
+
+    def delete_annotation_batch(self, batch_id: str, permanent: bool = False) -> Dict:
+        """Delete a batch, retaining its images as unassigned unless permanent is true."""
+        return rfapi.delete_annotation_batch(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            batch_id,
+            permanent=permanent,
+        )
+
     def get_annotation_jobs(self) -> Dict:
-        """Get a list of all annotation jobs in the project.
-
-        Returns:
-            Dict: A dictionary containing the list of annotation jobs.
-        """
-        from roboflow.adapters import rfapi
-
+        """List all annotation jobs through the established jobs endpoint."""
         return rfapi.list_annotation_jobs(self.__api_key, self.__workspace, self.__project_name)
+
+    def get_annotation_jobs_admin(self, limit: int = 50, after: Optional[str] = None, show_empty: bool = False) -> Dict:
+        """List annotation jobs through the administration endpoint with cursor pagination."""
+        return rfapi.list_annotation_jobs_admin(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            limit=limit,
+            after=after,
+            show_empty=show_empty,
+        )
 
     def get_annotation_job(self, job_id: str) -> Dict:
         """Get information for a specific annotation job.
@@ -903,63 +965,195 @@ class Project:
         Returns:
             Dict: A dictionary containing the job details.
         """
-        from roboflow.adapters import rfapi
-
         return rfapi.get_annotation_job(self.__api_key, self.__workspace, self.__project_name, job_id)
 
+    def get_annotation_job_admin(self, job_id: str) -> Dict:
+        """Get one annotation job through the administration endpoint."""
+        return rfapi.get_annotation_job_admin(self.__api_key, self.__workspace, self.__project_name, job_id)
+
+    def get_annotation_job_images(self, job_id: str, limit: int = 50, after: Optional[str] = None) -> Dict:
+        """List image IDs assigned to an annotation job with cursor pagination."""
+        return rfapi.list_annotation_job_images(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            job_id,
+            limit=limit,
+            after=after,
+        )
+
     def create_annotation_job(
-        self, name: str, batch_id: str, num_images: int, labeler_email: str, reviewer_email: str
+        self,
+        name: Optional[str] = None,
+        batch_id: Optional[str] = None,
+        num_images: Optional[int] = None,
+        labeler_email: Optional[str] = None,
+        reviewer_email: Optional[str] = None,
+        instructions: Optional[str] = None,
     ) -> Dict:
+        """Create a job and move images from a batch into it.
+
+        ``name`` and ``num_images`` are optional. Their position is retained for
+        compatibility with older positional callers.
         """
-        Create a new annotation job in the project.
+        if not batch_id or not labeler_email or not reviewer_email:
+            raise ValueError("batch_id, labeler_email, and reviewer_email are required")
+        try:
+            return rfapi.create_annotation_job_from_batch(
+                self.__api_key,
+                self.__workspace,
+                self.__project_name,
+                batch_id=batch_id,
+                labeler_email=labeler_email,
+                reviewer_email=reviewer_email,
+                name=name,
+                num_images=num_images,
+                instructions=instructions,
+            )
+        except rfapi.RoboflowError as exc:
+            # This public method historically raised RuntimeError for API failures.
+            raise RuntimeError(str(exc)) from exc
 
-        Args:
-            name (str): The name of the annotation job
-            batch_id (str): The ID of the batch that contains the images to annotate
-            num_images (int): The number of images to include in the job
-            labeler_email (str): The email of the user who will label the images
-            reviewer_email (str): The email of the user who will review the annotations
+    def create_annotation_job_admin(
+        self,
+        name: Optional[str] = None,
+        batch_id: Optional[str] = None,
+        num_images: Optional[int] = None,
+        labeler_email: Optional[str] = None,
+        reviewer_email: Optional[str] = None,
+        instructions: Optional[str] = None,
+    ) -> Dict:
+        """Create a job through the administration endpoint."""
+        if not batch_id or not labeler_email or not reviewer_email:
+            raise ValueError("batch_id, labeler_email, and reviewer_email are required")
+        return rfapi.create_annotation_job_admin(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            batch_id=batch_id,
+            labeler_email=labeler_email,
+            reviewer_email=reviewer_email,
+            name=name,
+            num_images=num_images,
+            instructions=instructions,
+        )
 
-        Returns:
-            Dict: A dictionary containing the created job details
+    def reassign_annotation_job_images(
+        self,
+        image_ids: List[str],
+        labeler_email: str,
+        reviewer_email: Optional[str] = None,
+        instructions: Optional[str] = None,
+        name: Optional[str] = None,
+    ) -> Dict:
+        """Create a job by removing selected images from their prior assignment."""
+        return rfapi.reassign_annotation_job_images(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            image_ids=image_ids,
+            labeler_email=labeler_email,
+            reviewer_email=reviewer_email,
+            instructions=instructions,
+            name=name,
+        )
 
-        Example:
-            >>> import roboflow
+    def add_annotation_job_images(self, job_id: str, image_ids: List[str]) -> Dict:
+        """Move selected images into an existing annotation job."""
+        return rfapi.add_images_to_annotation_job(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            job_id,
+            image_ids=image_ids,
+        )
 
-            >>> rf = roboflow.Roboflow(api_key="YOUR_API_KEY")
+    def update_annotation_job(
+        self,
+        job_id: str,
+        *,
+        labeler_email: Optional[str] = None,
+        reviewer_email: Optional[str] = None,
+        instructions: Optional[str] = None,
+    ) -> Dict:
+        """Update exactly one of a job's labeler, reviewer, or instructions."""
+        return rfapi.update_annotation_job(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            job_id,
+            labeler_email=labeler_email,
+            reviewer_email=reviewer_email,
+            instructions=instructions,
+        )
 
-            >>> project = rf.workspace().project("PROJECT_ID")
+    def submit_annotation_job_for_review(self, job_id: str) -> Dict:
+        """Advance a labeling job into review."""
+        return rfapi.submit_annotation_job_for_review(self.__api_key, self.__workspace, self.__project_name, job_id)
 
-            >>> job = project.create_annotation_job(
-            ...     name="Job created by API",
-            ...     batch_id="batch123",
-            ...     num_images=10,
-            ...     labeler_email="user@example.com",
-            ...     reviewer_email="reviewer@example.com"
-            ... )
-        """
-        url = f"{API_URL}/{self.__workspace}/{self.__project_name}/jobs?api_key={self.__api_key}"
+    def return_annotation_job_for_edits(self, job_id: str, new_labeler_email: Optional[str] = None) -> Dict:
+        """Move a review job back to labeling, optionally with a new labeler."""
+        return rfapi.return_annotation_job_for_edits(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            job_id,
+            new_labeler_email=new_labeler_email,
+        )
 
-        payload = {
-            "name": name,
-            "batch": batch_id,
-            "num_images": num_images,
-            "labelerEmail": labeler_email,
-            "reviewerEmail": reviewer_email,
-        }
+    def review_annotation_job_image(self, job_id: str, image_id: str, status: str) -> Dict:
+        """Set the review status for one image in a job."""
+        return rfapi.review_annotation_job_image(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            job_id,
+            image_id,
+            status=status,
+        )
 
-        response = requests.post(url, headers={"Content-Type": "application/json"}, json=payload)
+    def review_annotation_job_images(self, job_id: str, status: str, current_status: str) -> Dict:
+        """Set a status for every job image matching the supplied current status."""
+        return rfapi.review_annotation_job_images(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            job_id,
+            status=status,
+            current_status=current_status,
+        )
 
-        if response.status_code != 200:
-            try:
-                error_data = response.json()
-                if "error" in error_data:
-                    raise RuntimeError(error_data["error"])
-                raise RuntimeError(response.text)
-            except ValueError:
-                raise RuntimeError(f"Failed to create annotation job: {response.text}")
+    def accept_annotation_job_images(
+        self,
+        job_id: str,
+        split_method: str,
+        statuses_to_include: List[str],
+        train_count: int,
+        valid_count: int,
+        test_count: int,
+        image_ids: Optional[List[str]] = None,
+    ) -> Dict:
+        """Accept selected job images into Dataset and assign their splits."""
+        return rfapi.accept_annotation_job_images(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            job_id,
+            split_method=split_method,
+            statuses_to_include=statuses_to_include,
+            train_count=train_count,
+            valid_count=valid_count,
+            test_count=test_count,
+            image_ids=image_ids,
+        )
 
-        return response.json()
+    def move_annotation_job_to_unassigned(self, job_id: str) -> Dict:
+        """Remove a job while retaining its images in an unassigned batch."""
+        return rfapi.move_annotation_job_to_unassigned(self.__api_key, self.__workspace, self.__project_name, job_id)
+
+    def delete_annotation_job_annotations(self, job_id: str) -> Dict:
+        """Delete project annotations from every image assigned to a job."""
+        return rfapi.delete_annotation_job_annotations(self.__api_key, self.__workspace, self.__project_name, job_id)
 
     def get_batches(self) -> Dict:
         """

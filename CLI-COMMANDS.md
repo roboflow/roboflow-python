@@ -170,9 +170,50 @@ roboflow folder delete <folder-id>
 ```bash
 roboflow annotation batch list -p my-project
 roboflow annotation batch get <batch-id> -p my-project
-roboflow annotation job list -p my-project
+roboflow annotation batch admin-list -p my-project --limit 50
+roboflow annotation batch images <batch-id> -p my-project
+roboflow annotation batch create -p my-project --source-batch-id <batch-id> \
+  --image-id <image-id> --name "Review batch"
+roboflow annotation batch merge -p my-project --source-batch-id <source-id> \
+  --target-batch-id <target-id> --yes
+
+roboflow annotation job admin-list -p my-project --limit 50
+roboflow annotation job admin-get <job-id> -p my-project
+roboflow annotation job admin-create -p my-project --batch <batch-id> \
+  --labeler a@co.com --reviewer b@co.com --name "Label round 1"
 roboflow annotation job create -p my-project --name "Label round 1" \
   --batch <batch-id> --num-images 100 --labeler a@co.com --reviewer b@co.com
+roboflow annotation job images <job-id> -p my-project
+roboflow annotation job submit-review <job-id> -p my-project
+roboflow annotation job review-image <job-id> <image-id> -p my-project --status approved
+roboflow annotation job return-edits <job-id> -p my-project --new-labeler a@co.com
+roboflow annotation job accept <job-id> -p my-project --split-method split \
+  --status approved --train-count 80 --valid-count 10 --test-count 10 --yes
+```
+
+Use `admin-list --after <continuation-token>` to fetch the next page. Commands
+that delete or consolidate resources, or accept images into Dataset, require
+`--yes` when run non-interactively. Run a batch or job subcommand with `--help`
+for the full administration surface.
+
+The same operations are available from a `Project` in Python:
+
+```python
+batches = project.get_annotation_batches(limit=50)
+job = project.create_annotation_job_admin(
+    batch_id="batch-id",
+    labeler_email="labeler@example.com",
+    reviewer_email="reviewer@example.com",
+)
+project.submit_annotation_job_for_review(job["id"])
+project.accept_annotation_job_images(
+    job["id"],
+    split_method="split",
+    statuses_to_include=["approved"],
+    train_count=80,
+    valid_count=10,
+    test_count=10,
+)
 ```
 
 ### RFDM devices (v2 deployments)
