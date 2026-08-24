@@ -47,6 +47,27 @@ roboflow download my-workspace/my-project/3 -f coco   # alias
 roboflow infer photo.jpg -m my-project/3
 ```
 
+### Batch Process Asset Library images
+
+```bash
+# Exact reviewed selection (CPU is the product default):
+roboflow batch create --workflow inspect-defects --image-ids img_1,img_2
+
+# Or every current match for a structured RoboQL filter:
+roboflow batch create --workflow inspect-defects --query "tag:night-shift"
+
+# Monitor and control the durable job:
+roboflow batch status <job-id>
+roboflow batch list
+roboflow batch abort <job-id>
+roboflow batch restart <job-id>
+```
+
+The create response includes `taskId`, `jobId`, and `requestId`. A job continues if the terminal
+closes. If a create request has an ambiguous network result, retry with the same `--request-id` to
+avoid a duplicate. Local folders must first be uploaded into Roboflow; Batch Processing never sends
+local file contents through an Agent or CLI job-configuration request.
+
 ### Train, monitor, cancel, stop
 
 ```bash
