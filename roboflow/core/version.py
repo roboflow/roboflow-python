@@ -817,6 +817,9 @@ class Version:
             if format in ["yolov5pytorch", "yolov7pytorch"]:
                 content["train"] = location + content["train"].lstrip("..")
                 content["val"] = location + content["val"].lstrip("..")
+                # A version generated without a test split has no `test` key at all.
+                if "test" in content:
+                    content["test"] = location + content["test"].lstrip("..")
             try:
                 # get_wrong_dependencies_versions raises exception if ultralytics is not installed at all  # noqa: E501 // docs
                 if format == "yolov8" and not get_wrong_dependencies_versions(
