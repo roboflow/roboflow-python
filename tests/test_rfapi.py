@@ -12,6 +12,7 @@ from roboflow.adapters.rfapi import (
     delete_version_training,
     get_train_recipe,
     get_training,
+    init_zip_upload,
     list_trainings_for_version,
     resolve_version_training_id,
     restore_trash_item,
@@ -206,6 +207,27 @@ class TestUploadImage(unittest.TestCase):
 
     def _reset_responses(self):
         responses.reset()
+
+
+class TestInitZipUpload(unittest.TestCase):
+    API_KEY = "test_api_key"
+    WORKSPACE_URL = "test_workspace"
+    PROJECT_URL = "test_project"
+
+    @responses.activate
+    def test_annotation_overwrite_in_body(self):
+        for annotation_overwrite, expected in [(None, False), (False, False), (True, True)]:
+            responses.reset()
+            responses.add(
+                responses.POST,
+                f"{API_URL}/{self.WORKSPACE_URL}/{self.PROJECT_URL}/upload/zip",
+                json={"signedUrl": "https://signed.example/upload", "taskId": "task-123"},
+                status=200,
+            )
+            kwargs = {} if annotation_overwrite is None else {"annotation_overwrite": annotation_overwrite}
+            init_zip_upload(self.API_KEY, self.WORKSPACE_URL, self.PROJECT_URL, **kwargs)
+            body = json.loads(responses.calls[0].request.body)
+            self.assertEqual(body["annotationOverwrite"], expected)
 
 
 class TestV2Trainings(unittest.TestCase):

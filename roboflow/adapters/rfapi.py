@@ -897,10 +897,12 @@ def _save_annotation_error(response):
 # ---------------------------------------------------------------------------
 
 
-def init_zip_upload(api_key, workspace_url, project_url, split=None, tags=None, batch_name=None) -> dict:
+def init_zip_upload(
+    api_key, workspace_url, project_url, split=None, tags=None, batch_name=None, annotation_overwrite=False
+) -> dict:
     """POST /{ws}/{proj}/upload/zip — initialize a zip upload and get a signed URL."""
     url = f"{API_URL}/{workspace_url}/{project_url}/upload/zip"
-    body: Dict[str, Union[str, List[str]]] = {}
+    body: Dict[str, Union[str, List[str], bool]] = {"annotationOverwrite": annotation_overwrite}
     if split is not None:
         body["split"] = split
     if tags is not None:
