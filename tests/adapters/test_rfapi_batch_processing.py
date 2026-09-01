@@ -5,6 +5,8 @@ from __future__ import annotations
 import unittest
 from unittest.mock import Mock, patch
 
+from requests.exceptions import ConnectionError, Timeout
+
 from roboflow.adapters import rfapi
 
 
@@ -70,6 +72,25 @@ class TestBatchProcessingAdapter(unittest.TestCase):
 
         self.assertEqual(ctx.exception.status_code, 404)
         self.assertEqual(str(ctx.exception), "Job not found")
+
+    def test_transport_errors_are_translated_for_cli_recovery(self) -> None:
+        for transport_error in (ConnectionError("connection reset"), Timeout("request timed out")):
+            with self.subTest(transport_error=type(transport_error).__name__):
+                with patch(
+                    "roboflow.adapters.rfapi.requests.post",
+                    side_effect=transport_error,
+                ):
+                    with self.assertRaises(rfapi.RoboflowError) as ctx:
+                        rfapi.create_asset_library_batch_job(
+                            "private-key",
+                            "workspace-1",
+                            workflow_id="workflow-1",
+                            idempotency_key="request-123",
+                            image_ids=["image-1"],
+                        )
+
+                self.assertIs(ctx.exception.__cause__, transport_error)
+                self.assertEqual(str(ctx.exception), str(transport_error))
 
 
 if __name__ == "__main__":

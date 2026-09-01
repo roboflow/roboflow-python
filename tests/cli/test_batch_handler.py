@@ -6,6 +6,7 @@ import json
 import unittest
 from unittest.mock import patch
 
+from requests.exceptions import ConnectionError, Timeout
 from typer.testing import CliRunner
 
 from roboflow.cli import app
@@ -126,6 +127,23 @@ class TestBatchCreate(unittest.TestCase):
         self.assertEqual(result.exit_code, 1)
         self.assertIn("--request-id must be", result.output)
         mock_create.assert_not_called()
+
+    def test_ambiguous_transport_failure_preserves_generated_request_id(self) -> None:
+        request_id = "generated-request-123"
+        for transport_error in (ConnectionError("connection reset"), Timeout("request timed out")):
+            with self.subTest(transport_error=type(transport_error).__name__):
+                with (
+                    patch("roboflow.cli.handlers.batch.uuid.uuid4", return_value=request_id),
+                    patch("roboflow.adapters.rfapi.requests.post", side_effect=transport_error),
+                ):
+                    result = runner.invoke(
+                        app,
+                        [*BASE, "batch", "create", "--workflow", "workflow-1", "--all"],
+                    )
+
+                self.assertEqual(result.exit_code, 1, result.output)
+                self.assertIn(str(transport_error), result.output)
+                self.assertIn(f"--request-id {request_id}", result.output)
 
 
 class TestBatchLifecycle(unittest.TestCase):
