@@ -1715,8 +1715,12 @@ def get_video_job_status(api_key, job_id):
 # ---------------------------------------------------------------------------
 
 
-def _batch_processing_url(workspace_url, suffix=""):
-    return f"{API_URL}/batch-processing/v1/external/{workspace_url}/asset-library/jobs{suffix}"
+def _batch_processing_jobs_url(workspace_url, suffix=""):
+    return f"{API_URL}/batch-processing/v1/external/{workspace_url}/jobs{suffix}"
+
+
+def _asset_library_batch_processing_url(workspace_url):
+    return f"{API_URL}/batch-processing/v1/external/{workspace_url}/asset-library/jobs"
 
 
 def _batch_processing_headers(api_key):
@@ -1765,7 +1769,7 @@ def create_asset_library_batch_job(
     if display_name:
         payload["displayName"] = display_name
     response = requests.post(
-        _batch_processing_url(workspace_url),
+        _asset_library_batch_processing_url(workspace_url),
         headers=_batch_processing_headers(api_key),
         json=payload,
     )
@@ -1782,7 +1786,7 @@ def list_batch_processing_jobs(api_key, workspace_url, *, page_size=10, next_pag
     if search:
         params["search"] = search
     response = requests.get(
-        _batch_processing_url(workspace_url),
+        _batch_processing_jobs_url(workspace_url),
         headers=_batch_processing_headers(api_key),
         params=params,
     )
@@ -1795,7 +1799,7 @@ def get_batch_processing_job(api_key, workspace_url, job_id):
     """Get current metadata for one Batch Processing job."""
     encoded = quote(job_id, safe="")
     response = requests.get(
-        _batch_processing_url(workspace_url, f"/{encoded}"),
+        _batch_processing_jobs_url(workspace_url, f"/{encoded}"),
         headers=_batch_processing_headers(api_key),
     )
     if response.status_code != 200:
@@ -1807,7 +1811,7 @@ def abort_batch_processing_job(api_key, workspace_url, job_id):
     """Abort one Batch Processing job."""
     encoded = quote(job_id, safe="")
     response = requests.post(
-        _batch_processing_url(workspace_url, f"/{encoded}/abort"),
+        _batch_processing_jobs_url(workspace_url, f"/{encoded}/abort"),
         headers=_batch_processing_headers(api_key),
         json={},
     )
@@ -1820,7 +1824,7 @@ def restart_batch_processing_job(api_key, workspace_url, job_id):
     """Restart one Batch Processing job with its existing configuration."""
     encoded = quote(job_id, safe="")
     response = requests.post(
-        _batch_processing_url(workspace_url, f"/{encoded}/restart"),
+        _batch_processing_jobs_url(workspace_url, f"/{encoded}/restart"),
         headers=_batch_processing_headers(api_key),
         json={},
     )

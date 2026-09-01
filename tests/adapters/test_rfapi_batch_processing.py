@@ -27,7 +27,24 @@ class TestBatchProcessingAdapter(unittest.TestCase):
         _, kwargs = mock_post.call_args
         self.assertEqual(kwargs["headers"], {"Authorization": "Bearer private-key"})
         self.assertNotIn("private-key", mock_post.call_args.args[0])
+        self.assertEqual(
+            mock_post.call_args.args[0],
+            f"{rfapi.API_URL}/batch-processing/v1/external/workspace-1/asset-library/jobs",
+        )
         self.assertEqual(kwargs["json"]["idempotencyKey"], "request-123")
+
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_list_uses_canonical_jobs_endpoint(self, mock_get) -> None:
+        response = Mock(status_code=200)
+        response.json.return_value = {"status": "ok", "jobs": []}
+        mock_get.return_value = response
+
+        rfapi.list_batch_processing_jobs("private-key", "workspace-1")
+
+        self.assertEqual(
+            mock_get.call_args.args[0],
+            f"{rfapi.API_URL}/batch-processing/v1/external/workspace-1/jobs",
+        )
 
     @patch("roboflow.adapters.rfapi.requests.get")
     def test_status_encodes_untrusted_job_id(self, mock_get) -> None:
@@ -37,7 +54,10 @@ class TestBatchProcessingAdapter(unittest.TestCase):
 
         rfapi.get_batch_processing_job("private-key", "workspace-1", "bad/id")
 
-        self.assertTrue(mock_get.call_args.args[0].endswith("/bad%2Fid"))
+        self.assertEqual(
+            mock_get.call_args.args[0],
+            f"{rfapi.API_URL}/batch-processing/v1/external/workspace-1/jobs/bad%2Fid",
+        )
 
     @patch("roboflow.adapters.rfapi.requests.get")
     def test_error_preserves_http_status_for_cli_exit_codes(self, mock_get) -> None:
