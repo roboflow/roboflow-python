@@ -1021,6 +1021,74 @@ class TestZipUpload(RoboflowTest):
             if _os.path.isdir(src_dir):
                 _os.rmdir(src_dir)
 
+    def test_annotation_overwrite_defaults_false(self):
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as fh:
+            fh.write(b"fake zip")
+            zip_path = fh.name
+
+        mocks = self._rfapi_mocks()
+        started = {name: m.start() for name, m in mocks.items()}
+        try:
+            self.workspace.upload_dataset(dataset_path=zip_path, project_name=PROJECT_NAME)
+            _, kwargs = started["init"].call_args
+            self.assertEqual(kwargs.get("annotation_overwrite"), False)
+        finally:
+            for m in mocks.values():
+                m.stop()
+            import os as _os
+
+            if _os.path.exists(zip_path):
+                _os.unlink(zip_path)
+
+    def test_annotation_overwrite_defaults_true_for_classification(self):
+        import tempfile
+        from types import SimpleNamespace
+
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as fh:
+            fh.write(b"fake zip")
+            zip_path = fh.name
+
+        mocks = self._rfapi_mocks()
+        mocks["project"] = patch(
+            "roboflow.core.workspace.Workspace._get_or_create_project",
+            return_value=(SimpleNamespace(id=f"{WORKSPACE_NAME}/{PROJECT_NAME}", type="classification"), False),
+        )
+        started = {name: m.start() for name, m in mocks.items()}
+        try:
+            self.workspace.upload_dataset(dataset_path=zip_path, project_name=PROJECT_NAME)
+            _, kwargs = started["init"].call_args
+            self.assertEqual(kwargs.get("annotation_overwrite"), True)
+        finally:
+            for m in mocks.values():
+                m.stop()
+            import os as _os
+
+            if _os.path.exists(zip_path):
+                _os.unlink(zip_path)
+
+    def test_annotation_overwrite_explicit_passthrough(self):
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as fh:
+            fh.write(b"fake zip")
+            zip_path = fh.name
+
+        mocks = self._rfapi_mocks()
+        started = {name: m.start() for name, m in mocks.items()}
+        try:
+            self.workspace.upload_dataset(dataset_path=zip_path, project_name=PROJECT_NAME, annotation_overwrite=True)
+            _, kwargs = started["init"].call_args
+            self.assertEqual(kwargs.get("annotation_overwrite"), True)
+        finally:
+            for m in mocks.values():
+                m.stop()
+            import os as _os
+
+            if _os.path.exists(zip_path):
+                _os.unlink(zip_path)
+
     def test_directory_default_stays_on_per_image(self):
         import tempfile
 

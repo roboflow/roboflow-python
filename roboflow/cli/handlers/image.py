@@ -40,6 +40,14 @@ def upload_image(
         bool,
         typer.Option("--zip-upload", help="Zip the directory client-side and use the async zip upload flow"),
     ] = False,
+    annotation_overwrite: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--annotation-overwrite/--no-annotation-overwrite",
+            help="Zip flow: overwrite existing annotations on duplicate images "
+            "(default: off, except classification projects where the API requires it on)",
+        ),
+    ] = None,
     no_wait: Annotated[
         bool,
         typer.Option("--no-wait", help="Zip flow: return immediately with task_id instead of polling"),
@@ -60,6 +68,7 @@ def upload_image(
         labelmap=labelmap,
         is_prediction=is_prediction,
         zip_upload=zip_upload,
+        annotation_overwrite=annotation_overwrite,
         no_wait=no_wait,
     )
     _handle_upload(args)
@@ -348,6 +357,7 @@ def _handle_upload_directory(args, api_key: str, path: str) -> None:  # noqa: AN
             num_retries=retries,
             is_prediction=getattr(args, "is_prediction", False),
             use_zip_upload=getattr(args, "zip_upload", False),
+            annotation_overwrite=getattr(args, "annotation_overwrite", None),
             split=getattr(args, "split", None),
             tags=tags,
             wait=wait,
