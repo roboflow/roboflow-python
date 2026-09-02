@@ -1711,6 +1711,148 @@ def get_video_job_status(api_key, job_id):
 
 
 # ---------------------------------------------------------------------------
+# Batch Processing (Asset Library orchestration)
+# ---------------------------------------------------------------------------
+
+BATCH_PROCESSING_REQUEST_TIMEOUT = (10, 60)
+
+
+def _batch_processing_jobs_url(workspace_url, suffix=""):
+    return f"{API_URL}/batch-processing/v1/external/{workspace_url}/jobs{suffix}"
+
+
+def _asset_library_batch_processing_url(workspace_url):
+    return f"{API_URL}/batch-processing/v1/external/{workspace_url}/asset-library/jobs"
+
+
+def _batch_processing_headers(api_key):
+    return {"Authorization": f"Bearer {api_key}"}
+
+
+def _batch_processing_request(request, *args, **kwargs):
+    """Make a Batch Processing request with CLI-safe transport errors."""
+    try:
+        return request(*args, **kwargs)
+    except RequestException as exc:
+        raise RoboflowError(str(exc)) from exc
+
+
+def _raise_for_batch_processing_response(response):
+    message = response.text
+    try:
+        body = response.json()
+        if isinstance(body, dict):
+            error = body.get("error")
+            if isinstance(error, dict):
+                message = error.get("message") or error.get("hint") or message
+            elif error:
+                message = str(error)
+            else:
+                message = body.get("message") or message
+    except (TypeError, ValueError):
+        pass
+    raise RoboflowError(message, status_code=response.status_code)
+
+
+def create_asset_library_batch_job(
+    api_key,
+    workspace_url,
+    *,
+    workflow_id,
+    idempotency_key,
+    image_ids=None,
+    query=None,
+    machine_type="cpu",
+    display_name=None,
+):
+    """Queue a published Workflow over an exact Asset Library selection."""
+    payload = {
+        "workflowId": workflow_id,
+        "idempotencyKey": idempotency_key,
+        "machineType": machine_type,
+    }
+    if image_ids is not None:
+        payload["imageIds"] = image_ids
+    if query is not None:
+        payload["query"] = query
+    if display_name:
+        payload["displayName"] = display_name
+    response = _batch_processing_request(
+        requests.post,
+        _asset_library_batch_processing_url(workspace_url),
+        headers=_batch_processing_headers(api_key),
+        json=payload,
+        timeout=BATCH_PROCESSING_REQUEST_TIMEOUT,
+    )
+    if response.status_code != 202:
+        _raise_for_batch_processing_response(response)
+    return response.json()
+
+
+def list_batch_processing_jobs(api_key, workspace_url, *, page_size=10, next_page_token=None, search=None):
+    """List durable Batch Processing jobs in a workspace."""
+    params = {"pageSize": page_size}
+    if next_page_token:
+        params["nextPageToken"] = next_page_token
+    if search:
+        params["search"] = search
+    response = _batch_processing_request(
+        requests.get,
+        _batch_processing_jobs_url(workspace_url),
+        headers=_batch_processing_headers(api_key),
+        params=params,
+        timeout=BATCH_PROCESSING_REQUEST_TIMEOUT,
+    )
+    if response.status_code != 200:
+        _raise_for_batch_processing_response(response)
+    return response.json()
+
+
+def get_batch_processing_job(api_key, workspace_url, job_id):
+    """Get current metadata for one Batch Processing job."""
+    encoded = quote(job_id, safe="")
+    response = _batch_processing_request(
+        requests.get,
+        _batch_processing_jobs_url(workspace_url, f"/{encoded}"),
+        headers=_batch_processing_headers(api_key),
+        timeout=BATCH_PROCESSING_REQUEST_TIMEOUT,
+    )
+    if response.status_code != 200:
+        _raise_for_batch_processing_response(response)
+    return response.json()
+
+
+def abort_batch_processing_job(api_key, workspace_url, job_id):
+    """Abort one Batch Processing job."""
+    encoded = quote(job_id, safe="")
+    response = _batch_processing_request(
+        requests.post,
+        _batch_processing_jobs_url(workspace_url, f"/{encoded}/abort"),
+        headers=_batch_processing_headers(api_key),
+        json={},
+        timeout=BATCH_PROCESSING_REQUEST_TIMEOUT,
+    )
+    if response.status_code != 200:
+        _raise_for_batch_processing_response(response)
+    return response.json()
+
+
+def restart_batch_processing_job(api_key, workspace_url, job_id):
+    """Restart one Batch Processing job with its existing configuration."""
+    encoded = quote(job_id, safe="")
+    response = _batch_processing_request(
+        requests.post,
+        _batch_processing_jobs_url(workspace_url, f"/{encoded}/restart"),
+        headers=_batch_processing_headers(api_key),
+        json={},
+        timeout=BATCH_PROCESSING_REQUEST_TIMEOUT,
+    )
+    if response.status_code != 200:
+        _raise_for_batch_processing_response(response)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
 # Phase 2: Universe search
 # ---------------------------------------------------------------------------
 

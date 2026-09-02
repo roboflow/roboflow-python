@@ -95,7 +95,6 @@ class TestCompletionScriptGeneration(unittest.TestCase):
             "get_workspace_info",
             "run_video_inference_api",
             "help",
-            "batch",
         }
         leaked = hidden_examples & visible
         self.assertFalse(leaked, f"Hidden commands leaked into completion: {leaked}")
