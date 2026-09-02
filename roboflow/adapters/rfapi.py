@@ -1714,6 +1714,8 @@ def get_video_job_status(api_key, job_id):
 # Batch Processing (Asset Library orchestration)
 # ---------------------------------------------------------------------------
 
+BATCH_PROCESSING_REQUEST_TIMEOUT = (10, 60)
+
 
 def _batch_processing_jobs_url(workspace_url, suffix=""):
     return f"{API_URL}/batch-processing/v1/external/{workspace_url}/jobs{suffix}"
@@ -1724,7 +1726,6 @@ def _asset_library_batch_processing_url(workspace_url):
 
 
 def _batch_processing_headers(api_key):
-    # Keep credentials out of URLs, proxy logs, and shell history. validateToken supports Bearer.
     return {"Authorization": f"Bearer {api_key}"}
 
 
@@ -1781,6 +1782,7 @@ def create_asset_library_batch_job(
         _asset_library_batch_processing_url(workspace_url),
         headers=_batch_processing_headers(api_key),
         json=payload,
+        timeout=BATCH_PROCESSING_REQUEST_TIMEOUT,
     )
     if response.status_code != 202:
         _raise_for_batch_processing_response(response)
@@ -1799,6 +1801,7 @@ def list_batch_processing_jobs(api_key, workspace_url, *, page_size=10, next_pag
         _batch_processing_jobs_url(workspace_url),
         headers=_batch_processing_headers(api_key),
         params=params,
+        timeout=BATCH_PROCESSING_REQUEST_TIMEOUT,
     )
     if response.status_code != 200:
         _raise_for_batch_processing_response(response)
@@ -1812,6 +1815,7 @@ def get_batch_processing_job(api_key, workspace_url, job_id):
         requests.get,
         _batch_processing_jobs_url(workspace_url, f"/{encoded}"),
         headers=_batch_processing_headers(api_key),
+        timeout=BATCH_PROCESSING_REQUEST_TIMEOUT,
     )
     if response.status_code != 200:
         _raise_for_batch_processing_response(response)
@@ -1826,6 +1830,7 @@ def abort_batch_processing_job(api_key, workspace_url, job_id):
         _batch_processing_jobs_url(workspace_url, f"/{encoded}/abort"),
         headers=_batch_processing_headers(api_key),
         json={},
+        timeout=BATCH_PROCESSING_REQUEST_TIMEOUT,
     )
     if response.status_code != 200:
         _raise_for_batch_processing_response(response)
@@ -1840,6 +1845,7 @@ def restart_batch_processing_job(api_key, workspace_url, job_id):
         _batch_processing_jobs_url(workspace_url, f"/{encoded}/restart"),
         headers=_batch_processing_headers(api_key),
         json={},
+        timeout=BATCH_PROCESSING_REQUEST_TIMEOUT,
     )
     if response.status_code != 200:
         _raise_for_batch_processing_response(response)

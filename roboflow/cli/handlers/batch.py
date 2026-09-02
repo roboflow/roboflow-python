@@ -31,7 +31,7 @@ def create(
     ] = None,
     query: Annotated[
         Optional[str],
-        typer.Option(help="Reviewed structured RoboQL filter selecting all current matches"),
+        typer.Option(help="RoboQL filter selecting all current matches"),
     ] = None,
     all_images: Annotated[
         bool,
@@ -182,11 +182,11 @@ def _create(args) -> None:  # noqa: ANN001
 
     result = {**result, "requestId": request_id}
     text = (
-        f"Queued {result.get('displayName') or result.get('jobId')}\n"
-        f"jobId={result.get('jobId')}\n"
-        f"taskId={result.get('taskId')}\n"
+        f"Queued {result['displayName']}\n"
+        f"jobId={result['jobId']}\n"
+        f"taskId={result['taskId']}\n"
         f"requestId={request_id}\n"
-        f"Next: roboflow asynctasks wait {result.get('taskId')}"
+        f"Next: roboflow asynctasks wait {result['taskId']}"
     )
     output(args, result, text=text)
 
@@ -207,19 +207,19 @@ def _status(args) -> None:  # noqa: ANN001
             args,
             exc,
             auth_hint="Check the API key has 'batch-processing:read' scope.",
-            not_found_hint="Check the job ID and workspace.",
+            not_found_hint=(
+                "If the job was just queued, wait using the task ID returned by 'batch create'; "
+                "otherwise check the job ID and workspace."
+            ),
         )
         return
 
-    job = result.get("job", {})
-    state = job.get("currentStage") or ("terminal" if job.get("isTerminal") else "queued")
+    job = result["job"]
+    state = job.get("currentStage") or ("terminal" if job["isTerminal"] else "queued")
     output(
         args,
         result,
-        text=(
-            f"jobId={job.get('jobId', args.job_id)} state={state} "
-            f"terminal={job.get('isTerminal')} error={job.get('error')}"
-        ),
+        text=(f"jobId={job['jobId']} state={state} terminal={job['isTerminal']} error={job['error']}"),
     )
 
 
@@ -251,13 +251,13 @@ def _list(args) -> None:  # noqa: ANN001
 
     rows = [
         {
-            "jobId": job.get("jobId", ""),
-            "name": job.get("name", ""),
-            "stage": job.get("currentStage") or ("terminal" if job.get("isTerminal") else "queued"),
-            "error": job.get("error", False),
-            "updated": job.get("lastUpdate", ""),
+            "jobId": job["jobId"],
+            "name": job["name"],
+            "stage": job.get("currentStage") or ("terminal" if job["isTerminal"] else "queued"),
+            "error": job["error"],
+            "updated": job["lastUpdate"],
         }
-        for job in result.get("jobs", [])
+        for job in result["jobs"]
     ]
     table = format_table(rows, columns=["jobId", "name", "stage", "error", "updated"])
     if result.get("nextPageToken"):

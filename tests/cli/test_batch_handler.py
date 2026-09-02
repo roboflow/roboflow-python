@@ -74,7 +74,11 @@ class TestBatchCreate(unittest.TestCase):
 
     @patch("roboflow.adapters.rfapi.create_asset_library_batch_job")
     def test_all_is_explicit_empty_query_not_an_omitted_selection(self, mock_create) -> None:
-        mock_create.return_value = {"taskId": "task-1", "jobId": "al-123"}
+        mock_create.return_value = {
+            "taskId": "task-1",
+            "jobId": "al-123",
+            "displayName": "Asset Library Batch",
+        }
 
         result = runner.invoke(
             app,

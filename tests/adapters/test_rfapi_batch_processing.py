@@ -34,6 +34,7 @@ class TestBatchProcessingAdapter(unittest.TestCase):
             f"{rfapi.API_URL}/batch-processing/v1/external/workspace-1/asset-library/jobs",
         )
         self.assertEqual(kwargs["json"]["idempotencyKey"], "request-123")
+        self.assertEqual(kwargs["timeout"], rfapi.BATCH_PROCESSING_REQUEST_TIMEOUT)
 
     @patch("roboflow.adapters.rfapi.requests.get")
     def test_list_uses_canonical_jobs_endpoint(self, mock_get) -> None:
