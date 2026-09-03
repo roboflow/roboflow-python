@@ -672,7 +672,7 @@ class Project:
         limit: int = 100,
         tag: Optional[str] = None,
         class_name: Optional[str] = None,
-        in_dataset: Optional[str] = None,
+        in_dataset: Optional[bool] = None,
         batch: bool = False,
         batch_id: Optional[str] = None,
         fields: Optional[List[str]] = None,
@@ -690,7 +690,7 @@ class Project:
             limit (int): limit of results
             tag (str): tag that an image must have
             class_name (str): class name that an image must have
-            in_dataset (str): dataset that an image must be in
+            in_dataset (bool): whether an image must be in this project's dataset
             batch (bool): whether the image must be in a batch
             batch_id (str): batch id that an image must be in
             annotation_job (bool): whether the image must be in an annotation job
@@ -773,7 +773,7 @@ class Project:
         limit: int = 100,
         tag: Optional[str] = None,
         class_name: Optional[str] = None,
-        in_dataset: Optional[str] = None,
+        in_dataset: Optional[bool] = None,
         batch: bool = False,
         batch_id: Optional[str] = None,
         fields: Optional[List[str]] = None,
@@ -791,7 +791,7 @@ class Project:
             limit (int): limit of results
             tag (str): tag that an image must have
             class_name (str): class name that an image must have
-            in_dataset (str): dataset that an image must be in
+            in_dataset (bool): whether an image must be in this project's dataset
             batch (bool): whether the image must be in a batch
             batch_id (str): batch id that an image must be in
             annotation_job (bool): whether the image must be in an annotation job
