@@ -111,6 +111,7 @@ rf = roboflow.Roboflow(api_key="")
 
 </details>
 
+<!-- --8<-- [start:quickstart] -->
 ## Quickstart
 
 Below are some common methods used with the Roboflow Python package, presented concisely for reference. For a full library reference, refer to the [Roboflow API reference documentation](https://docs.roboflow.com/api-reference).
@@ -154,6 +155,8 @@ predictions = model.predict(img_url, hosted=True).json()
 
 print(predictions)
 ```
+
+<!-- --8<-- [end:quickstart] -->
 
 ### Search and Export
 
