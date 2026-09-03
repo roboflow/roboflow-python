@@ -549,7 +549,21 @@ def _load_checkpoint(torch_module: Any, checkpoint_path: Path, *, map_location: 
     kwargs: dict[str, Any] = {"weights_only": False}
     if map_location is not None:
         kwargs["map_location"] = map_location
-    return torch_module.load(checkpoint_path, **kwargs)
+    try:
+        return torch_module.load(checkpoint_path, **kwargs)
+    except ModuleNotFoundError as error:
+        # yolov5/v7/v9 checkpoints pickle their model classes by reference (models.yolo,
+        # utils.*), so unpickling only resolves when the training repository is
+        # importable. Raised bare, this surfaces as "No module named 'models'" with no
+        # indication that the checkpoint, not roboflow, is what needs the extra module.
+        raise ModelPackagingError(
+            f"Could not load {checkpoint_path}: the checkpoint references the module "
+            f"'{error.name}', which is not importable here. Checkpoints produced by the "
+            "yolov5, yolov7 and yolov9 training repositories store their model classes by "
+            "reference, so they can only be unpickled from an environment where that "
+            "repository is importable. Run the upload from the training repository's "
+            "directory, or add it to PYTHONPATH."
+        ) from error
 
 
 def _legacy_yolo_args(opts: dict[str, Any], opt_path: Path) -> dict[str, Any]:
