@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import re
@@ -324,25 +325,37 @@ def _read_jsonl(path):
 
 
 def _parseAnnotationCSV(filename):
-    # TODO: use a proper CSV library?
+    # Open in text mode so line endings are normalized to \n (matches legacy behaviour).
+    # Annotation filenames never contain embedded newlines, so the csv multi-line-field
+    # caveat for newline="" does not apply here.
     with open(filename) as f:
-        lines = f.readlines()
-    headers = [h.strip() for h in lines[0].split(",")]
+        raw_lines = f.readlines()
+
+    rows = list(csv.reader(raw_lines))
+    if not rows:
+        return {"headers": "", "lines": []}
+
+    headers = [h.strip() for h in rows[0]]
+
     # Multi-label classification csv typically named _classes.csv
     if os.path.basename(filename) == "_classes.csv":
         parsed_lines = []
-        for line in lines[1:]:
-            parts = [p.strip() for p in line.split(",")]
+        for parts in rows[1:]:
+            parts = [p.strip() for p in parts]
+            if not parts:
+                continue
             file_name = parts[0]
             labels = [headers[i] for i, v in enumerate(parts[1:], start=1) if v == "1"]
             parsed_lines.append({"file_name": file_name, "labels": labels})
         return {"type": "multilabel_csv", "rows": parsed_lines, "headers": headers}
-    header_line = lines[0]
-    lines = [{"file_name": ld.split(",")[0].strip(), "line": ld} for ld in lines[1:]]
-    return {
-        "headers": header_line,
-        "lines": lines,
-    }
+
+    # For regular CSV, preserve raw lines so callers can reconstruct verbatim CSV text
+    # for upload, but use csv.reader to correctly extract file_name (handles quoted commas).
+    header_line = raw_lines[0] if raw_lines else ""
+    lines = [
+        {"file_name": row[0].strip() if row else "", "line": raw_line} for raw_line, row in zip(raw_lines[1:], rows[1:])
+    ]
+    return {"headers": header_line, "lines": lines}
 
 
 def _guessAnnotationFileFormat(parsed, extension):
