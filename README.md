@@ -96,6 +96,20 @@ import roboflow
 roboflow.login()
 ```
 
+### Using Roboflow EU
+
+The same package supports Roboflow's EU data-residency platform. Select it
+when logging in with the CLI:
+
+```bash
+roboflow auth login --region eu
+```
+
+For environment-based configuration and CI, set `ROBOFLOW_REGION=eu` before
+running Python or CLI commands. EU and US use separate authentication
+backends, so use an EU API key obtained from
+[`app.roboflow.eu`](https://app.roboflow.eu).
+
 <details>
 <summary>Authenticate with an API key</summary>
 
