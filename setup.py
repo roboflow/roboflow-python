@@ -29,7 +29,7 @@ setuptools.setup(
     packages=find_packages(exclude=("tests",)),
     # create optional [desktop]
     extras_require={
-        "desktop": ["opencv-python==4.8.0.74"],
+        "desktop": ["opencv-python==4.8.1.78"],
         "dev": [
             "mypy",
             "responses",
