@@ -229,14 +229,14 @@ def _run(args: Any, operation: Callable[[], Any], text: Optional[Callable[[Any],
 
 def _workspace_command(args: Any, operation: Callable[[str, str], Any]) -> None:
     api_key, workspace_url = _resolve_workspace(args)
-    if not workspace_url:
+    if api_key is None or workspace_url is None:
         return
     _run(args, lambda: operation(api_key, workspace_url))
 
 
 def _project_command(args: Any, operation: Callable[[str, str, str], Any]) -> None:
     api_key, workspace, project = _resolve_project(args)
-    if not project:
+    if api_key is None or workspace is None or project is None:
         return
     _run(args, lambda: operation(api_key, workspace, project))
 
