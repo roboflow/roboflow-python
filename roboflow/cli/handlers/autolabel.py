@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import Annotated, Any, Callable, Optional
 
 import typer
@@ -30,7 +29,9 @@ def preview(
     ] = None,
     ontology: Annotated[
         Optional[str],
-        typer.Option("--ontology", help='JSON mapping of class name to prompt, e.g. \'{"cat": "a cat"}\''),
+        typer.Option(
+            "--ontology", help='JSON mapping of class name to prompt, e.g. \'{"cat": "a cat"}\', or @ontology.json'
+        ),
     ] = None,
     confidence: Annotated[
         Optional[float], typer.Option("--confidence", help="Detection threshold from 0.0 to 1.0 (sam3 only)")
@@ -39,8 +40,6 @@ def preview(
     """Preview one image with a foundation model. Free: no job is created."""
     args = ctx_to_args(ctx, project=project)
     resolved_ontology = _parse_ontology(args, ontology, classes)
-    if resolved_ontology is _INVALID:
-        return
     from roboflow.util.autolabel_utils import image_payload
 
     _project_command(
@@ -80,7 +79,9 @@ def start(
     ] = None,
     ontology: Annotated[
         Optional[str],
-        typer.Option("--ontology", help='JSON mapping of class name to prompt, e.g. \'{"cat": "a cat"}\''),
+        typer.Option(
+            "--ontology", help='JSON mapping of class name to prompt, e.g. \'{"cat": "a cat"}\', or @ontology.json'
+        ),
     ] = None,
     num_images: Annotated[
         Optional[int], typer.Option("--num-images", help="Number of images to label (default: whole batch)")
@@ -98,18 +99,16 @@ def start(
     ] = None,
     model_options: Annotated[
         Optional[str],
-        typer.Option("--model-options", help='JSON model options, e.g. \'{"outputFormat": "polygon"}\''),
+        typer.Option(
+            "--model-options", help='JSON model options, e.g. \'{"outputFormat": "polygon"}\', or @options.json'
+        ),
     ] = None,
 ) -> None:
     """Start a hosted auto-label job over a batch of images."""
     args = ctx_to_args(ctx, project=project)
     resolved_ontology = _parse_ontology(args, ontology, classes)
-    if resolved_ontology is _INVALID:
-        return
     resolved_thresholds = _parse_json_option(args, "--confidence-thresholds", confidence_thresholds)
     resolved_options = _parse_json_option(args, "--model-options", model_options)
-    if resolved_thresholds is _INVALID or resolved_options is _INVALID:
-        return
     from roboflow.util.autolabel_utils import resolve_model
 
     def start_job(key: str, workspace: str, proj: str) -> Any:
@@ -146,8 +145,6 @@ def job(
 # Business logic
 # ---------------------------------------------------------------------------
 
-_INVALID = object()
-
 
 def _rfapi():
     from roboflow.adapters import rfapi
@@ -155,24 +152,17 @@ def _rfapi():
     return rfapi
 
 
-def _parse_json_option(args: Any, flag: str, raw: Optional[str]) -> Any:
-    from roboflow.cli._output import output_error
-
+def _parse_json_option(args: Any, flag: str, raw: Optional[str]) -> Optional[dict]:
+    """Parse an optional JSON-object flag: inline JSON or ``@path`` to a file. Exits on invalid input."""
     if raw is None:
         return None
-    try:
-        value = json.loads(raw)
-    except ValueError:
-        output_error(args, f"{flag} must be valid JSON.")
-        return _INVALID
-    if not isinstance(value, dict):
-        output_error(args, f"{flag} must be a JSON object.")
-        return _INVALID
-    return value
+    from roboflow.cli.handlers.train import _parse_json_flag
+
+    return _parse_json_flag(args, raw, flag)
 
 
-def _parse_ontology(args: Any, ontology: Optional[str], classes: Optional[list[str]]) -> Any:
-    """Build the ontology from --ontology JSON (takes precedence) or repeated --class."""
+def _parse_ontology(args: Any, ontology: Optional[str], classes: Optional[list[str]]) -> Optional[dict]:
+    """Build the ontology from --ontology (JSON or @file, takes precedence) or repeated --class."""
     if ontology is not None:
         return _parse_json_option(args, "--ontology", ontology)
     if classes:

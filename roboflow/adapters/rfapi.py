@@ -1309,6 +1309,11 @@ def _annotation_pagination_params(api_key, *, limit, after=None, show_empty=None
 
 
 def _annotation_administration_response(response):
+    return _json_response_or_raise(response)
+
+
+def _json_response_or_raise(response):
+    """Return the JSON body of a 2xx response; raise ``RoboflowError`` with the HTTP status otherwise."""
     if not 200 <= response.status_code < 300:
         message = response.text
         try:
@@ -1328,6 +1333,10 @@ def _annotation_administration_response(response):
 # ---------------------------------------------------------------------------
 
 
+def _autolabel_response(response):
+    return _json_response_or_raise(response)
+
+
 def list_autolabel_models(api_key, workspace_url):
     """Fetch the foundation-model catalog for hosted auto-labeling.
 
@@ -1340,7 +1349,7 @@ def list_autolabel_models(api_key, workspace_url):
         f"{API_URL}/{workspace_url}/autolabel/models",
         params={"api_key": api_key},
     )
-    return _annotation_administration_response(response)
+    return _autolabel_response(response)
 
 
 def preview_autolabel(
@@ -1370,7 +1379,7 @@ def preview_autolabel(
         params={"api_key": api_key},
         json=payload,
     )
-    return _annotation_administration_response(response)
+    return _autolabel_response(response)
 
 
 def start_autolabel_job(
@@ -1414,7 +1423,7 @@ def start_autolabel_job(
         params={"api_key": api_key},
         json=payload,
     )
-    return _annotation_administration_response(response)
+    return _autolabel_response(response)
 
 
 def get_autolabel_job(api_key, workspace_url, job_id):
@@ -1426,7 +1435,7 @@ def get_autolabel_job(api_key, workspace_url, job_id):
         f"{API_URL}/{workspace_url}/autolabel/jobs/{job_id}",
         params={"api_key": api_key},
     )
-    return _annotation_administration_response(response)
+    return _autolabel_response(response)
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,8 @@
 """Unit tests for roboflow.cli.handlers.autolabel."""
 
 import json
+import os
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -90,6 +92,23 @@ class TestAutolabelPreview(unittest.TestCase):
             ["autolabel", "preview", "-p", "ws/proj", "-m", "sam3-rle", "--image", "https://x/y.jpg"]
             + ["--class", "cat", "--ontology", '{"cat": "a tabby cat"}'],
         )
+        self.assertEqual(mock_api.call_args.kwargs["ontology"], {"cat": "a tabby cat"})
+
+    @patch("roboflow.adapters.rfapi.preview_autolabel", return_value={})
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_ontology_can_be_read_from_a_file(self, _resolve, mock_api):
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as handle:
+            json.dump({"cat": "a tabby cat"}, handle)
+            path = handle.name
+        try:
+            result = runner.invoke(
+                app,
+                ["autolabel", "preview", "-p", "ws/proj", "-m", "sam3-rle", "--image", "https://x/y.jpg"]
+                + ["--ontology", f"@{path}"],
+            )
+        finally:
+            os.unlink(path)
+        self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(mock_api.call_args.kwargs["ontology"], {"cat": "a tabby cat"})
 
     @patch("roboflow.adapters.rfapi.preview_autolabel")
