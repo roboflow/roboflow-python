@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Hosted auto-label support, matching the Roboflow MCP tools:
+  - `Workspace.autolabel_models()` — list the foundation-model catalog
+    (`gpt-6-astra-boxes`, `sam3-rle`, `gemini-boxes`, ...) with availability,
+    guidance and credits per image.
+  - `Project.autolabel_preview(model, image, ontology=...)` — free single-image
+    preview to compare models before starting a job. `image` accepts an HTTPS
+    URL, a local file path or a base64 string.
+  - `Project.autolabel(batch_id, model, model_type="foundational" | "roboflow", ...)`
+    — start a job over a batch; returns `{jobId, annotationJobId}`.
+  - `Project.autolabel_job(job_id)` / `Workspace.autolabel_job(job_id)` — poll
+    per-subjob progress.
+  - `roboflow autolabel models | preview | start | job` CLI commands.
+
 ## 1.4.1
 
 ### Added

@@ -239,6 +239,34 @@ project.accept_annotation_job_images(
 )
 ```
 
+### Auto-label a batch with a foundation model
+
+```bash
+roboflow autolabel models
+roboflow autolabel preview -p my-project -m sam3-rle --image https://example.com/sample.jpg \
+  --class cat --class dog
+roboflow autolabel start -p my-project --batch-id <batch-id> -m gpt-6-astra-boxes \
+  --ontology '{"cat": "a cat", "dog": "a dog"}' --confidence 0.5 --reviewer b@co.com
+roboflow autolabel start -p my-project --batch-id <batch-id> -m my-project/3 --model-type roboflow
+roboflow autolabel job <job-id>
+```
+
+`models` lists the catalog for the workspace (id, availability, credits per
+image, default). `preview` runs one image through a model for free so you can
+compare candidates before spending credits. `start` creates the job and prints
+`jobId` and `annotationJobId`; poll it with `job`. Pass the ontology either as
+repeated `--class` flags or as `--ontology` JSON (class name to text prompt).
+`--image` accepts an HTTPS URL or a local file.
+
+The same operations are available in Python:
+
+```python
+models = workspace.autolabel_models()["models"]
+preview = project.autolabel_preview("sam3-rle", "sample.jpg", ontology={"cat": "cat"})
+job = project.autolabel("batch-id", model="gpt-6-astra-boxes", ontology={"cat": "a cat"})
+project.autolabel_job(job["jobId"])["status"]
+```
+
 ### RFDM devices (v2 deployments)
 
 Workspace-scoped device management — backed by the external Deployments API
@@ -457,6 +485,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `workflow` | Manage workflows |
 | `folder` | Manage workspace folders |
 | `annotation` | Annotation batches and jobs |
+| `autolabel` | Auto-label batches with hosted foundation or Roboflow models |
 | `asynctasks` | Inspect async background tasks (e.g. project forks) |
 | `trash` | List items in Trash |
 | `universe` | Search Roboflow Universe |

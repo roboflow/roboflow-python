@@ -1669,6 +1669,33 @@ class Workspace:
         """
         return rfapi.restore_trash_item(self.__api_key, self.url, item_type, item_id, parent_id)
 
+    def autolabel_models(self) -> dict:
+        """
+        List the foundation models available for hosted auto-labeling in this workspace.
+
+        Returns ``{models: [...]}``. Each entry's ``id`` (e.g.
+        ``gpt-6-astra-boxes``, ``sam3-rle``, ``gemini-boxes``) is a valid
+        ``model`` for ``Project.autolabel`` and ``Project.autolabel_preview``.
+        Entries carry ``guidance`` on when to prefer each model, the
+        ``projectTypes`` they support, ``ontologyFormat``, ``creditsPerImage``,
+        ``isDefault``, and ``available`` with an ``unavailableReason`` when the
+        workspace plan blocks a model.
+
+        Example:
+            >>> for m in ws.autolabel_models()["models"]:
+            ...     print(m["id"], m["available"])
+        """
+        return rfapi.list_autolabel_models(self.__api_key, self.url)
+
+    def autolabel_job(self, job_id: str) -> dict:
+        """
+        Get status and per-subjob progress for a hosted auto-label job.
+
+        Args:
+            job_id: the ``jobId`` returned by ``Project.autolabel``.
+        """
+        return rfapi.get_autolabel_job(self.__api_key, self.url, job_id)
+
     # Permanent-delete actions (empty trash / delete a single trash item
     # immediately) are intentionally not exposed in the SDK — they destroy
     # data irrecoverably and are only available through the web UI's Trash
