@@ -14,6 +14,7 @@ from roboflow.adapters import rfapi
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
+from roboflow.util.autolabel_utils import Ontology as _AutolabelOntology
 from roboflow.util.autolabel_utils import image_payload as _autolabel_image_payload
 from roboflow.util.autolabel_utils import ontology_payload as _autolabel_ontology_payload
 from roboflow.util.autolabel_utils import resolve_model as _resolve_autolabel_model
@@ -1162,7 +1163,7 @@ class Project:
         self,
         model: str,
         image: str,
-        ontology: Optional[Union[Dict[str, str], List[str]]] = None,
+        ontology: Optional[_AutolabelOntology] = None,
         confidence_threshold: Optional[float] = None,
     ) -> Dict:
         """Preview one image with a foundation model before starting an auto-label job.
@@ -1175,9 +1176,9 @@ class Project:
             model: Foundation model id from ``Workspace.autolabel_models()``
                 (e.g. ``"gpt-6-astra-boxes"``, ``"sam3-rle"``, ``"gemini-boxes"``).
             image: HTTPS URL, local file path, or base64-encoded image.
-            ontology: ``{"class name": "text prompt"}`` or a plain list of class
-                names (each class is then its own prompt). Defaults to the
-                dataset's own classes.
+            ontology: ``{"class name": "text prompt"}``, a plain list of class
+                names, or ``[{"class": ..., "prompt": ...}]`` when one class
+                needs several prompts. Defaults to the dataset's own classes.
             confidence_threshold: Detection threshold between 0.0 and 1.0
                 (sam3 only; other models report fixed confidence).
 
@@ -1202,7 +1203,7 @@ class Project:
         batch_id: str,
         model: str,
         model_type: str = "foundational",
-        ontology: Optional[Union[Dict[str, str], List[str]]] = None,
+        ontology: Optional[_AutolabelOntology] = None,
         num_images: Optional[int] = None,
         confidence: Optional[float] = None,
         confidence_thresholds: Optional[Dict[str, float]] = None,
@@ -1222,10 +1223,12 @@ class Project:
             model_type: ``"foundational"`` (hosted foundation model, sent as-is;
                 the backend resolves catalog ids) or ``"roboflow"`` (a
                 Roboflow-trained model).
-            ontology: ``{"class name": "text prompt"}``, or a plain list of
-                class names (each class is then its own prompt). For models
-                with ``ontologyFormat="promptMap"`` (sam3) the prompts are sent
-                to the model; for ``ontologyFormat="classes"`` only the class
+            ontology: ``{"class name": "text prompt"}``, a plain list of class
+                names, or ``[{"class": ..., "prompt": ...}]`` when one class
+                needs several prompts (``{"cat": ...}`` can only carry one,
+                since dict keys are unique). For models with
+                ``ontologyFormat="promptMap"`` (sam3) the prompts are sent to
+                the model; for ``ontologyFormat="classes"`` only the class
                 names are used. Defaults to the dataset's classes (or the
                 trained model's classes for ``model_type="roboflow"``).
             num_images: Number of images from the batch to label. Defaults to

@@ -111,6 +111,31 @@ class TestAutolabelPreview(unittest.TestCase):
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(mock_api.call_args.kwargs["ontology"], [{"class": "cat", "prompt": "a tabby cat"}])
 
+    @patch("roboflow.adapters.rfapi.preview_autolabel", return_value={})
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_ontology_accepts_a_json_array_for_multi_prompt_classes(self, _resolve, mock_api):
+        result = runner.invoke(
+            app,
+            ["autolabel", "preview", "-p", "ws/proj", "-m", "sam3-rle", "--image", "https://x/y.jpg"]
+            + ["--ontology", '[{"class": "cat", "prompt": "kitten"}, {"class": "cat", "prompt": "tabby"}]'],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(
+            mock_api.call_args.kwargs["ontology"],
+            [{"class": "cat", "prompt": "kitten"}, {"class": "cat", "prompt": "tabby"}],
+        )
+
+    @patch("roboflow.adapters.rfapi.preview_autolabel")
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_one_prompt_for_two_classes_errors_without_calling_api(self, _resolve, mock_api):
+        result = runner.invoke(
+            app,
+            ["autolabel", "preview", "-p", "ws/proj", "-m", "sam3-rle", "--image", "https://x/y.jpg"]
+            + ["--ontology", '[{"class": "cat", "prompt": "animal"}, {"class": "dog", "prompt": "animal"}]'],
+        )
+        self.assertNotEqual(result.exit_code, 0)
+        mock_api.assert_not_called()
+
     @patch("roboflow.adapters.rfapi.preview_autolabel")
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
     def test_invalid_ontology_json_fails_without_calling_api(self, _resolve, mock_api):

@@ -23,26 +23,65 @@ def image_payload(image: str) -> Dict[str, str]:
     return {"type": "base64", "value": image}
 
 
-def ontology_payload(
-    ontology: Optional[Union[Dict[str, str], Iterable[str]]],
-) -> Optional[List[Dict[str, str]]]:
+OntologyEntry = Dict[str, str]
+Ontology = Union[Dict[str, str], Iterable[Union[str, OntologyEntry]]]
+
+
+def ontology_payload(ontology: Optional[Ontology]) -> Optional[List[OntologyEntry]]:
     """Serialize an ontology into the ``[{"class", "prompt"}]`` wire form.
 
-    The public SDK/CLI signature is the intuitive ``{"class name": "text
-    prompt"}``. The API's object form means the opposite (``{prompt: class}``,
-    the ``CaptionOntology`` shape the labeling worker consumes), so a bare dict
-    is ambiguous on the wire. The list form is explicit about which side is
-    which, is normalized by the backend for every endpoint, and is what the web
-    app already sends.
+    Accepts, in order of convenience:
 
-    A plain iterable of class names is treated as ``{"cat": "cat"}`` — each
-    class is its own prompt.
+    * ``{"cat": "a cat"}`` — one prompt per class, the common case.
+    * ``["cat", "dog"]`` — each class is its own prompt.
+    * ``[{"class": "cat", "prompt": "kitten"}, {"class": "cat", "prompt": "tabby"}]``
+      — several prompts for one class, which a class-keyed dict cannot express
+      because its keys have to be unique. ``prompt`` defaults to ``class``.
+
+    The API's own object form is ``{prompt: class}``, the ``CaptionOntology``
+    shape the labeling worker consumes, so a bare dict is ambiguous on the
+    wire: the two sides are both strings and only key order says which is
+    which. The list form names them, and the backend normalizes it on both the
+    preview and the start path.
     """
     if ontology is None:
         return None
+    if isinstance(ontology, str):
+        raise ValueError(f"ontology must be a mapping or a list of classes, not a bare string {ontology!r}")
     if isinstance(ontology, dict):
-        return [{"class": name, "prompt": prompt} for name, prompt in ontology.items()]
-    return [{"class": name, "prompt": name} for name in ontology]
+        entries = [{"class": name, "prompt": prompt} for name, prompt in ontology.items()]
+    else:
+        entries = [_ontology_entry(item) for item in ontology]
+    _reject_ambiguous_prompts(entries)
+    return entries
+
+
+def _ontology_entry(item: Union[str, OntologyEntry]) -> OntologyEntry:
+    if isinstance(item, str):
+        return {"class": item, "prompt": item}
+    if isinstance(item, dict) and "class" in item:
+        return {"class": item["class"], "prompt": item.get("prompt", item["class"])}
+    raise ValueError(
+        f"ontology entries must be a class name or a {{'class': ..., 'prompt': ...}} mapping, got {item!r}"
+    )
+
+
+def _reject_ambiguous_prompts(entries: List[OntologyEntry]) -> None:
+    """Refuse a prompt claimed by two classes.
+
+    The backend keys its ontology by prompt, so it would keep whichever class
+    came last and silently drop the other, leaving that class unlabeled for the
+    whole job with nothing in the response to explain why.
+    """
+    by_prompt: Dict[str, str] = {}
+    for entry in entries:
+        claimed = by_prompt.setdefault(entry["prompt"], entry["class"])
+        if claimed != entry["class"]:
+            raise ValueError(
+                f"ontology maps the prompt {entry['prompt']!r} to both {claimed!r} and "
+                f"{entry['class']!r}. The API keys its ontology by prompt, so one of the two "
+                "classes would be dropped. Give each class a distinct prompt."
+            )
 
 
 def resolve_model(

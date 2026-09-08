@@ -30,7 +30,9 @@ def preview(
     ontology: Annotated[
         Optional[str],
         typer.Option(
-            "--ontology", help='JSON mapping of class name to prompt, e.g. \'{"cat": "a cat"}\', or @ontology.json'
+            "--ontology",
+            help='JSON class-to-prompt object, e.g. \'{"cat": "a cat"}\'; or a '
+            '[{"class": ..., "prompt": ...}] array to give one class several prompts; or @ontology.json',
         ),
     ] = None,
     confidence: Annotated[
@@ -80,7 +82,9 @@ def start(
     ontology: Annotated[
         Optional[str],
         typer.Option(
-            "--ontology", help='JSON mapping of class name to prompt, e.g. \'{"cat": "a cat"}\', or @ontology.json'
+            "--ontology",
+            help='JSON class-to-prompt object, e.g. \'{"cat": "a cat"}\'; or a '
+            '[{"class": ..., "prompt": ...}] array to give one class several prompts; or @ontology.json',
         ),
     ] = None,
     num_images: Annotated[
@@ -152,24 +156,35 @@ def _rfapi():
     return rfapi
 
 
-def _parse_json_option(args: Any, flag: str, raw: Optional[str]) -> Optional[dict]:
-    """Parse an optional JSON-object flag: inline JSON or ``@path`` to a file. Exits on invalid input."""
+def _parse_json_option(args: Any, flag: str, raw: Optional[str], allow_list: bool = False) -> Optional[Any]:
+    """Parse an optional JSON flag: inline JSON or ``@path`` to a file. Exits on invalid input."""
     if raw is None:
         return None
     from roboflow.cli.handlers.train import _parse_json_flag
 
-    return _parse_json_flag(args, raw, flag)
+    return _parse_json_flag(args, raw, flag, allow_list=allow_list)
 
 
 def _parse_ontology(args: Any, ontology: Optional[str], classes: Optional[list[str]]) -> Optional[list[dict]]:
-    """Build the wire ontology from --ontology (JSON or @file, takes precedence) or repeated --class."""
+    """Build the wire ontology from --ontology (JSON or @file, takes precedence) or repeated --class.
+
+    ``--ontology`` takes either the ``{"class": "prompt"}`` object or the
+    ``[{"class": ..., "prompt": ...}]`` array, which is the only one of the two
+    that can give a single class more than one prompt.
+    """
+    from roboflow.cli._output import output_error
     from roboflow.util.autolabel_utils import ontology_payload
 
+    raw: Any = None
     if ontology is not None:
-        return ontology_payload(_parse_json_option(args, "--ontology", ontology))
-    if classes:
-        return ontology_payload(classes)
-    return None
+        raw = _parse_json_option(args, "--ontology", ontology, allow_list=True)
+    elif classes:
+        raw = classes
+    try:
+        return ontology_payload(raw)
+    except ValueError as exc:
+        output_error(args, str(exc), hint="See 'roboflow autolabel start --help' for the accepted shapes.")
+        return None  # unreachable: output_error sys.exits
 
 
 def _resolve_workspace(args: Any) -> tuple[Optional[str], Optional[str]]:

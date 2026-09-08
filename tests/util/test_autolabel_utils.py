@@ -49,12 +49,47 @@ class TestOntologyPayload(unittest.TestCase):
             [{"class": "cat", "prompt": "cat"}, {"class": "dog", "prompt": "dog"}],
         )
 
-    def test_several_classes_may_share_a_prompt(self):
-        # Impossible to express if the prompt were the key.
+    def test_one_class_may_carry_several_prompts(self):
+        # The reason the list form is accepted at all: {"cat": ...} has room for
+        # exactly one prompt, because dict keys are unique.
         self.assertEqual(
-            ontology_payload({"cat": "animal", "dog": "animal"}),
-            [{"class": "cat", "prompt": "animal"}, {"class": "dog", "prompt": "animal"}],
+            ontology_payload(
+                [
+                    {"class": "cat", "prompt": "kitten"},
+                    {"class": "cat", "prompt": "tabby"},
+                ]
+            ),
+            [{"class": "cat", "prompt": "kitten"}, {"class": "cat", "prompt": "tabby"}],
         )
+
+    def test_list_entries_default_the_prompt_to_the_class(self):
+        self.assertEqual(
+            ontology_payload([{"class": "cat"}, "dog"]),
+            [{"class": "cat", "prompt": "cat"}, {"class": "dog", "prompt": "dog"}],
+        )
+
+    def test_one_prompt_claimed_by_two_classes_is_rejected(self):
+        # The API keys its ontology by prompt, so it would keep "dog" and drop
+        # "cat" without saying so. Name the collision instead.
+        with self.assertRaises(ValueError) as ctx:
+            ontology_payload([{"class": "cat", "prompt": "animal"}, {"class": "dog", "prompt": "animal"}])
+        self.assertIn("animal", str(ctx.exception))
+        self.assertIn("cat", str(ctx.exception))
+        self.assertIn("dog", str(ctx.exception))
+
+    def test_a_repeated_class_prompt_pair_is_not_a_collision(self):
+        self.assertEqual(
+            ontology_payload([{"class": "cat", "prompt": "cat"}, "cat"]),
+            [{"class": "cat", "prompt": "cat"}, {"class": "cat", "prompt": "cat"}],
+        )
+
+    def test_bare_string_is_rejected_rather_than_iterated_per_character(self):
+        with self.assertRaises(ValueError):
+            ontology_payload("cat")
+
+    def test_malformed_entry_is_rejected(self):
+        with self.assertRaises(ValueError):
+            ontology_payload([{"prompt": "a cat"}])
 
     def test_empty_is_preserved_as_empty(self):
         self.assertEqual(ontology_payload({}), [])

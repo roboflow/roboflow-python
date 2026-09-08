@@ -341,11 +341,12 @@ def _start(args):  # noqa: ANN001
     output(args, data, text=f"Training started for {project_slug} version {args.version_number}.")
 
 
-def _parse_json_flag(args, raw, flag):
+def _parse_json_flag(args, raw, flag, allow_list=False):
     """Parse a JSON-object CLI flag value; exits with a clean error on invalid input.
 
     Accepts inline JSON, or ``@path/to/file.json`` to read the JSON from a
     file (curl-style; unambiguous because ``@`` can never start valid JSON).
+    Set *allow_list* for flags whose value may also be a JSON array.
     """
     import json
     import os
@@ -372,10 +373,12 @@ def _parse_json_flag(args, raw, flag):
     except json.JSONDecodeError as exc:
         output_error(args, f"Invalid JSON in {flag} {source}: {exc}", hint="Pass a valid JSON string.")
         return None  # unreachable: output_error sys.exits
-    if not isinstance(parsed, dict):
+    allowed = (dict, list) if allow_list else (dict,)
+    if not isinstance(parsed, allowed):
+        expected = "a JSON object or array" if allow_list else "a JSON object"
         output_error(
             args,
-            f"{flag} must be a JSON object, got {type(parsed).__name__}",
+            f"{flag} must be {expected}, got {type(parsed).__name__}",
             hint="Pass a JSON object string, e.g. '{\"lr\": 0.0002}'.",
         )
         return None  # unreachable: output_error sys.exits

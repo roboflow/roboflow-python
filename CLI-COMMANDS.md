@@ -256,6 +256,9 @@ image, default). `preview` runs one image through a model for free so you can
 compare candidates before spending credits. `start` creates the job and prints
 `jobId` and `annotationJobId`; poll it with `job`. Pass the ontology either as
 repeated `--class` flags or as `--ontology` JSON (class name to text prompt).
+To give one class several prompts, pass `--ontology` as an array instead:
+`'[{"class": "cat", "prompt": "kitten"}, {"class": "cat", "prompt": "tabby"}]'`
+(an object can only carry one prompt per class, since its keys are unique).
 JSON options also accept a curl-style file reference (`--ontology @ontology.json`).
 `--image` accepts an HTTPS URL or a local file.
 
