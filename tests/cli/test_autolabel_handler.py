@@ -80,7 +80,7 @@ class TestAutolabelPreview(unittest.TestCase):
             "proj",
             model_type="sam3-rle",
             image={"type": "url", "value": "https://example.com/cat.jpg"},
-            ontology={"cat": "cat", "dog": "dog"},
+            ontology=[{"class": "cat", "prompt": "cat"}, {"class": "dog", "prompt": "dog"}],
             confidence_threshold=0.4,
         )
 
@@ -92,7 +92,7 @@ class TestAutolabelPreview(unittest.TestCase):
             ["autolabel", "preview", "-p", "ws/proj", "-m", "sam3-rle", "--image", "https://x/y.jpg"]
             + ["--class", "cat", "--ontology", '{"cat": "a tabby cat"}'],
         )
-        self.assertEqual(mock_api.call_args.kwargs["ontology"], {"cat": "a tabby cat"})
+        self.assertEqual(mock_api.call_args.kwargs["ontology"], [{"class": "cat", "prompt": "a tabby cat"}])
 
     @patch("roboflow.adapters.rfapi.preview_autolabel", return_value={})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
@@ -109,7 +109,7 @@ class TestAutolabelPreview(unittest.TestCase):
         finally:
             os.unlink(path)
         self.assertEqual(result.exit_code, 0, result.output)
-        self.assertEqual(mock_api.call_args.kwargs["ontology"], {"cat": "a tabby cat"})
+        self.assertEqual(mock_api.call_args.kwargs["ontology"], [{"class": "cat", "prompt": "a tabby cat"}])
 
     @patch("roboflow.adapters.rfapi.preview_autolabel")
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
@@ -141,7 +141,7 @@ class TestAutolabelStart(unittest.TestCase):
             "proj",
             batch_id="batch-1",
             model_type="gpt-6-astra-boxes",
-            ontology={"cat": "cat"},
+            ontology=[{"class": "cat", "prompt": "cat"}],
             num_images_to_label=10,
             default_confidence=0.5,
             confidence_thresholds=None,

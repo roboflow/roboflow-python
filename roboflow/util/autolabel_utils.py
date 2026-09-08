@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 MODEL_TYPES = ("foundational", "roboflow")
 
@@ -21,6 +21,28 @@ def image_payload(image: str) -> Dict[str, str]:
         with open(image, "rb") as handle:
             return {"type": "base64", "value": base64.b64encode(handle.read()).decode("ascii")}
     return {"type": "base64", "value": image}
+
+
+def ontology_payload(
+    ontology: Optional[Union[Dict[str, str], Iterable[str]]],
+) -> Optional[List[Dict[str, str]]]:
+    """Serialize an ontology into the ``[{"class", "prompt"}]`` wire form.
+
+    The public SDK/CLI signature is the intuitive ``{"class name": "text
+    prompt"}``. The API's object form means the opposite (``{prompt: class}``,
+    the ``CaptionOntology`` shape the labeling worker consumes), so a bare dict
+    is ambiguous on the wire. The list form is explicit about which side is
+    which, is normalized by the backend for every endpoint, and is what the web
+    app already sends.
+
+    A plain iterable of class names is treated as ``{"cat": "cat"}`` — each
+    class is its own prompt.
+    """
+    if ontology is None:
+        return None
+    if isinstance(ontology, dict):
+        return [{"class": name, "prompt": prompt} for name, prompt in ontology.items()]
+    return [{"class": name, "prompt": name} for name in ontology]
 
 
 def resolve_model(

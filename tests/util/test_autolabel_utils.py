@@ -5,7 +5,7 @@ import os
 import tempfile
 import unittest
 
-from roboflow.util.autolabel_utils import image_payload, resolve_model
+from roboflow.util.autolabel_utils import image_payload, ontology_payload, resolve_model
 
 
 class TestImagePayload(unittest.TestCase):
@@ -29,6 +29,35 @@ class TestImagePayload(unittest.TestCase):
     def test_other_strings_are_treated_as_base64(self):
         encoded = base64.b64encode(b"bytes").decode("ascii")
         self.assertEqual(image_payload(encoded), {"type": "base64", "value": encoded})
+
+
+class TestOntologyPayload(unittest.TestCase):
+    def test_none_stays_none(self):
+        self.assertIsNone(ontology_payload(None))
+
+    def test_class_to_prompt_mapping_is_serialized_explicitly(self):
+        # The wire form names both sides, so the API never has to guess which
+        # of the two strings is the class and which is the prompt.
+        self.assertEqual(
+            ontology_payload({"cat": "a cat", "dog": "a dog"}),
+            [{"class": "cat", "prompt": "a cat"}, {"class": "dog", "prompt": "a dog"}],
+        )
+
+    def test_list_of_classes_becomes_identity_prompts(self):
+        self.assertEqual(
+            ontology_payload(["cat", "dog"]),
+            [{"class": "cat", "prompt": "cat"}, {"class": "dog", "prompt": "dog"}],
+        )
+
+    def test_several_classes_may_share_a_prompt(self):
+        # Impossible to express if the prompt were the key.
+        self.assertEqual(
+            ontology_payload({"cat": "animal", "dog": "animal"}),
+            [{"class": "cat", "prompt": "animal"}, {"class": "dog", "prompt": "animal"}],
+        )
+
+    def test_empty_is_preserved_as_empty(self):
+        self.assertEqual(ontology_payload({}), [])
 
 
 class TestResolveModel(unittest.TestCase):

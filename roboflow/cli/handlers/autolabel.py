@@ -161,12 +161,14 @@ def _parse_json_option(args: Any, flag: str, raw: Optional[str]) -> Optional[dic
     return _parse_json_flag(args, raw, flag)
 
 
-def _parse_ontology(args: Any, ontology: Optional[str], classes: Optional[list[str]]) -> Optional[dict]:
-    """Build the ontology from --ontology (JSON or @file, takes precedence) or repeated --class."""
+def _parse_ontology(args: Any, ontology: Optional[str], classes: Optional[list[str]]) -> Optional[list[dict]]:
+    """Build the wire ontology from --ontology (JSON or @file, takes precedence) or repeated --class."""
+    from roboflow.util.autolabel_utils import ontology_payload
+
     if ontology is not None:
-        return _parse_json_option(args, "--ontology", ontology)
+        return ontology_payload(_parse_json_option(args, "--ontology", ontology))
     if classes:
-        return {name: name for name in classes}
+        return ontology_payload(classes)
     return None
 
 

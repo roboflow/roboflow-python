@@ -1366,7 +1366,9 @@ def preview_autolabel(
 
     Calls ``POST /:workspace/:project/autolabel/preview``. Free: no job is
     created and no credits are spent. ``image`` is
-    ``{"type": "url" | "base64", "value": ...}``. Returns
+    ``{"type": "url" | "base64", "value": ...}`` and ``ontology`` is the
+    ``[{"class": ..., "prompt": ...}]`` wire form (see
+    ``util.autolabel_utils.ontology_payload``). Returns
     ``{model, predictions, summary, blockErrors?}``.
     """
     payload = {"modelType": model_type, "image": image}
@@ -1402,7 +1404,9 @@ def start_autolabel_job(
     Calls ``POST /:workspace/:project/autolabel``. ``model_type`` is sent
     as-is: a catalog id from ``list_autolabel_models`` (for example
     ``gpt-6-astra-boxes`` or ``sam3-rle``) or ``custom_roboflow`` with the
-    Roboflow model id in ``model_options["modelId"]``. The backend fans
+    Roboflow model id in ``model_options["modelId"]``. ``ontology`` is the
+    ``[{"class": ..., "prompt": ...}]`` wire form (see
+    ``util.autolabel_utils.ontology_payload``). The backend fans
     ``default_confidence`` out across the ontology when
     ``confidence_thresholds`` is omitted and defaults ``num_images_to_label``
     to the whole batch. Returns ``{jobId, annotationJobId, message}``.
