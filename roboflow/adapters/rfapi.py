@@ -1398,6 +1398,7 @@ def start_autolabel_job(
     run_nms=None,
     reviewer_email=None,
     model_options=None,
+    preserve_existing_annotations=None,
 ):
     """Start a hosted auto-label job over a batch.
 
@@ -1409,7 +1410,9 @@ def start_autolabel_job(
     The backend fans
     ``default_confidence`` out across the ontology when
     ``confidence_thresholds`` is omitted and defaults ``num_images_to_label``
-    to the whole batch. Returns ``{jobId, annotationJobId, message}``.
+    to the whole batch. ``preserve_existing_annotations`` keeps annotations
+    already on the images and only adds new ones; the server default (False)
+    replaces them. Returns ``{jobId, annotationJobId, message}``.
     """
     payload = {"batchId": batch_id, "modelType": model_type}
     optional = {
@@ -1420,6 +1423,7 @@ def start_autolabel_job(
         "runNMS": run_nms,
         "reviewerEmail": reviewer_email,
         "modelOptions": model_options,
+        "preserveExistingAnnotations": preserve_existing_annotations,
     }
     payload.update({key: value for key, value in optional.items() if value is not None})
     response = requests.post(

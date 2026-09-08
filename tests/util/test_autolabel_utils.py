@@ -4,6 +4,7 @@ import base64
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from roboflow.util.autolabel_utils import image_payload, ontology_payload, resolve_model
 
@@ -29,6 +30,39 @@ class TestImagePayload(unittest.TestCase):
     def test_other_strings_are_treated_as_base64(self):
         encoded = base64.b64encode(b"bytes").decode("ascii")
         self.assertEqual(image_payload(encoded), {"type": "base64", "value": encoded})
+
+    def test_line_wrapped_base64_is_compacted(self):
+        encoded = base64.b64encode(b"some longer image bytes").decode("ascii")
+        wrapped = encoded[:8] + "\n" + encoded[8:] + "\n"
+        self.assertEqual(image_payload(wrapped), {"type": "base64", "value": encoded})
+
+    def test_home_directory_is_expanded(self):
+        with tempfile.TemporaryDirectory() as home:
+            with open(os.path.join(home, "cat.jpg"), "wb") as handle:
+                handle.write(b"fake-image-bytes")
+            # expanduser reads HOME on POSIX and USERPROFILE on Windows.
+            with patch.dict(os.environ, {"HOME": home, "USERPROFILE": home}):
+                payload = image_payload("~/cat.jpg")
+        self.assertEqual(base64.b64decode(payload["value"]), b"fake-image-bytes")
+
+    def test_mistyped_path_is_rejected_instead_of_sent_as_base64(self):
+        with self.assertRaises(ValueError) as ctx:
+            image_payload("smaple.jpg")
+        self.assertIn("smaple.jpg", str(ctx.exception))
+
+    def test_missing_home_path_is_rejected(self):
+        with self.assertRaises(ValueError):
+            image_payload("~/definitely-missing-image.png")
+
+    def test_unreadable_file_raises_oserror(self):
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as handle:
+            path = handle.name
+        try:
+            with patch("roboflow.util.autolabel_utils.open", side_effect=PermissionError(13, "denied"), create=True):
+                with self.assertRaises(OSError):
+                    image_payload(path)
+        finally:
+            os.unlink(path)
 
 
 class TestOntologyPayload(unittest.TestCase):

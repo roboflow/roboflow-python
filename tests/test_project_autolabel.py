@@ -31,7 +31,14 @@ class TestProjectAutolabel(RoboflowTest):
             run_nms=None,
             reviewer_email="reviewer@example.com",
             model_options=None,
+            preserve_existing_annotations=None,
         )
+
+    @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
+    def test_autolabel_forwards_preserve_existing_annotations(self, mock_start):
+        self.project.autolabel("batch-1", "sam3-rle", preserve_existing_annotations=True)
+
+        self.assertIs(mock_start.call_args.kwargs["preserve_existing_annotations"], True)
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     def test_autolabel_roboflow_model_is_sent_as_custom_roboflow(self, mock_start):

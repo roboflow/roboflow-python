@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import os
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
@@ -12,15 +13,36 @@ MODEL_TYPES = ("foundational", "roboflow")
 def image_payload(image: str) -> Dict[str, str]:
     """Build the ``{type, value}`` image payload for the auto-label preview endpoint.
 
-    Accepts an HTTP(S) URL, a local file path (read and base64-encoded), or an
-    already base64-encoded string.
+    Accepts an HTTP(S) URL, a local file path (``~`` is expanded; the file is
+    read and base64-encoded) or an already base64-encoded string. Anything
+    else is treated as a mistyped path and rejected here, rather than being
+    sent to the API as "base64" and failing there with a generic inference
+    error.
+
+    Raises:
+        ValueError: ``image`` is neither a URL, an existing file nor base64.
+        OSError: the file exists but cannot be read.
     """
     if image.startswith(("http://", "https://")):
         return {"type": "url", "value": image}
-    if os.path.isfile(image):
-        with open(image, "rb") as handle:
+    path = os.path.expanduser(image)
+    if os.path.isfile(path):
+        with open(path, "rb") as handle:
             return {"type": "base64", "value": base64.b64encode(handle.read()).decode("ascii")}
-    return {"type": "base64", "value": image}
+    compact = "".join(image.split())
+    if _is_base64(compact):
+        return {"type": "base64", "value": compact}
+    raise ValueError(f"Image file not found: {image} (expected an HTTPS URL, an existing file path or base64 data)")
+
+
+def _is_base64(value: str) -> bool:
+    if not value:
+        return False
+    try:
+        base64.b64decode(value, validate=True)
+    except (binascii.Error, ValueError):
+        return False
+    return True
 
 
 Ontology = Union[Dict[str, str], Iterable[str]]

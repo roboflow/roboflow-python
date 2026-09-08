@@ -42,7 +42,7 @@ def preview(
     """Preview one image with a foundation model. Free: no job is created."""
     args = ctx_to_args(ctx, project=project)
     resolved_ontology = _parse_ontology(args, ontology, classes)
-    from roboflow.util.autolabel_utils import image_payload
+    resolved_image = _parse_image(args, image)
 
     _project_command(
         args,
@@ -51,7 +51,7 @@ def preview(
             workspace,
             proj,
             model_type=model,
-            image=image_payload(image),
+            image=resolved_image,
             ontology=resolved_ontology,
             confidence_threshold=confidence,
         ),
@@ -107,6 +107,14 @@ def start(
             "--model-options", help='JSON model options, e.g. \'{"outputFormat": "polygon"}\', or @options.json'
         ),
     ] = None,
+    preserve_existing: Annotated[
+        bool,
+        typer.Option(
+            "--preserve-existing",
+            help="Keep annotations already on the batch images and only add new ones "
+            "(by default the job replaces them)",
+        ),
+    ] = False,
 ) -> None:
     """Start a hosted auto-label job over a batch of images."""
     args = ctx_to_args(ctx, project=project)
@@ -130,6 +138,7 @@ def start(
             run_nms=False if no_nms else None,
             reviewer_email=reviewer,
             model_options=wire_options,
+            preserve_existing_annotations=True if preserve_existing else None,
         )
 
     _project_command(args, start_job)
@@ -139,10 +148,26 @@ def start(
 def job(
     ctx: typer.Context,
     job_id: Annotated[str, typer.Argument(help="Auto-label job ID returned by 'autolabel start'")],
+    project: Annotated[
+        Optional[str],
+        typer.Option(
+            "-p",
+            "--project",
+            help="Project the job was started on (accepts 'workspace/project'); resolves the workspace "
+            "the same way 'autolabel start' does. Defaults to --workspace or the default workspace.",
+        ),
+    ] = None,
 ) -> None:
     """Get status and per-subjob progress for an auto-label job."""
-    args = ctx_to_args(ctx)
-    _workspace_command(args, lambda key, workspace: _rfapi().get_autolabel_job(key, workspace, job_id))
+    args = ctx_to_args(ctx, project=project)
+
+    def get_job(key: str, workspace: str, *_project: str) -> Any:
+        return _rfapi().get_autolabel_job(key, workspace, job_id)
+
+    if project:
+        _project_command(args, get_job)
+    else:
+        _workspace_command(args, get_job)
 
 
 # ---------------------------------------------------------------------------
@@ -180,37 +205,19 @@ def _parse_ontology(args: Any, ontology: Optional[str], classes: Optional[list[s
     return None
 
 
-def _resolve_workspace(args: Any) -> tuple[Optional[str], Optional[str]]:
+def _parse_image(args: Any, image: str) -> dict:
+    """Build the --image payload before any network call, so a bad path fails fast and cleanly."""
     from roboflow.cli._output import output_error
-    from roboflow.cli._resolver import resolve_default_workspace
-    from roboflow.config import load_roboflow_api_key
+    from roboflow.util.autolabel_utils import image_payload
 
-    workspace_url = args.workspace or resolve_default_workspace(api_key=args.api_key)
-    if not workspace_url:
-        output_error(args, "No workspace specified.", hint="Use --workspace or run 'roboflow auth login'.")
-        return None, None
-    api_key = args.api_key or load_roboflow_api_key(workspace_url)
-    if not api_key:
-        output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
-        return None, None
-    return api_key, workspace_url
-
-
-def _resolve_project(args: Any) -> tuple[Optional[str], Optional[str], Optional[str]]:
-    from roboflow.cli._output import output_error
-    from roboflow.cli._resolver import resolve_resource
-    from roboflow.config import load_roboflow_api_key
-
+    hint = "Pass --image as an HTTPS URL or the path of a readable local image file."
     try:
-        workspace, project, _version = resolve_resource(args.project, workspace_override=args.workspace)
+        return image_payload(image)
+    except OSError as exc:
+        output_error(args, f"Cannot read image {image}: {exc.strerror or exc}", hint=hint)
     except ValueError as exc:
-        output_error(args, str(exc))
-        return None, None, None
-    api_key = args.api_key or load_roboflow_api_key(workspace)
-    if not api_key:
-        output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
-        return None, None, None
-    return api_key, workspace, project
+        output_error(args, str(exc), hint=hint)
+    return {}  # unreachable: output_error exits
 
 
 def _run(args: Any, operation: Callable[[], Any], text: Optional[Callable[[Any], str]] = None) -> None:
@@ -227,17 +234,25 @@ def _run(args: Any, operation: Callable[[], Any], text: Optional[Callable[[Any],
     output(args, data, text=text(data) if text else None)
 
 
-def _workspace_command(args: Any, operation: Callable[[str, str], Any]) -> None:
-    api_key, workspace_url = _resolve_workspace(args)
-    if api_key is None or workspace_url is None:
+def _workspace_command(
+    args: Any, operation: Callable[[str, str], Any], text: Optional[Callable[[Any], str]] = None
+) -> None:
+    from roboflow.cli._resolver import resolve_ws_and_key
+
+    resolved = resolve_ws_and_key(args)
+    if resolved is None:
         return
-    _run(args, lambda: operation(api_key, workspace_url))
+    workspace_url, api_key = resolved
+    _run(args, lambda: operation(api_key, workspace_url), text=text)
 
 
 def _project_command(args: Any, operation: Callable[[str, str, str], Any]) -> None:
-    api_key, workspace, project = _resolve_project(args)
-    if api_key is None or workspace is None or project is None:
+    from roboflow.cli._resolver import resolve_project_context
+
+    resolved = resolve_project_context(args)
+    if resolved is None:
         return
+    api_key, workspace, project = resolved
     _run(args, lambda: operation(api_key, workspace, project))
 
 
@@ -262,7 +277,4 @@ def _models(args: Any) -> None:
             headers=["ID", "NAME", "AVAILABLE", "DEFAULT", "CREDITS/IMAGE", "ONTOLOGY"],
         )
 
-    api_key, workspace_url = _resolve_workspace(args)
-    if not workspace_url:
-        return
-    _run(args, lambda: _rfapi().list_autolabel_models(api_key, workspace_url), text=table)
+    _workspace_command(args, lambda key, workspace: _rfapi().list_autolabel_models(key, workspace), text=table)

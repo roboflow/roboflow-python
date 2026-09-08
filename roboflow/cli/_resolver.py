@@ -135,3 +135,31 @@ def resolve_ws_and_key(args) -> Optional[Tuple[str, str]]:
         return None
 
     return ws, api_key
+
+
+def resolve_project_context(args) -> Optional[Tuple[str, str, str]]:
+    """Resolve API key, workspace and project from CLI args.
+
+    Parses ``args.project`` (any ``resolve_resource`` shorthand, honouring
+    ``args.workspace`` as an override) and loads the API key for that
+    workspace. Returns ``(api_key, workspace_url, project_slug)`` or ``None``
+    after calling ``output_error`` on failure; a missing key exits with the
+    auth code (2), matching ``resolve_ws_and_key``.
+    """
+    from roboflow.cli._output import output_error
+    from roboflow.config import load_roboflow_api_key
+
+    try:
+        workspace, project, _version = resolve_resource(
+            args.project, workspace_override=getattr(args, "workspace", None)
+        )
+    except ValueError as exc:
+        output_error(args, str(exc))
+        return None
+
+    api_key = getattr(args, "api_key", None) or load_roboflow_api_key(workspace)
+    if not api_key:
+        output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
+        return None
+
+    return api_key, workspace, project

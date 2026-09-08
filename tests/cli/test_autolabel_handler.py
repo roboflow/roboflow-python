@@ -13,8 +13,12 @@ from roboflow.cli import app
 
 runner = CliRunner()
 
-_RESOLVE_PROJECT = "roboflow.cli.handlers.autolabel._resolve_project"
-_RESOLVE_WORKSPACE = "roboflow.cli.handlers.autolabel._resolve_workspace"
+# The handler resolves credentials through the shared CLI resolvers (imported lazily),
+# so patching them at their definition site is what the handler sees.
+_RESOLVE_PROJECT = "roboflow.cli._resolver.resolve_project_context"
+_RESOLVE_WORKSPACE = "roboflow.cli._resolver.resolve_ws_and_key"
+_DEFAULT_WORKSPACE = "roboflow.cli._resolver.resolve_default_workspace"
+_IMAGE_PAYLOAD = "roboflow.util.autolabel_utils.image_payload"
 
 
 class TestAutolabelRegistration(unittest.TestCase):
@@ -27,7 +31,7 @@ class TestAutolabelRegistration(unittest.TestCase):
 
 class TestAutolabelModels(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.list_autolabel_models")
-    @patch(_RESOLVE_WORKSPACE, return_value=("key", "ws"))
+    @patch(_RESOLVE_WORKSPACE, return_value=("ws", "key"))
     def test_text_output_is_a_table(self, _resolve, mock_api):
         mock_api.return_value = {
             "models": [
@@ -42,10 +46,19 @@ class TestAutolabelModels(unittest.TestCase):
         mock_api.assert_called_once_with("key", "ws")
 
     @patch("roboflow.adapters.rfapi.list_autolabel_models", return_value={"models": [{"id": "sam3-rle"}]})
-    @patch(_RESOLVE_WORKSPACE, return_value=("key", "ws"))
+    @patch(_RESOLVE_WORKSPACE, return_value=("ws", "key"))
     def test_json_output(self, _resolve, _mock_api):
         result = runner.invoke(app, ["--json", "autolabel", "models"])
         self.assertEqual(json.loads(result.output), {"models": [{"id": "sam3-rle"}]})
+
+    @patch("roboflow.adapters.rfapi.list_autolabel_models")
+    @patch(_DEFAULT_WORKSPACE, return_value=None)
+    def test_missing_workspace_exits_with_auth_code(self, _default, mock_api):
+        # CLAUDE.md pins exit code 2 for auth errors; 'workflow list' exits 2 for the same condition.
+        with patch.dict(os.environ, {"ROBOFLOW_API_KEY": ""}):
+            result = runner.invoke(app, ["autolabel", "models"])
+        self.assertEqual(result.exit_code, 2, result.output)
+        mock_api.assert_not_called()
 
 
 class TestAutolabelPreview(unittest.TestCase):
@@ -134,6 +147,31 @@ class TestAutolabelPreview(unittest.TestCase):
         self.assertNotEqual(result.exit_code, 0)
         mock_api.assert_not_called()
 
+    @patch("roboflow.adapters.rfapi.preview_autolabel")
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_mistyped_image_path_fails_before_resolving_credentials(self, mock_resolve, mock_api):
+        result = runner.invoke(
+            app,
+            ["autolabel", "preview", "-p", "ws/proj", "-m", "sam3-rle", "--image", "smaple.jpg", "--class", "cat"],
+        )
+        self.assertEqual(result.exit_code, 1, result.output)
+        self.assertIn("smaple.jpg", result.output)
+        mock_resolve.assert_not_called()
+        mock_api.assert_not_called()
+
+    @patch("roboflow.adapters.rfapi.preview_autolabel")
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    @patch(_IMAGE_PAYLOAD, side_effect=PermissionError(13, "Permission denied"))
+    def test_unreadable_image_is_a_structured_error_not_a_traceback(self, _payload, _resolve, mock_api):
+        result = runner.invoke(
+            app,
+            ["autolabel", "preview", "-p", "ws/proj", "-m", "sam3-rle", "--image", "locked.jpg", "--class", "cat"],
+        )
+        self.assertEqual(result.exit_code, 1, result.output)
+        self.assertNotIsInstance(result.exception, OSError)
+        self.assertIn("Permission denied", result.output)
+        mock_api.assert_not_called()
+
 
 class TestAutolabelStart(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
@@ -160,7 +198,19 @@ class TestAutolabelStart(unittest.TestCase):
             run_nms=False,
             reviewer_email="r@example.com",
             model_options={"outputFormat": "polygon"},
+            preserve_existing_annotations=None,
         )
+
+    @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_preserve_existing_flag(self, _resolve, mock_api):
+        # The server default replaces annotations already on the batch images.
+        result = runner.invoke(
+            app,
+            ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "sam3-rle", "--preserve-existing"],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIs(mock_api.call_args.kwargs["preserve_existing_annotations"], True)
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
@@ -196,9 +246,28 @@ class TestAutolabelStart(unittest.TestCase):
 
 class TestAutolabelJob(unittest.TestCase):
     @patch("roboflow.adapters.rfapi.get_autolabel_job", return_value={"status": "running", "progress": 0.5})
-    @patch(_RESOLVE_WORKSPACE, return_value=("key", "ws"))
+    @patch(_RESOLVE_WORKSPACE, return_value=("ws", "key"))
     def test_json_output(self, _resolve, mock_api):
         result = runner.invoke(app, ["--json", "autolabel", "job", "job-1"])
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(json.loads(result.output)["status"], "running")
         mock_api.assert_called_once_with("key", "ws", "job-1")
+
+    @patch("roboflow.adapters.rfapi.get_autolabel_job", return_value={"status": "running"})
+    @patch(_RESOLVE_WORKSPACE)
+    @patch(_RESOLVE_PROJECT, return_value=("key", "other-ws", "proj"))
+    def test_project_shorthand_resolves_the_same_workspace_as_start(self, _resolve, mock_ws_resolve, mock_api):
+        # 'start -p other-ws/proj' creates the job in other-ws; 'job -p other-ws/proj' must look there too,
+        # since the API 404s on a job from another workspace.
+        result = runner.invoke(app, ["autolabel", "job", "job-1", "-p", "other-ws/proj"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        mock_api.assert_called_once_with("key", "other-ws", "job-1")
+        mock_ws_resolve.assert_not_called()
+
+    @patch("roboflow.adapters.rfapi.get_autolabel_job")
+    @patch(_DEFAULT_WORKSPACE, return_value=None)
+    def test_missing_workspace_exits_with_auth_code(self, _default, mock_api):
+        with patch.dict(os.environ, {"ROBOFLOW_API_KEY": ""}):
+            result = runner.invoke(app, ["autolabel", "job", "job-1"])
+        self.assertEqual(result.exit_code, 2, result.output)
+        mock_api.assert_not_called()

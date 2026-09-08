@@ -16,10 +16,13 @@ All notable changes to this project will be documented in this file.
   - `Project.autolabel(batch_id, model, model_type="foundational" | "roboflow", ...)`
     — start a job over a batch; returns `{jobId, annotationJobId}`. The
     `ontology` is keyed by prompt (`{"kitten": "cat", "tabby": "cat"}`), so
-    several prompts can share one output class.
+    several prompts can share one output class. `preserve_existing_annotations=True`
+    keeps annotations already on the images (the server default replaces them).
   - `Project.autolabel_job(job_id)` / `Workspace.autolabel_job(job_id)` — poll
     per-subjob progress.
   - `roboflow autolabel models | preview | start | job` CLI commands.
+    `start --preserve-existing` mirrors the SDK flag; `job -p ws/project`
+    resolves the workspace the same way `start` does.
 
 ## 1.4.1
 

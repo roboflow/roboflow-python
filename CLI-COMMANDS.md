@@ -248,7 +248,9 @@ roboflow autolabel preview -p my-project -m sam3-rle --image https://example.com
 roboflow autolabel start -p my-project --batch-id <batch-id> -m gpt-6-astra-boxes \
   --ontology '{"a cat": "cat", "a dog": "dog"}' --confidence 0.5 --reviewer b@co.com
 roboflow autolabel start -p my-project --batch-id <batch-id> -m my-project/3 --model-type roboflow
+roboflow autolabel start -p my-project --batch-id <batch-id> -m sam3-rle --preserve-existing
 roboflow autolabel job <job-id>
+roboflow autolabel job <job-id> -p other-workspace/my-project
 ```
 
 `models` lists the catalog for the workspace (id, availability, credits per
@@ -260,7 +262,11 @@ repeated `--class` flags or as `--ontology` JSON. The ontology is keyed by
 matches either prompt as class `cat`. That direction is what lets several
 prompts share one output class. JSON options also accept a curl-style file
 reference (`--ontology @ontology.json`).
-`--image` accepts an HTTPS URL or a local file.
+`--image` accepts an HTTPS URL or a local file. By default a job replaces the
+annotations already on the batch images; `--preserve-existing` keeps them and
+only adds new ones. `job` looks the id up in your default workspace, so when
+the job was started with a `workspace/project` shorthand pass the same `-p` to
+`job`.
 
 The same operations are available in Python:
 

@@ -1212,6 +1212,7 @@ class Project:
         run_nms: Optional[bool] = None,
         reviewer_email: Optional[str] = None,
         model_options: Optional[Dict] = None,
+        preserve_existing_annotations: Optional[bool] = None,
     ) -> Dict:
         """Start a hosted auto-label job over a batch of images.
 
@@ -1244,6 +1245,10 @@ class Project:
                 workspace member; defaults to the workspace owner.
             model_options: Model-specific options, e.g.
                 ``{"outputFormat": "polygon"}`` for segmentation output.
+            preserve_existing_annotations: ``True`` keeps annotations already
+                on the batch images and only adds new ones. The server default
+                (``False``) replaces them, so set this when the batch contains
+                images that were already labeled or reviewed.
 
         Returns:
             Dict: ``{jobId, annotationJobId, message}``. Poll progress with
@@ -1268,6 +1273,7 @@ class Project:
             run_nms=run_nms,
             reviewer_email=reviewer_email,
             model_options=model_options,
+            preserve_existing_annotations=preserve_existing_annotations,
         )
 
     def autolabel_job(self, job_id: str) -> Dict:
