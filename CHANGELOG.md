@@ -14,7 +14,9 @@ All notable changes to this project will be documented in this file.
     preview to compare models before starting a job. `image` accepts an HTTPS
     URL, a local file path or a base64 string.
   - `Project.autolabel(batch_id, model, model_type="foundational" | "roboflow", ...)`
-    — start a job over a batch; returns `{jobId, annotationJobId}`.
+    — start a job over a batch; returns `{jobId, annotationJobId}`. The
+    `ontology` is keyed by prompt (`{"kitten": "cat", "tabby": "cat"}`), so
+    several prompts can share one output class.
   - `Project.autolabel_job(job_id)` / `Workspace.autolabel_job(job_id)` — poll
     per-subjob progress.
   - `roboflow autolabel models | preview | start | job` CLI commands.

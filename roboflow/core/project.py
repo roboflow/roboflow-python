@@ -1176,9 +1176,11 @@ class Project:
             model: Foundation model id from ``Workspace.autolabel_models()``
                 (e.g. ``"gpt-6-astra-boxes"``, ``"sam3-rle"``, ``"gemini-boxes"``).
             image: HTTPS URL, local file path, or base64-encoded image.
-            ontology: ``{"class name": "text prompt"}``, a plain list of class
-                names, or ``[{"class": ..., "prompt": ...}]`` when one class
-                needs several prompts. Defaults to the dataset's own classes.
+            ontology: ``{"text prompt": "class name"}`` -- keyed by prompt, so
+                several prompts can share one class
+                (``{"kitten": "cat", "tabby": "cat"}``). A plain list of class
+                names prompts each class with its own name. Defaults to the
+                dataset's own classes.
             confidence_threshold: Detection threshold between 0.0 and 1.0
                 (sam3 only; other models report fixed confidence).
 
@@ -1223,14 +1225,14 @@ class Project:
             model_type: ``"foundational"`` (hosted foundation model, sent as-is;
                 the backend resolves catalog ids) or ``"roboflow"`` (a
                 Roboflow-trained model).
-            ontology: ``{"class name": "text prompt"}``, a plain list of class
-                names, or ``[{"class": ..., "prompt": ...}]`` when one class
-                needs several prompts (``{"cat": ...}`` can only carry one,
-                since dict keys are unique). For models with
-                ``ontologyFormat="promptMap"`` (sam3) the prompts are sent to
-                the model; for ``ontologyFormat="classes"`` only the class
-                names are used. Defaults to the dataset's classes (or the
-                trained model's classes for ``model_type="roboflow"``).
+            ontology: ``{"text prompt": "class name"}`` -- keyed by prompt, not
+                by class, so several prompts can collapse onto one output class
+                (``{"kitten": "cat", "tabby": "cat"}`` labels both as ``cat``).
+                A plain list of class names prompts each class with its own
+                name. For models with ``ontologyFormat="promptMap"`` (sam3) the
+                prompts are sent to the model; for ``ontologyFormat="classes"``
+                only the class names are used. Defaults to the dataset's classes
+                (or the trained model's classes for ``model_type="roboflow"``).
             num_images: Number of images from the batch to label. Defaults to
                 the whole batch.
             confidence: Confidence threshold applied to every class (mirrors
@@ -1249,7 +1251,7 @@ class Project:
 
         Example:
             >>> job = project.autolabel("batch-id", model="gpt-6-astra-boxes",
-            ...                         ontology={"cat": "a cat", "dog": "a dog"})
+            ...                         ontology={"a cat": "cat", "a dog": "dog"})
             >>> project.autolabel_job(job["jobId"])["status"]
         """
         wire_model_type, model_options = _resolve_autolabel_model(model, model_type, model_options)

@@ -246,7 +246,7 @@ roboflow autolabel models
 roboflow autolabel preview -p my-project -m sam3-rle --image https://example.com/sample.jpg \
   --class cat --class dog
 roboflow autolabel start -p my-project --batch-id <batch-id> -m gpt-6-astra-boxes \
-  --ontology '{"cat": "a cat", "dog": "a dog"}' --confidence 0.5 --reviewer b@co.com
+  --ontology '{"a cat": "cat", "a dog": "dog"}' --confidence 0.5 --reviewer b@co.com
 roboflow autolabel start -p my-project --batch-id <batch-id> -m my-project/3 --model-type roboflow
 roboflow autolabel job <job-id>
 ```
@@ -255,11 +255,11 @@ roboflow autolabel job <job-id>
 image, default). `preview` runs one image through a model for free so you can
 compare candidates before spending credits. `start` creates the job and prints
 `jobId` and `annotationJobId`; poll it with `job`. Pass the ontology either as
-repeated `--class` flags or as `--ontology` JSON (class name to text prompt).
-To give one class several prompts, pass `--ontology` as an array instead:
-`'[{"class": "cat", "prompt": "kitten"}, {"class": "cat", "prompt": "tabby"}]'`
-(an object can only carry one prompt per class, since its keys are unique).
-JSON options also accept a curl-style file reference (`--ontology @ontology.json`).
+repeated `--class` flags or as `--ontology` JSON. The ontology is keyed by
+**prompt**, not by class: `'{"kitten": "cat", "tabby": "cat"}'` labels whatever
+matches either prompt as class `cat`. That direction is what lets several
+prompts share one output class. JSON options also accept a curl-style file
+reference (`--ontology @ontology.json`).
 `--image` accepts an HTTPS URL or a local file.
 
 The same operations are available in Python:
@@ -267,7 +267,7 @@ The same operations are available in Python:
 ```python
 models = workspace.autolabel_models()["models"]
 preview = project.autolabel_preview("sam3-rle", "sample.jpg", ontology={"cat": "cat"})
-job = project.autolabel("batch-id", model="gpt-6-astra-boxes", ontology={"cat": "a cat"})
+job = project.autolabel("batch-id", model="gpt-6-astra-boxes", ontology={"a cat": "cat"})
 project.autolabel_job(job["jobId"])["status"]
 ```
 

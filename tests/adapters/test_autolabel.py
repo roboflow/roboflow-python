@@ -43,17 +43,12 @@ class TestAutolabelAdapters(unittest.TestCase):
             "proj",
             model_type="sam3-rle",
             image=image,
-            ontology=[{"class": "cat", "prompt": "cat"}],
+            ontology={"cat": "cat"},
             confidence_threshold=0.4,
         )
         self.assertEqual(
             mock_post.call_args.kwargs["json"],
-            {
-                "modelType": "sam3-rle",
-                "image": image,
-                "ontology": [{"class": "cat", "prompt": "cat"}],
-                "confidenceThreshold": 0.4,
-            },
+            {"modelType": "sam3-rle", "image": image, "ontology": {"cat": "cat"}, "confidenceThreshold": 0.4},
         )
 
     @patch("roboflow.adapters.rfapi.requests.post")
@@ -79,7 +74,7 @@ class TestAutolabelAdapters(unittest.TestCase):
             "proj",
             batch_id="batch-1",
             model_type="custom_roboflow",
-            ontology=[{"class": "cat", "prompt": "a cat"}],
+            ontology={"a cat": "cat"},
             num_images_to_label=10,
             default_confidence=0.5,
             confidence_thresholds={"cat": 0.6},
@@ -92,7 +87,7 @@ class TestAutolabelAdapters(unittest.TestCase):
             {
                 "batchId": "batch-1",
                 "modelType": "custom_roboflow",
-                "ontology": [{"class": "cat", "prompt": "a cat"}],
+                "ontology": {"a cat": "cat"},
                 "numImagesToLabel": 10,
                 "defaultConfidence": 0.5,
                 "confidenceThresholds": {"cat": 0.6},

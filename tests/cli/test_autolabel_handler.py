@@ -80,7 +80,7 @@ class TestAutolabelPreview(unittest.TestCase):
             "proj",
             model_type="sam3-rle",
             image={"type": "url", "value": "https://example.com/cat.jpg"},
-            ontology=[{"class": "cat", "prompt": "cat"}, {"class": "dog", "prompt": "dog"}],
+            ontology={"cat": "cat", "dog": "dog"},
             confidence_threshold=0.4,
         )
 
@@ -90,15 +90,15 @@ class TestAutolabelPreview(unittest.TestCase):
         runner.invoke(
             app,
             ["autolabel", "preview", "-p", "ws/proj", "-m", "sam3-rle", "--image", "https://x/y.jpg"]
-            + ["--class", "cat", "--ontology", '{"cat": "a tabby cat"}'],
+            + ["--class", "cat", "--ontology", '{"a tabby cat": "cat"}'],
         )
-        self.assertEqual(mock_api.call_args.kwargs["ontology"], [{"class": "cat", "prompt": "a tabby cat"}])
+        self.assertEqual(mock_api.call_args.kwargs["ontology"], {"a tabby cat": "cat"})
 
     @patch("roboflow.adapters.rfapi.preview_autolabel", return_value={})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
     def test_ontology_can_be_read_from_a_file(self, _resolve, mock_api):
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as handle:
-            json.dump({"cat": "a tabby cat"}, handle)
+            json.dump({"a tabby cat": "cat"}, handle)
             path = handle.name
         try:
             result = runner.invoke(
@@ -109,32 +109,19 @@ class TestAutolabelPreview(unittest.TestCase):
         finally:
             os.unlink(path)
         self.assertEqual(result.exit_code, 0, result.output)
-        self.assertEqual(mock_api.call_args.kwargs["ontology"], [{"class": "cat", "prompt": "a tabby cat"}])
+        self.assertEqual(mock_api.call_args.kwargs["ontology"], {"a tabby cat": "cat"})
 
     @patch("roboflow.adapters.rfapi.preview_autolabel", return_value={})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
-    def test_ontology_accepts_a_json_array_for_multi_prompt_classes(self, _resolve, mock_api):
+    def test_several_prompts_may_share_one_class(self, _resolve, mock_api):
+        # Keying by prompt is what makes this expressible at all.
         result = runner.invoke(
             app,
             ["autolabel", "preview", "-p", "ws/proj", "-m", "sam3-rle", "--image", "https://x/y.jpg"]
-            + ["--ontology", '[{"class": "cat", "prompt": "kitten"}, {"class": "cat", "prompt": "tabby"}]'],
+            + ["--ontology", '{"kitten": "cat", "tabby": "cat"}'],
         )
         self.assertEqual(result.exit_code, 0, result.output)
-        self.assertEqual(
-            mock_api.call_args.kwargs["ontology"],
-            [{"class": "cat", "prompt": "kitten"}, {"class": "cat", "prompt": "tabby"}],
-        )
-
-    @patch("roboflow.adapters.rfapi.preview_autolabel")
-    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
-    def test_one_prompt_for_two_classes_errors_without_calling_api(self, _resolve, mock_api):
-        result = runner.invoke(
-            app,
-            ["autolabel", "preview", "-p", "ws/proj", "-m", "sam3-rle", "--image", "https://x/y.jpg"]
-            + ["--ontology", '[{"class": "cat", "prompt": "animal"}, {"class": "dog", "prompt": "animal"}]'],
-        )
-        self.assertNotEqual(result.exit_code, 0)
-        mock_api.assert_not_called()
+        self.assertEqual(mock_api.call_args.kwargs["ontology"], {"kitten": "cat", "tabby": "cat"})
 
     @patch("roboflow.adapters.rfapi.preview_autolabel")
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
@@ -166,7 +153,7 @@ class TestAutolabelStart(unittest.TestCase):
             "proj",
             batch_id="batch-1",
             model_type="gpt-6-astra-boxes",
-            ontology=[{"class": "cat", "prompt": "cat"}],
+            ontology={"cat": "cat"},
             num_images_to_label=10,
             default_confidence=0.5,
             confidence_thresholds=None,

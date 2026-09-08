@@ -11,7 +11,7 @@ class TestProjectAutolabel(RoboflowTest):
         result = self.project.autolabel(
             "batch-1",
             "gpt-6-astra-boxes",
-            ontology={"cat": "a cat"},
+            ontology={"a cat": "cat"},
             num_images=5,
             confidence=0.4,
             reviewer_email="reviewer@example.com",
@@ -24,7 +24,7 @@ class TestProjectAutolabel(RoboflowTest):
             PROJECT_NAME,
             batch_id="batch-1",
             model_type="gpt-6-astra-boxes",
-            ontology=[{"class": "cat", "prompt": "a cat"}],
+            ontology={"a cat": "cat"},
             num_images_to_label=5,
             default_confidence=0.4,
             confidence_thresholds=None,
@@ -61,7 +61,7 @@ class TestProjectAutolabel(RoboflowTest):
             PROJECT_NAME,
             model_type="sam3-rle",
             image={"type": "url", "value": "https://example.com/cat.jpg"},
-            ontology=[{"class": "cat", "prompt": "cat"}],
+            ontology={"cat": "cat"},
             confidence_threshold=0.3,
         )
 

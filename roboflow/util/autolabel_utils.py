@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import os
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 MODEL_TYPES = ("foundational", "roboflow")
 
@@ -23,65 +23,33 @@ def image_payload(image: str) -> Dict[str, str]:
     return {"type": "base64", "value": image}
 
 
-OntologyEntry = Dict[str, str]
-Ontology = Union[Dict[str, str], Iterable[Union[str, OntologyEntry]]]
+Ontology = Union[Dict[str, str], Iterable[str]]
 
 
-def ontology_payload(ontology: Optional[Ontology]) -> Optional[List[OntologyEntry]]:
-    """Serialize an ontology into the ``[{"class", "prompt"}]`` wire form.
+def ontology_payload(ontology: Optional[Ontology]) -> Optional[Dict[str, str]]:
+    """Normalize an ontology into the API's ``{prompt: class name}`` object.
 
-    Accepts, in order of convenience:
+    Note the direction: the **key is the text prompt** sent to the model and the
+    **value is the class name** written onto the annotations. It reads backwards
+    at first, but it is the shape that lets several prompts collapse onto one
+    output class, which is what the ontology is for::
 
-    * ``{"cat": "a cat"}`` — one prompt per class, the common case.
-    * ``["cat", "dog"]`` — each class is its own prompt.
-    * ``[{"class": "cat", "prompt": "kitten"}, {"class": "cat", "prompt": "tabby"}]``
-      — several prompts for one class, which a class-keyed dict cannot express
-      because its keys have to be unique. ``prompt`` defaults to ``class``.
+        {"kitten": "cat", "tabby": "cat", "puppy": "dog"}
 
-    The API's own object form is ``{prompt: class}``, the ``CaptionOntology``
-    shape the labeling worker consumes, so a bare dict is ambiguous on the
-    wire: the two sides are both strings and only key order says which is
-    which. The list form names them, and the backend normalizes it on both the
-    preview and the start path.
+    A class-keyed object could not express that, since its keys would have to be
+    unique. This is also the ``CaptionOntology`` shape the labeling worker
+    consumes, so nothing is translated on the way out.
+
+    A plain iterable of class names is expanded to ``{"cat": "cat"}``, each class
+    prompted with its own name.
     """
     if ontology is None:
         return None
     if isinstance(ontology, str):
         raise ValueError(f"ontology must be a mapping or a list of classes, not a bare string {ontology!r}")
     if isinstance(ontology, dict):
-        entries = [{"class": name, "prompt": prompt} for name, prompt in ontology.items()]
-    else:
-        entries = [_ontology_entry(item) for item in ontology]
-    _reject_ambiguous_prompts(entries)
-    return entries
-
-
-def _ontology_entry(item: Union[str, OntologyEntry]) -> OntologyEntry:
-    if isinstance(item, str):
-        return {"class": item, "prompt": item}
-    if isinstance(item, dict) and "class" in item:
-        return {"class": item["class"], "prompt": item.get("prompt", item["class"])}
-    raise ValueError(
-        f"ontology entries must be a class name or a {{'class': ..., 'prompt': ...}} mapping, got {item!r}"
-    )
-
-
-def _reject_ambiguous_prompts(entries: List[OntologyEntry]) -> None:
-    """Refuse a prompt claimed by two classes.
-
-    The backend keys its ontology by prompt, so it would keep whichever class
-    came last and silently drop the other, leaving that class unlabeled for the
-    whole job with nothing in the response to explain why.
-    """
-    by_prompt: Dict[str, str] = {}
-    for entry in entries:
-        claimed = by_prompt.setdefault(entry["prompt"], entry["class"])
-        if claimed != entry["class"]:
-            raise ValueError(
-                f"ontology maps the prompt {entry['prompt']!r} to both {claimed!r} and "
-                f"{entry['class']!r}. The API keys its ontology by prompt, so one of the two "
-                "classes would be dropped. Give each class a distinct prompt."
-            )
+        return dict(ontology)
+    return {name: name for name in ontology}
 
 
 def resolve_model(
