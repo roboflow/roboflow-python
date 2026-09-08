@@ -1031,3 +1031,38 @@ class PackageRfdetrPtlTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLoadCheckpointErrors(unittest.TestCase):
+    """`_load_checkpoint` translates unpicklable-module failures into a usable error."""
+
+    def test_module_not_found_becomes_actionable_model_packaging_error(self):
+        # yolov5/v7/v9 checkpoints pickle `models.yolo` by reference, so torch raises
+        # ModuleNotFoundError when the training repo is not importable.
+        torch_module = mock.Mock()
+        torch_module.load.side_effect = ModuleNotFoundError("No module named 'models'", name="models")
+
+        with self.assertRaises(ModelPackagingError) as context:
+            model_processor._load_checkpoint(torch_module, Path("weights/best.pt"))
+
+        message = str(context.exception)
+        self.assertIn("models", message)
+        self.assertIn("yolov5", message)
+        self.assertIn("PYTHONPATH", message)
+        self.assertIsInstance(context.exception.__cause__, ModuleNotFoundError)
+
+    def test_successful_load_is_passed_through_unchanged(self):
+        torch_module = mock.Mock()
+        torch_module.load.return_value = {"model": "sentinel"}
+
+        result = model_processor._load_checkpoint(torch_module, Path("weights/best.pt"), map_location="cpu")
+
+        self.assertEqual(result, {"model": "sentinel"})
+        torch_module.load.assert_called_once_with(Path("weights/best.pt"), weights_only=False, map_location="cpu")
+
+    def test_other_errors_are_not_swallowed(self):
+        torch_module = mock.Mock()
+        torch_module.load.side_effect = RuntimeError("corrupt archive")
+
+        with self.assertRaises(RuntimeError):
+            model_processor._load_checkpoint(torch_module, Path("weights/best.pt"))
