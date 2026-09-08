@@ -465,20 +465,9 @@ def job_delete_annotations(
 
 
 def _resolve_project_context(args: Any) -> Optional[tuple[str, str, str]]:
-    from roboflow.cli._output import output_error
-    from roboflow.cli._resolver import resolve_resource
-    from roboflow.config import load_roboflow_api_key
+    from roboflow.cli._resolver import resolve_project_context
 
-    try:
-        workspace, project, _version = resolve_resource(args.project, workspace_override=args.workspace)
-    except ValueError as exc:
-        output_error(args, str(exc))
-        return None
-    api_key = args.api_key or load_roboflow_api_key(workspace)
-    if not api_key:
-        output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
-        return None
-    return api_key, workspace, project
+    return resolve_project_context(args)
 
 
 def _call(args: Any, operation: Callable[[str, str, str], Any]) -> Any:

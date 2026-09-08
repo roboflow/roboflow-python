@@ -1309,6 +1309,11 @@ def _annotation_pagination_params(api_key, *, limit, after=None, show_empty=None
 
 
 def _annotation_administration_response(response):
+    return _json_response_or_raise(response)
+
+
+def _json_response_or_raise(response):
+    """Return the JSON body of a 2xx response; raise ``RoboflowError`` with the HTTP status otherwise."""
     if not 200 <= response.status_code < 300:
         message = response.text
         try:
@@ -1321,6 +1326,124 @@ def _annotation_administration_response(response):
             pass
         raise RoboflowError(message, status_code=response.status_code)
     return response.json()
+
+
+# ---------------------------------------------------------------------------
+# Hosted auto-label endpoints
+# ---------------------------------------------------------------------------
+
+
+def _autolabel_response(response):
+    return _json_response_or_raise(response)
+
+
+def list_autolabel_models(api_key, workspace_url):
+    """Fetch the foundation-model catalog for hosted auto-labeling.
+
+    Calls ``GET /:workspace/autolabel/models``. Returns ``{models: [...]}``
+    where each entry carries ``id``, ``name``, ``guidance``, ``ontologyFormat``,
+    ``creditsPerImage``, ``isDefault`` and per-workspace ``available`` (with an
+    ``unavailableReason`` when the plan blocks a model).
+    """
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/autolabel/models",
+        params={"api_key": api_key},
+    )
+    return _autolabel_response(response)
+
+
+def preview_autolabel(
+    api_key,
+    workspace_url,
+    project_url,
+    *,
+    model_type,
+    image,
+    ontology=None,
+    confidence_threshold=None,
+):
+    """Preview one image with a foundation model before starting a job.
+
+    Calls ``POST /:workspace/:project/autolabel/preview``. Free: no job is
+    created and no credits are spent. ``image`` is
+    ``{"type": "url" | "base64", "value": ...}`` and ``ontology`` is keyed by
+    prompt: ``{"kitten": "cat"}`` labels prompt matches as class ``cat``.
+    Returns
+    ``{model, predictions, summary, blockErrors?}``.
+    """
+    payload = {"modelType": model_type, "image": image}
+    if ontology is not None:
+        payload["ontology"] = ontology
+    if confidence_threshold is not None:
+        payload["confidenceThreshold"] = confidence_threshold
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/autolabel/preview",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    return _autolabel_response(response)
+
+
+def start_autolabel_job(
+    api_key,
+    workspace_url,
+    project_url,
+    *,
+    batch_id,
+    model_type,
+    ontology=None,
+    num_images_to_label=None,
+    default_confidence=None,
+    confidence_thresholds=None,
+    run_nms=None,
+    reviewer_email=None,
+    model_options=None,
+    preserve_existing_annotations=None,
+):
+    """Start a hosted auto-label job over a batch.
+
+    Calls ``POST /:workspace/:project/autolabel``. ``model_type`` is sent
+    as-is: a catalog id from ``list_autolabel_models`` (for example
+    ``gpt-6-astra-boxes`` or ``sam3-rle``) or ``custom_roboflow`` with the
+    Roboflow model id in ``model_options["modelId"]``. ``ontology`` is keyed
+    by prompt: ``{"kitten": "cat"}`` labels prompt matches as class ``cat``.
+    The backend fans
+    ``default_confidence`` out across the ontology when
+    ``confidence_thresholds`` is omitted and defaults ``num_images_to_label``
+    to the whole batch. ``preserve_existing_annotations`` keeps annotations
+    already on the images and only adds new ones; the server default (False)
+    replaces them. Returns ``{jobId, annotationJobId, message}``.
+    """
+    payload = {"batchId": batch_id, "modelType": model_type}
+    optional = {
+        "ontology": ontology,
+        "numImagesToLabel": num_images_to_label,
+        "defaultConfidence": default_confidence,
+        "confidenceThresholds": confidence_thresholds,
+        "runNMS": run_nms,
+        "reviewerEmail": reviewer_email,
+        "modelOptions": model_options,
+        "preserveExistingAnnotations": preserve_existing_annotations,
+    }
+    payload.update({key: value for key, value in optional.items() if value is not None})
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/{project_url}/autolabel",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    return _autolabel_response(response)
+
+
+def get_autolabel_job(api_key, workspace_url, job_id):
+    """Fetch per-subjob status and progress for a hosted auto-label job.
+
+    Calls ``GET /:workspace/autolabel/jobs/:jobId``.
+    """
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/autolabel/jobs/{job_id}",
+        params={"api_key": api_key},
+    )
+    return _autolabel_response(response)
 
 
 # ---------------------------------------------------------------------------

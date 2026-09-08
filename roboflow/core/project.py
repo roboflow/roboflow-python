@@ -14,6 +14,10 @@ from roboflow.adapters import rfapi
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
+from roboflow.util.autolabel_utils import Ontology as _AutolabelOntology
+from roboflow.util.autolabel_utils import image_payload as _autolabel_image_payload
+from roboflow.util.autolabel_utils import ontology_payload as _autolabel_ontology_payload
+from roboflow.util.autolabel_utils import resolve_model as _resolve_autolabel_model
 from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
 
@@ -1154,6 +1158,127 @@ class Project:
     def delete_annotation_job_annotations(self, job_id: str) -> Dict:
         """Delete project annotations from every image assigned to a job."""
         return rfapi.delete_annotation_job_annotations(self.__api_key, self.__workspace, self.__project_name, job_id)
+
+    def autolabel_preview(
+        self,
+        model: str,
+        image: str,
+        ontology: Optional[_AutolabelOntology] = None,
+        confidence_threshold: Optional[float] = None,
+    ) -> Dict:
+        """Preview one image with a foundation model before starting an auto-label job.
+
+        Previews are free: no job is created and no credits are spent. Use it to
+        compare the candidates from ``Workspace.autolabel_models()`` on a sample
+        image and start the real job with the winner.
+
+        Args:
+            model: Foundation model id from ``Workspace.autolabel_models()``
+                (e.g. ``"gpt-6-astra-boxes"``, ``"sam3-rle"``, ``"gemini-boxes"``).
+            image: HTTPS URL, local file path, or base64-encoded image.
+            ontology: ``{"text prompt": "class name"}`` -- keyed by prompt, so
+                several prompts can share one class
+                (``{"kitten": "cat", "tabby": "cat"}``). A plain list of class
+                names prompts each class with its own name. Defaults to the
+                dataset's own classes.
+            confidence_threshold: Detection threshold between 0.0 and 1.0
+                (sam3 only; other models report fixed confidence).
+
+        Returns:
+            Dict: ``{model, predictions, summary, blockErrors?}``. ``summary.byClass``
+            carries per-class counts and max confidence, and
+            ``summary.classesWithNoDetections`` lists requested classes the model
+            did not find.
+        """
+        return rfapi.preview_autolabel(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            model_type=model,
+            image=_autolabel_image_payload(image),
+            ontology=_autolabel_ontology_payload(ontology),
+            confidence_threshold=confidence_threshold,
+        )
+
+    def autolabel(
+        self,
+        batch_id: str,
+        model: str,
+        model_type: str = "foundational",
+        ontology: Optional[_AutolabelOntology] = None,
+        num_images: Optional[int] = None,
+        confidence: Optional[float] = None,
+        confidence_thresholds: Optional[Dict[str, float]] = None,
+        run_nms: Optional[bool] = None,
+        reviewer_email: Optional[str] = None,
+        model_options: Optional[Dict] = None,
+        preserve_existing_annotations: Optional[bool] = None,
+    ) -> Dict:
+        """Start a hosted auto-label job over a batch of images.
+
+        Args:
+            batch_id: Source batch containing the images to auto-label.
+            model: For ``model_type="foundational"``, a model id from
+                ``Workspace.autolabel_models()`` (e.g. ``"gpt-6-astra-boxes"``,
+                ``"sam3-rle"``, ``"sam3-polygon"``, ``"gemini-boxes"``). For
+                ``model_type="roboflow"``, a Roboflow model id such as
+                ``"project-slug/3"`` or ``"workspace-slug/model-id"``.
+            model_type: ``"foundational"`` (hosted foundation model, sent as-is;
+                the backend resolves catalog ids) or ``"roboflow"`` (a
+                Roboflow-trained model).
+            ontology: ``{"text prompt": "class name"}`` -- keyed by prompt, not
+                by class, so several prompts can collapse onto one output class
+                (``{"kitten": "cat", "tabby": "cat"}`` labels both as ``cat``).
+                A plain list of class names prompts each class with its own
+                name. For models with ``ontologyFormat="promptMap"`` (sam3) the
+                prompts are sent to the model; for ``ontologyFormat="classes"``
+                only the class names are used. Defaults to the dataset's classes
+                (or the trained model's classes for ``model_type="roboflow"``).
+            num_images: Number of images from the batch to label. Defaults to
+                the whole batch.
+            confidence: Confidence threshold applied to every class (mirrors
+                the UI slider). Ignored when ``confidence_thresholds`` is set.
+            confidence_thresholds: Per-class threshold override, e.g.
+                ``{"cat": 0.5, "dog": 0.6}``.
+            run_nms: Whether to run non-max suppression (server default: True).
+            reviewer_email: Reviewer for the resulting annotation job. Must be a
+                workspace member; defaults to the workspace owner.
+            model_options: Model-specific options, e.g.
+                ``{"outputFormat": "polygon"}`` for segmentation output.
+            preserve_existing_annotations: ``True`` keeps annotations already
+                on the batch images and only adds new ones. The server default
+                (``False``) replaces them, so set this when the batch contains
+                images that were already labeled or reviewed.
+
+        Returns:
+            Dict: ``{jobId, annotationJobId, message}``. Poll progress with
+            ``autolabel_job(jobId)``.
+
+        Example:
+            >>> job = project.autolabel("batch-id", model="gpt-6-astra-boxes",
+            ...                         ontology={"a cat": "cat", "a dog": "dog"})
+            >>> project.autolabel_job(job["jobId"])["status"]
+        """
+        wire_model_type, model_options = _resolve_autolabel_model(model, model_type, model_options)
+        return rfapi.start_autolabel_job(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            batch_id=batch_id,
+            model_type=wire_model_type,
+            ontology=_autolabel_ontology_payload(ontology),
+            num_images_to_label=num_images,
+            default_confidence=confidence,
+            confidence_thresholds=confidence_thresholds,
+            run_nms=run_nms,
+            reviewer_email=reviewer_email,
+            model_options=model_options,
+            preserve_existing_annotations=preserve_existing_annotations,
+        )
+
+    def autolabel_job(self, job_id: str) -> Dict:
+        """Get status and per-subjob progress for an auto-label job started with ``autolabel``."""
+        return rfapi.get_autolabel_job(self.__api_key, self.__workspace, job_id)
 
     def get_batches(self) -> Dict:
         """
