@@ -9,7 +9,6 @@ updates:
       default-days: 7
     commit-message:
       prefix: ⬆️
-    target-branch: "develop"
     groups:
       github-actions:
         patterns:
