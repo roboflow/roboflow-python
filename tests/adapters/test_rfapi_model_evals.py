@@ -220,5 +220,28 @@ class TestErrorMapping(unittest.TestCase):
         self.assertIn("Bad Gateway", str(ctx.exception))
 
 
+class TestCompareModelEvals(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_compare_returns_complete_server_result(self, mock_get):
+        comparison = {
+            "project": "chess",
+            "version": {"id": "131", "projectId": "chess", "projectType": "object-detection"},
+            "metric": {"key": "mAP", "label": "mAP@50", "unit": "ratio"},
+            "candidates": [{"modelId": f"ws/chess-{index}", "onFrontier": False} for index in range(201)],
+            "evaluations": [],
+            "models": [],
+            "trainings": [],
+        }
+        mock_get.return_value = _resp(200, comparison)
+
+        result = rfapi.compare_model_evals("k", "ws", project="chess", version="131")
+
+        self.assertEqual(result, comparison)
+        mock_get.assert_called_once_with(
+            f"{API_URL}/ws/model-evals/compare",
+            params={"api_key": "k", "project": "chess", "version": "131"},
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
