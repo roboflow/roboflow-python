@@ -586,6 +586,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.autolabel_job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        autolabel_job
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.autolabel_models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        autolabel_models
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.workspace.Workspace.batch_update_image_metadata" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1451,6 +1473,28 @@
     <span class="md-ellipsis">
       
         archive_vision_event_use_case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.autolabel_job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        autolabel_job
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.workspace.Workspace.autolabel_models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        autolabel_models
       
     </span>
   </a>
@@ -3704,7 +3748,34 @@
 <span class="normal">1678</span>
 <span class="normal">1679</span>
 <span class="normal">1680</span>
-<span class="normal">1681</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
+<span class="normal">1681</span>
+<span class="normal">1682</span>
+<span class="normal">1683</span>
+<span class="normal">1684</span>
+<span class="normal">1685</span>
+<span class="normal">1686</span>
+<span class="normal">1687</span>
+<span class="normal">1688</span>
+<span class="normal">1689</span>
+<span class="normal">1690</span>
+<span class="normal">1691</span>
+<span class="normal">1692</span>
+<span class="normal">1693</span>
+<span class="normal">1694</span>
+<span class="normal">1695</span>
+<span class="normal">1696</span>
+<span class="normal">1697</span>
+<span class="normal">1698</span>
+<span class="normal">1699</span>
+<span class="normal">1700</span>
+<span class="normal">1701</span>
+<span class="normal">1702</span>
+<span class="normal">1703</span>
+<span class="normal">1704</span>
+<span class="normal">1705</span>
+<span class="normal">1706</span>
+<span class="normal">1707</span>
+<span class="normal">1708</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Workspace</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Manage a Roboflow workspace.</span>
 <span class="sd">    """</span>
@@ -5350,6 +5421,33 @@
 <span class="sd">        """</span>
         <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">restore_trash_item</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">item_type</span><span class="p">,</span> <span class="n">item_id</span><span class="p">,</span> <span class="n">parent_id</span><span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">autolabel_models</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        List the foundation models available for hosted auto-labeling in this workspace.</span>
+
+<span class="sd">        Returns ``{models: [...]}``. Each entry's ``id`` (e.g.</span>
+<span class="sd">        ``gpt-6-astra-boxes``, ``sam3-rle``, ``gemini-boxes``) is a valid</span>
+<span class="sd">        ``model`` for ``Project.autolabel`` and ``Project.autolabel_preview``.</span>
+<span class="sd">        Entries carry ``guidance`` on when to prefer each model, the</span>
+<span class="sd">        ``projectTypes`` they support, ``ontologyFormat``, ``creditsPerImage``,</span>
+<span class="sd">        ``isDefault``, and ``available`` with an ``unavailableReason`` when the</span>
+<span class="sd">        workspace plan blocks a model.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; for m in ws.autolabel_models()["models"]:</span>
+<span class="sd">            ...     print(m["id"], m["available"])</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_autolabel_models</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">autolabel_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Get status and per-subjob progress for a hosted auto-label job.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            job_id: the ``jobId`` returned by ``Project.autolabel``.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_autolabel_job</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
+
     <span class="c1"># Permanent-delete actions (empty trash / delete a single trash item</span>
     <span class="c1"># immediately) are intentionally not exposed in the SDK — they destroy</span>
     <span class="c1"># data irrecoverably and are only available through the web UI's Trash</span>
@@ -5865,6 +5963,148 @@ ws.archive_vision_event_use_case("abc123")</p>
         <span class="n">api_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
         <span class="n">use_case_id</span><span class="o">=</span><span class="n">use_case</span><span class="p">,</span>
     <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.workspace.Workspace.autolabel_job" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">autolabel_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span></code>
+
+<a href="#roboflow.core.workspace.Workspace.autolabel_job" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get status and per-subjob progress for a hosted auto-label job.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>job_id</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>the <code>jobId</code> returned by <code>Project.autolabel</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1690</span>
+<span class="normal">1691</span>
+<span class="normal">1692</span>
+<span class="normal">1693</span>
+<span class="normal">1694</span>
+<span class="normal">1695</span>
+<span class="normal">1696</span>
+<span class="normal">1697</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">autolabel_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Get status and per-subjob progress for a hosted auto-label job.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        job_id: the ``jobId`` returned by ``Project.autolabel``.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_autolabel_job</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.workspace.Workspace.autolabel_models" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">autolabel_models</span><span class="p">()</span></code>
+
+<a href="#roboflow.core.workspace.Workspace.autolabel_models" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>List the foundation models available for hosted auto-labeling in this workspace.</p>
+<p>Returns <code>{models: [...]}</code>. Each entry's <code>id</code> (e.g.
+<code>gpt-6-astra-boxes</code>, <code>sam3-rle</code>, <code>gemini-boxes</code>) is a valid
+<code>model</code> for <code>Project.autolabel</code> and <code>Project.autolabel_preview</code>.
+Entries carry <code>guidance</code> on when to prefer each model, the
+<code>projectTypes</code> they support, <code>ontologyFormat</code>, <code>creditsPerImage</code>,
+<code>isDefault</code>, and <code>available</code> with an <code>unavailableReason</code> when the
+workspace plan blocks a model.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <blockquote>
+<blockquote>
+<blockquote>
+<p>for m in ws.autolabel_models()["models"]:
+...     print(m["id"], m["available"])</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</details>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/workspace.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1672</span>
+<span class="normal">1673</span>
+<span class="normal">1674</span>
+<span class="normal">1675</span>
+<span class="normal">1676</span>
+<span class="normal">1677</span>
+<span class="normal">1678</span>
+<span class="normal">1679</span>
+<span class="normal">1680</span>
+<span class="normal">1681</span>
+<span class="normal">1682</span>
+<span class="normal">1683</span>
+<span class="normal">1684</span>
+<span class="normal">1685</span>
+<span class="normal">1686</span>
+<span class="normal">1687</span>
+<span class="normal">1688</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">autolabel_models</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    List the foundation models available for hosted auto-labeling in this workspace.</span>
+
+<span class="sd">    Returns ``{models: [...]}``. Each entry's ``id`` (e.g.</span>
+<span class="sd">    ``gpt-6-astra-boxes``, ``sam3-rle``, ``gemini-boxes``) is a valid</span>
+<span class="sd">    ``model`` for ``Project.autolabel`` and ``Project.autolabel_preview``.</span>
+<span class="sd">    Entries carry ``guidance`` on when to prefer each model, the</span>
+<span class="sd">    ``projectTypes`` they support, ``ontologyFormat``, ``creditsPerImage``,</span>
+<span class="sd">    ``isDefault``, and ``available`` with an ``unavailableReason`` when the</span>
+<span class="sd">    workspace plan blocks a model.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; for m in ws.autolabel_models()["models"]:</span>
+<span class="sd">        ...     print(m["id"], m["available"])</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_autolabel_models</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
