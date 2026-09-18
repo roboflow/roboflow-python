@@ -24,6 +24,21 @@ All notable changes to this project will be documented in this file.
     `start --preserve-existing` mirrors the SDK flag; `job -p ws/project`
     resolves the workspace the same way `start` does.
 
+### Changed
+
+- HEIC/HEIF decoding is an optional extra: `pip install "roboflow[heic]"`
+  installs `pillow-heif>=1.7.0`, and `import roboflow` registers its Pillow
+  opener when it is installed. The default install no longer depends on
+  `pi-heif`, which is discontinued upstream: its final release, 1.4.0, bundles
+  libheif 1.23.0, which is affected by the security advisories fixed in libheif
+  1.23.2 and 1.23.3 (including CVE-2026-84383). `roboflow` no longer registers
+  `pi-heif` even when it is still installed.
+  - Uploads and `Project.check_valid_image()` handle HEIC without the extra.
+    Decoding a local HEIC file, for example with `model.predict("photo.heic")`,
+    needs it.
+  - The extra is opt-in because pillow-heif's binary wheels bundle the x265
+    encoder, which makes them GPL-2.0 (#398).
+
 ## 1.4.1
 
 ### Added

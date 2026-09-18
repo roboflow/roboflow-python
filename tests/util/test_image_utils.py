@@ -1,7 +1,11 @@
+import importlib
+import sys
 import unittest
+from unittest import mock
 
 import responses
 
+from roboflow.util import image_utils
 from roboflow.util.image_utils import check_image_path, check_image_url, load_labelmap
 
 
@@ -34,6 +38,26 @@ class TestCheckImageURL(unittest.TestCase):
         url = "https://roboflow.com/not-found.png"
         responses.add(responses.HEAD, url, status=404)
         self.assertFalse(check_image_url(url))
+
+
+class TestHeifOpenerRegistration(unittest.TestCase):
+    def tearDown(self):
+        importlib.reload(image_utils)
+
+    def _reload_with_modules(self, modules):
+        with mock.patch.dict(sys.modules, modules):
+            importlib.reload(image_utils)
+
+    def test_registers_pillow_heif_when_installed(self):
+        pillow_heif = mock.MagicMock()
+        self._reload_with_modules({"pillow_heif": pillow_heif})
+        pillow_heif.register_heif_opener.assert_called_once_with(thumbnails=False)
+
+    def test_does_not_register_pi_heif(self):
+        pi_heif = mock.MagicMock()
+        # None in sys.modules makes `import pillow_heif` raise ImportError
+        self._reload_with_modules({"pillow_heif": None, "pi_heif": pi_heif})
+        pi_heif.register_heif_opener.assert_not_called()
 
 
 class TestLoadLabelmap(unittest.TestCase):

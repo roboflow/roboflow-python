@@ -50,6 +50,14 @@ For desktop features, use:
 pip install "roboflow[desktop]"
 ```
 
+To decode HEIC/HEIF images locally (for example `model.predict("photo.heic")`), use:
+
+```bash
+pip install "roboflow[heic]"
+```
+
+This installs [pillow-heif](https://pypi.org/project/pillow-heif/), whose binary wheels are GPL-2.0 licensed because they bundle the x265 encoder. Uploading HEIC images works without it, since the server decodes them.
+
 
 <details>
   <summary>Lightweight install (roboflow-slim)</summary>
