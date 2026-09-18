@@ -124,6 +124,8 @@ module = [
     "IPython.display.*",
     # ipywidgets is an optional dependency
     "ipywidgets.*",
+    # pillow-heif is an optional dependency ([heic] extra)
+    "pillow_heif.*",
     "requests_toolbelt.*",
     "rfdetr.*",
     "torch.*",

@@ -10,11 +10,11 @@ import requests
 import yaml
 from PIL import Image
 
-# pi-heif requires Python 3.10+
+# HEIC/HEIF decoding is optional: pip install "roboflow[heic]"
 try:
-    import pi_heif  # type: ignore[import-untyped,import-not-found]
+    import pillow_heif
 
-    pi_heif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
+    pillow_heif.register_heif_opener(thumbnails=False)  # Register for HEIF/HEIC
 except ImportError:
     pass
 pillow_avif = pillow_avif  # Reference pillow_avif to not remove import by accident
