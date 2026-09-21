@@ -29,56 +29,60 @@ def compare_evals_cmd(
     ctx: typer.Context,
     project: Annotated[str, typer.Option("-p", "--project", help="Project slug")],
     version: Annotated[int, typer.Option("-v", "--version", min=1, help="Dataset version number")],
+    frontier_metric: Annotated[
+        Optional[str],
+        typer.Option("--frontier-metric", help="Metric for frontier membership (uses the project default if omitted)"),
+    ] = None,
 ) -> None:
     """Compare test-set accuracy and median latency without starting evaluations."""
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.cli._table import format_table
 
-    args = ctx_to_args(ctx, project=project, version=version)
+    args = ctx_to_args(ctx, project=project, version=version, frontier_metric=frontier_metric)
     resolved = _resolve(args)
     if not resolved:
         return
     workspace_url, api_key = resolved
     try:
-        comparison = rfapi.compare_model_evals(api_key, workspace_url, project=project, version=version)
+        comparison = rfapi.compare_model_evals(
+            api_key,
+            workspace_url,
+            project=project,
+            version=version,
+            frontier_metric=frontier_metric,
+        )
     except Exception as exc:
         output_error(
             args,
             str(exc),
-            hint=(
-                "Check the project, version, and workspace access. Model Comparison must be enabled for the workspace."
-            ),
+            hint="Check the project, version, frontier metric, and workspace access.",
             exit_code=_eval_error_exit_code(exc),
         )
         return
     if args.json:
         output(args, comparison)
         return
-    metric = comparison.get("metric") or {}
-    names = {model["id"]: model["name"] for model in comparison.get("models", [])}
+    frontier_metric = comparison.get("frontierMetric")
     rows = []
-    for candidate in comparison.get("candidates", []):
-        accuracy = candidate.get("accuracy")
-        latency = candidate.get("medianLatencyMs")
+    for model in comparison.get("models", []):
+        accuracy = model.get("metrics", {}).get(frontier_metric) if frontier_metric else None
+        latency = model.get("medianLatencyMs")
         rows.append(
             {
-                "model": names.get(candidate["modelId"], candidate["modelId"]),
+                "model": model["modelId"],
                 "accuracy": f"{accuracy * 100:.1f}%" if accuracy is not None else "",
                 "latency": f"{latency:.2f}" if latency is not None else "",
-                "frontier": "Yes" if candidate.get("onFrontier") else "",
-                "exclusion": candidate.get("exclusionReason") or "",
+                "frontier": "Yes" if model.get("onFrontier") else "",
+                "exclusion": model.get("exclusionReason") or "",
             }
         )
     table = format_table(
         rows,
         columns=["model", "accuracy", "latency", "frontier", "exclusion"],
-        headers=["MODEL", metric.get("label", "ACCURACY"), "MEDIAN LATENCY (ms)", "FRONTIER", "EXCLUSION"],
+        headers=["MODEL", frontier_metric or "ACCURACY", "MEDIAN LATENCY (ms)", "FRONTIER", "EXCLUSION"],
     )
-    lines = [f"Test set | Serving device: {comparison.get('servingDevice', '')}", table]
-    if comparison.get("appUrl"):
-        lines.append(comparison["appUrl"])
-    output(args, comparison, text="\n".join(lines))
+    output(args, comparison, text=table)
 
 
 @eval_app.command("list")

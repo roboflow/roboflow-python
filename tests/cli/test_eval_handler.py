@@ -433,12 +433,15 @@ class TestEvalCompareCommand(unittest.TestCase):
                 "chess",
                 "--version",
                 "131",
+                "--frontier-metric",
+                "mAP5095",
             ],
         )
 
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(json.loads(result.stdout), comparison)
         self.assertEqual(mock_get.call_count, 1)
+        self.assertEqual(mock_get.call_args.kwargs["params"]["frontierMetric"], "mAP5095")
 
     @patch("roboflow.adapters.rfapi.requests.get")
     def test_text_shows_server_frontier_and_exclusion_with_zero_values(self, mock_get):
@@ -446,24 +449,28 @@ class TestEvalCompareCommand(unittest.TestCase):
 
         mock_get.return_value = MagicMock(status_code=200)
         mock_get.return_value.json.return_value = {
-            "metric": {"key": "mAP", "label": "mAP@50", "unit": "ratio"},
-            "servingDevice": "T4",
+            "project": "chess",
+            "version": "131",
+            "frontierMetric": "mAP",
+            "availableMetrics": ["mAP"],
             "models": [
-                {"id": "ws/chess-fast", "name": "Fast model"},
-                {"id": "ws/chess-old", "name": "Old model"},
-            ],
-            "candidates": [
-                {"modelId": "ws/chess-fast", "eligible": True, "accuracy": 0, "medianLatencyMs": 0, "onFrontier": True},
+                {
+                    "modelId": "ws/chess-fast",
+                    "evaluationId": "eval-fast",
+                    "metrics": {"mAP": 0},
+                    "medianLatencyMs": 0,
+                    "onFrontier": True,
+                    "exclusionReason": None,
+                },
                 {
                     "modelId": "ws/chess-old",
-                    "eligible": False,
-                    "accuracy": 0.9,
+                    "evaluationId": "eval-old",
+                    "metrics": {"mAP": 0.9},
                     "medianLatencyMs": None,
                     "onFrontier": False,
                     "exclusionReason": "latency_unavailable",
                 },
             ],
-            "appUrl": "https://app.roboflow.com/ws/chess/131",
         }
         result = runner.invoke(
             app,
@@ -473,16 +480,15 @@ class TestEvalCompareCommand(unittest.TestCase):
         self.assertEqual(result.exit_code, 0, result.output)
         for text in [
             "MODEL",
-            "mAP@50",
+            "mAP",
             "MEDIAN LATENCY (ms)",
             "FRONTIER",
             "EXCLUSION",
-            "Fast model",
+            "ws/chess-fast",
             "0.0%",
             "0.00",
             "Yes",
             "latency_unavailable",
-            "https://app.roboflow.com/ws/chess/131",
         ]:
             self.assertIn(text, result.stdout)
 

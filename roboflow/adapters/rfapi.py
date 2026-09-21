@@ -2184,8 +2184,14 @@ def compare_model_evals(
     *,
     project: str,
     version: Union[str, int],
+    frontier_metric: Optional[str] = None,
 ) -> dict:
-    return _eval_get(api_key, workspace_url, "/compare", params={"project": project, "version": version})
+    return _eval_get(
+        api_key,
+        workspace_url,
+        "/compare",
+        params={"project": project, "version": version, "frontierMetric": frontier_metric},
+    )
 
 
 def list_model_evals(

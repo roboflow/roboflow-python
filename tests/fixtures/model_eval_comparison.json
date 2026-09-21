@@ -1,194 +1,56 @@
 {
     "project": "chess",
-    "version": {
-        "id": "131",
-        "projectId": "chess",
-        "projectType": "object-detection"
-    },
-    "metric": {
-        "key": "mAP",
-        "label": "mAP@50",
-        "unit": "ratio"
-    },
-    "servingDevice": "T4",
+    "version": "131",
+    "frontierMetric": "mAP",
+    "availableMetrics": ["mAP", "mAP5095", "mAP75", "precision", "recall", "f1"],
     "models": [
         {
-            "id": "acme/chess-fast",
-            "name": "Fast model",
-            "url": "acme/chess-fast",
-            "projectId": "chess",
-            "versionId": "131",
-            "trainingId": "training-fast",
-            "modelType": "rfdetr-small",
-            "origin": "roboflow-train",
-            "isNasChild": false
-        },
-        {
-            "id": "acme/chess-dominated",
-            "name": "Dominated model",
-            "url": "acme/chess-dominated",
-            "projectId": "chess",
-            "versionId": "131",
-            "trainingId": "training-dominated",
-            "modelType": "rfdetr-small",
-            "origin": "roboflow-train",
-            "isNasChild": false
-        },
-        {
-            "id": "acme/chess-missing-latency",
-            "name": "Previously evaluated model",
-            "url": "acme/chess-missing-latency",
-            "projectId": "chess",
-            "versionId": "131",
-            "trainingId": "training-missing-latency",
-            "modelType": "rfdetr-small",
-            "origin": "roboflow-train",
-            "isNasChild": false
-        }
-    ],
-    "trainings": [
-        {
-            "id": "training-fast",
-            "projectId": "chess",
-            "versionId": "131",
-            "status": "finished",
-            "modelType": "rfdetr-small",
-            "modelIds": [
-                "acme/chess-fast"
-            ]
-        },
-        {
-            "id": "training-dominated",
-            "projectId": "chess",
-            "versionId": "131",
-            "status": "finished",
-            "modelType": "rfdetr-small",
-            "modelIds": [
-                "acme/chess-dominated"
-            ]
-        },
-        {
-            "id": "training-missing-latency",
-            "projectId": "chess",
-            "versionId": "131",
-            "status": "finished",
-            "modelType": "rfdetr-small",
-            "modelIds": [
-                "acme/chess-missing-latency"
-            ]
-        }
-    ],
-    "evaluations": [
-        {
-            "id": "eval-fast",
             "modelId": "acme/chess-fast",
-            "project": "chess",
-            "versionId": "131",
-            "status": "done",
-            "createdAt": "2026-09-16T12:00:00.000Z",
-            "summary": {
+            "evaluationId": "eval-fast",
+            "metrics": {
                 "mAP": 0.8,
                 "mIoU": null,
-                "f1": null,
-                "precision": null,
-                "recall": null,
-                "medianLatencyMs": 3
+                "f1": 0.8,
+                "precision": 0.8,
+                "recall": 0.8,
+                "mAP5095": 0.8,
+                "mAP75": 0.8
             },
-            "servingDevice": "T4"
-        },
-        {
-            "id": "eval-dominated",
-            "modelId": "acme/chess-dominated",
-            "project": "chess",
-            "versionId": "131",
-            "status": "done",
-            "createdAt": "2026-09-16T12:00:00.000Z",
-            "summary": {
-                "mAP": 0.7,
-                "mIoU": null,
-                "f1": null,
-                "precision": null,
-                "recall": null,
-                "medianLatencyMs": 5
-            },
-            "servingDevice": "T4"
-        },
-        {
-            "id": "eval-missing-latency",
-            "modelId": "acme/chess-missing-latency",
-            "project": "chess",
-            "versionId": "131",
-            "status": "done",
-            "createdAt": "2026-09-16T12:00:00.000Z",
-            "summary": {
-                "mAP": 0.9,
-                "mIoU": null,
-                "f1": null,
-                "precision": null,
-                "recall": null,
-                "medianLatencyMs": null
-            },
-            "servingDevice": null
-        }
-    ],
-    "candidates": [
-        {
-            "modelId": "acme/chess-fast",
-            "trainingId": "training-fast",
-            "evalId": "eval-fast",
-            "eligible": true,
-            "exclusionReason": null,
-            "accuracy": 0.8,
             "medianLatencyMs": 3,
             "onFrontier": true,
-            "currentAttempt": {
-                "evalId": "eval-fast",
-                "status": "done",
-                "createdAt": "2026-09-16T12:00:00.000Z"
-            },
-            "rerun": {
-                "available": false,
-                "reason": null
-            }
+            "exclusionReason": null
         },
         {
             "modelId": "acme/chess-dominated",
-            "trainingId": "training-dominated",
-            "evalId": "eval-dominated",
-            "eligible": true,
-            "exclusionReason": null,
-            "accuracy": 0.7,
+            "evaluationId": "eval-dominated",
+            "metrics": {
+                "mAP": 0.7,
+                "mIoU": null,
+                "f1": 0.7,
+                "precision": 0.7,
+                "recall": 0.7,
+                "mAP5095": 0.7,
+                "mAP75": 0.7
+            },
             "medianLatencyMs": 5,
             "onFrontier": false,
-            "currentAttempt": {
-                "evalId": "eval-dominated",
-                "status": "done",
-                "createdAt": "2026-09-16T12:00:00.000Z"
-            },
-            "rerun": {
-                "available": false,
-                "reason": null
-            }
+            "exclusionReason": null
         },
         {
             "modelId": "acme/chess-missing-latency",
-            "trainingId": "training-missing-latency",
-            "evalId": "eval-missing-latency",
-            "eligible": false,
-            "exclusionReason": "latency_unavailable",
-            "accuracy": 0.9,
+            "evaluationId": "eval-missing-latency",
+            "metrics": {
+                "mAP": 0.9,
+                "mIoU": null,
+                "f1": 0.9,
+                "precision": 0.9,
+                "recall": 0.9,
+                "mAP5095": 0.9,
+                "mAP75": 0.9
+            },
             "medianLatencyMs": null,
             "onFrontier": false,
-            "currentAttempt": {
-                "evalId": "eval-missing-latency",
-                "status": "done",
-                "createdAt": "2026-09-16T12:00:00.000Z"
-            },
-            "rerun": {
-                "available": true,
-                "reason": "latency_unavailable"
-            }
+            "exclusionReason": "latency_unavailable"
         }
-    ],
-    "appUrl": "https://app.roboflow.com/acme/chess/131"
+    ]
 }

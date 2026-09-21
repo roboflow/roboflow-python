@@ -367,9 +367,10 @@ view. Items left in Trash are cleaned up automatically after 30 days.
 
 ### Inspect model evaluations
 
-Compare models on a Dataset Version with `roboflow eval compare --project chess-pieces --version 131`.
-Use `--json` for the full result, including server-computed frontier membership, exclusions, and current evaluation attempts.
-The command is read-only. It needs `model-eval:read` access and Model Comparison enabled for the Workspace.
+Compare models with `roboflow eval compare --project chess-pieces --version 131`.
+Use `--frontier-metric mAP5095` to select a metric instead of the project default.
+Use `--json` for all model metrics, median latency, exclusions, and server-computed frontier membership.
+The command is read-only. It needs `model-eval:read` access.
 See the [Model Comparison reference](https://docs.roboflow.com/models/evaluate/model-comparison) for the response contract and all command options.
 
 ```bash
