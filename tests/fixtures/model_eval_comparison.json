@@ -2,7 +2,14 @@
     "project": "chess",
     "version": "131",
     "frontierMetric": "mAP",
-    "availableMetrics": ["mAP", "mAP5095", "mAP75", "precision", "recall", "f1"],
+    "availableMetrics": [
+        "mAP",
+        "mAP5095",
+        "mAP75",
+        "precision",
+        "recall",
+        "f1"
+    ],
     "models": [
         {
             "modelId": "acme/chess-fast",
