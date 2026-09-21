@@ -249,6 +249,18 @@ def task_of_model_type(model_type: str) -> str:
     'keypoint' (rf-detr, e.g. 'rfdetr-keypoint-preview'); both map to TASK_POSE.
     """
     s = model_type.lower()
+    # These canonical classification identifiers have no task suffix. Match
+    # exact names so detection backbones and unknown variants retain their task.
+    if s in {
+        "resnet18",
+        "resnet34",
+        "resnet50",
+        "resnet101",
+        "vit-base-patch16-224-in21k",
+        "vit_base_patch16_dinov3.lvd1689m",
+        "vit_small_patch16_dinov3.lvd1689m",
+    }:
+        return TASK_CLS
     if "keypoint" in s:
         return TASK_POSE
     for task in (TASK_SEM, TASK_SEG, TASK_POSE, TASK_CLS, TASK_OBB):

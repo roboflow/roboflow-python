@@ -67,6 +67,43 @@ class TaskOfModelTypeTest(unittest.TestCase):
     def test_classify(self):
         self.assertEqual(task_of_model_type("yolov11-cls"), TASK_CLS)
 
+    def test_canonical_classification_names_without_suffix(self):
+        for name in (
+            "resnet18",
+            "resnet34",
+            "resnet50",
+            "resnet101",
+            "vit-base-patch16-224-in21k",
+            "vit_base_patch16_dinov3.lvd1689m",
+            "vit_small_patch16_dinov3.lvd1689m",
+        ):
+            with self.subTest(name=name):
+                self.assertEqual(task_of_model_type(name), TASK_CLS)
+                self.assertEqual(task_of_model_type(name.upper()), TASK_CLS)
+
+    def test_classification_names_do_not_change_unknown_or_explicit_tasks(self):
+        for name in (
+            "resnet152",
+            "custom-resnet18",
+            "resnet18-backbone",
+            "vit-unknown",
+            "cosmos3",
+            "cosmos3-edge",
+            "unknown",
+            "",
+        ):
+            with self.subTest(name=name):
+                self.assertEqual(task_of_model_type(name), TASK_DET)
+        for name, task in (
+            ("resnet18-seg", TASK_SEG),
+            ("resnet18-pose", TASK_POSE),
+            ("resnet18-keypoint", TASK_POSE),
+            ("resnet18-sem", TASK_SEM),
+            ("resnet18-obb", TASK_OBB),
+            ("resnet18-cls", TASK_CLS),
+        ):
+            self.assertEqual(task_of_model_type(name), task)
+
     def test_semantic(self):
         self.assertEqual(task_of_model_type("yolo26-sem"), TASK_SEM)
 

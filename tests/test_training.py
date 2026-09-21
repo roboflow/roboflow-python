@@ -1,5 +1,10 @@
+import copy
+import tempfile
 import unittest
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+from PIL import Image
 
 from roboflow.config import (
     CLASSIFICATION_MODEL,
@@ -17,6 +22,40 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 
 
 class TestTrainedModelPredict(unittest.TestCase):
+    def test_canonical_classification_preserves_response_through_real_prediction_group(self):
+        names = (
+            "resnet18",
+            "resnet34",
+            "resnet50",
+            "resnet101",
+            "vit-base-patch16-224-in21k",
+            "vit_base_patch16_dinov3.lvd1689m",
+            "vit_small_patch16_dinov3.lvd1689m",
+        )
+        payloads = [
+            {"predictions": [{"class": "leaf", "confidence": 0.91, "class_id": 0}], "top": "leaf", "confidence": 0.91},
+            {"predictions": [], "top": "", "confidence": 0.0},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            image = Path(directory) / "image.jpg"
+            Image.new("RGB", (8, 8)).save(image)
+            for name in names:
+                for payload in payloads:
+                    with self.subTest(name=name, top=payload["top"]):
+                        response = Mock()
+                        response.json.return_value = copy.deepcopy(payload)
+                        model = TrainedModel("fixture-key", "ws", "proj", "ws/model-slug", model_type=name)
+                        with patch("roboflow.models.inference.requests.post", return_value=response) as post:
+                            result = model.predict(str(image), confidence=40).json()
+                        response.raise_for_status.assert_called_once_with()
+                        post.assert_called_once()
+                        self.assertIn("confidence=40", post.call_args.args[0])
+                        self.assertEqual(len(result["predictions"]), 1)
+                        classification = result["predictions"][0]
+                        self.assertEqual(classification["prediction_type"], CLASSIFICATION_MODEL)
+                        for key in ("top", "confidence", "predictions"):
+                            self.assertEqual(classification[key], payload[key])
+
     def test_predict_routes_through_shared_inference_model_with_task_prediction_type(self):
         cases = [
             ("yolov11", OBJECT_DETECTION_MODEL, "https://serverless.roboflow.com/ws/model-slug"),
@@ -50,6 +89,7 @@ class TestTrainedModelVideo(unittest.TestCase):
         cases = [
             ("yolov11", ObjectDetectionModel),
             ("yolov11-cls", ClassificationModel),
+            ("resnet18", ClassificationModel),
             ("yolov11-seg", InstanceSegmentationModel),
             ("yolov11-pose", KeypointDetectionModel),
             ("yolo26-sem", SemanticSegmentationModel),
