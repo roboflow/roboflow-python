@@ -423,6 +423,10 @@ class TestEvalCompareCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 3)
         self.assertEqual(json.loads(result.stderr)["error"]["message"], "Project not found")
+        self.assertEqual(
+            json.loads(result.stderr)["error"]["hint"],
+            "Check the project, version, frontier metric, and workspace access.",
+        )
         self.assertEqual(result.stdout, "")
 
     @patch("roboflow.adapters.rfapi.requests.get")
@@ -561,6 +565,9 @@ class TestEvalCompareCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 2)
         self.assertEqual(json.loads(result.stderr)["error"]["message"], "Comparison access denied")
+        hint = json.loads(result.stderr)["error"]["hint"]
+        for text in ["API key", "model-eval:read", "Model Evaluation access"]:
+            self.assertIn(text, hint)
         self.assertEqual(result.stdout, "")
 
 

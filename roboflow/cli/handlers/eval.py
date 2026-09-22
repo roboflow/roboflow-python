@@ -238,7 +238,11 @@ def _compare_evals(args):  # noqa: ANN001
         output_error(
             args,
             str(exc),
-            hint="Check the project, version, frontier metric, and workspace access.",
+            hint=(
+                _hint_for(exc)
+                if isinstance(exc, rfapi.ModelEvalAccessError)
+                else "Check the project, version, frontier metric, and workspace access."
+            ),
             exit_code=_eval_error_exit_code(exc),
         )
         return
