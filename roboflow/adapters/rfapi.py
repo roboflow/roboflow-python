@@ -2186,6 +2186,7 @@ def compare_model_evals(
     version: Union[str, int],
     frontier_metric: Optional[str] = None,
 ) -> dict:
+    """GET /{workspace}/model-evals/compare — compare models on a dataset version."""
     return _eval_get(
         api_key,
         workspace_url,

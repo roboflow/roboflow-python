@@ -386,7 +386,8 @@ roboflow eval recommendations <eval-id> --json
 ```
 
 Exit codes are stable per error class so scripts and agents can react
-without parsing message strings: `3` for `model_eval_not_found` (404),
+without parsing message strings: `2` for authentication or access errors (401/403),
+`3` for `model_eval_not_found` (404),
 `4` for `model_eval_not_done` (409 — eval still running), `5` for
 `invalid_split` / `invalid_confidence` (400). Requires the
 `model-eval:read` scope on the api key.

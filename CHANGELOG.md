@@ -16,6 +16,11 @@ All notable changes to this project will be documented in this file.
     Use `--frontier-metric` to choose the metric for frontier membership.
   - Both surfaces read existing results without starting evaluations.
 
+### Changed
+
+- All `roboflow eval` commands now return exit code `2` for HTTP 401/403
+  access errors (previously `1`).
+
 ## 1.5.0
 
 ### Added
