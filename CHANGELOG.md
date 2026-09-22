@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.5.1
+
+### Added
+
+- Model evaluation comparison for a dataset version
+  ([#529](https://github.com/roboflow/roboflow-python/pull/529)):
+  - `Workspace.compare_model_evaluations(project, version, frontier_metric=None)`
+    — compare test-set accuracy and median latency, including Pareto frontier
+    membership and reasons models are excluded.
+  - `roboflow --workspace <workspace> eval compare --project <project> --version <N>`
+    — display the comparison as a table; use `--json` for the public API response.
+    Use `--frontier-metric` to choose the metric for frontier membership.
+  - Both surfaces read existing results without starting evaluations.
+
 ## 1.5.0
 
 ### Added
