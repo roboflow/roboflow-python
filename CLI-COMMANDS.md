@@ -125,6 +125,7 @@ roboflow --json train results my-project/3 | jq -r .modelGroup
 roboflow model list -p my-project --group rfdetrNasGroup-3
 
 # Star a NAS-trained model (triggers TRT compile for its recommended hardware):
+#   Also starts model evaluation when the workspace has Model Evaluation access.
 #   --json train results … gives you the modelId per row.
 roboflow model star <modelId>
 roboflow model star <modelId> --unstar
@@ -367,12 +368,6 @@ view. Items left in Trash are cleaned up automatically after 30 days.
 
 ### Inspect model evaluations
 
-Compare models with `roboflow eval compare --project chess-pieces --version 131`.
-Use `--frontier-metric mAP5095` to select a metric instead of the project default.
-Use `--json` for all model metrics, median latency, exclusions, and server-computed frontier membership.
-The command is read-only. It needs `model-eval:read` access.
-See the [Model Comparison reference](https://docs.roboflow.com/models/evaluate/model-comparison) for the response contract and all command options.
-
 ```bash
 # List evals in the workspace; filter by project, version, model, or status.
 roboflow eval list --status done --limit 10
@@ -395,6 +390,19 @@ without parsing message strings: `3` for `model_eval_not_found` (404),
 `4` for `model_eval_not_done` (409 — eval still running), `5` for
 `invalid_split` / `invalid_confidence` (400). Requires the
 `model-eval:read` scope on the api key.
+
+### Compare Models
+
+```bash
+# Compare accuracy and latency for one version.
+roboflow --workspace my-workspace eval compare --project my-project --version 3
+
+# Choose the Pareto frontier metric; return all metrics and exclusion reasons.
+roboflow eval compare --project my-project --version 3 --frontier-metric mAP5095 --json
+```
+
+Reads existing evaluations; does not start new ones. Requires `model-eval:read`
+and workspace Model Evaluation access.
 
 ### Workspace stats and billing
 
