@@ -8,6 +8,7 @@ import responses
 
 from roboflow.adapters.rfapi import (
     RoboflowError,
+    _save_annotation_url,
     create_training_v2,
     delete_version_training,
     get_train_recipe,
@@ -434,3 +435,45 @@ class TestTrainingTrash(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSaveAnnotationUrl(unittest.TestCase):
+    API_KEY = "test_api_key"
+    PROJECT_URL = "test_project"
+    IMAGE_ID = "test_image_id"
+    ANNOTATION_NAME = "annotation.json"
+
+    def _url(self, **kwargs):
+        return _save_annotation_url(
+            self.API_KEY,
+            self.PROJECT_URL,
+            self.ANNOTATION_NAME,
+            self.IMAGE_ID,
+            kwargs.pop("job_name", None),
+            kwargs.pop("is_prediction", False),
+            **kwargs,
+        )
+
+    def test_add_to_dataset_is_omitted_by_default(self):
+        # Omitting the parameter leaves the choice to the API, which adds the image to the
+        # Dataset. Sending it unasked would silently change what existing callers upload.
+        self.assertNotIn("addToDataset", self._url())
+
+    def test_add_to_dataset_false_opts_out(self):
+        self.assertIn("addToDataset=false", self._url(add_to_dataset=False))
+
+    def test_add_to_dataset_true_is_explicit(self):
+        self.assertIn("addToDataset=true", self._url(add_to_dataset=True))
+
+    def test_add_to_dataset_composes_with_the_other_parameters(self):
+        url = self._url(
+            job_name="my-job",
+            is_prediction=True,
+            overwrite=True,
+            add_to_dataset=False,
+        )
+
+        self.assertIn("jobName=my-job", url)
+        self.assertIn("prediction=true", url)
+        self.assertIn("overwrite=true", url)
+        self.assertIn("addToDataset=false", url)

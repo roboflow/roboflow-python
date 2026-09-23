@@ -780,6 +780,7 @@ def save_annotation(
     is_prediction: bool = False,
     annotation_labelmap=None,
     overwrite: bool = False,
+    add_to_dataset: Optional[bool] = None,
 ):
     """
     Upload an annotation to a specific project.
@@ -787,10 +788,22 @@ def save_annotation(
     Args:
         annotation_path (str): path to annotation you'd like to upload
         image_id (str): image id you'd like to upload that has annotations for it.
+        add_to_dataset (bool | None): whether the annotated image joins the project's Dataset,
+            and so the next dataset version. `None` (the default) leaves the choice to the API,
+            which adds the image. Pass `False` to store the annotation without changing Dataset
+            membership — for example while the image is still waiting to be labeled or reviewed
+            in a batch. Prediction uploads never add the image to the Dataset.
     """
 
     upload_url = _save_annotation_url(
-        api_key, project_url, annotation_name, image_id, job_name, is_prediction, overwrite
+        api_key,
+        project_url,
+        annotation_name,
+        image_id,
+        job_name,
+        is_prediction,
+        overwrite,
+        add_to_dataset,
     )
 
     try:
@@ -829,7 +842,9 @@ def save_annotation(
     return responsejson
 
 
-def _save_annotation_url(api_key, project_url, name, image_id, job_name, is_prediction, overwrite=False):
+def _save_annotation_url(
+    api_key, project_url, name, image_id, job_name, is_prediction, overwrite=False, add_to_dataset=None
+):
     url = f"{API_URL}/dataset/{project_url}/annotate/{image_id}?api_key={api_key}&name={name}"
     if job_name:
         url += f"&jobName={job_name}"
@@ -837,6 +852,9 @@ def _save_annotation_url(api_key, project_url, name, image_id, job_name, is_pred
         url += "&prediction=true"
     if overwrite:
         url += "&overwrite=true"
+    # Omitted means "whatever the API does by default", which today is to add the image.
+    if add_to_dataset is not None:
+        url += f"&addToDataset={'true' if add_to_dataset else 'false'}"
     return url
 
 
