@@ -8,7 +8,7 @@ import sys
 import tempfile
 import time
 import zipfile
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Union
 
 import requests
 from requests.exceptions import HTTPError
@@ -1571,6 +1571,32 @@ class Workspace:
     # -----------------------------------------------------------------
     # Model evaluations
     # -----------------------------------------------------------------
+
+    def compare_model_evaluations(
+        self,
+        project: str,
+        version: Union[str, int],
+        *,
+        frontier_metric: Optional[str] = None,
+    ) -> dict:
+        """Compare model accuracy and median latency for a dataset version.
+
+        Args:
+            project: Project URL slug.
+            version: Dataset version number.
+            frontier_metric: Metric for frontier membership. The server uses
+                the project default when this value is not specified.
+
+        Returns:
+            The public model comparison response.
+        """
+        return rfapi.compare_model_evals(
+            self.__api_key,
+            self.url,
+            project=project,
+            version=version,
+            frontier_metric=frontier_metric,
+        )
 
     def evals(
         self,

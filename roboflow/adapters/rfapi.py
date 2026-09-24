@@ -2110,6 +2110,10 @@ class ModelEvalNotDoneError(RoboflowError):
     """Raised when reading panel data for an eval whose status is not ``done`` (HTTP 409)."""
 
 
+class ModelEvalAccessError(RoboflowError):
+    """Raised when an evaluation read is not authorized (HTTP 401 or 403)."""
+
+
 class InvalidSplitError(RoboflowError):
     """Raised when ``split`` is not one of the accepted values (HTTP 400)."""
 
@@ -2149,6 +2153,8 @@ def _model_eval_error_for(response):
         "invalid_confidence": InvalidConfidenceError,
     }
     cls = cls_by_code.get(code or "")
+    if response.status_code in (401, 403):
+        return ModelEvalAccessError(message)
     if cls is not None:
         return cls(message)
     if response.status_code == 404:
@@ -2170,6 +2176,23 @@ def _eval_get(api_key, workspace_url, path, params=None):
     if response.status_code != 200:
         raise _model_eval_error_for(response)
     return response.json()
+
+
+def compare_model_evals(
+    api_key: str,
+    workspace_url: str,
+    *,
+    project: str,
+    version: Union[str, int],
+    frontier_metric: Optional[str] = None,
+) -> dict:
+    """GET /{workspace}/model-evals/compare — compare models on a dataset version."""
+    return _eval_get(
+        api_key,
+        workspace_url,
+        "/compare",
+        params={"project": project, "version": version, "frontierMetric": frontier_metric},
+    )
 
 
 def list_model_evals(

@@ -1,0 +1,63 @@
+{
+    "project": "chess",
+    "version": "131",
+    "frontierMetric": "mAP",
+    "availableMetrics": [
+        "mAP",
+        "mAP5095",
+        "mAP75",
+        "precision",
+        "recall",
+        "f1"
+    ],
+    "models": [
+        {
+            "modelId": "acme/chess-fast",
+            "evaluationId": "eval-fast",
+            "metrics": {
+                "mAP": 0.8,
+                "mIoU": null,
+                "f1": 0.8,
+                "precision": 0.8,
+                "recall": 0.8,
+                "mAP5095": 0.8,
+                "mAP75": 0.8
+            },
+            "medianLatencyMs": 3,
+            "onFrontier": true,
+            "exclusionReason": null
+        },
+        {
+            "modelId": "acme/chess-dominated",
+            "evaluationId": "eval-dominated",
+            "metrics": {
+                "mAP": 0.7,
+                "mIoU": null,
+                "f1": 0.7,
+                "precision": 0.7,
+                "recall": 0.7,
+                "mAP5095": 0.7,
+                "mAP75": 0.7
+            },
+            "medianLatencyMs": 5,
+            "onFrontier": false,
+            "exclusionReason": null
+        },
+        {
+            "modelId": "acme/chess-missing-latency",
+            "evaluationId": "eval-missing-latency",
+            "metrics": {
+                "mAP": 0.9,
+                "mIoU": null,
+                "f1": 0.9,
+                "precision": 0.9,
+                "recall": 0.9,
+                "mAP5095": 0.9,
+                "mAP75": 0.9
+            },
+            "medianLatencyMs": null,
+            "onFrontier": false,
+            "exclusionReason": "latency_unavailable"
+        }
+    ]
+}

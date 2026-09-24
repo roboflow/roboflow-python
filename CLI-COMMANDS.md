@@ -125,6 +125,7 @@ roboflow --json train results my-project/3 | jq -r .modelGroup
 roboflow model list -p my-project --group rfdetrNasGroup-3
 
 # Star a NAS-trained model (triggers TRT compile for its recommended hardware):
+#   Also starts model evaluation when the workspace has Model Evaluation access.
 #   --json train results … gives you the modelId per row.
 roboflow model star <modelId>
 roboflow model star <modelId> --unstar
@@ -385,10 +386,24 @@ roboflow eval recommendations <eval-id> --json
 ```
 
 Exit codes are stable per error class so scripts and agents can react
-without parsing message strings: `3` for `model_eval_not_found` (404),
+without parsing message strings: `2` for authentication or access errors (401/403),
+`3` for `model_eval_not_found` (404),
 `4` for `model_eval_not_done` (409 — eval still running), `5` for
 `invalid_split` / `invalid_confidence` (400). Requires the
 `model-eval:read` scope on the api key.
+
+### Compare Models
+
+```bash
+# Compare accuracy and latency for one version.
+roboflow --workspace my-workspace eval compare --project my-project --version 3
+
+# Choose the Pareto frontier metric; return all metrics and exclusion reasons.
+roboflow eval compare --project my-project --version 3 --frontier-metric mAP5095 --json
+```
+
+Reads existing evaluations; does not start new ones. Requires `model-eval:read`
+and workspace Model Evaluation access.
 
 ### Workspace stats and billing
 

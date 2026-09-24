@@ -246,6 +246,28 @@ class TestModelEvalErrors(unittest.TestCase):
 
 
 class TestWorkspaceEvalAccessors(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.compare_model_evals")
+    def test_compare_model_evaluations_returns_public_comparison(self, mock_compare):
+        comparison = {
+            "project": "chess",
+            "version": "131",
+            "frontierMetric": "mAP5095",
+            "availableMetrics": ["mAP", "mAP5095"],
+            "models": [],
+        }
+        mock_compare.return_value = comparison
+
+        result = _make_workspace().compare_model_evaluations("chess", 131, frontier_metric="mAP5095")
+
+        self.assertEqual(result, comparison)
+        mock_compare.assert_called_once_with(
+            "k",
+            "lee-sandbox",
+            project="chess",
+            version=131,
+            frontier_metric="mAP5095",
+        )
+
     @patch("roboflow.adapters.rfapi.list_model_evals")
     def test_evals_returns_modeleval_instances(self, mock_list):
         from roboflow.core.model_eval import ModelEval

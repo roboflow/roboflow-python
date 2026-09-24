@@ -24,6 +24,24 @@ eval_app = typer.Typer(cls=SortedGroup, help="Inspect model evaluation runs", no
 # ---------------------------------------------------------------------------
 
 
+@eval_app.command("compare")
+def compare_evals_cmd(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project slug")],
+    version: Annotated[int, typer.Option("-v", "--version", min=1, help="Dataset version number")],
+    frontier_metric: Annotated[
+        Optional[str],
+        typer.Option(
+            "--frontier-metric",
+            help="Frontier metric: mAP, mAP5095, mAP75, mIoU, precision, recall, f1 (default: project default)",
+        ),
+    ] = None,
+) -> None:
+    """Compare test-set accuracy and median latency without starting evaluations."""
+    args = ctx_to_args(ctx, project=project, version=version, frontier_metric=frontier_metric)
+    _compare_evals(args)
+
+
 @eval_app.command("list")
 def list_evals_cmd(
     ctx: typer.Context,
@@ -171,6 +189,8 @@ def _eval_error_exit_code(exc: Exception) -> int:
     """
     from roboflow.adapters import rfapi
 
+    if isinstance(exc, rfapi.ModelEvalAccessError):
+        return 2
     if isinstance(exc, rfapi.ModelEvalNotFoundError):
         return 3
     if isinstance(exc, rfapi.ModelEvalNotDoneError):
@@ -184,6 +204,8 @@ def _hint_for(exc: Exception) -> Optional[str]:
     """Per-error actionable hint shown alongside the message in non-JSON mode."""
     from roboflow.adapters import rfapi
 
+    if isinstance(exc, rfapi.ModelEvalAccessError):
+        return "Check your API key, its model-eval:read scope, and workspace Model Evaluation access."
     if isinstance(exc, rfapi.ModelEvalNotFoundError):
         return "Run 'roboflow eval list' to see eval ids in this workspace."
     if isinstance(exc, rfapi.ModelEvalNotDoneError):
@@ -193,6 +215,60 @@ def _hint_for(exc: Exception) -> Optional[str]:
     if isinstance(exc, rfapi.InvalidConfidenceError):
         return "Pass an integer between 0 and 100."
     return None
+
+
+def _compare_evals(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+    from roboflow.cli._table import format_table
+
+    resolved = _resolve(args)
+    if not resolved:
+        return
+    workspace_url, api_key = resolved
+    try:
+        comparison = rfapi.compare_model_evals(
+            api_key,
+            workspace_url,
+            project=args.project,
+            version=args.version,
+            frontier_metric=args.frontier_metric,
+        )
+    except Exception as exc:
+        output_error(
+            args,
+            str(exc),
+            hint=(
+                _hint_for(exc)
+                if isinstance(exc, rfapi.ModelEvalAccessError)
+                else "Check the project, version, frontier metric, and workspace access."
+            ),
+            exit_code=_eval_error_exit_code(exc),
+        )
+        return
+    if args.json:
+        output(args, comparison)
+        return
+    frontier_metric = comparison.get("frontierMetric")
+    rows = []
+    for model in comparison.get("models", []):
+        accuracy = model.get("metrics", {}).get(frontier_metric) if frontier_metric else None
+        latency = model.get("medianLatencyMs")
+        rows.append(
+            {
+                "model": model["modelId"],
+                "accuracy": f"{accuracy * 100:.1f}%" if accuracy is not None else "",
+                "latency": f"{latency:.2f}" if latency is not None else "",
+                "frontier": "Yes" if model.get("onFrontier") else "",
+                "exclusion": model.get("exclusionReason") or "",
+            }
+        )
+    table = format_table(
+        rows,
+        columns=["model", "accuracy", "latency", "frontier", "exclusion"],
+        headers=["MODEL", frontier_metric or "ACCURACY", "MEDIAN LATENCY (ms)", "FRONTIER", "EXCLUSION"],
+    )
+    output(args, comparison, text=table)
 
 
 def _list_evals(args):  # noqa: ANN001

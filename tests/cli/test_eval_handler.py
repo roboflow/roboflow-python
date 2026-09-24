@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 import unittest
 from argparse import Namespace
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
@@ -397,6 +398,7 @@ class TestExitCodeMapping(unittest.TestCase):
         from roboflow.cli.handlers.eval import _eval_error_exit_code
 
         cases = {
+            rfapi.ModelEvalAccessError("x"): 2,
             rfapi.ModelEvalNotFoundError("x"): 3,
             rfapi.ModelEvalNotDoneError("x"): 4,
             rfapi.InvalidSplitError("x"): 5,
@@ -407,6 +409,166 @@ class TestExitCodeMapping(unittest.TestCase):
         for exc, expected in cases.items():
             with self.subTest(exc=type(exc).__name__):
                 self.assertEqual(_eval_error_exit_code(exc), expected)
+
+
+class TestEvalCompareCommand(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_not_found_is_a_structured_error(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=404, text="Project not found")
+        mock_get.return_value.json.return_value = {"error": "Project not found"}
+        result = runner.invoke(
+            app,
+            ["--api-key", "k", "--workspace", "ws", "--json", "eval", "compare", "-p", "chess", "-v", "131"],
+        )
+
+        self.assertEqual(result.exit_code, 3)
+        self.assertEqual(json.loads(result.stderr)["error"]["message"], "Project not found")
+        self.assertEqual(
+            json.loads(result.stderr)["error"]["hint"],
+            "Check the project, version, frontier metric, and workspace access.",
+        )
+        self.assertEqual(result.stdout, "")
+
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_null_frontier_metric_shows_exclusion_without_accuracy(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=200)
+        mock_get.return_value.json.return_value = {
+            "frontierMetric": None,
+            "models": [
+                {
+                    "modelId": "ws/chess-model",
+                    "metrics": {"mAP": 0.9},
+                    "medianLatencyMs": 10,
+                    "onFrontier": False,
+                    "exclusionReason": "unsupported_project_type",
+                }
+            ],
+        }
+        result = runner.invoke(
+            app,
+            ["--api-key", "k", "--workspace", "ws", "eval", "compare", "-p", "chess", "-v", "131"],
+        )
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        for text in ["ACCURACY", "ws/chess-model", "10.00", "unsupported_project_type"]:
+            self.assertIn(text, result.stdout)
+        self.assertNotIn("90.0%", result.stdout)
+
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_list_access_error_includes_auth_and_entitlement_hint(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=403, text="Access denied")
+        mock_get.return_value.json.return_value = {"error": "Access denied"}
+        result = runner.invoke(app, ["--api-key", "k", "--workspace", "ws", "--json", "eval", "list"])
+
+        self.assertEqual(result.exit_code, 2)
+        hint = json.loads(result.stderr)["error"]["hint"]
+        for text in ["API key", "model-eval:read", "Model Evaluation access"]:
+            self.assertIn(text, hint)
+
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_json_preserves_the_full_comparison(self, mock_get):
+        comparison = json.loads((Path(__file__).parents[1] / "fixtures/model_eval_comparison.json").read_text())
+        mock_get.return_value = MagicMock(status_code=200)
+        mock_get.return_value.json.return_value = comparison
+
+        result = runner.invoke(
+            app,
+            [
+                "--api-key",
+                "k",
+                "--workspace",
+                "ws",
+                "--json",
+                "eval",
+                "compare",
+                "--project",
+                "chess",
+                "--version",
+                "131",
+                "--frontier-metric",
+                "mAP5095",
+            ],
+        )
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(json.loads(result.stdout), comparison)
+        self.assertEqual(mock_get.call_count, 1)
+        self.assertEqual(mock_get.call_args.kwargs["params"]["frontierMetric"], "mAP5095")
+
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_text_shows_server_frontier_and_exclusion_with_zero_values(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=200)
+        mock_get.return_value.json.return_value = {
+            "project": "chess",
+            "version": "131",
+            "frontierMetric": "mAP",
+            "availableMetrics": ["mAP"],
+            "models": [
+                {
+                    "modelId": "ws/chess-fast",
+                    "evaluationId": "eval-fast",
+                    "metrics": {"mAP": 0},
+                    "medianLatencyMs": 0,
+                    "onFrontier": True,
+                    "exclusionReason": None,
+                },
+                {
+                    "modelId": "ws/chess-old",
+                    "evaluationId": "eval-old",
+                    "metrics": {"mAP": 0.9},
+                    "medianLatencyMs": None,
+                    "onFrontier": False,
+                    "exclusionReason": "latency_unavailable",
+                },
+            ],
+        }
+        result = runner.invoke(
+            app,
+            ["--api-key", "k", "--workspace", "ws", "eval", "compare", "--project", "chess", "--version", "131"],
+        )
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        for text in [
+            "MODEL",
+            "mAP",
+            "MEDIAN LATENCY (ms)",
+            "FRONTIER",
+            "EXCLUSION",
+            "ws/chess-fast",
+            "0.0%",
+            "0.00",
+            "Yes",
+            "latency_unavailable",
+        ]:
+            self.assertIn(text, result.stdout)
+
+    @patch("roboflow.adapters.rfapi.requests.get")
+    def test_permission_failure_is_a_structured_auth_error(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=403, text="Comparison access denied")
+        mock_get.return_value.json.return_value = {"error": "forbidden", "message": "Comparison access denied"}
+        result = runner.invoke(
+            app,
+            [
+                "--api-key",
+                "k",
+                "--workspace",
+                "ws",
+                "--json",
+                "eval",
+                "compare",
+                "--project",
+                "chess",
+                "--version",
+                "131",
+            ],
+        )
+
+        self.assertEqual(result.exit_code, 2)
+        self.assertEqual(json.loads(result.stderr)["error"]["message"], "Comparison access denied")
+        hint = json.loads(result.stderr)["error"]["hint"]
+        for text in ["API key", "model-eval:read", "Model Evaluation access"]:
+            self.assertIn(text, hint)
+        self.assertEqual(result.stdout, "")
 
 
 if __name__ == "__main__":
