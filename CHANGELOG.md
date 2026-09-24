@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.5.2
+
+### Added
+
+- Action recognition support:
+  - `roboflow project create --type action-recognition` creates an action
+    recognition project. `roboflow.config.TYPE_ACTION_RECOGNITION` names the type.
+  - `Version.train(model_type="cosmos3-edge")` now exports `video-coco`, the
+    format the server trains Cosmos on. `cosmos3-edge-vlm` exports `jsonl`.
+    Both previously fell back to `yolov5pytorch`.
+
 ## 1.5.1
 
 ### Added
