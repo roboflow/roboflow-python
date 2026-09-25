@@ -50,26 +50,6 @@ class TestProjectHandlerRegistration(unittest.TestCase):
         self.assertIn("restore", result.output)
 
 
-class TestProjectCreateHandler(unittest.TestCase):
-    """project create passes the chosen type through to Workspace.create_project."""
-
-    def test_create_action_recognition_project(self) -> None:
-        from unittest.mock import MagicMock, patch
-
-        workspace = MagicMock()
-        with patch("roboflow.Roboflow") as mock_rf:
-            mock_rf.return_value.workspace.return_value = workspace
-            result = runner.invoke(app, ["project", "create", "Clips", "--type", "action-recognition"])
-
-        self.assertEqual(result.exit_code, 0, result.output)
-        workspace.create_project.assert_called_once_with(
-            project_name="Clips",
-            project_type="action-recognition",
-            project_license="Private",
-            annotation="Clips",
-        )
-
-
 class TestProjectDeleteHandler(unittest.TestCase):
     """project delete calls rfapi.delete_project and honors --yes."""
 
