@@ -553,7 +553,18 @@ class Project:
         is_prediction: bool = False,
         annotation_overwrite=False,
         num_retry_uploads=0,
+        add_to_dataset: Optional[bool] = None,
     ):
+        """
+        Upload an annotation for an image that is already in the project.
+
+        Args:
+            add_to_dataset (bool | None): whether the annotated image joins the project's
+                Dataset, and so the next dataset version. `None` (the default) leaves the
+                choice to the API, which adds the image. Pass `False` to store the annotation
+                without changing Dataset membership — for example while the image is still
+                waiting to be labeled or reviewed in a batch.
+        """
         project_url = self.id.rsplit("/")[1]
         annotation_name, annotation_str = self._annotation_params(annotation_path)
         t0 = time.time()
@@ -571,6 +582,7 @@ class Project:
                 is_prediction=is_prediction,
                 annotation_labelmap=annotation_labelmap,
                 overwrite=annotation_overwrite,
+                add_to_dataset=add_to_dataset,
             )
             upload_retry_attempts = retry.retries
         except AnnotationSaveError as e:
@@ -597,6 +609,7 @@ class Project:
         sequence_number=None,
         sequence_size=None,
         metadata: Optional[Dict] = None,
+        add_to_dataset: Optional[bool] = None,
         **kwargs,
     ):
         if tag_names is None:
@@ -637,6 +650,7 @@ class Project:
                 is_prediction,
                 annotation_overwrite,
                 num_retry_uploads=num_retry_uploads,
+                add_to_dataset=add_to_dataset,
             )
 
         return {
