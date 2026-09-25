@@ -126,6 +126,9 @@ def get_model_format(model_type: str) -> str:
         "rfdetr": "coco",
         "rf-detr": "coco",
         "deep": "png-mask-semantic",
+        # Substring match: the image VLM sibling must win before the video model's prefix.
+        "cosmos3-edge-vlm": "jsonl",
+        "cosmos3-edge": "video-coco",
     }
 
     for prefix, format in model_formats.items():

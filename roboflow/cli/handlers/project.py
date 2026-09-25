@@ -19,6 +19,7 @@ class ProjectType(str, Enum):
     instance_segmentation = "instance-segmentation"
     semantic_segmentation = "semantic-segmentation"
     keypoint_detection = "keypoint-detection"
+    action_recognition = "action-recognition"
 
 
 project_app = typer.Typer(cls=SortedGroup, help="Manage projects", no_args_is_help=True)
