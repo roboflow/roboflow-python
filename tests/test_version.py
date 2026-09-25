@@ -1,10 +1,12 @@
 import os
+import tempfile
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import requests
 import responses
+import yaml
 
 from roboflow.adapters import rfapi
 from roboflow.config import (
@@ -470,3 +472,47 @@ class TestCreateTrainingWithRecipe(V2TrainingRecipeTestCase):
         self.version.exports = ["coco"]
         _, _, _, mock_export = self._create(model_type="rfdetr-medium")
         mock_export.assert_not_called()
+
+
+class TestReformatYaml(unittest.TestCase):
+    """`__reformat_yaml` rewrites split paths in the downloaded data.yaml."""
+
+    def setUp(self):
+        super().setUp()
+        self.version = get_version(
+            project_name="Test Dataset",
+            id="test-workspace/test-project/2",
+            version_number="3",
+        )
+        self.reformat_yaml = self.version._Version__reformat_yaml
+
+    def _write_and_reformat(self, content, format):
+        with tempfile.TemporaryDirectory() as location:
+            with open(os.path.join(location, "data.yaml"), "w") as handle:
+                yaml.dump(content, handle)
+            self.reformat_yaml(location, format)
+            with open(os.path.join(location, "data.yaml")) as handle:
+                return yaml.safe_load(handle), location
+
+    def test_yolov7_rewrites_test_alongside_train_and_val(self):
+        content, location = self._write_and_reformat(
+            {"train": "../train/images", "val": "../valid/images", "test": "../test/images", "nc": 1},
+            "yolov7pytorch",
+        )
+        self.assertEqual(content["train"], location + "/train/images")
+        self.assertEqual(content["val"], location + "/valid/images")
+        self.assertEqual(content["test"], location + "/test/images")
+
+    def test_yolov5_rewrites_test_alongside_train_and_val(self):
+        content, location = self._write_and_reformat(
+            {"train": "../train/images", "val": "../valid/images", "test": "../test/images", "nc": 1},
+            "yolov5pytorch",
+        )
+        self.assertEqual(content["test"], location + "/test/images")
+
+    def test_missing_test_split_is_left_alone(self):
+        content, _ = self._write_and_reformat(
+            {"train": "../train/images", "val": "../valid/images", "nc": 1},
+            "yolov7pytorch",
+        )
+        self.assertNotIn("test", content)
