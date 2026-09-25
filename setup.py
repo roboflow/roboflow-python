@@ -35,6 +35,9 @@ setuptools.setup(
         "heic": ["pillow-heif>=1.7.0"],
         "dev": [
             "mypy",
+            # Keep NumPy's PEP 695 stubs out of the Python 3.10 mypy target
+            # without constraining SDK users at runtime.
+            "numpy<2.4",
             "responses",
             "ruff",
             "types-pyyaml",
