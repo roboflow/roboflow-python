@@ -66,7 +66,19 @@ def check_key(api_key, model, notebook, num_retries=0):
         return "onboarding"
 
 
-def login(workspace=None, force=False):
+def login(workspace=None, force=False, region=None):
+    normalized_region = None
+    if region is not None:
+        if not isinstance(region, str) or region.lower() not in {"us", "eu"}:
+            raise ValueError(f"Invalid region '{region}'. Expected one of: us, eu.")
+        normalized_region = region.lower()
+
+    # Resolve at call time so a region passed by the CLI is honored even though
+    # the module-level URL constants were resolved when roboflow was imported.
+    from roboflow.config import resolve_url
+
+    app_url = resolve_url("APP_URL", region=normalized_region)
+
     os_name = os.name
 
     if os_name == "nt":
@@ -76,22 +88,31 @@ def login(workspace=None, force=False):
 
     # default configuration location
     conf_location = os.getenv("ROBOFLOW_CONFIG_DIR", default=default_path)
+    existing_config = {}
     if os.path.isfile(conf_location) and not force:
         write_line("You are already logged into Roboflow. To make a different login,run roboflow.login(force=True).")
         return None
         # we could eventually return the workspace object here
         # return Roboflow().workspace()
     elif os.path.isfile(conf_location) and force:
+        try:
+            with open(conf_location) as f:
+                existing_config = json.load(f)
+        except json.JSONDecodeError:
+            # A forced login has historically replaced an unreadable config.
+            existing_config = {}
+        if not isinstance(existing_config, dict):
+            existing_config = {}
         os.remove(conf_location)
 
     if workspace is None:
-        write_line("visit " + APP_URL + "/auth-cli to get your authentication token.")
+        write_line("visit " + app_url + "/auth-cli to get your authentication token.")
     else:
-        write_line("visit " + APP_URL + "/auth-cli/?workspace=" + workspace + " to get your authentication token.")
+        write_line("visit " + app_url + "/auth-cli/?workspace=" + workspace + " to get your authentication token.")
 
     token = getpass("Paste the authentication token here: ")
 
-    r_login = requests.get(APP_URL + "/query/cliAuthToken/" + token)
+    r_login = requests.get(app_url + "/query/cliAuthToken/" + token)
 
     if r_login.status_code == 200:
         r_login = r_login.json()
@@ -102,16 +123,18 @@ def login(workspace=None, force=False):
         if not os.path.exists(os.path.dirname(conf_location)):
             os.makedirs(os.path.dirname(conf_location))
 
-        r_login = {"workspaces": r_login}
+        existing_config["workspaces"] = r_login
         # set first workspace as default workspace
 
-        default_workspace_id = list(r_login["workspaces"].keys())[0]
-        workspace = r_login["workspaces"][default_workspace_id]
-        r_login["RF_WORKSPACE"] = workspace["url"]
+        default_workspace_id = list(existing_config["workspaces"].keys())[0]
+        workspace = existing_config["workspaces"][default_workspace_id]
+        existing_config["RF_WORKSPACE"] = workspace["url"]
+        if normalized_region is not None:
+            existing_config["ROBOFLOW_REGION"] = normalized_region
 
         # write config file
         with open(conf_location, "w") as f:
-            json.dump(r_login, f, indent=2)
+            json.dump(existing_config, f, indent=2)
 
     else:
         r_login.raise_for_status()
