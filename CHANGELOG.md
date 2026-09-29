@@ -13,14 +13,15 @@ All notable changes to this project will be documented in this file.
   print(training.status, training.models[0].model_id)
   ```
 
-  `Version.train()` now routes Action Recognition projects and the Cosmos models
-  (`cosmos3-edge`, `cosmos3-edge-vlm`) through the recipe-aware v2 flow. It
-  exports the model's format (`video-coco` or `jsonl`), fetches the recipe
+  Action Recognition training requires a training recipe, which the legacy
+  `/train` path cannot send. `Version.train()` now routes Action Recognition
+  projects and the Cosmos models (`cosmos3-edge`, `cosmos3-edge-vlm`) through
+  the v2 training API. It exports the model's format (`video-coco` or `jsonl`), fetches the recipe
   template with `describe_train_recipe()`, starts the run with
   `create_training()`, and blocks until the run ends. It returns the finished
   `Training`; its `models` carry the trained model ids and weights. Pass
   `train_recipe=` to send an edited recipe. An Action Recognition project
-  defaults to `cosmos3-edge`, as on the platform. A failed or cancelled run
+  defaults to `cosmos3-edge`. A failed or cancelled run
   raises `RuntimeError`.
 - `cosmos3-edge` now exports `video-coco`, and `cosmos3-edge-vlm` exports
   `jsonl`. Both previously fell back to `yolov5pytorch`.
