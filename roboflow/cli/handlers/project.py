@@ -245,11 +245,6 @@ def _create_project(args):  # noqa: ANN001
                     hint = str(body["message"])
             except Exception:
                 pass
-        # A 422 on create means the platform rejected the project type itself,
-        # which usually means the type is newer than the platform release.
-        if getattr(getattr(exc, "response", None), "status_code", None) == 422:
-            type_hint = f"Your Roboflow platform may not support {args.type} projects yet."
-            hint = f"{hint} {type_hint}" if hint else type_hint
         output_error(args, msg, hint=hint)
         return
 

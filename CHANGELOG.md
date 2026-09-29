@@ -2,17 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## 1.5.2
-
-### Added
-
-- CLI: accept `action-recognition` as a project type, so
-  `roboflow project create --type action-recognition` creates an action
-  recognition project
-  ([#532](https://github.com/roboflow/roboflow-python/pull/532)). It needs a
-  Roboflow platform release that accepts the `action-recognition` project type;
-  older releases reject it with HTTP 422 and the CLI says so.
-
 ## 1.5.1
 
 ### Added

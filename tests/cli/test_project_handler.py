@@ -53,7 +53,7 @@ class TestProjectHandlerRegistration(unittest.TestCase):
 
 
 class TestProjectCreateHandler(unittest.TestCase):
-    """project create sends the chosen type, and explains a platform rejection."""
+    """project create sends the chosen type and reports server errors."""
 
     @responses.activate
     def test_create_sends_action_recognition_type(self) -> None:
@@ -99,7 +99,7 @@ class TestProjectCreateHandler(unittest.TestCase):
         )
 
     @responses.activate
-    def test_create_hints_when_the_platform_rejects_the_type(self) -> None:
+    def test_create_preserves_server_error_message(self) -> None:
         from unittest.mock import patch
 
         from roboflow.config import API_URL
@@ -124,8 +124,7 @@ class TestProjectCreateHandler(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 1)
         hint = json.loads(result.stderr)["error"]["hint"]
-        self.assertIn("Invalid project type.", hint)
-        self.assertIn("may not support action-recognition projects yet", hint)
+        self.assertEqual(hint, "Invalid project type.")
 
 
 class TestProjectDeleteHandler(unittest.TestCase):
