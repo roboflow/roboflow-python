@@ -46,6 +46,9 @@ if TYPE_CHECKING:
 
 load_dotenv()
 
+# Cosmos models train only from a recipe, which the legacy Version.train() cannot send.
+RECIPE_ONLY_MODEL_TYPES = ("cosmos3-edge", "cosmos3-edge-vlm")
+
 
 class Version:
     """
@@ -480,9 +483,19 @@ class Version:
             An instance of the trained model class
 
         Raises:
+            ValueError: If ``model_type`` is a Cosmos model (``cosmos3-edge``, ``cosmos3-edge-vlm``).
+                Train those with :meth:`create_training` and a recipe from :meth:`describe_train_recipe`.
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
             HTTPError: If the Network/Roboflow API fails and does not return JSON
         """  # noqa: E501 // docs
+
+        # Checked before any export or paid run: this path cannot send their recipe or return their model.
+        if model_type in RECIPE_ONLY_MODEL_TYPES:
+            raise ValueError(
+                f"Version.train() does not support model_type={model_type!r}. It needs a training recipe. Use "
+                f'recipe = version.describe_train_recipe("{model_type}")["template"], then '
+                f'version.create_training(model_type="{model_type}", train_recipe=recipe).'
+            )
 
         self.__wait_if_generating()
 

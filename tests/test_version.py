@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 from types import SimpleNamespace
@@ -8,6 +9,8 @@ import responses
 
 from roboflow.adapters import rfapi
 from roboflow.config import (
+    API_URL,
+    TYPE_ACTION_RECOGNITION,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_KEYPOINT_DETECTION,
@@ -470,3 +473,60 @@ class TestCreateTrainingWithRecipe(V2TrainingRecipeTestCase):
         self.version.exports = ["coco"]
         _, _, _, mock_export = self._create(model_type="rfdetr-medium")
         mock_export.assert_not_called()
+
+
+class TestCosmosTraining(unittest.TestCase):
+    """Cosmos trains through the recipe-aware v2 path; the legacy blocking train() refuses it."""
+
+    TRAININGS_URL = f"{API_URL}/test-workspace/test-project/4/v2/trainings"
+    RECIPE = {"schema_version": 1, "input": {"video_sampling": {"fps": 2}}, "hyperparameters": {}}
+
+    def setUp(self):
+        super().setUp()
+        self.version = get_version(
+            project_name="Test Dataset",
+            id="test-workspace/test-project/2",
+            version_number="4",
+            type=TYPE_ACTION_RECOGNITION,
+        )
+
+    @responses.activate
+    def test_train_rejects_cosmos_before_any_http_call(self):
+        for model_type in ("cosmos3-edge", "cosmos3-edge-vlm"):
+            with self.subTest(model_type=model_type), patch.object(Version, "export") as mock_export:
+                with self.assertRaises(ValueError) as ctx:
+                    self.version.train(model_type=model_type)
+
+                self.assertIn("create_training", str(ctx.exception))
+                self.assertIn("describe_train_recipe", str(ctx.exception))
+                mock_export.assert_not_called()
+        self.assertEqual(len(responses.calls), 0)
+
+    @responses.activate
+    def test_recipe_from_describe_is_forwarded_to_create_training(self):
+        self.version.exports = ["video-coco"]
+        responses.add(
+            responses.GET,
+            f"{self.TRAININGS_URL}/recipe",
+            json={"modelType": "cosmos3-edge", "schema": {}, "template": self.RECIPE},
+        )
+        responses.add(
+            responses.GET,
+            f"{API_URL}/Test Workspace Name/Test Dataset/4",
+            json={"version": {"generating": False, "progress": 1.0, "images": 10}},
+        )
+        responses.add(
+            responses.POST,
+            self.TRAININGS_URL,
+            json={"trainingId": "t-cosmos", "status": "queued", "jobId": "job-1"},
+        )
+
+        recipe = self.version.describe_train_recipe("cosmos3-edge")["template"]
+        training = self.version.create_training(model_type="cosmos3-edge", train_recipe=recipe)
+
+        self.assertEqual(training.training_id, "t-cosmos")
+        self.assertEqual(training.status, "queued")
+        create_call = next(c for c in responses.calls if c.request.method == "POST")
+        body = json.loads(create_call.request.body)
+        self.assertEqual(body["modelType"], "cosmos3-edge")
+        self.assertEqual(body["trainRecipe"], self.RECIPE)
