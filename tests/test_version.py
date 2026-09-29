@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 from types import SimpleNamespace
@@ -8,12 +9,15 @@ import responses
 
 from roboflow.adapters import rfapi
 from roboflow.config import (
+    API_URL,
+    TYPE_ACTION_RECOGNITION,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_KEYPOINT_DETECTION,
     TYPE_OBJECT_DETECTION,
     TYPE_SEMANTIC_SEGMENTATION,
 )
+from roboflow.core.training import Training
 from roboflow.core.version import Version, unwrap_version_id
 from roboflow.models.object_detection import ObjectDetectionModel
 from tests.helpers import get_version
@@ -470,3 +474,66 @@ class TestCreateTrainingWithRecipe(V2TrainingRecipeTestCase):
         self.version.exports = ["coco"]
         _, _, _, mock_export = self._create(model_type="rfdetr-medium")
         mock_export.assert_not_called()
+
+
+class TestCreateActionRecognitionTraining(unittest.TestCase):
+    """Action Recognition training through the public v2 HTTP flow."""
+
+    BASE = f"{API_URL}/test-workspace/test-project/4"
+    TRAININGS = f"{BASE}/v2/trainings"
+    GENERATING = f"{API_URL}/Test Workspace Name/Test Dataset/4"
+
+    def _version(self):
+        return get_version(
+            project_name="Test Dataset",
+            id="test-workspace/test-project/2",
+            version_number="4",
+            type=TYPE_ACTION_RECOGNITION,
+        )
+
+    def _mock_platform(self):
+        responses.add(responses.GET, self.GENERATING, json={"version": {"generating": False, "images": 10}})
+        responses.add(responses.GET, f"{self.BASE}/video-coco", json={"export": {"link": "https://x"}})
+        responses.add(responses.POST, self.TRAININGS, json={"trainingId": "t-1", "status": "queued", "jobId": "j"})
+
+    def _calls(self, method, url_prefix):
+        return [c for c in responses.calls if c.request.method == method and c.request.url.startswith(url_prefix)]
+
+    @responses.activate
+    def test_explicit_model_without_recipe_exports_and_returns_queued_training(self):
+        self._mock_platform()
+
+        training = self._version().create_training(model_type="cosmos3-edge", epochs=5)
+
+        self.assertEqual(len(self._calls("GET", f"{self.BASE}/video-coco")), 1)
+        self.assertEqual(self._calls("GET", f"{self.TRAININGS}/recipe"), [])
+        (create,) = self._calls("POST", self.TRAININGS)
+        body = json.loads(create.request.body)
+        self.assertEqual(body["modelType"], "cosmos3-edge")
+        self.assertEqual(body["epochs"], 5)
+        self.assertNotIn("trainRecipe", body)
+        self.assertEqual(self._calls("GET", f"{self.TRAININGS}/get"), [])
+        self.assertEqual(self._calls("POST", f"{self.BASE}/train"), [])
+        self.assertIsInstance(training, Training)
+        self.assertEqual((training.training_id, training.status), ("t-1", "queued"))
+
+    @responses.activate
+    def test_model_type_is_required_before_any_request(self):
+        with self.assertRaisesRegex(ValueError, "model_type is required"):
+            self._version().create_training(epochs=5)
+
+        self.assertEqual(len(responses.calls), 0)
+
+    @responses.activate
+    def test_explicit_recipe_is_forwarded_without_template_fetch(self):
+        self._mock_platform()
+        recipe = {"schema_version": 1, "input": {"video_sampling": {"fps": 4}}, "hyperparameters": {"lr": 1e-5}}
+
+        training = self._version().create_training(model_type="cosmos3-edge", train_recipe=recipe)
+
+        self.assertEqual(self._calls("GET", f"{self.TRAININGS}/recipe"), [])
+        (create,) = self._calls("POST", self.TRAININGS)
+        body = json.loads(create.request.body)
+        self.assertEqual(body["modelType"], "cosmos3-edge")
+        self.assertEqual(body["trainRecipe"], recipe)
+        self.assertEqual(training.status, "queued")

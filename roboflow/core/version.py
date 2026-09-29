@@ -18,6 +18,7 @@ from roboflow.config import (
     APP_URL,
     DEMO_KEYS,
     TQDM_DISABLE,
+    TYPE_ACTION_RECOGNITION,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_KEYPOINT_DETECTION,
@@ -42,6 +43,7 @@ from roboflow.util.versions import get_model_format, get_wrong_dependencies_vers
 if TYPE_CHECKING:
     import numpy as np
 
+    from roboflow.core.training import Training
     from roboflow.models.inference import InferenceModel
 
 load_dotenv()
@@ -229,7 +231,7 @@ class Version:
             model_type=model_type,
         )
 
-    def create_training(self, speed=None, model_type=None, checkpoint=None, epochs=None, train_recipe=None):
+    def create_training(self, speed=None, model_type=None, checkpoint=None, epochs=None, train_recipe=None) -> Training:
         """Create a v2 training run and return a Training object.
 
         Unlike :meth:`train`, this does not block until completion or return a
@@ -240,11 +242,12 @@ class Version:
         To customize hyperparameters or online augmentation, fetch the recipe
         template via :meth:`describe_train_recipe`, edit it, and pass it as
         ``train_recipe``; the server dense-fills any defaults the recipe
-        omits.
+        omits. A recipe is optional for Action Recognition projects too.
 
         Args:
             speed: Training speed preset (e.g. ``"fast"``).
             model_type: The model type to train (e.g. ``"rfdetr-medium"``).
+                Required for Action Recognition projects.
             checkpoint: Checkpoint to start training from.
             epochs: Number of epochs to train. When a ``train_recipe`` is
                 given, this is folded into the recipe's hyperparameters
@@ -254,15 +257,19 @@ class Version:
             train_recipe: A full recipe to submit — typically the
                 ``template`` from :meth:`describe_train_recipe` with edited
                 ``hyperparameters`` / ``online_augmentation``. Requires
-                ``model_type``: recipes are minted per model type, and
-                without one the platform would train the project's default
-                architecture instead.
+                ``model_type``: recipes are minted per model type.
 
         Raises:
-            ValueError: If ``train_recipe`` is given without ``model_type``.
+            ValueError: If an Action Recognition project has no ``model_type``,
+                or if ``train_recipe`` is given without ``model_type``.
             RoboflowError: If the Roboflow API returns an error.
 
         Example:
+            Start Action Recognition training without blocking::
+
+                training = version.create_training(model_type="cosmos3-edge", epochs=5)
+                print(training.training_id)
+
             Launch a small learning-rate sweep and poll for completion::
 
                 import copy
@@ -284,6 +291,9 @@ class Version:
                     time.sleep(60)
         """
         from roboflow.core.training import Training
+
+        if self.type == TYPE_ACTION_RECOGNITION and not model_type:
+            raise ValueError("model_type is required for Action Recognition training")
 
         if train_recipe is not None and not model_type:
             raise ValueError(

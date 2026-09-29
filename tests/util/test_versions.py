@@ -36,6 +36,7 @@ class TestGetModelFormat(unittest.TestCase):
             ("resnet14", "folder"),
             ("resenet38", "yolov5pytorch"),
             ("invlid-type", "yolov5pytorch"),
+            ("cosmos3-edge", "video-coco"),
         ]
 
         for model_type, expected_format in cases:
