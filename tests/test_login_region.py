@@ -23,6 +23,8 @@ class TestLoginRegion(unittest.TestCase):
             os.environ,
             {
                 "HOME": self.temporary_directory.name,
+                # config.py builds its default path from USERPROFILE on Windows.
+                "USERPROFILE": self.temporary_directory.name,
                 "ROBOFLOW_CONFIG_DIR": self.config_path,
             },
             clear=True,
