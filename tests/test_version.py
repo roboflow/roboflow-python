@@ -503,10 +503,10 @@ class TestCreateActionRecognitionTraining(unittest.TestCase):
         return [c for c in responses.calls if c.request.method == method and c.request.url.startswith(url_prefix)]
 
     @responses.activate
-    def test_default_model_fetches_recipe_exports_and_returns_queued_training(self):
+    def test_explicit_model_fetches_recipe_exports_and_returns_queued_training(self):
         self._mock_platform()
 
-        training = self._version().create_training(epochs=5)
+        training = self._version().create_training(model_type="cosmos3-edge", epochs=5)
 
         self.assertEqual(len(self._calls("GET", f"{self.BASE}/video-coco")), 1)
         (recipe_request,) = self._calls("GET", f"{self.TRAININGS}/recipe?")
@@ -522,11 +522,18 @@ class TestCreateActionRecognitionTraining(unittest.TestCase):
         self.assertEqual((training.training_id, training.status), ("t-1", "queued"))
 
     @responses.activate
+    def test_model_type_is_required_before_any_request(self):
+        with self.assertRaisesRegex(ValueError, "model_type is required"):
+            self._version().create_training(epochs=5)
+
+        self.assertEqual(len(responses.calls), 0)
+
+    @responses.activate
     def test_explicit_recipe_skips_template_fetch(self):
         self._mock_platform(include_recipe=False)
         recipe = {"schema_version": 1, "input": {"video_sampling": {"fps": 4}}, "hyperparameters": {"lr": 1e-5}}
 
-        training = self._version().create_training(train_recipe=recipe)
+        training = self._version().create_training(model_type="cosmos3-edge", train_recipe=recipe)
 
         self.assertEqual(self._calls("GET", f"{self.TRAININGS}/recipe"), [])
         (create,) = self._calls("POST", self.TRAININGS)

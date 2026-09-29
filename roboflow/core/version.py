@@ -242,13 +242,13 @@ class Version:
         To customize hyperparameters or online augmentation, fetch the recipe
         template via :meth:`describe_train_recipe`, edit it, and pass it as
         ``train_recipe``; the server dense-fills any defaults the recipe
-        omits. For Action Recognition projects, the model defaults to
-        ``cosmos3-edge`` and the default recipe is fetched when none is given.
+        omits. For Action Recognition projects, the default recipe is fetched
+        when none is given.
 
         Args:
             speed: Training speed preset (e.g. ``"fast"``).
             model_type: The model type to train (e.g. ``"rfdetr-medium"``).
-                Defaults to ``"cosmos3-edge"`` for Action Recognition projects.
+                Required for Action Recognition projects.
             checkpoint: Checkpoint to start training from.
             epochs: Number of epochs to train. When a ``train_recipe`` is
                 given, this is folded into the recipe's hyperparameters
@@ -258,18 +258,17 @@ class Version:
             train_recipe: A full recipe to submit — typically the
                 ``template`` from :meth:`describe_train_recipe` with edited
                 ``hyperparameters`` / ``online_augmentation``. Requires
-                ``model_type`` for other project types: recipes are minted per
-                model type.
+                ``model_type``: recipes are minted per model type.
 
         Raises:
-            ValueError: If ``train_recipe`` is given without ``model_type`` on
-                a project other than Action Recognition.
+            ValueError: If an Action Recognition project has no ``model_type``,
+                or if ``train_recipe`` is given without ``model_type``.
             RoboflowError: If the Roboflow API returns an error.
 
         Example:
             Start Action Recognition training without blocking::
 
-                training = version.create_training(epochs=5)
+                training = version.create_training(model_type="cosmos3-edge", epochs=5)
                 print(training.training_id)
 
             Launch a small learning-rate sweep and poll for completion::
@@ -295,7 +294,8 @@ class Version:
         from roboflow.core.training import Training
 
         if self.type == TYPE_ACTION_RECOGNITION:
-            model_type = model_type or "cosmos3-edge"
+            if not model_type:
+                raise ValueError("model_type is required for Action Recognition training")
             if train_recipe is None:
                 train_recipe = self.describe_train_recipe(model_type)["template"]
 
