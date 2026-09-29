@@ -242,8 +242,7 @@ class Version:
         To customize hyperparameters or online augmentation, fetch the recipe
         template via :meth:`describe_train_recipe`, edit it, and pass it as
         ``train_recipe``; the server dense-fills any defaults the recipe
-        omits. For Action Recognition projects, the default recipe is fetched
-        when none is given.
+        omits. A recipe is optional for Action Recognition projects too.
 
         Args:
             speed: Training speed preset (e.g. ``"fast"``).
@@ -293,11 +292,8 @@ class Version:
         """
         from roboflow.core.training import Training
 
-        if self.type == TYPE_ACTION_RECOGNITION:
-            if not model_type:
-                raise ValueError("model_type is required for Action Recognition training")
-            if train_recipe is None:
-                train_recipe = self.describe_train_recipe(model_type)["template"]
+        if self.type == TYPE_ACTION_RECOGNITION and not model_type:
+            raise ValueError("model_type is required for Action Recognition training")
 
         if train_recipe is not None and not model_type:
             raise ValueError(

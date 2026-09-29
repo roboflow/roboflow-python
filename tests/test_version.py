@@ -482,7 +482,6 @@ class TestCreateActionRecognitionTraining(unittest.TestCase):
     BASE = f"{API_URL}/test-workspace/test-project/4"
     TRAININGS = f"{BASE}/v2/trainings"
     GENERATING = f"{API_URL}/Test Workspace Name/Test Dataset/4"
-    TEMPLATE = {"schema_version": 1, "input": {"video_sampling": {"fps": 2}}, "hyperparameters": {}}
 
     def _version(self):
         return get_version(
@@ -492,30 +491,27 @@ class TestCreateActionRecognitionTraining(unittest.TestCase):
             type=TYPE_ACTION_RECOGNITION,
         )
 
-    def _mock_platform(self, include_recipe=True):
+    def _mock_platform(self):
         responses.add(responses.GET, self.GENERATING, json={"version": {"generating": False, "images": 10}})
         responses.add(responses.GET, f"{self.BASE}/video-coco", json={"export": {"link": "https://x"}})
-        if include_recipe:
-            responses.add(responses.GET, f"{self.TRAININGS}/recipe", json={"schema": {}, "template": self.TEMPLATE})
         responses.add(responses.POST, self.TRAININGS, json={"trainingId": "t-1", "status": "queued", "jobId": "j"})
 
     def _calls(self, method, url_prefix):
         return [c for c in responses.calls if c.request.method == method and c.request.url.startswith(url_prefix)]
 
     @responses.activate
-    def test_explicit_model_fetches_recipe_exports_and_returns_queued_training(self):
+    def test_explicit_model_without_recipe_exports_and_returns_queued_training(self):
         self._mock_platform()
 
         training = self._version().create_training(model_type="cosmos3-edge", epochs=5)
 
         self.assertEqual(len(self._calls("GET", f"{self.BASE}/video-coco")), 1)
-        (recipe_request,) = self._calls("GET", f"{self.TRAININGS}/recipe?")
-        self.assertIn("modelType=cosmos3-edge", recipe_request.request.url)
+        self.assertEqual(self._calls("GET", f"{self.TRAININGS}/recipe"), [])
         (create,) = self._calls("POST", self.TRAININGS)
         body = json.loads(create.request.body)
         self.assertEqual(body["modelType"], "cosmos3-edge")
-        self.assertEqual(body["trainRecipe"]["input"], self.TEMPLATE["input"])
-        self.assertEqual(body["trainRecipe"]["hyperparameters"], {"epochs": 5})
+        self.assertEqual(body["epochs"], 5)
+        self.assertNotIn("trainRecipe", body)
         self.assertEqual(self._calls("GET", f"{self.TRAININGS}/get"), [])
         self.assertEqual(self._calls("POST", f"{self.BASE}/train"), [])
         self.assertIsInstance(training, Training)
@@ -529,8 +525,8 @@ class TestCreateActionRecognitionTraining(unittest.TestCase):
         self.assertEqual(len(responses.calls), 0)
 
     @responses.activate
-    def test_explicit_recipe_skips_template_fetch(self):
-        self._mock_platform(include_recipe=False)
+    def test_explicit_recipe_is_forwarded_without_template_fetch(self):
+        self._mock_platform()
         recipe = {"schema_version": 1, "input": {"video_sampling": {"fps": 4}}, "hyperparameters": {"lr": 1e-5}}
 
         training = self._version().create_training(model_type="cosmos3-edge", train_recipe=recipe)
