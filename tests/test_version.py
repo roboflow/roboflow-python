@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 from types import SimpleNamespace
@@ -8,12 +9,16 @@ import responses
 
 from roboflow.adapters import rfapi
 from roboflow.config import (
+    API_URL,
+    TYPE_ACTION_RECOGNITION,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_KEYPOINT_DETECTION,
     TYPE_OBJECT_DETECTION,
     TYPE_SEMANTIC_SEGMENTATION,
+    TYPE_TEXT_IMAGE_PAIRS,
 )
+from roboflow.core.training import Training
 from roboflow.core.version import Version, unwrap_version_id
 from roboflow.models.object_detection import ObjectDetectionModel
 from tests.helpers import get_version
@@ -470,3 +475,127 @@ class TestCreateTrainingWithRecipe(V2TrainingRecipeTestCase):
         self.version.exports = ["coco"]
         _, _, _, mock_export = self._create(model_type="rfdetr-medium")
         mock_export.assert_not_called()
+
+
+class TestTrainWithRecipe(unittest.TestCase):
+    """Version.train() for Action Recognition / Cosmos, driven through mocked HTTP end to end."""
+
+    BASE = f"{API_URL}/test-workspace/test-project/4"
+    TRAININGS = f"{BASE}/v2/trainings"
+    GENERATING = f"{API_URL}/Test Workspace Name/Test Dataset/4"
+    TEMPLATE = {"schema_version": 1, "input": {"video_sampling": {"fps": 2}}, "hyperparameters": {}}
+
+    def setUp(self):
+        super().setUp()
+        sleep_patch = patch("roboflow.core.version.time.sleep")
+        self.sleep = sleep_patch.start()
+        self.addCleanup(sleep_patch.stop)
+
+    def _version(self, type=TYPE_ACTION_RECOGNITION):
+        return get_version(
+            project_name="Test Dataset", id="test-workspace/test-project/2", version_number="4", type=type
+        )
+
+    def _mock_platform(self, statuses=("training", "finished"), export_format="video-coco"):
+        responses.add(responses.GET, self.GENERATING, json={"version": {"generating": False, "images": 10}})
+        responses.add(responses.GET, f"{self.BASE}/{export_format}", json={"export": {"link": "https://x"}})
+        responses.add(responses.GET, f"{self.TRAININGS}/recipe", json={"schema": {}, "template": self.TEMPLATE})
+        responses.add(responses.POST, self.TRAININGS, json={"trainingId": "t-1", "status": "queued", "jobId": "j"})
+        for status in statuses:
+            responses.add(
+                responses.GET,
+                f"{self.TRAININGS}/get",
+                json={
+                    "trainingId": "t-1",
+                    "status": status,
+                    "modelType": "cosmos3-edge",
+                    "models": [{"modelId": "test-workspace/punch-cosmos", "metrics": {"accuracy": 0.9}}],
+                },
+            )
+
+    def _calls(self, method, url_prefix):
+        return [c for c in responses.calls if c.request.method == method and c.request.url.startswith(url_prefix)]
+
+    @responses.activate
+    def test_cosmos_exports_fetches_recipe_starts_v2_and_returns_finished_training(self):
+        self._mock_platform()
+
+        training = self._version().train(model_type="cosmos3-edge", epochs=5)
+
+        self.assertEqual(len(self._calls("GET", f"{self.BASE}/video-coco")), 1)
+        self.assertEqual(len(self._calls("GET", f"{self.TRAININGS}/recipe?")), 1)
+        (create,) = self._calls("POST", self.TRAININGS)
+        body = json.loads(create.request.body)
+        self.assertEqual(body["modelType"], "cosmos3-edge")
+        self.assertEqual(body["trainRecipe"]["input"], self.TEMPLATE["input"])
+        self.assertEqual(body["trainRecipe"]["hyperparameters"], {"epochs": 5})
+        self.assertEqual(len(self._calls("GET", f"{self.TRAININGS}/get")), 2)
+        self.assertEqual(len(self._calls("POST", f"{self.BASE}/train")), 0)
+
+        self.assertIsInstance(training, Training)
+        self.assertEqual((training.training_id, training.status), ("t-1", "finished"))
+        self.assertEqual([m.model_id for m in training.models], ["test-workspace/punch-cosmos"])
+
+    @responses.activate
+    def test_action_recognition_defaults_to_cosmos3_edge(self):
+        self._mock_platform(statuses=("finished",))
+
+        self._version().train()
+
+        self.assertIn("modelType=cosmos3-edge", self._calls("GET", f"{self.TRAININGS}/recipe")[0].request.url)
+        (create,) = self._calls("POST", self.TRAININGS)
+        self.assertEqual(json.loads(create.request.body)["modelType"], "cosmos3-edge")
+
+    @responses.activate
+    def test_caller_recipe_is_sent_without_fetching_the_template(self):
+        self._mock_platform(statuses=("finished",))
+        recipe = {"schema_version": 1, "input": {"video_sampling": {"fps": 4}}, "hyperparameters": {"lr": 1e-5}}
+
+        self._version().train(model_type="cosmos3-edge", train_recipe=recipe)
+
+        self.assertEqual(self._calls("GET", f"{self.TRAININGS}/recipe"), [])
+        (create,) = self._calls("POST", self.TRAININGS)
+        self.assertEqual(json.loads(create.request.body)["trainRecipe"], recipe)
+
+    @responses.activate
+    def test_failed_training_raises_with_its_id(self):
+        self._mock_platform(statuses=("training", "failed"))
+
+        with self.assertRaises(RuntimeError) as ctx:
+            self._version().train(model_type="cosmos3-edge")
+
+        self.assertIn("t-1", str(ctx.exception))
+        self.assertIn("failed", str(ctx.exception))
+
+    @responses.activate
+    def test_cosmos_vlm_on_image_project_exports_jsonl_and_uses_v2(self):
+        self._mock_platform(statuses=("finished",), export_format="jsonl")
+
+        training = self._version(type=TYPE_TEXT_IMAGE_PAIRS).train(model_type="cosmos3-edge-vlm")
+
+        self.assertEqual(len(self._calls("GET", f"{self.BASE}/jsonl")), 1)
+        self.assertEqual(training.status, "finished")
+
+    @responses.activate
+    def test_other_models_keep_the_legacy_train_path(self):
+        responses.add(
+            responses.GET,
+            self.GENERATING,
+            json={"version": {"generating": False, "images": 10, "train": {"results": {"map": 0.5}}}},
+        )
+        responses.add(responses.GET, f"{self.BASE}/yolov5pytorch", json={"export": {"link": "https://x"}})
+        responses.add(responses.POST, f"{self.BASE}/train", json={"success": True})
+
+        model = self._version(type=TYPE_OBJECT_DETECTION).train(model_type="yolov11n")
+
+        self.assertIsInstance(model, ObjectDetectionModel)
+        (start,) = self._calls("POST", f"{self.BASE}/train")
+        self.assertEqual(json.loads(start.request.body)["modelType"], "yolov11n")
+        self.assertEqual([c for c in responses.calls if "/v2/" in c.request.url], [])
+
+    @responses.activate
+    def test_recipe_for_a_legacy_model_is_refused_before_any_request(self):
+        with self.assertRaises(ValueError):
+            self._version(type=TYPE_OBJECT_DETECTION).train(model_type="yolov11n", train_recipe={"schema_version": 1})
+
+        self.assertEqual(len(responses.calls), 0)

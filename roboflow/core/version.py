@@ -18,6 +18,7 @@ from roboflow.config import (
     APP_URL,
     DEMO_KEYS,
     TQDM_DISABLE,
+    TYPE_ACTION_RECOGNITION,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
     TYPE_KEYPOINT_DETECTION,
@@ -42,9 +43,19 @@ from roboflow.util.versions import get_model_format, get_wrong_dependencies_vers
 if TYPE_CHECKING:
     import numpy as np
 
+    from roboflow.core.training import Training
     from roboflow.models.inference import InferenceModel
 
 load_dotenv()
+
+# The platform trains these only from a recipe, and the legacy /train path has no model class for them.
+RECIPE_TRAINED_MODEL_TYPES = ("cosmos3-edge", "cosmos3-edge-vlm")
+# The platform's default model for an action-recognition project.
+DEFAULT_ACTION_RECOGNITION_MODEL = "cosmos3-edge"
+TRAINING_FAILED_STATUSES = ("failed", "cancelled")
+# "stopped" is a graceful early stop: the run still produces its model.
+TRAINING_TERMINAL_STATUSES = ("finished", "stopped", *TRAINING_FAILED_STATUSES)
+TRAINING_POLL_SECONDS = 30
 
 
 class Version:
@@ -464,25 +475,53 @@ class Version:
             raise RuntimeError(f"Unexpected export {export_info}")
 
     def train(
-        self, speed=None, model_type=None, checkpoint=None, plot_in_notebook=False, epochs=None
-    ) -> InferenceModel:
+        self, speed=None, model_type=None, checkpoint=None, plot_in_notebook=False, epochs=None, train_recipe=None
+    ) -> Union[InferenceModel, Training]:
         """
         Ask the Roboflow API to train a previously exported version's dataset.
+
+        Action Recognition projects and Cosmos models (``cosmos3-edge``, ``cosmos3-edge-vlm``) train
+        through the recipe-aware v2 flow: this exports the model's format, fetches the recipe template
+        from :meth:`describe_train_recipe` unless ``train_recipe`` is given, starts the training with
+        :meth:`create_training`, and blocks until it ends. They return the finished
+        :class:`~roboflow.core.training.Training`; its ``models`` hold the trained model ids and weights.
+        An Action Recognition project defaults to ``cosmos3-edge``.
 
         Args:
             speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
             model_type: The type of model to train. Default depends on kind of project. It takes precedence over speed. You can check the list of model ids by sending an invalid parameter in this argument.
             checkpoint: A string representing the checkpoint to use while training
             epochs: Number of epochs to train the model
-            plot_in_notebook: Whether to plot the training results. Default is `False`.
+            plot_in_notebook: Whether to plot the training results. Default is `False`. Ignored by the recipe flow.
+            train_recipe: A recipe for the recipe flow, typically an edited ``template`` from
+                :meth:`describe_train_recipe`. Only valid for the models that use that flow.
 
         Returns:
-            An instance of the trained model class
+            An instance of the trained model class, or the finished Training for the recipe flow
 
         Raises:
-            RuntimeError: If the Roboflow API returns an error with a helpful JSON body
+            ValueError: If ``train_recipe`` is given for a model that trains without a recipe
+            RuntimeError: If the Roboflow API returns an error with a helpful JSON body, or a recipe-flow training fails or is cancelled
             HTTPError: If the Network/Roboflow API fails and does not return JSON
+
+        Example:
+            Train an Action Recognition version end to end::
+
+                training = version.train(model_type="cosmos3-edge")
+                print(training.models[0].model_id)
         """  # noqa: E501 // docs
+
+        if self.type == TYPE_ACTION_RECOGNITION and not model_type:
+            model_type = DEFAULT_ACTION_RECOGNITION_MODEL
+        if self.type == TYPE_ACTION_RECOGNITION or model_type in RECIPE_TRAINED_MODEL_TYPES:
+            return self.__train_with_recipe(
+                speed=speed, model_type=model_type, checkpoint=checkpoint, epochs=epochs, train_recipe=train_recipe
+            )
+        if train_recipe is not None:
+            raise ValueError(
+                f"Version.train() sends train_recipe only for {', '.join(RECIPE_TRAINED_MODEL_TYPES)}. "
+                "Use version.create_training(model_type=..., train_recipe=...) for other models."
+            )
 
         self.__wait_if_generating()
 
@@ -643,6 +682,32 @@ class Version:
         # return the model object
         assert self._model
         return self._model
+
+    def __train_with_recipe(self, speed, model_type, checkpoint, epochs, train_recipe) -> Training:
+        if train_recipe is None:
+            write_line(f"Fetching the {model_type} training recipe...")
+            train_recipe = self.describe_train_recipe(model_type)["template"]
+
+        write_line("Reaching out to Roboflow to start training...")
+        training = self.create_training(
+            speed=speed, model_type=model_type, checkpoint=checkpoint, epochs=epochs, train_recipe=train_recipe
+        )
+        write_line(f"Training {training.training_id} started. Status: {training.status}")
+
+        last_status = training.status
+        while training.status not in TRAINING_TERMINAL_STATUSES:
+            time.sleep(TRAINING_POLL_SECONDS)
+            training.refresh()
+            if training.status != last_status:
+                write_line(f"Training {training.training_id} status: {training.status}")
+                last_status = training.status
+
+        if training.status in TRAINING_FAILED_STATUSES:
+            raise RuntimeError(
+                f"Training {training.training_id} ended with status {training.status!r}. "
+                "Check the version's Train page in the Roboflow app for the reason."
+            )
+        return training
 
     # @warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])
     def deploy(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
