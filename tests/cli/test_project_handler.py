@@ -1,7 +1,9 @@
 """Tests for the project CLI handler."""
 
+import json
 import unittest
 
+import responses
 from typer.testing import CliRunner
 
 from roboflow.cli import app
@@ -48,6 +50,81 @@ class TestProjectHandlerRegistration(unittest.TestCase):
         self.assertIn("create", result.output)
         self.assertIn("delete", result.output)
         self.assertIn("restore", result.output)
+
+
+class TestProjectCreateHandler(unittest.TestCase):
+    """project create sends the chosen type and reports server errors."""
+
+    @responses.activate
+    def test_create_sends_action_recognition_type(self) -> None:
+        from unittest.mock import patch
+
+        from roboflow.config import API_URL
+        from roboflow.core.workspace import Workspace
+
+        workspace = Workspace(
+            {"workspace": {"name": "My WS", "url": "my-ws", "projects": []}},
+            api_key="fake-key",
+            default_workspace="my-ws",
+            model_format="yolov8",
+        )
+        responses.add(
+            responses.POST,
+            f"{API_URL}/my-ws/projects",
+            json={
+                "id": "my-ws/clips",
+                "name": "Clips",
+                "type": "action-recognition",
+                "annotation": "Clips",
+                "classes": {},
+                "colors": {},
+                "created": 0,
+                "updated": 0,
+                "images": 0,
+                "public": False,
+                "splits": {},
+                "unannotated": 0,
+            },
+        )
+
+        with patch("roboflow.Roboflow") as mock_rf:
+            mock_rf.return_value.workspace.return_value = workspace
+            result = runner.invoke(app, ["--json", "project", "create", "Clips", "--type", "action-recognition"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(len(responses.calls), 1)
+        self.assertEqual(
+            json.loads(responses.calls[0].request.body),
+            {"name": "Clips", "type": "action-recognition", "license": "Private", "annotation": "Clips"},
+        )
+
+    @responses.activate
+    def test_create_preserves_server_error_message(self) -> None:
+        from unittest.mock import patch
+
+        from roboflow.config import API_URL
+        from roboflow.core.workspace import Workspace
+
+        workspace = Workspace(
+            {"workspace": {"name": "My WS", "url": "my-ws", "projects": []}},
+            api_key="fake-key",
+            default_workspace="my-ws",
+            model_format="yolov8",
+        )
+        responses.add(
+            responses.POST,
+            f"{API_URL}/my-ws/projects",
+            json={"error": {"message": "Invalid project type."}},
+            status=422,
+        )
+
+        with patch("roboflow.Roboflow") as mock_rf:
+            mock_rf.return_value.workspace.return_value = workspace
+            result = runner.invoke(app, ["--json", "project", "create", "Clips", "--type", "action-recognition"])
+
+        self.assertEqual(result.exit_code, 1)
+        hint = json.loads(result.stderr)["error"]["hint"]
+        self.assertEqual(hint, "Invalid project type.")
 
 
 class TestProjectDeleteHandler(unittest.TestCase):
