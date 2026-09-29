@@ -114,6 +114,7 @@ def get_model_format(model_type: str) -> str:
         >>> get_model_format("yolov11n")
         "yolov5pytorch"
     """
+    # Match exactly: cosmos3-edge-vlm is an image model, not a video export.
     if model_type == "cosmos3-edge":
         return "video-coco"
 
