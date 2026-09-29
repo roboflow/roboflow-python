@@ -136,6 +136,12 @@ def login(workspace=None, force=False, region=None):
         with open(conf_location, "w") as f:
             json.dump(existing_config, f, indent=2)
 
+        if normalized_region is not None:
+            from roboflow.config import refresh_region_urls
+
+            # Constants bound at import time still point at the previous region.
+            refresh_region_urls()
+
     else:
         r_login.raise_for_status()
 
@@ -168,12 +174,19 @@ def initialize_roboflow(the_workspace=None):
     return active_workspace
 
 
+_ROBOFLOW_APP_HOSTS = ("universe.roboflow.com", "app.roboflow.com", "app.roboflow.eu")
+
+
+def _is_roboflow_app_url(url):
+    return any(host in url for host in _ROBOFLOW_APP_HOSTS)
+
+
 def load_model(model_url):
     """High level function to load Roboflow models.
 
     Args:
         model_url: the model url to load.
-            Must be from either app.roboflow.com or universe.roboflow.com
+            Must be from app.roboflow.com, app.roboflow.eu or universe.roboflow.com
 
     Returns:
         the model object to use for inference
@@ -181,13 +194,13 @@ def load_model(model_url):
 
     operate_workspace = initialize_roboflow()
 
-    if "universe.roboflow.com" in model_url or "app.roboflow.com" in model_url:
+    if _is_roboflow_app_url(model_url):
         parsed_url = urlparse(model_url)
         path_parts = parsed_url.path.split("/")
         project = path_parts[2]
         version = int(path_parts[-1])
     else:
-        raise ValueError("Model URL must be from either app.roboflow.com or universe.roboflow.com")
+        raise ValueError("Model URL must be from app.roboflow.com, app.roboflow.eu or universe.roboflow.com")
 
     project = operate_workspace.project(project)
     version = project.version(version)
@@ -202,7 +215,7 @@ def download_dataset(dataset_url, model_format, location=None):
 
     Args:
         dataset_url: the dataset url to download.
-            Must be from either app.roboflow.com or universe.roboflow.com
+            Must be from app.roboflow.com, app.roboflow.eu or universe.roboflow.com
         model_format: the format the dataset will be downloaded in
         location: the location the dataset will be downloaded to
 
@@ -210,14 +223,14 @@ def download_dataset(dataset_url, model_format, location=None):
         The dataset object with location available as dataset.location
     """
 
-    if "universe.roboflow.com" in dataset_url or "app.roboflow.com" in dataset_url:
+    if _is_roboflow_app_url(dataset_url):
         parsed_url = urlparse(dataset_url)
         path_parts = parsed_url.path.split("/")
         project = path_parts[2]
         version = int(path_parts[-1])
         the_workspace = path_parts[1]
     else:
-        raise ValueError("Model URL must be from either app.roboflow.com or universe.roboflow.com")
+        raise ValueError("Model URL must be from app.roboflow.com, app.roboflow.eu or universe.roboflow.com")
     operate_workspace = initialize_roboflow(the_workspace=the_workspace)
 
     project = operate_workspace.project(project)

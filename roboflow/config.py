@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import warnings
 
 REGION_URL_DEFAULTS = {
     "us": {},
@@ -26,6 +27,12 @@ URL_DEFAULTS = {
 }
 
 _UNSET = object()
+
+
+class RegionWarning(UserWarning):
+    """Emitted when ROBOFLOW_REGION holds an unrecognized value."""
+
+
 _WARNED_UNKNOWN_REGIONS: set[str] = set()
 
 
@@ -76,12 +83,26 @@ def _normalize_region(region) -> str:
 
     warning_key = repr(region)
     if warning_key not in _WARNED_UNKNOWN_REGIONS:
-        print(
-            f"Warning: unknown Roboflow region {region!r}; falling back to 'us'.",
-            file=sys.stderr,
-        )
         _WARNED_UNKNOWN_REGIONS.add(warning_key)
+        # This runs while roboflow is imported, before the CLI parses its flags, so
+        # mirror the CLI's --json detection: its stderr must stay machine-readable,
+        # and `auth status` reports the problem as a JSON field instead.
+        if not ("--json" in sys.argv or "-j" in sys.argv):
+            warnings.warn(unknown_region_message(region), RegionWarning, stacklevel=2)
     return "us"
+
+
+def unknown_region_message(region) -> str:
+    return f"unknown Roboflow region {region!r}; falling back to 'us'."
+
+
+def get_region_warning() -> str | None:
+    """Return the fallback warning when the configured region is not recognized."""
+    region = get_conditional_configuration_variable("ROBOFLOW_REGION", default="us")
+    normalized_region = region.strip().lower() if isinstance(region, str) else ""
+    if normalized_region in REGION_URL_DEFAULTS:
+        return None
+    return unknown_region_message(region)
 
 
 def get_effective_region() -> str:
@@ -122,6 +143,28 @@ CLIP_FEATURIZE_URL = resolve_url("CLIP_FEATURIZE_URL")
 OCR_URL = resolve_url("OCR_URL")
 
 DEDICATED_DEPLOYMENT_URL = resolve_url("DEDICATED_DEPLOYMENT_URL")
+
+
+def refresh_region_urls() -> None:
+    """Re-resolve the URL constants after the region changes in a running process.
+
+    Modules across the package bind these constants by value at import time
+    (``from roboflow.config import API_URL``), so a login that switches region
+    would otherwise keep talking to the previous platform until restart. Only
+    bindings still holding the previous default are replaced, so values a caller
+    patched deliberately are left alone.
+    """
+    module_globals = globals()
+    previous_urls = {key: module_globals[key] for key in URL_DEFAULTS}
+    current_urls = {key: resolve_url(key) for key in URL_DEFAULTS}
+    for module_name, module in list(sys.modules.items()):
+        if module is None or not (module_name == "roboflow" or module_name.startswith("roboflow.")):
+            continue
+        namespace = vars(module)
+        for key, previous_url in previous_urls.items():
+            if namespace.get(key, _UNSET) == previous_url:
+                namespace[key] = current_urls[key]
+
 
 DEMO_KEYS = ["coco-128-sample", "chess-sample-only-api-key"]
 

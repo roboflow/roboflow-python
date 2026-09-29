@@ -36,7 +36,7 @@ The Python package is documented on the [official Roboflow documentation site](h
 
 ## 💻 Installation
 
-You will need to have `Python 3.8` or higher set up to use the Roboflow Python package.
+You will need to have `Python 3.10` or higher set up to use the Roboflow Python package.
 
 Run the following command to install the Roboflow Python package:
 

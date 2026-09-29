@@ -132,17 +132,26 @@ def _validate_region(args, region: Optional[str]) -> Optional[str]:  # noqa: ANN
     return normalized
 
 
+def _stored_region(config: dict) -> str:
+    """Region the stored credentials were issued by (config value, default US)."""
+    stored = config.get("ROBOFLOW_REGION")
+    return stored.strip().lower() if isinstance(stored, str) and stored.strip() else "us"
+
+
 def _region_status() -> tuple[dict[str, str], list[str]]:
     """Return the effective region metadata in structured and text forms."""
-    from roboflow.config import get_effective_region, resolve_url
+    from roboflow.config import get_effective_region, get_region_warning, resolve_url
 
     region = get_effective_region()
     api_url = resolve_url("API_URL", region=region)
     app_url = resolve_url("APP_URL", region=region)
-    return (
-        {"region": region, "api_url": api_url, "app_url": app_url},
-        [f"Region: {region}", f"API URL: {api_url}", f"App URL: {app_url}"],
-    )
+    data = {"region": region, "api_url": api_url, "app_url": app_url}
+    lines = [f"Region: {region}", f"API URL: {api_url}", f"App URL: {app_url}"]
+    region_warning = get_region_warning()
+    if region_warning is not None:
+        data["region_warning"] = region_warning
+        lines.append(f"Warning: {region_warning}")
+    return data, lines
 
 
 def _print_completion_tip(args) -> None:  # noqa: ANN001
@@ -227,6 +236,12 @@ def _login(args):  # noqa: ANN001
 
         conf_path = _get_config_path()
         import os
+
+        if os.path.isfile(conf_path) and not force and region is not None:
+            # Stored credentials belong to the region they were issued by; asking
+            # for another region needs new ones, so treat it as a forced login.
+            if region != _stored_region(_load_config()):
+                force = True
 
         if os.path.isfile(conf_path) and not force:
             # Already logged in — show status
@@ -348,20 +363,23 @@ def _set_region(args):  # noqa: ANN001
 
     region = _validate_region(args, args.region)
     assert region is not None
-    previous_region = get_effective_region()
 
     config = _load_config()
+    previous_region = _stored_region(config)
+    has_credentials = bool(config.get("workspaces"))
     config["ROBOFLOW_REGION"] = region
     _save_config(config)
 
     effective_region = get_effective_region()
     api_url = resolve_url("API_URL")
     app_url = resolve_url("APP_URL")
-    warning = (
-        f"Stored credentials were issued by the previously configured {previous_region.upper()} platform. "
-        "EU and US use separate authentication backends and API keys, so "
-        f"'roboflow auth login --force --region {region}' may be needed."
-    )
+    warning = None
+    if has_credentials and previous_region != region:
+        warning = (
+            f"Stored credentials were issued by the previously configured {previous_region.upper()} platform. "
+            "EU and US use separate authentication backends and API keys, so "
+            f"'roboflow auth login --force --region {region}' may be needed."
+        )
     environment_note = ""
     if effective_region != region:
         environment_note = (
@@ -376,7 +394,10 @@ def _set_region(args):  # noqa: ANN001
             "app_url": app_url,
             "warning": warning,
         },
-        text=(f"Region set to: {region}{environment_note}\nAPI URL: {api_url}\nApp URL: {app_url}\nWarning: {warning}"),
+        text=(
+            f"Region set to: {region}{environment_note}\nAPI URL: {api_url}\nApp URL: {app_url}"
+            + (f"\nWarning: {warning}" if warning else "")
+        ),
     )
 
 

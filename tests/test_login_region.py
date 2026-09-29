@@ -11,6 +11,8 @@ from unittest import mock
 import responses
 
 import roboflow
+from roboflow.adapters import rfapi
+from roboflow.config import refresh_region_urls
 
 
 class TestLoginRegion(unittest.TestCase):
@@ -30,6 +32,8 @@ class TestLoginRegion(unittest.TestCase):
     def tearDown(self) -> None:
         self.environment.stop()
         self.temporary_directory.cleanup()
+        # A region login rebinds package-wide URL constants; restore them.
+        refresh_region_urls()
 
     @responses.activate
     def test_eu_login_uses_eu_app_and_persists_region(self) -> None:
@@ -57,6 +61,24 @@ class TestLoginRegion(unittest.TestCase):
         self.assertEqual(config["ROBOFLOW_REGION"], "eu")
         self.assertEqual(config["workspaces"], workspaces)
         self.assertEqual(config["RF_WORKSPACE"], "example-workspace")
+
+    @responses.activate
+    def test_eu_login_switches_import_time_url_constants(self) -> None:
+        self.assertEqual(roboflow.API_URL, "https://api.roboflow.com")
+        token = "auth-token"
+        responses.get(
+            f"https://app.roboflow.eu/query/cliAuthToken/{token}",
+            json={"workspace-id": {"url": "example-workspace", "apiKey": "example-api-key"}},
+            status=200,
+        )
+
+        with mock.patch.object(roboflow, "getpass", return_value=token), redirect_stdout(io.StringIO()):
+            roboflow.login(region="eu")
+
+        self.assertEqual(roboflow.API_URL, "https://api.roboflow.eu")
+        self.assertEqual(roboflow.APP_URL, "https://app.roboflow.eu")
+        self.assertEqual(rfapi.API_URL, "https://api.roboflow.eu")
+        self.assertEqual(roboflow.config.API_URL, "https://api.roboflow.eu")
 
     @responses.activate
     def test_forced_login_preserves_existing_region_and_other_config(self) -> None:
@@ -102,6 +124,28 @@ class TestLoginRegion(unittest.TestCase):
 
         with open(self.config_path) as config_file:
             self.assertEqual(json.load(config_file), original_config)
+
+
+class TestEuAppUrls(unittest.TestCase):
+    def test_download_dataset_accepts_eu_app_url(self) -> None:
+        with mock.patch.object(roboflow, "initialize_roboflow") as initialize:
+            workspace = initialize.return_value
+            roboflow.download_dataset("https://app.roboflow.eu/eu-ws/eu-project/3", "coco", location="/tmp/x")
+
+        initialize.assert_called_once_with(the_workspace="eu-ws")
+        workspace.project.assert_called_once_with("eu-project")
+        workspace.project.return_value.version.assert_called_once_with(3)
+
+    def test_load_model_accepts_eu_app_url(self) -> None:
+        with mock.patch.object(roboflow, "initialize_roboflow") as initialize:
+            roboflow.load_model("https://app.roboflow.eu/eu-ws/eu-project/2")
+
+        initialize.return_value.project.assert_called_once_with("eu-project")
+        initialize.return_value.project.return_value.version.assert_called_once_with(2)
+
+    def test_unknown_host_is_still_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "app.roboflow.eu"):
+            roboflow.download_dataset("https://example.com/ws/project/1", "coco")
 
 
 if __name__ == "__main__":

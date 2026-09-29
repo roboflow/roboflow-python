@@ -1,12 +1,13 @@
 """Tests for region-aware Roboflow URL configuration."""
 
-import contextlib
 import importlib
-import io
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
+import warnings
 from pathlib import Path
 
 import roboflow.config as config_module
@@ -111,16 +112,40 @@ class TestRegionConfiguration(unittest.TestCase):
 
     def test_unknown_region_warns_once_and_falls_back_to_us(self) -> None:
         os.environ["ROBOFLOW_REGION"] = "bogus"
-        stderr = io.StringIO()
-        with contextlib.redirect_stderr(stderr):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
             config = self._reload_config()
             self.assertEqual(config.get_effective_region(), "us")
             self.assertEqual(config.resolve_url("API_URL"), URL_DEFAULTS["API_URL"])
 
-        warning_lines = stderr.getvalue().splitlines()
-        self.assertEqual(len(warning_lines), 1)
-        self.assertIn("unknown Roboflow region 'bogus'", warning_lines[0])
-        self.assertIn("falling back to 'us'", warning_lines[0])
+        region_warnings = [w for w in caught if issubclass(w.category, config.RegionWarning)]
+        self.assertEqual(len(region_warnings), 1)
+        self.assertIn("unknown Roboflow region 'bogus'", str(region_warnings[0].message))
+        self.assertIn("falling back to 'us'", str(region_warnings[0].message))
+        self.assertEqual(config.get_region_warning(), "unknown Roboflow region 'bogus'; falling back to 'us'.")
+
+    def test_valid_region_has_no_region_warning(self) -> None:
+        self._write_config({"ROBOFLOW_REGION": "EU"})
+        config = self._reload_config()
+        self.assertIsNone(config.get_region_warning())
+
+    def test_unknown_region_is_not_printed_in_cli_json_mode(self) -> None:
+        env = {key: value for key, value in os.environ.items() if key != "ROBOFLOW_API_KEY"}
+        env["ROBOFLOW_REGION"] = "bogus"
+        env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1])
+        result = subprocess.run(
+            [sys.executable, "-m", "roboflow.roboflowpy", "--json", "auth", "status"],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 2, result.stderr)
+        payload = json.loads(result.stderr)
+        self.assertEqual(payload["error"]["message"], "Not logged in.")
+        self.assertEqual(payload["region"], "us")
+        self.assertIn("unknown Roboflow region 'bogus'", payload["region_warning"])
 
 
 if __name__ == "__main__":

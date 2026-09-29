@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import tempfile
 import unittest
 from unittest import mock
@@ -12,6 +13,12 @@ from typer.testing import CliRunner
 from roboflow.cli import app
 
 runner = CliRunner()
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_RE.sub("", text)
 
 
 class TestAuthRegion(unittest.TestCase):
@@ -59,8 +66,9 @@ class TestAuthRegion(unittest.TestCase):
 
         self.assertEqual(auth_result.exit_code, 0)
         self.assertEqual(alias_result.exit_code, 0)
-        self.assertIn("--region", auth_result.output)
-        self.assertIn("--region", alias_result.output)
+        # Rich styles "--region" per segment when colors are forced (as in CI).
+        self.assertIn("--region", _strip_ansi(auth_result.output))
+        self.assertIn("--region", _strip_ansi(alias_result.output))
 
     def test_interactive_login_passes_normalized_region(self) -> None:
         with mock.patch("roboflow.login") as login:
@@ -75,6 +83,39 @@ class TestAuthRegion(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0, result.output)
         login.assert_called_once_with(workspace=None, force=False, region="eu")
+
+    def test_login_with_new_region_reauthenticates_existing_user(self) -> None:
+        self._write_logged_in_config()
+
+        with mock.patch("roboflow.login") as login:
+            result = runner.invoke(app, ["auth", "login", "--region", "eu"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        login.assert_called_once_with(workspace=None, force=True, region="eu")
+
+    def test_login_with_current_region_keeps_existing_session(self) -> None:
+        self._write_logged_in_config()
+
+        with mock.patch("roboflow.login") as login:
+            result = runner.invoke(app, ["auth", "login", "--region", "us"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("Already logged in", result.output)
+        login.assert_not_called()
+
+    def test_set_region_without_credentials_has_no_warning(self) -> None:
+        result = runner.invoke(app, ["--json", "auth", "set-region", "eu"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIsNone(json.loads(result.stdout)["warning"])
+
+    def test_set_region_to_current_region_has_no_warning(self) -> None:
+        self._write_logged_in_config()
+
+        result = runner.invoke(app, ["auth", "set-region", "us"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertNotIn("Warning", result.output)
 
     @responses.activate
     def test_api_key_login_uses_eu_api_and_persists_region(self) -> None:
