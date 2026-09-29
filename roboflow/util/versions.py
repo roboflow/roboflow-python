@@ -114,6 +114,9 @@ def get_model_format(model_type: str) -> str:
         >>> get_model_format("yolov11n")
         "yolov5pytorch"
     """
+    if model_type == "cosmos3-edge":
+        return "video-coco"
+
     # Prefixes extrated from modelRegistry.js in roboflow.
     model_formats = {
         "yolo": "yolov5pytorch",
@@ -126,9 +129,6 @@ def get_model_format(model_type: str) -> str:
         "rfdetr": "coco",
         "rf-detr": "coco",
         "deep": "png-mask-semantic",
-        # Substring match: the image VLM sibling must win before the video model's prefix.
-        "cosmos3-edge-vlm": "jsonl",
-        "cosmos3-edge": "video-coco",
     }
 
     for prefix, format in model_formats.items():

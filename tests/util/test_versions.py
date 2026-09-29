@@ -37,7 +37,6 @@ class TestGetModelFormat(unittest.TestCase):
             ("resenet38", "yolov5pytorch"),
             ("invlid-type", "yolov5pytorch"),
             ("cosmos3-edge", "video-coco"),
-            ("cosmos3-edge-vlm", "jsonl"),
         ]
 
         for model_type, expected_format in cases:
