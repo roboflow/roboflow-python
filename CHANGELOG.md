@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file.
   `train_recipe=` to send an edited recipe. An Action Recognition project
   defaults to `cosmos3-edge`, as on the platform. A failed or cancelled run
   raises `RuntimeError`.
+- `cosmos3-edge` now exports `video-coco`, and `cosmos3-edge-vlm` exports
+  `jsonl`. Both previously fell back to `yolov5pytorch`.
 - Every other model type keeps the legacy `/train` path and still returns its
   task-specific inference model.
 

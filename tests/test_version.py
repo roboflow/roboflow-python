@@ -599,3 +599,16 @@ class TestTrainWithRecipe(unittest.TestCase):
             self._version(type=TYPE_OBJECT_DETECTION).train(model_type="yolov11n", train_recipe={"schema_version": 1})
 
         self.assertEqual(len(responses.calls), 0)
+
+    @responses.activate
+    def test_describe_then_create_training_forwards_the_cosmos_recipe(self):
+        version = self._version()
+        version.exports = ["video-coco"]
+        self._mock_platform(statuses=())
+
+        recipe = version.describe_train_recipe("cosmos3-edge")["template"]
+        training = version.create_training(model_type="cosmos3-edge", train_recipe=recipe)
+
+        self.assertEqual((training.training_id, training.status), ("t-1", "queued"))
+        (create,) = self._calls("POST", self.TRAININGS)
+        self.assertEqual(json.loads(create.request.body)["trainRecipe"], self.TEMPLATE)
