@@ -34,6 +34,10 @@ roboflow image upload photo.jpg -p my-project
 roboflow image upload ./dataset-folder/ -p my-project   # smart: detects directory
 ```
 
+Supported `--type` values: `object-detection`, `single-label-classification`,
+`multi-label-classification`, `instance-segmentation`, `semantic-segmentation`,
+`keypoint-detection`, `action-recognition`.
+
 ### Download a dataset
 
 ```bash

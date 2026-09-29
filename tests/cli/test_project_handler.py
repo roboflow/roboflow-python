@@ -53,7 +53,7 @@ class TestProjectHandlerRegistration(unittest.TestCase):
 
 
 class TestProjectCreateHandler(unittest.TestCase):
-    """project create sends the chosen type in the public create-project request."""
+    """project create sends the chosen type, and explains a platform rejection."""
 
     @responses.activate
     def test_create_sends_action_recognition_type(self) -> None:
@@ -97,6 +97,35 @@ class TestProjectCreateHandler(unittest.TestCase):
             json.loads(responses.calls[0].request.body),
             {"name": "Clips", "type": "action-recognition", "license": "Private", "annotation": "Clips"},
         )
+
+    @responses.activate
+    def test_create_hints_when_the_platform_rejects_the_type(self) -> None:
+        from unittest.mock import patch
+
+        from roboflow.config import API_URL
+        from roboflow.core.workspace import Workspace
+
+        workspace = Workspace(
+            {"workspace": {"name": "My WS", "url": "my-ws", "projects": []}},
+            api_key="fake-key",
+            default_workspace="my-ws",
+            model_format="yolov8",
+        )
+        responses.add(
+            responses.POST,
+            f"{API_URL}/my-ws/projects",
+            json={"error": {"message": "Invalid project type."}},
+            status=422,
+        )
+
+        with patch("roboflow.Roboflow") as mock_rf:
+            mock_rf.return_value.workspace.return_value = workspace
+            result = runner.invoke(app, ["--json", "project", "create", "Clips", "--type", "action-recognition"])
+
+        self.assertEqual(result.exit_code, 1)
+        hint = json.loads(result.stderr)["error"]["hint"]
+        self.assertIn("Invalid project type.", hint)
+        self.assertIn("may not support action-recognition projects yet", hint)
 
 
 class TestProjectDeleteHandler(unittest.TestCase):
