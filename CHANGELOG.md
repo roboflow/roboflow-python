@@ -6,28 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Action recognition support:
-  - `roboflow project create --type action-recognition` creates an action
-    recognition project. `roboflow.config.TYPE_ACTION_RECOGNITION` names the type.
-    It needs a Roboflow platform that includes roboflow/roboflow#16234, which
-    adds the type to the public create-project route. Older platforms reject
-    it with HTTP 422.
-  - Cosmos models train through the recipe-aware v2 path:
-
-    ```python
-    recipe = version.describe_train_recipe("cosmos3-edge")["template"]
-    training = version.create_training(model_type="cosmos3-edge", train_recipe=recipe)
-    ```
-
-    `cosmos3-edge` exports `video-coco`, and `cosmos3-edge-vlm` exports
-    `jsonl`. Both previously fell back to `yolov5pytorch`.
-
-### Changed
-
-- `Version.train()` raises `ValueError` for `cosmos3-edge` and
-  `cosmos3-edge-vlm` before it exports or starts a run. It cannot send the
-  training recipe these models need or return their model. The error points to
-  `create_training` with a recipe.
+- `roboflow project create --type action-recognition` creates an action
+  recognition project. `roboflow.config.TYPE_ACTION_RECOGNITION` names the type.
+  It needs a Roboflow platform that includes roboflow/roboflow#16234, which
+  adds the type to the public create-project route. Older platforms reject
+  it with HTTP 422.
 
 ## 1.5.1
 
