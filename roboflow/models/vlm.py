@@ -18,6 +18,7 @@ from typing import Any, Optional
 import requests
 from PIL import Image
 
+from roboflow.config import SERVERLESS_URL
 from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 
@@ -40,7 +41,7 @@ class VLMModel(InferenceModel):
         self.id = id
         self.name = name
         self.version = version
-        self.base_url = local if local else "https://serverless.roboflow.com/"
+        self.base_url = local if local else SERVERLESS_URL + "/"
         self.colors = {} if colors is None else colors
         self.preprocessing = {} if preprocessing is None else preprocessing
 

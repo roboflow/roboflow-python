@@ -28,6 +28,7 @@ from roboflow.config import (
     TASK_POSE,
     TASK_SEG,
     TASK_SEM,
+    ensure_url_available_in_region,
 )
 from roboflow.models.inference import InferenceModel
 from roboflow.util.model_processor import task_of_model_type
@@ -35,6 +36,7 @@ from roboflow.util.model_processor import task_of_model_type
 
 def _serverless_base_url_for_task(task: str) -> str:
     if task == TASK_SEM:
+        ensure_url_available_in_region("SEMANTIC_SEGMENTATION_URL")
         return SEMANTIC_SEGMENTATION_URL
     return OBJECT_DETECTION_URL
 

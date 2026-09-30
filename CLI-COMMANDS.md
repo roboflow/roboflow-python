@@ -42,13 +42,16 @@ config values such as `API_URL` continue to take precedence over the region.
 | App / CLI authentication | `https://app.roboflow.com` | `https://app.roboflow.eu` |
 | Object detection | `https://serverless.roboflow.com` | `https://serverless.roboflow.eu` |
 | Instance segmentation | `https://serverless.roboflow.com` | `https://serverless.roboflow.eu` |
+| Classification, keypoint, VLM (`SERVERLESS_URL`) | `https://serverless.roboflow.com` | `https://serverless.roboflow.eu` |
 | Dedicated deployment | `https://roboflow.cloud` | `https://eu.roboflow.cloud` |
 | Universe | `https://universe.roboflow.com` | `https://universe.roboflow.com` |
-| Semantic segmentation | `https://segment.roboflow.com` | `https://segment.roboflow.com` |
+| Semantic segmentation | `https://segment.roboflow.com` | not available |
 
 Roboflow Universe remains a single global product, so its URL stays on
-`.com` in the EU region. Semantic segmentation also remains on its current
-`.com` endpoint. EU and US use separate authentication backends; obtain EU
+`.com` in the EU region. Hosted semantic segmentation has no EU deployment, so
+in the EU region it raises an error instead of sending images to the US
+endpoint; set `SEMANTIC_SEGMENTATION_URL` explicitly to override. EU and US use
+separate authentication backends; obtain EU
 API keys from `https://app.roboflow.eu` and log in again after switching if
 your existing credentials were issued by the other region.
 

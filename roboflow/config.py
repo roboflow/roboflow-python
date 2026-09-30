@@ -10,6 +10,7 @@ REGION_URL_DEFAULTS = {
         "APP_URL": "https://app.roboflow.eu",
         "OBJECT_DETECTION_URL": "https://serverless.roboflow.eu",
         "INSTANCE_SEGMENTATION_URL": "https://serverless.roboflow.eu",
+        "SERVERLESS_URL": "https://serverless.roboflow.eu",
         "DEDICATED_DEPLOYMENT_URL": "https://eu.roboflow.cloud",
     },
 }
@@ -21,9 +22,16 @@ URL_DEFAULTS = {
     "INSTANCE_SEGMENTATION_URL": "https://serverless.roboflow.com",
     "SEMANTIC_SEGMENTATION_URL": "https://segment.roboflow.com",
     "OBJECT_DETECTION_URL": "https://serverless.roboflow.com",
+    "SERVERLESS_URL": "https://serverless.roboflow.com",
     "CLIP_FEATURIZE_URL": "CLIP FEATURIZE URL NOT IN ENV",
     "OCR_URL": "OCR URL NOT IN ENV",
     "DEDICATED_DEPLOYMENT_URL": "https://roboflow.cloud",
+}
+
+# Hosted services with no deployment in a region. Their global default would send
+# the region's data elsewhere, so callers refuse unless the URL is set explicitly.
+REGION_UNAVAILABLE_URL_KEYS = {
+    "eu": ("SEMANTIC_SEGMENTATION_URL",),
 }
 
 _UNSET = object()
@@ -124,6 +132,19 @@ def resolve_url(key: str, region: str | None = None) -> str:
     return REGION_URL_DEFAULTS[effective_region].get(key, URL_DEFAULTS[key])
 
 
+def ensure_url_available_in_region(key: str) -> None:
+    """Raise if ``key`` has no deployment in the effective region and no explicit override."""
+    region = get_effective_region()
+    if key not in REGION_UNAVAILABLE_URL_KEYS.get(region, ()):
+        return
+    if get_conditional_configuration_variable(key, default=_UNSET) is not _UNSET:
+        return
+    raise RuntimeError(
+        f"{key} has no Roboflow {region.upper()} deployment; the default {URL_DEFAULTS[key]} would send "
+        f"data outside the {region.upper()} region. Set {key} explicitly to override."
+    )
+
+
 CLASSIFICATION_MODEL = os.getenv("CLASSIFICATION_MODEL", "ClassificationModel")
 INSTANCE_SEGMENTATION_MODEL = "InstanceSegmentationModel"
 KEYPOINT_DETECTION_MODEL = "KeypointDetectionModel"
@@ -138,6 +159,7 @@ UNIVERSE_URL = resolve_url("UNIVERSE_URL")
 INSTANCE_SEGMENTATION_URL = resolve_url("INSTANCE_SEGMENTATION_URL")
 SEMANTIC_SEGMENTATION_URL = resolve_url("SEMANTIC_SEGMENTATION_URL")
 OBJECT_DETECTION_URL = resolve_url("OBJECT_DETECTION_URL")
+SERVERLESS_URL = resolve_url("SERVERLESS_URL")
 
 CLIP_FEATURIZE_URL = resolve_url("CLIP_FEATURIZE_URL")
 OCR_URL = resolve_url("OCR_URL")
