@@ -7,8 +7,8 @@ from unittest import mock
 
 import responses
 
-from roboflow.config import refresh_region_urls
-from roboflow.core.training import TrainedModel
+from roboflow.config import TASK_SEM, refresh_region_urls
+from roboflow.core.training import TrainedModel, _serverless_base_url_for_task
 from roboflow.models.classification import ClassificationModel
 from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
@@ -58,12 +58,22 @@ class TestRegionModels(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "SEMANTIC_SEGMENTATION_URL"):
             model.predict("tests/images/rabbit.JPG")
 
-    def test_explicit_semantic_segmentation_url_is_allowed(self) -> None:
-        os.environ["SEMANTIC_SEGMENTATION_URL"] = "https://segment.example"
+    def test_explicit_semantic_segmentation_url_is_the_request_destination(self) -> None:
         model = SemanticSegmentationModel("key", "ws/proj/1")
-        with mock.patch("roboflow.models.inference.InferenceModel.predict", return_value="ok") as predict:
+        # Set after construction: the override must still be where the image goes.
+        os.environ["SEMANTIC_SEGMENTATION_URL"] = "https://segment.example"
+        destinations = []
+        with mock.patch(
+            "roboflow.models.inference.InferenceModel.predict",
+            autospec=True,
+            side_effect=lambda self, *args, **kwargs: destinations.append(self.api_url) or "ok",
+        ):
             self.assertEqual(model.predict("tests/images/rabbit.JPG"), "ok")
-        predict.assert_called_once()
+        self.assertEqual(destinations, ["https://segment.example/proj/1"])
+
+    def test_trained_semantic_segmentation_uses_explicit_url(self) -> None:
+        os.environ["SEMANTIC_SEGMENTATION_URL"] = "https://segment.example"
+        self.assertEqual(_serverless_base_url_for_task(TASK_SEM), "https://segment.example")
 
 
 if __name__ == "__main__":

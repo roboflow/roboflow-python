@@ -67,19 +67,29 @@ def check_key(api_key, model, notebook, num_retries=0):
 
 
 def login(workspace=None, force=False, region=None):
+    from roboflow.config import (
+        CREDENTIALS_REGION_KEY,
+        SUPPORTED_REGIONS,
+        credentials_region,
+        get_effective_region,
+        has_credentials,
+        refresh_region_urls,
+        region_conflict,
+        resolve_url,
+    )
+
     normalized_region = None
     if region is not None:
-        from roboflow.config import SUPPORTED_REGIONS
-
         if not isinstance(region, str) or region.lower() not in SUPPORTED_REGIONS:
             raise ValueError(f"Invalid region '{region}'. Expected one of: {', '.join(SUPPORTED_REGIONS)}.")
         normalized_region = region.lower()
-
-    # Resolve at call time so a region passed by the CLI is honored even though
-    # the module-level URL constants were resolved when roboflow was imported.
-    from roboflow.config import resolve_url
-
-    app_url = resolve_url("APP_URL", region=normalized_region)
+        conflicting = region_conflict(normalized_region)
+        if conflicting is not None:
+            # Requests would follow the environment, not the credentials issued here.
+            raise ValueError(
+                f"ROBOFLOW_REGION={conflicting} in the environment overrides region='{normalized_region}'. "
+                "Unset it or make it match before logging in."
+            )
 
     os_name = os.name
 
@@ -91,21 +101,34 @@ def login(workspace=None, force=False, region=None):
     # default configuration location
     conf_location = os.getenv("ROBOFLOW_CONFIG_DIR", default=default_path)
     existing_config = {}
-    if os.path.isfile(conf_location) and not force:
-        write_line("You are already logged into Roboflow. To make a different login,run roboflow.login(force=True).")
-        return None
-        # we could eventually return the workspace object here
-        # return Roboflow().workspace()
-    elif os.path.isfile(conf_location) and force:
+    if os.path.isfile(conf_location):
         try:
             with open(conf_location) as f:
                 existing_config = json.load(f)
         except json.JSONDecodeError:
             # A forced login has historically replaced an unreadable config.
+            if not force:
+                raise
             existing_config = {}
         if not isinstance(existing_config, dict):
             existing_config = {}
-        os.remove(conf_location)
+
+    # A config holding only preferences (e.g. from `auth set-region`) is not a session.
+    target_region = normalized_region or get_effective_region()
+    if has_credentials(existing_config) and not force:
+        if credentials_region(existing_config) == target_region:
+            write_line(
+                "You are already logged into Roboflow. To make a different login,run roboflow.login(force=True)."
+            )
+            return None
+            # we could eventually return the workspace object here
+            # return Roboflow().workspace()
+        # Stored credentials were issued by the other platform and cannot authenticate here.
+        write_line(f"Stored credentials were issued by the {credentials_region(existing_config).upper()} platform.")
+
+    # Resolve at call time so a region passed by the CLI is honored even though
+    # the module-level URL constants were resolved when roboflow was imported.
+    app_url = resolve_url("APP_URL", region=normalized_region)
 
     if workspace is None:
         write_line("visit " + app_url + "/auth-cli to get your authentication token.")
@@ -125,6 +148,7 @@ def login(workspace=None, force=False, region=None):
         if not os.path.exists(os.path.dirname(conf_location)):
             os.makedirs(os.path.dirname(conf_location))
 
+        # The previous credentials are replaced only once the new ones are in hand.
         existing_config["workspaces"] = r_login
         # set first workspace as default workspace
 
@@ -133,14 +157,13 @@ def login(workspace=None, force=False, region=None):
         existing_config["RF_WORKSPACE"] = workspace["url"]
         if normalized_region is not None:
             existing_config["ROBOFLOW_REGION"] = normalized_region
+        existing_config[CREDENTIALS_REGION_KEY] = target_region
 
         # write config file
         with open(conf_location, "w") as f:
             json.dump(existing_config, f, indent=2)
 
         if normalized_region is not None:
-            from roboflow.config import refresh_region_urls
-
             # Constants bound at import time still point at the previous region.
             refresh_region_urls()
 
@@ -176,7 +199,15 @@ def initialize_roboflow(the_workspace=None):
     return active_workspace
 
 
-_ROBOFLOW_APP_HOSTS = ("universe.roboflow.com", "app.roboflow.com", "app.roboflow.eu")
+_ROBOFLOW_APP_HOSTS = (
+    "universe.roboflow.com",
+    "app.roboflow.com",
+    "app.roboflow.eu",
+    # Staging platforms from the endpoint matrix in roboflow.config.
+    "universe.roboflow.one",
+    "app.roboflow.one",
+    "app.roboflow-eu.one",
+)
 
 
 def _is_roboflow_app_url(url):

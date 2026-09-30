@@ -1,4 +1,4 @@
-from roboflow.config import SEMANTIC_SEGMENTATION_MODEL, SEMANTIC_SEGMENTATION_URL, ensure_url_available_in_region
+from roboflow.config import SEMANTIC_SEGMENTATION_MODEL, SEMANTIC_SEGMENTATION_URL, resolve_available_url
 from roboflow.models.inference import InferenceModel
 
 
@@ -40,7 +40,10 @@ class SemanticSegmentationModel(InferenceModel):
 
             >>> prediction = model.predict("YOUR_IMAGE.jpg")
         """  # noqa: E501 // docs
-        ensure_url_available_in_region("SEMANTIC_SEGMENTATION_URL")
+        # Resolve the destination now, with the same lookup the residency check uses,
+        # so the check always applies to the host that receives the image.
+        base_url = resolve_available_url("SEMANTIC_SEGMENTATION_URL")
+        self.api_url = f"{base_url}/{self.dataset_id}/{self.version}"
         return super().predict(
             image_path,
             confidence=confidence,

@@ -198,6 +198,45 @@ def ensure_url_available_in_region(key: str) -> None:
     )
 
 
+def resolve_available_url(key: str) -> str:
+    """Resolve ``key`` for a request, refusing when the service is not deployed in the effective region."""
+    ensure_url_available_in_region(key)
+    return resolve_url(key)
+
+
+def region_conflict(region: str) -> str | None:
+    """Return the ROBOFLOW_REGION environment value when it would override ``region``, else None.
+
+    The environment variable wins over every saved or explicit choice when URLs are
+    resolved, so authenticating against ``region`` would pair its credentials with
+    requests sent to another platform.
+    """
+    value = os.getenv("ROBOFLOW_REGION")
+    if value is None or _normalize_region(value) == region:
+        return None
+    return value
+
+
+CREDENTIALS_REGION_KEY = "ROBOFLOW_CREDENTIALS_REGION"
+
+
+def has_credentials(config) -> bool:
+    """Whether a loaded config holds workspace credentials, not just preferences such as a region."""
+    return isinstance(config, dict) and bool(config.get("workspaces"))
+
+
+def credentials_region(config) -> str:
+    """Region whose platform issued the stored credentials.
+
+    Recorded at login and independent of ROBOFLOW_REGION, which ``auth set-region``
+    changes without touching credentials. Configs written before the key existed can
+    only hold US credentials.
+    """
+    stored = config.get(CREDENTIALS_REGION_KEY) if isinstance(config, dict) else None
+    normalized = stored.strip().lower() if isinstance(stored, str) else ""
+    return normalized if normalized in SUPPORTED_REGIONS else DEFAULT_REGION
+
+
 CLASSIFICATION_MODEL = os.getenv("CLASSIFICATION_MODEL", "ClassificationModel")
 INSTANCE_SEGMENTATION_MODEL = "InstanceSegmentationModel"
 KEYPOINT_DETECTION_MODEL = "KeypointDetectionModel"

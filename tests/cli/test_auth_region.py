@@ -103,6 +103,66 @@ class TestAuthRegion(unittest.TestCase):
         self.assertIn("Already logged in", result.output)
         login.assert_not_called()
 
+    def test_login_after_set_region_on_fresh_install_authenticates(self) -> None:
+        set_result = runner.invoke(app, ["auth", "set-region", "eu"])
+        for command in (["auth", "login", "--region", "eu"], ["auth", "login"]):
+            with self.subTest(command=command), mock.patch("roboflow.login") as login:
+                result = runner.invoke(app, command)
+
+                self.assertEqual(result.exit_code, 0, result.output)
+                self.assertNotIn("Already logged in", result.output)
+                login.assert_called_once()
+        self.assertEqual(set_result.exit_code, 0, set_result.output)
+
+    def test_set_region_does_not_relabel_existing_credentials(self) -> None:
+        # US credentials, then a switch of the routing preference only.
+        self._write_logged_in_config()
+        runner.invoke(app, ["auth", "set-region", "eu"])
+
+        for command, region in ((["auth", "login", "--region", "eu"], "eu"), (["auth", "login"], None)):
+            with self.subTest(command=command), mock.patch("roboflow.login") as login:
+                result = runner.invoke(app, command)
+
+                self.assertEqual(result.exit_code, 0, result.output)
+                login.assert_called_once_with(workspace=None, force=True, region=region)
+
+    def test_login_region_conflicting_with_environment_is_refused(self) -> None:
+        os.environ["ROBOFLOW_REGION"] = "us"
+
+        with mock.patch("roboflow.login") as login, responses.RequestsMock() as mocked:
+            for command in (
+                ["auth", "login", "--region", "eu"],
+                ["auth", "login", "--api-key", "eu-key", "--region", "eu"],
+            ):
+                with self.subTest(command=command):
+                    result = runner.invoke(app, command)
+
+                    self.assertEqual(result.exit_code, 2, result.output)
+                    self.assertIn("ROBOFLOW_REGION=us", result.output)
+            self.assertEqual(len(mocked.calls), 0)
+        login.assert_not_called()
+        self.assertFalse(os.path.exists(self.config_path))
+
+    @responses.activate
+    def test_api_key_login_on_other_platform_replaces_workspaces(self) -> None:
+        self._write_logged_in_config()
+        responses.add(
+            responses.POST, "https://api.roboflow.eu/?api_key=eu-key", json={"workspace": "new-eu"}, status=200
+        )
+        responses.add(
+            responses.GET,
+            "https://api.roboflow.eu/new-eu?api_key=eu-key",
+            json={"workspace": {"name": "New EU"}},
+            status=200,
+        )
+
+        result = runner.invoke(app, ["auth", "login", "--api-key", "eu-key", "--region", "eu"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        config = self._read_config()
+        self.assertEqual(list(config["workspaces"]), ["new-eu"])
+        self.assertEqual(config["ROBOFLOW_CREDENTIALS_REGION"], "eu")
+
     def test_set_region_without_credentials_has_no_warning(self) -> None:
         result = runner.invoke(app, ["--json", "auth", "set-region", "eu"])
 
