@@ -156,8 +156,19 @@ class TestRegionConfiguration(unittest.TestCase):
         self.assertEqual(config.API_URL, "https://localapi.roboflow.one")
         self.assertEqual(config.APP_URL, "https://app.roboflow.one")
 
+    def test_production_is_an_alias_for_prod(self) -> None:
+        os.environ["ROBOFLOW_REGION"] = "eu"
+        os.environ["ROBOFLOW_ENVIRONMENT"] = "Production"
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            config = self._reload_config()
+        self.assertEqual(config.get_effective_environment(), "prod")
+        self.assertEqual(config.API_URL, "https://api.roboflow.eu")
+        self.assertIsNone(config.get_region_warning())
+        self.assertEqual([w for w in caught if issubclass(w.category, config.RegionWarning)], [])
+
     def test_unknown_environment_warns_and_falls_back_to_prod(self) -> None:
-        os.environ["ROBOFLOW_ENVIRONMENT"] = "production"
+        os.environ["ROBOFLOW_ENVIRONMENT"] = "prd"
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             config = self._reload_config()
@@ -165,7 +176,7 @@ class TestRegionConfiguration(unittest.TestCase):
             self.assertEqual(config.API_URL, URL_DEFAULTS["API_URL"])
 
         messages = [str(w.message) for w in caught if issubclass(w.category, config.RegionWarning)]
-        self.assertEqual(messages, ["unknown Roboflow environment 'production'; falling back to 'prod'."])
+        self.assertEqual(messages, ["unknown Roboflow environment 'prd'; falling back to 'prod'."])
         self.assertEqual(config.get_region_warning(), messages[0])
 
     def test_semantic_segmentation_availability_by_region_and_environment(self) -> None:

@@ -37,7 +37,7 @@ value takes precedence over the saved region. Explicit per-URL environment or
 config values such as `API_URL` continue to take precedence over the region.
 
 For Roboflow staging, set `ROBOFLOW_ENVIRONMENT=staging` alongside the
-region; it accepts `prod` (default) or `staging`, and anything else warns and
+region; it accepts `prod` (default, also `production`) or `staging`, and anything else warns and
 falls back to `prod`. It selects the `roboflow.one` (US) or `roboflow-eu.one`
 (EU) hosts, matching `inference`. `roboflow auth status` reports both switches.
 
