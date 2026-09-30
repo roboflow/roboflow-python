@@ -3,18 +3,6 @@ import os
 import sys
 import warnings
 
-REGION_URL_DEFAULTS = {
-    "us": {},
-    "eu": {
-        "API_URL": "https://api.roboflow.eu",
-        "APP_URL": "https://app.roboflow.eu",
-        "OBJECT_DETECTION_URL": "https://serverless.roboflow.eu",
-        "INSTANCE_SEGMENTATION_URL": "https://serverless.roboflow.eu",
-        "SERVERLESS_URL": "https://serverless.roboflow.eu",
-        "DEDICATED_DEPLOYMENT_URL": "https://eu.roboflow.cloud",
-    },
-}
-
 URL_DEFAULTS = {
     "API_URL": "https://api.roboflow.com",
     "APP_URL": "https://app.roboflow.com",
@@ -28,20 +16,60 @@ URL_DEFAULTS = {
     "DEDICATED_DEPLOYMENT_URL": "https://roboflow.cloud",
 }
 
-# Hosted services with no deployment in a region. Their global default would send
-# the region's data elsewhere, so callers refuse unless the URL is set explicitly.
-REGION_UNAVAILABLE_URL_KEYS = {
-    "eu": ("SEMANTIC_SEGMENTATION_URL",),
+SUPPORTED_REGIONS = ("us", "eu")
+SUPPORTED_ENVIRONMENTS = ("prod", "staging")
+DEFAULT_REGION = "us"
+DEFAULT_ENVIRONMENT = "prod"
+
+# Per (region, environment) overrides of URL_DEFAULTS, which is US production. Hosts
+# mirror the platform's environment configs and the dedicated-deployment ingresses.
+SERVICE_URL_OVERRIDES: dict[tuple[str, str], dict[str, str]] = {
+    ("us", "prod"): {},
+    ("us", "staging"): {
+        "API_URL": "https://api.roboflow.one",
+        "APP_URL": "https://app.roboflow.one",
+        "UNIVERSE_URL": "https://universe.roboflow.one",
+        "OBJECT_DETECTION_URL": "https://serverless.roboflow.one",
+        "INSTANCE_SEGMENTATION_URL": "https://serverless.roboflow.one",
+        "SERVERLESS_URL": "https://serverless.roboflow.one",
+        "SEMANTIC_SEGMENTATION_URL": "https://lambda-semantic-segmentation.staging.roboflow.com",
+        "DEDICATED_DEPLOYMENT_URL": "https://staging.roboflow.cloud",
+    },
+    ("eu", "prod"): {
+        "API_URL": "https://api.roboflow.eu",
+        "APP_URL": "https://app.roboflow.eu",
+        "OBJECT_DETECTION_URL": "https://serverless.roboflow.eu",
+        "INSTANCE_SEGMENTATION_URL": "https://serverless.roboflow.eu",
+        "SERVERLESS_URL": "https://serverless.roboflow.eu",
+        "DEDICATED_DEPLOYMENT_URL": "https://eu.roboflow.cloud",
+    },
+    ("eu", "staging"): {
+        "API_URL": "https://api.roboflow-eu.one",
+        "APP_URL": "https://app.roboflow-eu.one",
+        "UNIVERSE_URL": "https://universe.roboflow.one",
+        "OBJECT_DETECTION_URL": "https://serverless.roboflow-eu.one",
+        "INSTANCE_SEGMENTATION_URL": "https://serverless.roboflow-eu.one",
+        "SERVERLESS_URL": "https://serverless.roboflow-eu.one",
+        "DEDICATED_DEPLOYMENT_URL": "https://eu.staging.roboflow.cloud",
+    },
+}
+
+# Hosted services with no deployment in a (region, environment). Their fallback would
+# send data to another region or environment, so callers refuse unless the URL is
+# set explicitly.
+UNAVAILABLE_URL_KEYS: dict[tuple[str, str], tuple[str, ...]] = {
+    ("eu", "prod"): ("SEMANTIC_SEGMENTATION_URL",),
+    ("eu", "staging"): ("SEMANTIC_SEGMENTATION_URL",),
 }
 
 _UNSET = object()
 
 
 class RegionWarning(UserWarning):
-    """Emitted when ROBOFLOW_REGION holds an unrecognized value."""
+    """Emitted when ROBOFLOW_REGION or ROBOFLOW_ENVIRONMENT holds an unrecognized value."""
 
 
-_WARNED_UNKNOWN_REGIONS: set[str] = set()
+_WARNED_UNKNOWN_VALUES: set[tuple[str, str]] = set()
 
 
 def get_conditional_configuration_variable(key, default):
@@ -84,43 +112,66 @@ def get_conditional_configuration_variable(key, default):
         return default
 
 
-def _normalize_region(region) -> str:
-    normalized_region = region.strip().lower() if isinstance(region, str) else ""
-    if normalized_region in REGION_URL_DEFAULTS:
-        return normalized_region
+def _normalize_choice(setting: str, value, supported: tuple[str, ...], default: str) -> str:
+    normalized = value.strip().lower() if isinstance(value, str) else ""
+    if normalized in supported:
+        return normalized
 
-    warning_key = repr(region)
-    if warning_key not in _WARNED_UNKNOWN_REGIONS:
-        _WARNED_UNKNOWN_REGIONS.add(warning_key)
+    warning_key = (setting, repr(value))
+    if warning_key not in _WARNED_UNKNOWN_VALUES:
+        _WARNED_UNKNOWN_VALUES.add(warning_key)
         # This runs while roboflow is imported, before the CLI parses its flags, so
         # mirror the CLI's --json detection: its stderr must stay machine-readable,
         # and `auth status` reports the problem as a JSON field instead.
         if not ("--json" in sys.argv or "-j" in sys.argv):
-            warnings.warn(unknown_region_message(region), RegionWarning, stacklevel=2)
-    return "us"
+            warnings.warn(_unknown_value_message(setting, value, default), RegionWarning, stacklevel=3)
+    return default
+
+
+def _normalize_region(region) -> str:
+    return _normalize_choice("region", region, SUPPORTED_REGIONS, DEFAULT_REGION)
+
+
+def _normalize_environment(environment) -> str:
+    return _normalize_choice("environment", environment, SUPPORTED_ENVIRONMENTS, DEFAULT_ENVIRONMENT)
+
+
+def _unknown_value_message(setting: str, value, default: str) -> str:
+    return f"unknown Roboflow {setting} {value!r}; falling back to {default!r}."
 
 
 def unknown_region_message(region) -> str:
-    return f"unknown Roboflow region {region!r}; falling back to 'us'."
+    return _unknown_value_message("region", region, DEFAULT_REGION)
 
 
 def get_region_warning() -> str | None:
-    """Return the fallback warning when the configured region is not recognized."""
-    region = get_conditional_configuration_variable("ROBOFLOW_REGION", default="us")
-    normalized_region = region.strip().lower() if isinstance(region, str) else ""
-    if normalized_region in REGION_URL_DEFAULTS:
-        return None
-    return unknown_region_message(region)
+    """Return the fallback warning(s) when the configured region or environment is not recognized."""
+    messages = []
+    for setting, key, supported, default in (
+        ("region", "ROBOFLOW_REGION", SUPPORTED_REGIONS, DEFAULT_REGION),
+        ("environment", "ROBOFLOW_ENVIRONMENT", SUPPORTED_ENVIRONMENTS, DEFAULT_ENVIRONMENT),
+    ):
+        value = get_conditional_configuration_variable(key, default=default)
+        normalized = value.strip().lower() if isinstance(value, str) else ""
+        if normalized not in supported:
+            messages.append(_unknown_value_message(setting, value, default))
+    return " ".join(messages) or None
 
 
 def get_effective_region() -> str:
     """Return the configured Roboflow region, defaulting safely to US."""
-    region = get_conditional_configuration_variable("ROBOFLOW_REGION", default="us")
+    region = get_conditional_configuration_variable("ROBOFLOW_REGION", default=DEFAULT_REGION)
     return _normalize_region(region)
 
 
-def resolve_url(key: str, region: str | None = None) -> str:
-    """Resolve a Roboflow URL using explicit overrides before region defaults."""
+def get_effective_environment() -> str:
+    """Return the configured Roboflow environment, defaulting safely to production."""
+    environment = get_conditional_configuration_variable("ROBOFLOW_ENVIRONMENT", default=DEFAULT_ENVIRONMENT)
+    return _normalize_environment(environment)
+
+
+def resolve_url(key: str, region: str | None = None, environment: str | None = None) -> str:
+    """Resolve a Roboflow URL: explicit override, then region/environment default, then US production."""
     if key not in URL_DEFAULTS:
         raise KeyError(f"Unknown Roboflow URL configuration key: {key}")
 
@@ -129,19 +180,21 @@ def resolve_url(key: str, region: str | None = None) -> str:
         return explicit_url
 
     effective_region = get_effective_region() if region is None else _normalize_region(region)
-    return REGION_URL_DEFAULTS[effective_region].get(key, URL_DEFAULTS[key])
+    effective_environment = get_effective_environment() if environment is None else _normalize_environment(environment)
+    return SERVICE_URL_OVERRIDES[(effective_region, effective_environment)].get(key, URL_DEFAULTS[key])
 
 
 def ensure_url_available_in_region(key: str) -> None:
-    """Raise if ``key`` has no deployment in the effective region and no explicit override."""
-    region = get_effective_region()
-    if key not in REGION_UNAVAILABLE_URL_KEYS.get(region, ()):
+    """Raise if ``key`` has no deployment in the effective region/environment and no explicit override."""
+    target = (get_effective_region(), get_effective_environment())
+    if key not in UNAVAILABLE_URL_KEYS.get(target, ()):
         return
     if get_conditional_configuration_variable(key, default=_UNSET) is not _UNSET:
         return
+    label = f"{target[0].upper()} {target[1]}"
     raise RuntimeError(
-        f"{key} has no Roboflow {region.upper()} deployment; the default {URL_DEFAULTS[key]} would send "
-        f"data outside the {region.upper()} region. Set {key} explicitly to override."
+        f"{key} has no Roboflow {label} deployment; the default {resolve_url(key)} would send "
+        f"data outside {label}. Set {key} explicitly to override."
     )
 
 

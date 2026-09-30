@@ -25,7 +25,7 @@ URL_DEFAULTS = {
     "DEDICATED_DEPLOYMENT_URL": "https://roboflow.cloud",
 }
 
-REGION_ENVIRONMENT_KEYS = ("ROBOFLOW_CONFIG_DIR", "ROBOFLOW_REGION", *URL_DEFAULTS)
+REGION_ENVIRONMENT_KEYS = ("ROBOFLOW_CONFIG_DIR", "ROBOFLOW_REGION", "ROBOFLOW_ENVIRONMENT", *URL_DEFAULTS)
 
 
 class TestRegionConfiguration(unittest.TestCase):
@@ -111,6 +111,71 @@ class TestRegionConfiguration(unittest.TestCase):
             config.resolve_url("API_URL", region="EU"),
             "https://api.roboflow.eu",
         )
+
+    def test_region_environment_url_matrix(self) -> None:
+        expected = {
+            ("us", "staging"): {
+                "API_URL": "https://api.roboflow.one",
+                "APP_URL": "https://app.roboflow.one",
+                "UNIVERSE_URL": "https://universe.roboflow.one",
+                "OBJECT_DETECTION_URL": "https://serverless.roboflow.one",
+                "INSTANCE_SEGMENTATION_URL": "https://serverless.roboflow.one",
+                "SERVERLESS_URL": "https://serverless.roboflow.one",
+                "SEMANTIC_SEGMENTATION_URL": "https://lambda-semantic-segmentation.staging.roboflow.com",
+                "DEDICATED_DEPLOYMENT_URL": "https://staging.roboflow.cloud",
+            },
+            ("eu", "staging"): {
+                "API_URL": "https://api.roboflow-eu.one",
+                "APP_URL": "https://app.roboflow-eu.one",
+                "UNIVERSE_URL": "https://universe.roboflow.one",
+                "OBJECT_DETECTION_URL": "https://serverless.roboflow-eu.one",
+                "INSTANCE_SEGMENTATION_URL": "https://serverless.roboflow-eu.one",
+                "SERVERLESS_URL": "https://serverless.roboflow-eu.one",
+                "DEDICATED_DEPLOYMENT_URL": "https://eu.staging.roboflow.cloud",
+            },
+        }
+        for (region, environment), urls in expected.items():
+            os.environ["ROBOFLOW_REGION"] = region
+            os.environ["ROBOFLOW_ENVIRONMENT"] = environment
+            config = self._reload_config()
+            self.assertEqual(config.get_effective_environment(), environment)
+            for key, expected_url in urls.items():
+                with self.subTest(region=region, environment=environment, key=key):
+                    self.assertEqual(getattr(config, key), expected_url)
+
+    def test_environment_is_read_from_config_file(self) -> None:
+        self._write_config({"ROBOFLOW_ENVIRONMENT": "Staging"})
+        config = self._reload_config()
+        self.assertEqual(config.get_effective_environment(), "staging")
+        self.assertEqual(config.API_URL, "https://api.roboflow.one")
+
+    def test_explicit_url_beats_environment(self) -> None:
+        os.environ["ROBOFLOW_ENVIRONMENT"] = "staging"
+        os.environ["API_URL"] = "https://localapi.roboflow.one"
+        config = self._reload_config()
+        self.assertEqual(config.API_URL, "https://localapi.roboflow.one")
+        self.assertEqual(config.APP_URL, "https://app.roboflow.one")
+
+    def test_unknown_environment_warns_and_falls_back_to_prod(self) -> None:
+        os.environ["ROBOFLOW_ENVIRONMENT"] = "production"
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            config = self._reload_config()
+            self.assertEqual(config.get_effective_environment(), "prod")
+            self.assertEqual(config.API_URL, URL_DEFAULTS["API_URL"])
+
+        messages = [str(w.message) for w in caught if issubclass(w.category, config.RegionWarning)]
+        self.assertEqual(messages, ["unknown Roboflow environment 'production'; falling back to 'prod'."])
+        self.assertEqual(config.get_region_warning(), messages[0])
+
+    def test_semantic_segmentation_availability_by_region_and_environment(self) -> None:
+        os.environ["ROBOFLOW_ENVIRONMENT"] = "staging"
+        config = self._reload_config()
+        config.ensure_url_available_in_region("SEMANTIC_SEGMENTATION_URL")
+
+        os.environ["ROBOFLOW_REGION"] = "eu"
+        with self.assertRaisesRegex(RuntimeError, "EU staging"):
+            config.ensure_url_available_in_region("SEMANTIC_SEGMENTATION_URL")
 
     def test_unknown_region_warns_once_and_falls_back_to_us(self) -> None:
         os.environ["ROBOFLOW_REGION"] = "bogus"

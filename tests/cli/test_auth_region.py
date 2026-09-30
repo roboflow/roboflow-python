@@ -31,7 +31,7 @@ class TestAuthRegion(unittest.TestCase):
             clear=False,
         )
         self.env_patch.start()
-        for key in ("ROBOFLOW_REGION", "API_URL", "APP_URL", "ROBOFLOW_API_KEY"):
+        for key in ("ROBOFLOW_REGION", "ROBOFLOW_ENVIRONMENT", "API_URL", "APP_URL", "ROBOFLOW_API_KEY"):
             os.environ.pop(key, None)
 
     def tearDown(self) -> None:
@@ -179,6 +179,20 @@ class TestAuthRegion(unittest.TestCase):
         self.assertEqual(payload["region"], "eu")
         self.assertEqual(payload["api_url"], "https://api.roboflow.eu")
         self.assertEqual(payload["app_url"], "https://app.roboflow.eu")
+
+    def test_status_json_includes_staging_environment(self) -> None:
+        self._write_logged_in_config()
+        os.environ["ROBOFLOW_REGION"] = "eu"
+        os.environ["ROBOFLOW_ENVIRONMENT"] = "staging"
+
+        result = runner.invoke(app, ["--json", "auth", "status"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["region"], "eu")
+        self.assertEqual(payload["environment"], "staging")
+        self.assertEqual(payload["api_url"], "https://api.roboflow-eu.one")
+        self.assertEqual(payload["app_url"], "https://app.roboflow-eu.one")
 
     def test_set_region_reports_environment_override_as_effective(self) -> None:
         os.environ["ROBOFLOW_REGION"] = "us"

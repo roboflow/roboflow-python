@@ -140,13 +140,14 @@ def _stored_region(config: dict) -> str:
 
 def _region_status() -> tuple[dict[str, str], list[str]]:
     """Return the effective region metadata in structured and text forms."""
-    from roboflow.config import get_effective_region, get_region_warning, resolve_url
+    from roboflow.config import get_effective_environment, get_effective_region, get_region_warning, resolve_url
 
     region = get_effective_region()
+    environment = get_effective_environment()
     api_url = resolve_url("API_URL", region=region)
     app_url = resolve_url("APP_URL", region=region)
-    data = {"region": region, "api_url": api_url, "app_url": app_url}
-    lines = [f"Region: {region}", f"API URL: {api_url}", f"App URL: {app_url}"]
+    data = {"region": region, "environment": environment, "api_url": api_url, "app_url": app_url}
+    lines = [f"Region: {region}", f"Environment: {environment}", f"API URL: {api_url}", f"App URL: {app_url}"]
     region_warning = get_region_warning()
     if region_warning is not None:
         data["region_warning"] = region_warning

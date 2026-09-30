@@ -69,8 +69,10 @@ def check_key(api_key, model, notebook, num_retries=0):
 def login(workspace=None, force=False, region=None):
     normalized_region = None
     if region is not None:
-        if not isinstance(region, str) or region.lower() not in {"us", "eu"}:
-            raise ValueError(f"Invalid region '{region}'. Expected one of: us, eu.")
+        from roboflow.config import SUPPORTED_REGIONS
+
+        if not isinstance(region, str) or region.lower() not in SUPPORTED_REGIONS:
+            raise ValueError(f"Invalid region '{region}'. Expected one of: {', '.join(SUPPORTED_REGIONS)}.")
         normalized_region = region.lower()
 
     # Resolve at call time so a region passed by the CLI is honored even though
