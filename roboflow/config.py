@@ -112,15 +112,8 @@ def get_conditional_configuration_variable(key, default):
         return default
 
 
-# Spellings accepted for a supported value; EU production deployments set "production".
-_ENVIRONMENT_ALIASES = {"production": "prod"}
-
-
-def _normalize_choice(
-    setting: str, value, supported: tuple[str, ...], default: str, aliases: dict[str, str] | None = None
-) -> str:
+def _normalize_choice(setting: str, value, supported: tuple[str, ...], default: str) -> str:
     normalized = value.strip().lower() if isinstance(value, str) else ""
-    normalized = (aliases or {}).get(normalized, normalized)
     if normalized in supported:
         return normalized
 
@@ -140,9 +133,7 @@ def _normalize_region(region) -> str:
 
 
 def _normalize_environment(environment) -> str:
-    return _normalize_choice(
-        "environment", environment, SUPPORTED_ENVIRONMENTS, DEFAULT_ENVIRONMENT, _ENVIRONMENT_ALIASES
-    )
+    return _normalize_choice("environment", environment, SUPPORTED_ENVIRONMENTS, DEFAULT_ENVIRONMENT)
 
 
 def _unknown_value_message(setting: str, value, default: str) -> str:
@@ -156,13 +147,13 @@ def unknown_region_message(region) -> str:
 def get_region_warning() -> str | None:
     """Return the fallback warning(s) when the configured region or environment is not recognized."""
     messages = []
-    for setting, key, supported, default, aliases in (
-        ("region", "ROBOFLOW_REGION", SUPPORTED_REGIONS, DEFAULT_REGION, {}),
-        ("environment", "ROBOFLOW_ENVIRONMENT", SUPPORTED_ENVIRONMENTS, DEFAULT_ENVIRONMENT, _ENVIRONMENT_ALIASES),
+    for setting, key, supported, default in (
+        ("region", "ROBOFLOW_REGION", SUPPORTED_REGIONS, DEFAULT_REGION),
+        ("environment", "ROBOFLOW_ENVIRONMENT", SUPPORTED_ENVIRONMENTS, DEFAULT_ENVIRONMENT),
     ):
         value = get_conditional_configuration_variable(key, default=default)
         normalized = value.strip().lower() if isinstance(value, str) else ""
-        if aliases.get(normalized, normalized) not in supported:
+        if normalized not in supported:
             messages.append(_unknown_value_message(setting, value, default))
     return " ".join(messages) or None
 
