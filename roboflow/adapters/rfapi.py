@@ -911,6 +911,47 @@ def _save_annotation_error(response):
 
 
 # ---------------------------------------------------------------------------
+# Native video upload endpoints
+# ---------------------------------------------------------------------------
+
+
+def prepare_video_upload(api_key, workspace_url, project_url, body) -> dict:
+    """Prepare a native video Source upload and obtain its signed PUT URL."""
+    response = requests.post(
+        f"{API_URL}/{workspace_url}/upload/video",
+        params={"api_key": api_key},
+        json={"project": project_url, **body},
+    )
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def put_video_upload(signed_url, video_path, required_headers, content_type) -> None:
+    """Stream original video bytes to the API-issued signed URL."""
+    with open(video_path, "rb") as video:
+        response = requests.put(
+            signed_url,
+            data=video,
+            headers={"Content-Type": content_type, **required_headers},
+            timeout=(30, 3600),
+        )
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+
+
+def get_video_upload_status(api_key, workspace_url, video_id) -> dict:
+    """Read processing state and the canonical Source ID after ingestion."""
+    response = requests.get(
+        f"{API_URL}/{workspace_url}/upload/video/{video_id}",
+        params={"api_key": api_key},
+    )
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
 # Zip upload endpoints
 # ---------------------------------------------------------------------------
 
