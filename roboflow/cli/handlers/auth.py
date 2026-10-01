@@ -1,4 +1,4 @@
-"""Auth commands: login, logout, status, set-workspace."""
+"""Auth commands: login, logout, status, set-region, set-workspace."""
 
 from __future__ import annotations
 
@@ -18,10 +18,19 @@ def login(
     login_workspace: Annotated[
         Optional[str], typer.Option("--workspace", help="Set default workspace during login")
     ] = None,
+    region: Annotated[
+        Optional[str], typer.Option("--region", metavar="{us,eu}", help="Roboflow platform region")
+    ] = None,
     force: Annotated[bool, typer.Option("--force", "-f", help="Force re-login even if already logged in")] = False,
 ) -> None:
     """Log in to Roboflow."""
-    args = ctx_to_args(ctx, login_api_key=login_api_key, login_workspace=login_workspace, force=force)
+    args = ctx_to_args(
+        ctx,
+        login_api_key=login_api_key,
+        login_workspace=login_workspace,
+        region=region,
+        force=force,
+    )
     _login(args)
 
 
@@ -40,6 +49,16 @@ def set_workspace(
     """Set the default workspace."""
     args = ctx_to_args(ctx, workspace_id=workspace_id)
     _set_workspace(args)
+
+
+@auth_app.command("set-region")
+def set_region(
+    ctx: typer.Context,
+    region: Annotated[str, typer.Argument(metavar="{us,eu}", help="Roboflow platform region")],
+) -> None:
+    """Set the Roboflow platform region."""
+    args = ctx_to_args(ctx, region=region)
+    _set_region(args)
 
 
 @auth_app.command("logout")
@@ -95,6 +114,41 @@ def _mask_key(key: str) -> str:
     return key[:2] + "*" * (len(key) - 4) + key[-2:]
 
 
+def _validate_region(args, region: Optional[str]) -> Optional[str]:  # noqa: ANN001
+    """Normalize and validate a region supplied explicitly on the CLI."""
+    if region is None:
+        return None
+
+    normalized = region.lower()
+    if normalized not in {"us", "eu"}:
+        from roboflow.cli._output import output_error
+
+        output_error(
+            args,
+            f"Invalid region '{region}'.",
+            hint="Region must be 'us' or 'eu'.",
+            exit_code=2,
+        )
+    return normalized
+
+
+def _region_status() -> tuple[dict[str, str], list[str]]:
+    """Return the effective region metadata in structured and text forms."""
+    from roboflow.config import get_effective_environment, get_effective_region, get_region_warning, resolve_url
+
+    region = get_effective_region()
+    environment = get_effective_environment()
+    api_url = resolve_url("API_URL", region=region)
+    app_url = resolve_url("APP_URL", region=region)
+    data = {"region": region, "environment": environment, "api_url": api_url, "app_url": app_url}
+    lines = [f"Region: {region}", f"Environment: {environment}", f"API URL: {api_url}", f"App URL: {app_url}"]
+    region_warning = get_region_warning()
+    if region_warning is not None:
+        data["region_warning"] = region_warning
+        lines.append(f"Warning: {region_warning}")
+    return data, lines
+
+
 def _print_completion_tip(args) -> None:  # noqa: ANN001
     """Nudge users towards shell completion after a successful login.
 
@@ -111,17 +165,40 @@ def _login(args):  # noqa: ANN001
 
     api_key = getattr(args, "login_api_key", None) or getattr(args, "api_key", None)
     workspace_id = getattr(args, "login_workspace", None) or getattr(args, "workspace", None)
+    region = _validate_region(args, getattr(args, "region", None))
     force = getattr(args, "force", False)
+
+    from roboflow.config import (
+        CREDENTIALS_REGION_KEY,
+        credentials_region,
+        get_effective_region,
+        has_credentials,
+        region_conflict,
+    )
+
+    conflicting = region_conflict(region) if region is not None else None
+    if conflicting is not None:
+        # Requests follow the environment, so credentials from --region would go to the other platform.
+        output_error(
+            args,
+            f"ROBOFLOW_REGION={conflicting} in the environment overrides --region {region}.",
+            hint="Unset ROBOFLOW_REGION or make it match before logging in.",
+            exit_code=2,
+        )
+        return
+    target_region = region or get_effective_region()
 
     if api_key:
         # Non-interactive: validate key and fetch workspace info
         import requests
 
-        from roboflow.config import API_URL
+        from roboflow.config import resolve_url
 
-        resp = requests.post(API_URL + "/?api_key=" + api_key)
+        api_url = resolve_url("API_URL", region=region)
+        app_url = resolve_url("APP_URL", region=region)
+        resp = requests.post(api_url + "/?api_key=" + api_key)
         if resp.status_code == 401:
-            output_error(args, "Invalid API key.", hint="Check your key at app.roboflow.com/settings", exit_code=2)
+            output_error(args, "Invalid API key.", hint=f"Check your key at {app_url}/settings", exit_code=2)
             return
         if resp.status_code != 200:
             output_error(args, f"API error ({resp.status_code}).", exit_code=1)
@@ -141,9 +218,9 @@ def _login(args):  # noqa: ANN001
         # Fetch workspace name from the API
         ws_name = ws_url
         try:
-            from roboflow.adapters import rfapi
-
-            ws_json = rfapi.get_workspace(api_key, ws_url)
+            ws_resp = requests.get(f"{api_url}/{ws_url}?api_key={api_key}")
+            ws_resp.raise_for_status()
+            ws_json = ws_resp.json()
             ws_detail = ws_json.get("workspace", ws_json)
             ws_name = ws_detail.get("name", ws_url)
         except Exception:  # noqa: BLE001
@@ -152,9 +229,15 @@ def _login(args):  # noqa: ANN001
         # Build config with workspace info
         config = _load_config()
         workspaces = config.get("workspaces", {})
+        if has_credentials(config) and credentials_region(config) != target_region:
+            # Keys from the other platform cannot be used here; don't leave them selectable.
+            workspaces = {}
         workspaces[ws_url] = {"url": ws_url, "name": ws_name, "apiKey": api_key}
         config["workspaces"] = workspaces
         config["RF_WORKSPACE"] = ws_url
+        if region is not None:
+            config["ROBOFLOW_REGION"] = region
+        config[CREDENTIALS_REGION_KEY] = target_region
         _save_config(config)
 
         note = ""
@@ -170,21 +253,23 @@ def _login(args):  # noqa: ANN001
         # Interactive flow
         import roboflow
 
-        conf_path = _get_config_path()
-        import os
+        config = _load_config()
+        if has_credentials(config) and not force:
+            if credentials_region(config) != target_region:
+                # Stored credentials belong to the platform that issued them; another
+                # region needs new ones, so treat it as a forced login.
+                force = True
+            else:
+                # Already logged in — show status
+                ws = config.get("RF_WORKSPACE", "unknown")
+                output(
+                    args,
+                    {"status": "logged_in", "workspace": ws, "api_key": "****"},
+                    text=f"Already logged in. Default workspace: {ws}\nUse --force to re-login.",
+                )
+                return
 
-        if os.path.isfile(conf_path) and not force:
-            # Already logged in — show status
-            config = _load_config()
-            ws = config.get("RF_WORKSPACE", "unknown")
-            output(
-                args,
-                {"status": "logged_in", "workspace": ws, "api_key": "****"},
-                text=f"Already logged in. Default workspace: {ws}\nUse --force to re-login.",
-            )
-            return
-
-        roboflow.login(workspace=workspace_id, force=force)
+        roboflow.login(workspace=workspace_id, force=force, region=region)
         # Re-read config after interactive login
         config = _load_config()
         ws = config.get("RF_WORKSPACE", "unknown")
@@ -194,7 +279,6 @@ def _login(args):  # noqa: ANN001
             text=f"Logged in. Default workspace: {ws}",
         )
         _print_completion_tip(args)
-        _print_completion_tip(args)
 
 
 def _status(args):  # noqa: ANN001
@@ -202,6 +286,7 @@ def _status(args):  # noqa: ANN001
 
     from roboflow.cli._output import output, output_error
 
+    region_data, region_lines = _region_status()
     config = _load_config()
     workspaces = config.get("workspaces", {})
     default_ws_url = config.get("RF_WORKSPACE")
@@ -215,14 +300,19 @@ def _status(args):  # noqa: ANN001
     if explicit_api_key or (api_key and not default_ws_url):
         import requests
 
-        from roboflow.config import API_URL
+        from roboflow.config import resolve_url
 
         assert api_key is not None  # guaranteed by the condition above
-        resp = requests.post(API_URL + "/?api_key=" + api_key)
+        resp = requests.post(resolve_url("API_URL", region=region_data["region"]) + "/?api_key=" + api_key)
         if resp.status_code == 200:
             ws_url = resp.json().get("workspace", "unknown")
-            data = {"url": ws_url, "name": ws_url, "apiKey": _mask_key(api_key)}
-            lines = [
+            data = {
+                "url": ws_url,
+                "name": ws_url,
+                "apiKey": _mask_key(api_key),
+                **region_data,
+            }
+            lines = region_lines + [
                 f"Workspace: {ws_url}",
                 f"  URL: {ws_url}",
                 f"  API Key: {_mask_key(api_key)}",
@@ -234,6 +324,21 @@ def _status(args):  # noqa: ANN001
         return
 
     if not workspaces and not default_ws_url and not api_key:
+        if getattr(args, "json", False):
+            import json
+            import sys
+
+            payload = {
+                "error": {
+                    "message": "Not logged in.",
+                    "hint": "Run 'roboflow auth login' to authenticate.",
+                },
+                **region_data,
+            }
+            print(json.dumps(payload), file=sys.stderr)
+            raise SystemExit(2)
+
+        output(args, region_data, text="\n".join(region_lines))
         output_error(args, "Not logged in.", hint="Run 'roboflow auth login' to authenticate.", exit_code=2)
         return  # unreachable, but helps mypy
 
@@ -249,7 +354,8 @@ def _status(args):  # noqa: ANN001
         display_key = api_key or default_ws.get("apiKey", "")
         masked = dict(default_ws)
         masked["apiKey"] = _mask_key(display_key)
-        lines = [
+        masked.update(region_data)
+        lines = region_lines + [
             f"Workspace: {masked.get('name', 'unknown')}",
             f"  URL: {masked.get('url', 'unknown')}",
             f"  API Key: {masked['apiKey']}",
@@ -257,12 +363,56 @@ def _status(args):  # noqa: ANN001
         output(args, masked, text="\n".join(lines))
     else:
         # RF_WORKSPACE is set but no matching workspace details
-        data = {"url": default_ws_url, "name": default_ws_url}
+        data = {"url": default_ws_url, "name": default_ws_url, **region_data}
         output(
             args,
             data,
-            text=f"Workspace: {default_ws_url}\n  (no detailed info available)",
+            text="\n".join(region_lines + [f"Workspace: {default_ws_url}", "  (no detailed info available)"]),
         )
+
+
+def _set_region(args):  # noqa: ANN001
+    from roboflow.cli._output import output
+    from roboflow.config import credentials_region, get_effective_region, has_credentials, resolve_url
+
+    region = _validate_region(args, args.region)
+    assert region is not None
+
+    config = _load_config()
+    stored_credentials = has_credentials(config)
+    issuing_region = credentials_region(config)
+    config["ROBOFLOW_REGION"] = region
+    _save_config(config)
+
+    effective_region = get_effective_region()
+    api_url = resolve_url("API_URL")
+    app_url = resolve_url("APP_URL")
+    warning = None
+    if stored_credentials and issuing_region != region:
+        warning = (
+            f"Stored credentials were issued by the {issuing_region.upper()} platform. "
+            "EU and US use separate authentication backends and API keys, so "
+            f"'roboflow auth login --force --region {region}' may be needed."
+        )
+    environment_note = ""
+    if effective_region != region:
+        environment_note = (
+            f"\nNote: ROBOFLOW_REGION overrides the saved choice; the effective region remains {effective_region}."
+        )
+    output(
+        args,
+        {
+            "region": effective_region,
+            "configured_region": region,
+            "api_url": api_url,
+            "app_url": app_url,
+            "warning": warning,
+        },
+        text=(
+            f"Region set to: {region}{environment_note}\nAPI URL: {api_url}\nApp URL: {app_url}"
+            + (f"\nWarning: {warning}" if warning else "")
+        ),
+    )
 
 
 def _set_workspace(args):  # noqa: ANN001

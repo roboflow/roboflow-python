@@ -21,7 +21,7 @@ except ImportError:
     CLIPModel = None  # type: ignore[assignment,misc]
     GazeModel = None  # type: ignore[assignment,misc]
 
-__version__ = "1.5.1"
+__version__ = "1.6.0"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -66,7 +66,31 @@ def check_key(api_key, model, notebook, num_retries=0):
         return "onboarding"
 
 
-def login(workspace=None, force=False):
+def login(workspace=None, force=False, region=None):
+    from roboflow.config import (
+        CREDENTIALS_REGION_KEY,
+        SUPPORTED_REGIONS,
+        credentials_region,
+        get_effective_region,
+        has_credentials,
+        refresh_region_urls,
+        region_conflict,
+        resolve_url,
+    )
+
+    normalized_region = None
+    if region is not None:
+        if not isinstance(region, str) or region.lower() not in SUPPORTED_REGIONS:
+            raise ValueError(f"Invalid region '{region}'. Expected one of: {', '.join(SUPPORTED_REGIONS)}.")
+        normalized_region = region.lower()
+        conflicting = region_conflict(normalized_region)
+        if conflicting is not None:
+            # Requests would follow the environment, not the credentials issued here.
+            raise ValueError(
+                f"ROBOFLOW_REGION={conflicting} in the environment overrides region='{normalized_region}'. "
+                "Unset it or make it match before logging in."
+            )
+
     os_name = os.name
 
     if os_name == "nt":
@@ -76,22 +100,44 @@ def login(workspace=None, force=False):
 
     # default configuration location
     conf_location = os.getenv("ROBOFLOW_CONFIG_DIR", default=default_path)
-    if os.path.isfile(conf_location) and not force:
-        write_line("You are already logged into Roboflow. To make a different login,run roboflow.login(force=True).")
-        return None
-        # we could eventually return the workspace object here
-        # return Roboflow().workspace()
-    elif os.path.isfile(conf_location) and force:
-        os.remove(conf_location)
+    existing_config = {}
+    if os.path.isfile(conf_location):
+        try:
+            with open(conf_location) as f:
+                existing_config = json.load(f)
+        except json.JSONDecodeError:
+            # A forced login has historically replaced an unreadable config.
+            if not force:
+                raise
+            existing_config = {}
+        if not isinstance(existing_config, dict):
+            existing_config = {}
+
+    # A config holding only preferences (e.g. from `auth set-region`) is not a session.
+    target_region = normalized_region or get_effective_region()
+    if has_credentials(existing_config) and not force:
+        if credentials_region(existing_config) == target_region:
+            write_line(
+                "You are already logged into Roboflow. To make a different login,run roboflow.login(force=True)."
+            )
+            return None
+            # we could eventually return the workspace object here
+            # return Roboflow().workspace()
+        # Stored credentials were issued by the other platform and cannot authenticate here.
+        write_line(f"Stored credentials were issued by the {credentials_region(existing_config).upper()} platform.")
+
+    # Resolve at call time so a region passed by the CLI is honored even though
+    # the module-level URL constants were resolved when roboflow was imported.
+    app_url = resolve_url("APP_URL", region=normalized_region)
 
     if workspace is None:
-        write_line("visit " + APP_URL + "/auth-cli to get your authentication token.")
+        write_line("visit " + app_url + "/auth-cli to get your authentication token.")
     else:
-        write_line("visit " + APP_URL + "/auth-cli/?workspace=" + workspace + " to get your authentication token.")
+        write_line("visit " + app_url + "/auth-cli/?workspace=" + workspace + " to get your authentication token.")
 
     token = getpass("Paste the authentication token here: ")
 
-    r_login = requests.get(APP_URL + "/query/cliAuthToken/" + token)
+    r_login = requests.get(app_url + "/query/cliAuthToken/" + token)
 
     if r_login.status_code == 200:
         r_login = r_login.json()
@@ -102,16 +148,24 @@ def login(workspace=None, force=False):
         if not os.path.exists(os.path.dirname(conf_location)):
             os.makedirs(os.path.dirname(conf_location))
 
-        r_login = {"workspaces": r_login}
+        # The previous credentials are replaced only once the new ones are in hand.
+        existing_config["workspaces"] = r_login
         # set first workspace as default workspace
 
-        default_workspace_id = list(r_login["workspaces"].keys())[0]
-        workspace = r_login["workspaces"][default_workspace_id]
-        r_login["RF_WORKSPACE"] = workspace["url"]
+        default_workspace_id = list(existing_config["workspaces"].keys())[0]
+        workspace = existing_config["workspaces"][default_workspace_id]
+        existing_config["RF_WORKSPACE"] = workspace["url"]
+        if normalized_region is not None:
+            existing_config["ROBOFLOW_REGION"] = normalized_region
+        existing_config[CREDENTIALS_REGION_KEY] = target_region
 
         # write config file
         with open(conf_location, "w") as f:
-            json.dump(r_login, f, indent=2)
+            json.dump(existing_config, f, indent=2)
+
+        if normalized_region is not None:
+            # Constants bound at import time still point at the previous region.
+            refresh_region_urls()
 
     else:
         r_login.raise_for_status()
@@ -145,12 +199,27 @@ def initialize_roboflow(the_workspace=None):
     return active_workspace
 
 
+_ROBOFLOW_APP_HOSTS = (
+    "universe.roboflow.com",
+    "app.roboflow.com",
+    "app.roboflow.eu",
+    # Staging platforms from the endpoint matrix in roboflow.config.
+    "universe.roboflow.one",
+    "app.roboflow.one",
+    "app.roboflow-eu.one",
+)
+
+
+def _is_roboflow_app_url(url):
+    return any(host in url for host in _ROBOFLOW_APP_HOSTS)
+
+
 def load_model(model_url):
     """High level function to load Roboflow models.
 
     Args:
         model_url: the model url to load.
-            Must be from either app.roboflow.com or universe.roboflow.com
+            Must be from app.roboflow.com, app.roboflow.eu or universe.roboflow.com
 
     Returns:
         the model object to use for inference
@@ -158,13 +227,13 @@ def load_model(model_url):
 
     operate_workspace = initialize_roboflow()
 
-    if "universe.roboflow.com" in model_url or "app.roboflow.com" in model_url:
+    if _is_roboflow_app_url(model_url):
         parsed_url = urlparse(model_url)
         path_parts = parsed_url.path.split("/")
         project = path_parts[2]
         version = int(path_parts[-1])
     else:
-        raise ValueError("Model URL must be from either app.roboflow.com or universe.roboflow.com")
+        raise ValueError("Model URL must be from app.roboflow.com, app.roboflow.eu or universe.roboflow.com")
 
     project = operate_workspace.project(project)
     version = project.version(version)
@@ -179,7 +248,7 @@ def download_dataset(dataset_url, model_format, location=None):
 
     Args:
         dataset_url: the dataset url to download.
-            Must be from either app.roboflow.com or universe.roboflow.com
+            Must be from app.roboflow.com, app.roboflow.eu or universe.roboflow.com
         model_format: the format the dataset will be downloaded in
         location: the location the dataset will be downloaded to
 
@@ -187,14 +256,14 @@ def download_dataset(dataset_url, model_format, location=None):
         The dataset object with location available as dataset.location
     """
 
-    if "universe.roboflow.com" in dataset_url or "app.roboflow.com" in dataset_url:
+    if _is_roboflow_app_url(dataset_url):
         parsed_url = urlparse(dataset_url)
         path_parts = parsed_url.path.split("/")
         project = path_parts[2]
         version = int(path_parts[-1])
         the_workspace = path_parts[1]
     else:
-        raise ValueError("Model URL must be from either app.roboflow.com or universe.roboflow.com")
+        raise ValueError("Model URL must be from app.roboflow.com, app.roboflow.eu or universe.roboflow.com")
     operate_workspace = initialize_roboflow(the_workspace=the_workspace)
 
     project = operate_workspace.project(project)
