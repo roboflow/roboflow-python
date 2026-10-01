@@ -467,7 +467,7 @@ class TestTrainStartV2(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         output = _strip_ansi(result.output)
         self.assertIn("--train-recipe", output)
-        self.assertIn("cosmos3-edge", output)
+        self.assertIn("Action Recognition", output)
         self.assertIn("trainingId", output)
         self.assertNotIn("--hyperparameters", output)
 

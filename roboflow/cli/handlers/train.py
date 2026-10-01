@@ -17,7 +17,7 @@ def _train_callback(
     project: Annotated[Optional[str], typer.Option("-p", "--project", help="Project ID to train")] = None,
     version_number: Annotated[Optional[int], typer.Option("-v", "--version", help="Version number to train")] = None,
     model_type: Annotated[
-        Optional[str], typer.Option("-t", "--type", help="Model type (e.g. cosmos3-edge, rfdetr-nano)")
+        Optional[str], typer.Option("-t", "--type", help="Model type (e.g. rfdetr-nano, yolov8n)")
     ] = None,
     checkpoint: Annotated[Optional[str], typer.Option(help="Checkpoint to resume training from")] = None,
     speed: Annotated[Optional[str], typer.Option(help="Training speed preset")] = None,
@@ -69,7 +69,7 @@ def start_training(
     project: Annotated[str, typer.Option("-p", "--project", help="Project ID to train")],
     version_number: Annotated[int, typer.Option("-v", "--version", help="Version number to train")],
     model_type: Annotated[
-        Optional[str], typer.Option("-t", "--type", help="Model type (e.g. cosmos3-edge, rfdetr-nano)")
+        Optional[str], typer.Option("-t", "--type", help="Model type (e.g. rfdetr-nano, yolov8n)")
     ] = None,
     checkpoint: Annotated[Optional[str], typer.Option(help="Checkpoint to resume training from")] = None,
     speed: Annotated[Optional[str], typer.Option(help="Training speed preset")] = None,
@@ -88,9 +88,8 @@ def start_training(
 ) -> None:
     """Start training for a dataset version.
 
-    Action Recognition with ``--type cosmos3-edge`` uses the v2 trainings API
-    and prints the trainingId without requiring a recipe. Other models also
-    use v2 when --train-recipe is supplied. Start from the ``template`` field of
+    With --train-recipe, the training uses v2 and prints its trainingId.
+    Action Recognition also uses v2 without a recipe. Start from the ``template`` field of
     ``roboflow train recipe`` output, edit it (hyperparameters, online
     augmentation), and pass it inline or as ``@path/to/file.json``; --epochs is folded into its
     hyperparameters unless the recipe already sets epochs.
@@ -400,15 +399,13 @@ def _start_v2(args, api_key, workspace_url, project_slug):
             ),
         )
         return
-    train_recipe = None
-    if getattr(args, "train_recipe", None) is not None:
-        train_recipe = _parse_json_flag(args, args.train_recipe, "--train-recipe")
-    if train_recipe is not None and args.epochs is not None:
-        # Fold --epochs into the recipe: the server dense-fills recipe
-        # hyperparameters (including a default epochs) and resolves them
-        # ahead of the body's top-level value, which would otherwise be
-        # silently ignored. An epochs set in the recipe wins.
-        train_recipe = fold_epochs_into_recipe(train_recipe, args.epochs)
+    train_recipe = args.train_recipe
+    if train_recipe is not None:
+        train_recipe = _parse_json_flag(args, train_recipe, "--train-recipe")
+        if args.epochs is not None:
+            # The server resolves recipe epochs ahead of the top-level value.
+            # An explicit recipe value wins over --epochs.
+            train_recipe = fold_epochs_into_recipe(train_recipe, args.epochs)
 
     # Ensure the version has the required export format before training
     if args.model_type:
