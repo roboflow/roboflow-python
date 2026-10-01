@@ -215,12 +215,14 @@ def _get_project(args):  # noqa: ANN001
 def _create_project(args):  # noqa: ANN001
     import roboflow
     from roboflow.cli._output import output, output_error, suppress_sdk_output
+    from roboflow.config import load_roboflow_api_key
 
     annotation = args.annotation if args.annotation else args.name
 
     with suppress_sdk_output(args):
         try:
-            rf = roboflow.Roboflow()
+            api_key = args.api_key or load_roboflow_api_key(args.workspace)
+            rf = roboflow.Roboflow(api_key=api_key)
             workspace = rf.workspace(args.workspace)
         except Exception as exc:
             output_error(args, str(exc))
