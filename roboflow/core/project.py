@@ -913,17 +913,34 @@ class Project:
             return self.wait_for_video_upload(video_id, poll_interval=poll_interval, poll_timeout=poll_timeout)
         return self.get_video_upload_status(video_id)
 
-    def get_video_upload_status(self, video_id: str) -> Dict:
-        """Get a native video's processing state and canonical Source ID."""
-        return rfapi.get_video_upload_status(self.__api_key, self.__workspace, video_id)
+    def get_video_upload_status(self, video_id: str, *, timeout: Optional[float] = None) -> Dict:
+        """Get a native video's processing state and canonical Source ID.
+
+        ``timeout`` limits connection and response-read inactivity. It is not
+        a strict total request-duration cap.
+        """
+        return rfapi.get_video_upload_status(self.__api_key, self.__workspace, video_id, timeout=timeout)
 
     def wait_for_video_upload(self, video_id: str, *, poll_interval: float = 2, poll_timeout: float = 300) -> Dict:
-        """Poll until a video is uploaded or failed, within ``poll_timeout`` seconds."""
+        """Poll until uploaded or failed, limiting each status read to the remaining budget.
+
+        With ``poll_timeout=0``, perform one status read using the default
+        transport timeout and return a terminal result if it is already ready.
+        Requests' timeouts measure connection/read inactivity, so this is not
+        a strict wall-clock cap on a slowly streaming response.
+        """
         if poll_interval <= 0 or poll_timeout < 0:
             raise ValueError("poll_interval must be positive and poll_timeout must be nonnegative")
         deadline = time.monotonic() + poll_timeout
         while True:
-            status = self.get_video_upload_status(video_id)
+            remaining = deadline - time.monotonic()
+            if poll_timeout > 0 and remaining <= 0:
+                raise rfapi.RoboflowError(
+                    f"Video upload {video_id} did not finish within the {poll_timeout}s polling budget; "
+                    "call get_video_upload_status to check later"
+                )
+            request_timeout = min(rfapi.VIDEO_UPLOAD_STATUS_TIMEOUT, remaining) if poll_timeout > 0 else None
+            status = self.get_video_upload_status(video_id, timeout=request_timeout)
             if status.get("status") in {"uploaded", "failed"}:
                 return status
             remaining = deadline - time.monotonic()

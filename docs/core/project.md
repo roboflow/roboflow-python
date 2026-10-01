@@ -31,4 +31,7 @@ returned status is the API response: `pending`, `uploaded` (with
 final `uploaded` response because ingestion can deduplicate onto another
 Source. Batch, tags, metadata, and split follow the platform upload API;
 the API validates their values. A timeout leaves the upload running, so
-poll its original ID later.
+poll its original ID later. `poll_timeout=0` makes one status request and
+returns a terminal result if available. Status requests use the remaining
+polling budget as their connection and read inactivity timeout; this is not
+a strict whole-response wall-clock limit for a slowly streaming server.

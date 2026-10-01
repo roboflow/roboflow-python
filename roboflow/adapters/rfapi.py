@@ -914,14 +914,21 @@ def _save_annotation_error(response):
 # Native video upload endpoints
 # ---------------------------------------------------------------------------
 
+VIDEO_UPLOAD_PREPARE_TIMEOUT = (5, 30)
+VIDEO_UPLOAD_STATUS_TIMEOUT = 30
+
 
 def prepare_video_upload(api_key, workspace_url, project_url, body) -> dict:
     """Prepare a native video Source upload and obtain its signed PUT URL."""
-    response = requests.post(
-        f"{API_URL}/{workspace_url}/upload/video",
-        params={"api_key": api_key},
-        json={"project": project_url, **body},
-    )
+    try:
+        response = requests.post(
+            f"{API_URL}/{workspace_url}/upload/video",
+            params={"api_key": api_key},
+            json={"project": project_url, **body},
+            timeout=VIDEO_UPLOAD_PREPARE_TIMEOUT,
+        )
+    except RequestException as error:
+        raise RoboflowError(f"Video upload preparation request failed: {type(error).__name__}") from None
     if not response.ok:
         raise RoboflowError(response.text, status_code=response.status_code)
     return response.json()
@@ -940,12 +947,20 @@ def put_video_upload(signed_url, video_path, required_headers, content_type) -> 
         raise RoboflowError(response.text, status_code=response.status_code)
 
 
-def get_video_upload_status(api_key, workspace_url, video_id) -> dict:
+def get_video_upload_status(api_key, workspace_url, video_id, *, timeout=None) -> dict:
     """Read processing state and the canonical Source ID after ingestion."""
-    response = requests.get(
-        f"{API_URL}/{workspace_url}/upload/video/{video_id}",
-        params={"api_key": api_key},
-    )
+    if timeout is None:
+        timeout = VIDEO_UPLOAD_STATUS_TIMEOUT
+    if timeout <= 0:
+        raise ValueError("Video upload status timeout must be positive")
+    try:
+        response = requests.get(
+            f"{API_URL}/{workspace_url}/upload/video/{video_id}",
+            params={"api_key": api_key},
+            timeout=timeout,
+        )
+    except RequestException as error:
+        raise RoboflowError(f"Video upload status request failed for {video_id}: {type(error).__name__}") from None
     if not response.ok:
         raise RoboflowError(response.text, status_code=response.status_code)
     return response.json()
