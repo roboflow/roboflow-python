@@ -932,6 +932,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.save_annotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        save_annotation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#roboflow.core.project.Project.search" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1813,6 +1824,17 @@
     <span class="md-ellipsis">
       
         review_annotation_job_images
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#roboflow.core.project.Project.save_annotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        save_annotation
       
     </span>
   </a>
@@ -3462,7 +3484,21 @@
 <span class="normal">1477</span>
 <span class="normal">1478</span>
 <span class="normal">1479</span>
-<span class="normal">1480</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Project</span><span class="p">:</span>
+<span class="normal">1480</span>
+<span class="normal">1481</span>
+<span class="normal">1482</span>
+<span class="normal">1483</span>
+<span class="normal">1484</span>
+<span class="normal">1485</span>
+<span class="normal">1486</span>
+<span class="normal">1487</span>
+<span class="normal">1488</span>
+<span class="normal">1489</span>
+<span class="normal">1490</span>
+<span class="normal">1491</span>
+<span class="normal">1492</span>
+<span class="normal">1493</span>
+<span class="normal">1494</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Project</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    A Roboflow Project.</span>
 <span class="sd">    """</span>
@@ -3975,7 +4011,18 @@
         <span class="n">is_prediction</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">annotation_overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">num_retry_uploads</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">add_to_dataset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Upload an annotation for an image that is already in the project.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            add_to_dataset (bool | None): whether the annotated image joins the project's</span>
+<span class="sd">                Dataset, and so the next dataset version. `None` (the default) leaves the</span>
+<span class="sd">                choice to the API, which adds the image. Pass `False` to store the annotation</span>
+<span class="sd">                without changing Dataset membership — for example while the image is still</span>
+<span class="sd">                waiting to be labeled or reviewed in a batch.</span>
+<span class="sd">        """</span>
         <span class="n">project_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">annotation_name</span><span class="p">,</span> <span class="n">annotation_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_params</span><span class="p">(</span><span class="n">annotation_path</span><span class="p">)</span>
         <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
@@ -3993,6 +4040,7 @@
                 <span class="n">is_prediction</span><span class="o">=</span><span class="n">is_prediction</span><span class="p">,</span>
                 <span class="n">annotation_labelmap</span><span class="o">=</span><span class="n">annotation_labelmap</span><span class="p">,</span>
                 <span class="n">overwrite</span><span class="o">=</span><span class="n">annotation_overwrite</span><span class="p">,</span>
+                <span class="n">add_to_dataset</span><span class="o">=</span><span class="n">add_to_dataset</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">upload_retry_attempts</span> <span class="o">=</span> <span class="n">retry</span><span class="o">.</span><span class="n">retries</span>
         <span class="k">except</span> <span class="n">AnnotationSaveError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -4019,6 +4067,7 @@
         <span class="n">sequence_number</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">sequence_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">add_to_dataset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">if</span> <span class="n">tag_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -4059,6 +4108,7 @@
                 <span class="n">is_prediction</span><span class="p">,</span>
                 <span class="n">annotation_overwrite</span><span class="p">,</span>
                 <span class="n">num_retry_uploads</span><span class="o">=</span><span class="n">num_retry_uploads</span><span class="p">,</span>
+                <span class="n">add_to_dataset</span><span class="o">=</span><span class="n">add_to_dataset</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="p">{</span>
@@ -5117,14 +5167,14 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">848</span>
-<span class="normal">849</span>
-<span class="normal">850</span>
-<span class="normal">851</span>
-<span class="normal">852</span>
-<span class="normal">853</span>
-<span class="normal">854</span>
-<span class="normal">855</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">862</span>
+<span class="normal">863</span>
+<span class="normal">864</span>
+<span class="normal">865</span>
+<span class="normal">866</span>
+<span class="normal">867</span>
+<span class="normal">868</span>
+<span class="normal">869</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Show a string representation of a Project object.</span>
 <span class="sd">    """</span>
@@ -5154,21 +5204,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1130</span>
-<span class="normal">1131</span>
-<span class="normal">1132</span>
-<span class="normal">1133</span>
-<span class="normal">1134</span>
-<span class="normal">1135</span>
-<span class="normal">1136</span>
-<span class="normal">1137</span>
-<span class="normal">1138</span>
-<span class="normal">1139</span>
-<span class="normal">1140</span>
-<span class="normal">1141</span>
-<span class="normal">1142</span>
-<span class="normal">1143</span>
-<span class="normal">1144</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1144</span>
 <span class="normal">1145</span>
 <span class="normal">1146</span>
 <span class="normal">1147</span>
@@ -5176,7 +5212,21 @@
 <span class="normal">1149</span>
 <span class="normal">1150</span>
 <span class="normal">1151</span>
-<span class="normal">1152</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">accept_annotation_job_images</span><span class="p">(</span>
+<span class="normal">1152</span>
+<span class="normal">1153</span>
+<span class="normal">1154</span>
+<span class="normal">1155</span>
+<span class="normal">1156</span>
+<span class="normal">1157</span>
+<span class="normal">1158</span>
+<span class="normal">1159</span>
+<span class="normal">1160</span>
+<span class="normal">1161</span>
+<span class="normal">1162</span>
+<span class="normal">1163</span>
+<span class="normal">1164</span>
+<span class="normal">1165</span>
+<span class="normal">1166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">accept_annotation_job_images</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">split_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -5221,15 +5271,15 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1065</span>
-<span class="normal">1066</span>
-<span class="normal">1067</span>
-<span class="normal">1068</span>
-<span class="normal">1069</span>
-<span class="normal">1070</span>
-<span class="normal">1071</span>
-<span class="normal">1072</span>
-<span class="normal">1073</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_annotation_job_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">image_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1079</span>
+<span class="normal">1080</span>
+<span class="normal">1081</span>
+<span class="normal">1082</span>
+<span class="normal">1083</span>
+<span class="normal">1084</span>
+<span class="normal">1085</span>
+<span class="normal">1086</span>
+<span class="normal">1087</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_annotation_job_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">image_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Move selected images into an existing annotation job."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">add_images_to_annotation_job</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
@@ -5518,21 +5568,7 @@ project.autolabel_job(job["jobId"])["status"]</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1203</span>
-<span class="normal">1204</span>
-<span class="normal">1205</span>
-<span class="normal">1206</span>
-<span class="normal">1207</span>
-<span class="normal">1208</span>
-<span class="normal">1209</span>
-<span class="normal">1210</span>
-<span class="normal">1211</span>
-<span class="normal">1212</span>
-<span class="normal">1213</span>
-<span class="normal">1214</span>
-<span class="normal">1215</span>
-<span class="normal">1216</span>
-<span class="normal">1217</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1217</span>
 <span class="normal">1218</span>
 <span class="normal">1219</span>
 <span class="normal">1220</span>
@@ -5592,7 +5628,21 @@ project.autolabel_job(job["jobId"])["status"]</p>
 <span class="normal">1274</span>
 <span class="normal">1275</span>
 <span class="normal">1276</span>
-<span class="normal">1277</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">autolabel</span><span class="p">(</span>
+<span class="normal">1277</span>
+<span class="normal">1278</span>
+<span class="normal">1279</span>
+<span class="normal">1280</span>
+<span class="normal">1281</span>
+<span class="normal">1282</span>
+<span class="normal">1283</span>
+<span class="normal">1284</span>
+<span class="normal">1285</span>
+<span class="normal">1286</span>
+<span class="normal">1287</span>
+<span class="normal">1288</span>
+<span class="normal">1289</span>
+<span class="normal">1290</span>
+<span class="normal">1291</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">autolabel</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -5689,9 +5739,9 @@ project.autolabel_job(job["jobId"])["status"]</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1279</span>
-<span class="normal">1280</span>
-<span class="normal">1281</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">autolabel_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1293</span>
+<span class="normal">1294</span>
+<span class="normal">1295</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">autolabel_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get status and per-subjob progress for an auto-label job started with ``autolabel``."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_autolabel_job</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -5857,21 +5907,7 @@ dataset's own classes.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1162</span>
-<span class="normal">1163</span>
-<span class="normal">1164</span>
-<span class="normal">1165</span>
-<span class="normal">1166</span>
-<span class="normal">1167</span>
-<span class="normal">1168</span>
-<span class="normal">1169</span>
-<span class="normal">1170</span>
-<span class="normal">1171</span>
-<span class="normal">1172</span>
-<span class="normal">1173</span>
-<span class="normal">1174</span>
-<span class="normal">1175</span>
-<span class="normal">1176</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1176</span>
 <span class="normal">1177</span>
 <span class="normal">1178</span>
 <span class="normal">1179</span>
@@ -5896,7 +5932,21 @@ dataset's own classes.</p>
 <span class="normal">1198</span>
 <span class="normal">1199</span>
 <span class="normal">1200</span>
-<span class="normal">1201</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">autolabel_preview</span><span class="p">(</span>
+<span class="normal">1201</span>
+<span class="normal">1202</span>
+<span class="normal">1203</span>
+<span class="normal">1204</span>
+<span class="normal">1205</span>
+<span class="normal">1206</span>
+<span class="normal">1207</span>
+<span class="normal">1208</span>
+<span class="normal">1209</span>
+<span class="normal">1210</span>
+<span class="normal">1211</span>
+<span class="normal">1212</span>
+<span class="normal">1213</span>
+<span class="normal">1214</span>
+<span class="normal">1215</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">autolabel_preview</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">image</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -6075,16 +6125,16 @@ dataset's own classes.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">917</span>
-<span class="normal">918</span>
-<span class="normal">919</span>
-<span class="normal">920</span>
-<span class="normal">921</span>
-<span class="normal">922</span>
-<span class="normal">923</span>
-<span class="normal">924</span>
-<span class="normal">925</span>
-<span class="normal">926</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_annotation_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">image_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">931</span>
+<span class="normal">932</span>
+<span class="normal">933</span>
+<span class="normal">934</span>
+<span class="normal">935</span>
+<span class="normal">936</span>
+<span class="normal">937</span>
+<span class="normal">938</span>
+<span class="normal">939</span>
+<span class="normal">940</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_annotation_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">image_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Move selected images from one batch into a new annotation batch."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">create_annotation_batch</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
@@ -6118,21 +6168,7 @@ compatibility with older positional callers.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 989</span>
-<span class="normal"> 990</span>
-<span class="normal"> 991</span>
-<span class="normal"> 992</span>
-<span class="normal"> 993</span>
-<span class="normal"> 994</span>
-<span class="normal"> 995</span>
-<span class="normal"> 996</span>
-<span class="normal"> 997</span>
-<span class="normal"> 998</span>
-<span class="normal"> 999</span>
-<span class="normal">1000</span>
-<span class="normal">1001</span>
-<span class="normal">1002</span>
-<span class="normal">1003</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1003</span>
 <span class="normal">1004</span>
 <span class="normal">1005</span>
 <span class="normal">1006</span>
@@ -6148,7 +6184,21 @@ compatibility with older positional callers.</p>
 <span class="normal">1016</span>
 <span class="normal">1017</span>
 <span class="normal">1018</span>
-<span class="normal">1019</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_annotation_job</span><span class="p">(</span>
+<span class="normal">1019</span>
+<span class="normal">1020</span>
+<span class="normal">1021</span>
+<span class="normal">1022</span>
+<span class="normal">1023</span>
+<span class="normal">1024</span>
+<span class="normal">1025</span>
+<span class="normal">1026</span>
+<span class="normal">1027</span>
+<span class="normal">1028</span>
+<span class="normal">1029</span>
+<span class="normal">1030</span>
+<span class="normal">1031</span>
+<span class="normal">1032</span>
+<span class="normal">1033</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_annotation_job</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">batch_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -6201,21 +6251,7 @@ compatibility with older positional callers.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1021</span>
-<span class="normal">1022</span>
-<span class="normal">1023</span>
-<span class="normal">1024</span>
-<span class="normal">1025</span>
-<span class="normal">1026</span>
-<span class="normal">1027</span>
-<span class="normal">1028</span>
-<span class="normal">1029</span>
-<span class="normal">1030</span>
-<span class="normal">1031</span>
-<span class="normal">1032</span>
-<span class="normal">1033</span>
-<span class="normal">1034</span>
-<span class="normal">1035</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1035</span>
 <span class="normal">1036</span>
 <span class="normal">1037</span>
 <span class="normal">1038</span>
@@ -6223,7 +6259,21 @@ compatibility with older positional callers.</p>
 <span class="normal">1040</span>
 <span class="normal">1041</span>
 <span class="normal">1042</span>
-<span class="normal">1043</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_annotation_job_admin</span><span class="p">(</span>
+<span class="normal">1043</span>
+<span class="normal">1044</span>
+<span class="normal">1045</span>
+<span class="normal">1046</span>
+<span class="normal">1047</span>
+<span class="normal">1048</span>
+<span class="normal">1049</span>
+<span class="normal">1050</span>
+<span class="normal">1051</span>
+<span class="normal">1052</span>
+<span class="normal">1053</span>
+<span class="normal">1054</span>
+<span class="normal">1055</span>
+<span class="normal">1056</span>
+<span class="normal">1057</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_annotation_job_admin</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">batch_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -6307,24 +6357,24 @@ project.delete()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1421</span>
-<span class="normal">1422</span>
-<span class="normal">1423</span>
-<span class="normal">1424</span>
-<span class="normal">1425</span>
-<span class="normal">1426</span>
-<span class="normal">1427</span>
-<span class="normal">1428</span>
-<span class="normal">1429</span>
-<span class="normal">1430</span>
-<span class="normal">1431</span>
-<span class="normal">1432</span>
-<span class="normal">1433</span>
-<span class="normal">1434</span>
-<span class="normal">1435</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1435</span>
 <span class="normal">1436</span>
 <span class="normal">1437</span>
-<span class="normal">1438</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1438</span>
+<span class="normal">1439</span>
+<span class="normal">1440</span>
+<span class="normal">1441</span>
+<span class="normal">1442</span>
+<span class="normal">1443</span>
+<span class="normal">1444</span>
+<span class="normal">1445</span>
+<span class="normal">1446</span>
+<span class="normal">1447</span>
+<span class="normal">1448</span>
+<span class="normal">1449</span>
+<span class="normal">1450</span>
+<span class="normal">1451</span>
+<span class="normal">1452</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Move this project to Trash (soft delete).</span>
 
@@ -6364,15 +6414,15 @@ project.delete()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">938</span>
-<span class="normal">939</span>
-<span class="normal">940</span>
-<span class="normal">941</span>
-<span class="normal">942</span>
-<span class="normal">943</span>
-<span class="normal">944</span>
-<span class="normal">945</span>
-<span class="normal">946</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_annotation_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">permanent</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">952</span>
+<span class="normal">953</span>
+<span class="normal">954</span>
+<span class="normal">955</span>
+<span class="normal">956</span>
+<span class="normal">957</span>
+<span class="normal">958</span>
+<span class="normal">959</span>
+<span class="normal">960</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_annotation_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">permanent</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Delete a batch, retaining its images as unassigned unless permanent is true."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">delete_annotation_batch</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
@@ -6403,9 +6453,9 @@ project.delete()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1158</span>
-<span class="normal">1159</span>
-<span class="normal">1160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_annotation_job_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1172</span>
+<span class="normal">1173</span>
+<span class="normal">1174</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_annotation_job_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Delete project annotations from every image assigned to a job."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">delete_annotation_job_annotations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -6475,21 +6525,7 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1393</span>
-<span class="normal">1394</span>
-<span class="normal">1395</span>
-<span class="normal">1396</span>
-<span class="normal">1397</span>
-<span class="normal">1398</span>
-<span class="normal">1399</span>
-<span class="normal">1400</span>
-<span class="normal">1401</span>
-<span class="normal">1402</span>
-<span class="normal">1403</span>
-<span class="normal">1404</span>
-<span class="normal">1405</span>
-<span class="normal">1406</span>
-<span class="normal">1407</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1407</span>
 <span class="normal">1408</span>
 <span class="normal">1409</span>
 <span class="normal">1410</span>
@@ -6501,7 +6537,21 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 <span class="normal">1416</span>
 <span class="normal">1417</span>
 <span class="normal">1418</span>
-<span class="normal">1419</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<span class="normal">1419</span>
+<span class="normal">1420</span>
+<span class="normal">1421</span>
+<span class="normal">1422</span>
+<span class="normal">1423</span>
+<span class="normal">1424</span>
+<span class="normal">1425</span>
+<span class="normal">1426</span>
+<span class="normal">1427</span>
+<span class="normal">1428</span>
+<span class="normal">1429</span>
+<span class="normal">1430</span>
+<span class="normal">1431</span>
+<span class="normal">1432</span>
+<span class="normal">1433</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Delete images from a project.</span>
 
@@ -6855,9 +6905,9 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">902</span>
-<span class="normal">903</span>
-<span class="normal">904</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">916</span>
+<span class="normal">917</span>
+<span class="normal">918</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get one annotation-board batch."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_annotation_batch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -6882,16 +6932,16 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">906</span>
-<span class="normal">907</span>
-<span class="normal">908</span>
-<span class="normal">909</span>
-<span class="normal">910</span>
-<span class="normal">911</span>
-<span class="normal">912</span>
-<span class="normal">913</span>
-<span class="normal">914</span>
-<span class="normal">915</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_batch_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">920</span>
+<span class="normal">921</span>
+<span class="normal">922</span>
+<span class="normal">923</span>
+<span class="normal">924</span>
+<span class="normal">925</span>
+<span class="normal">926</span>
+<span class="normal">927</span>
+<span class="normal">928</span>
+<span class="normal">929</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_batch_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""List image IDs in an annotation batch with cursor pagination."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_annotation_batch_images</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
@@ -6923,16 +6973,16 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">891</span>
-<span class="normal">892</span>
-<span class="normal">893</span>
-<span class="normal">894</span>
-<span class="normal">895</span>
-<span class="normal">896</span>
-<span class="normal">897</span>
-<span class="normal">898</span>
-<span class="normal">899</span>
-<span class="normal">900</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_batches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">show_empty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">905</span>
+<span class="normal">906</span>
+<span class="normal">907</span>
+<span class="normal">908</span>
+<span class="normal">909</span>
+<span class="normal">910</span>
+<span class="normal">911</span>
+<span class="normal">912</span>
+<span class="normal">913</span>
+<span class="normal">914</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_batches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">show_empty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""List annotation-board batches with cursor pagination."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_annotation_batches</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
@@ -7018,16 +7068,16 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">963</span>
-<span class="normal">964</span>
-<span class="normal">965</span>
-<span class="normal">966</span>
-<span class="normal">967</span>
-<span class="normal">968</span>
-<span class="normal">969</span>
-<span class="normal">970</span>
-<span class="normal">971</span>
-<span class="normal">972</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">977</span>
+<span class="normal">978</span>
+<span class="normal">979</span>
+<span class="normal">980</span>
+<span class="normal">981</span>
+<span class="normal">982</span>
+<span class="normal">983</span>
+<span class="normal">984</span>
+<span class="normal">985</span>
+<span class="normal">986</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get information for a specific annotation job.</span>
 
 <span class="sd">    Args:</span>
@@ -7059,9 +7109,9 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">974</span>
-<span class="normal">975</span>
-<span class="normal">976</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_job_admin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">988</span>
+<span class="normal">989</span>
+<span class="normal">990</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_job_admin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get one annotation job through the administration endpoint."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">get_annotation_job_admin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -7086,16 +7136,16 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">978</span>
-<span class="normal">979</span>
-<span class="normal">980</span>
-<span class="normal">981</span>
-<span class="normal">982</span>
-<span class="normal">983</span>
-<span class="normal">984</span>
-<span class="normal">985</span>
-<span class="normal">986</span>
-<span class="normal">987</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_job_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 992</span>
+<span class="normal"> 993</span>
+<span class="normal"> 994</span>
+<span class="normal"> 995</span>
+<span class="normal"> 996</span>
+<span class="normal"> 997</span>
+<span class="normal"> 998</span>
+<span class="normal"> 999</span>
+<span class="normal">1000</span>
+<span class="normal">1001</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_job_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""List image IDs assigned to an annotation job with cursor pagination."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_annotation_job_images</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
@@ -7127,9 +7177,9 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">948</span>
-<span class="normal">949</span>
-<span class="normal">950</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">962</span>
+<span class="normal">963</span>
+<span class="normal">964</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""List all annotation jobs through the established jobs endpoint."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_annotation_jobs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -7154,16 +7204,16 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">952</span>
-<span class="normal">953</span>
-<span class="normal">954</span>
-<span class="normal">955</span>
-<span class="normal">956</span>
-<span class="normal">957</span>
-<span class="normal">958</span>
-<span class="normal">959</span>
-<span class="normal">960</span>
-<span class="normal">961</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_jobs_admin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">show_empty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">966</span>
+<span class="normal">967</span>
+<span class="normal">968</span>
+<span class="normal">969</span>
+<span class="normal">970</span>
+<span class="normal">971</span>
+<span class="normal">972</span>
+<span class="normal">973</span>
+<span class="normal">974</span>
+<span class="normal">975</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_annotation_jobs_admin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">after</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">show_empty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""List annotation jobs through the administration endpoint with cursor pagination."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">list_annotation_jobs_admin</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
@@ -7263,21 +7313,7 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1314</span>
-<span class="normal">1315</span>
-<span class="normal">1316</span>
-<span class="normal">1317</span>
-<span class="normal">1318</span>
-<span class="normal">1319</span>
-<span class="normal">1320</span>
-<span class="normal">1321</span>
-<span class="normal">1322</span>
-<span class="normal">1323</span>
-<span class="normal">1324</span>
-<span class="normal">1325</span>
-<span class="normal">1326</span>
-<span class="normal">1327</span>
-<span class="normal">1328</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1328</span>
 <span class="normal">1329</span>
 <span class="normal">1330</span>
 <span class="normal">1331</span>
@@ -7295,7 +7331,21 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 <span class="normal">1343</span>
 <span class="normal">1344</span>
 <span class="normal">1345</span>
-<span class="normal">1346</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="normal">1346</span>
+<span class="normal">1347</span>
+<span class="normal">1348</span>
+<span class="normal">1349</span>
+<span class="normal">1350</span>
+<span class="normal">1351</span>
+<span class="normal">1352</span>
+<span class="normal">1353</span>
+<span class="normal">1354</span>
+<span class="normal">1355</span>
+<span class="normal">1356</span>
+<span class="normal">1357</span>
+<span class="normal">1358</span>
+<span class="normal">1359</span>
+<span class="normal">1360</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Get information for a specific batch in the project.</span>
 
@@ -7387,21 +7437,7 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1283</span>
-<span class="normal">1284</span>
-<span class="normal">1285</span>
-<span class="normal">1286</span>
-<span class="normal">1287</span>
-<span class="normal">1288</span>
-<span class="normal">1289</span>
-<span class="normal">1290</span>
-<span class="normal">1291</span>
-<span class="normal">1292</span>
-<span class="normal">1293</span>
-<span class="normal">1294</span>
-<span class="normal">1295</span>
-<span class="normal">1296</span>
-<span class="normal">1297</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1297</span>
 <span class="normal">1298</span>
 <span class="normal">1299</span>
 <span class="normal">1300</span>
@@ -7416,7 +7452,21 @@ project.delete_images(image_ids=["image_id_1", "image_id_2"])</p>
 <span class="normal">1309</span>
 <span class="normal">1310</span>
 <span class="normal">1311</span>
-<span class="normal">1312</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_batches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="normal">1312</span>
+<span class="normal">1313</span>
+<span class="normal">1314</span>
+<span class="normal">1315</span>
+<span class="normal">1316</span>
+<span class="normal">1317</span>
+<span class="normal">1318</span>
+<span class="normal">1319</span>
+<span class="normal">1320</span>
+<span class="normal">1321</span>
+<span class="normal">1322</span>
+<span class="normal">1323</span>
+<span class="normal">1324</span>
+<span class="normal">1325</span>
+<span class="normal">1326</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_batches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Get a list of all batches in the project.</span>
 
@@ -7646,23 +7696,23 @@ health = project.health()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1464</span>
-<span class="normal">1465</span>
-<span class="normal">1466</span>
-<span class="normal">1467</span>
-<span class="normal">1468</span>
-<span class="normal">1469</span>
-<span class="normal">1470</span>
-<span class="normal">1471</span>
-<span class="normal">1472</span>
-<span class="normal">1473</span>
-<span class="normal">1474</span>
-<span class="normal">1475</span>
-<span class="normal">1476</span>
-<span class="normal">1477</span>
-<span class="normal">1478</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1478</span>
 <span class="normal">1479</span>
-<span class="normal">1480</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">health</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">regenerate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="normal">1480</span>
+<span class="normal">1481</span>
+<span class="normal">1482</span>
+<span class="normal">1483</span>
+<span class="normal">1484</span>
+<span class="normal">1485</span>
+<span class="normal">1486</span>
+<span class="normal">1487</span>
+<span class="normal">1488</span>
+<span class="normal">1489</span>
+<span class="normal">1490</span>
+<span class="normal">1491</span>
+<span class="normal">1492</span>
+<span class="normal">1493</span>
+<span class="normal">1494</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">health</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">regenerate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get health check statistics for this project.</span>
 
 <span class="sd">    Args:</span>
@@ -7769,21 +7819,7 @@ health = project.health()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">857</span>
-<span class="normal">858</span>
-<span class="normal">859</span>
-<span class="normal">860</span>
-<span class="normal">861</span>
-<span class="normal">862</span>
-<span class="normal">863</span>
-<span class="normal">864</span>
-<span class="normal">865</span>
-<span class="normal">866</span>
-<span class="normal">867</span>
-<span class="normal">868</span>
-<span class="normal">869</span>
-<span class="normal">870</span>
-<span class="normal">871</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">871</span>
 <span class="normal">872</span>
 <span class="normal">873</span>
 <span class="normal">874</span>
@@ -7801,7 +7837,21 @@ health = project.health()</p>
 <span class="normal">886</span>
 <span class="normal">887</span>
 <span class="normal">888</span>
-<span class="normal">889</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="normal">889</span>
+<span class="normal">890</span>
+<span class="normal">891</span>
+<span class="normal">892</span>
+<span class="normal">893</span>
+<span class="normal">894</span>
+<span class="normal">895</span>
+<span class="normal">896</span>
+<span class="normal">897</span>
+<span class="normal">898</span>
+<span class="normal">899</span>
+<span class="normal">900</span>
+<span class="normal">901</span>
+<span class="normal">902</span>
+<span class="normal">903</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Fetch the details of a specific image from the Roboflow API.</span>
 
@@ -7921,15 +7971,15 @@ health = project.health()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">928</span>
-<span class="normal">929</span>
-<span class="normal">930</span>
-<span class="normal">931</span>
-<span class="normal">932</span>
-<span class="normal">933</span>
-<span class="normal">934</span>
-<span class="normal">935</span>
-<span class="normal">936</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_annotation_batches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_batch_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">target_batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">942</span>
+<span class="normal">943</span>
+<span class="normal">944</span>
+<span class="normal">945</span>
+<span class="normal">946</span>
+<span class="normal">947</span>
+<span class="normal">948</span>
+<span class="normal">949</span>
+<span class="normal">950</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_annotation_batches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_batch_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">target_batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Move source-batch images into a target batch and remove the emptied sources."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">merge_annotation_batches</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
@@ -7960,9 +8010,9 @@ health = project.health()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1154</span>
-<span class="normal">1155</span>
-<span class="normal">1156</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">move_annotation_job_to_unassigned</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1168</span>
+<span class="normal">1169</span>
+<span class="normal">1170</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">move_annotation_job_to_unassigned</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Remove a job while retaining its images in an unassigned batch."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">move_annotation_job_to_unassigned</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -7987,25 +8037,25 @@ health = project.health()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1045</span>
-<span class="normal">1046</span>
-<span class="normal">1047</span>
-<span class="normal">1048</span>
-<span class="normal">1049</span>
-<span class="normal">1050</span>
-<span class="normal">1051</span>
-<span class="normal">1052</span>
-<span class="normal">1053</span>
-<span class="normal">1054</span>
-<span class="normal">1055</span>
-<span class="normal">1056</span>
-<span class="normal">1057</span>
-<span class="normal">1058</span>
-<span class="normal">1059</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1059</span>
 <span class="normal">1060</span>
 <span class="normal">1061</span>
 <span class="normal">1062</span>
-<span class="normal">1063</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">reassign_annotation_job_images</span><span class="p">(</span>
+<span class="normal">1063</span>
+<span class="normal">1064</span>
+<span class="normal">1065</span>
+<span class="normal">1066</span>
+<span class="normal">1067</span>
+<span class="normal">1068</span>
+<span class="normal">1069</span>
+<span class="normal">1070</span>
+<span class="normal">1071</span>
+<span class="normal">1072</span>
+<span class="normal">1073</span>
+<span class="normal">1074</span>
+<span class="normal">1075</span>
+<span class="normal">1076</span>
+<span class="normal">1077</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">reassign_annotation_job_images</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">image_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">labeler_email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -8085,21 +8135,7 @@ project.restore()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1440</span>
-<span class="normal">1441</span>
-<span class="normal">1442</span>
-<span class="normal">1443</span>
-<span class="normal">1444</span>
-<span class="normal">1445</span>
-<span class="normal">1446</span>
-<span class="normal">1447</span>
-<span class="normal">1448</span>
-<span class="normal">1449</span>
-<span class="normal">1450</span>
-<span class="normal">1451</span>
-<span class="normal">1452</span>
-<span class="normal">1453</span>
-<span class="normal">1454</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1454</span>
 <span class="normal">1455</span>
 <span class="normal">1456</span>
 <span class="normal">1457</span>
@@ -8107,7 +8143,21 @@ project.restore()</p>
 <span class="normal">1459</span>
 <span class="normal">1460</span>
 <span class="normal">1461</span>
-<span class="normal">1462</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">1462</span>
+<span class="normal">1463</span>
+<span class="normal">1464</span>
+<span class="normal">1465</span>
+<span class="normal">1466</span>
+<span class="normal">1467</span>
+<span class="normal">1468</span>
+<span class="normal">1469</span>
+<span class="normal">1470</span>
+<span class="normal">1471</span>
+<span class="normal">1472</span>
+<span class="normal">1473</span>
+<span class="normal">1474</span>
+<span class="normal">1475</span>
+<span class="normal">1476</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Restore this project from Trash.</span>
 
@@ -8152,15 +8202,15 @@ project.restore()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1098</span>
-<span class="normal">1099</span>
-<span class="normal">1100</span>
-<span class="normal">1101</span>
-<span class="normal">1102</span>
-<span class="normal">1103</span>
-<span class="normal">1104</span>
-<span class="normal">1105</span>
-<span class="normal">1106</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">return_annotation_job_for_edits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new_labeler_email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1112</span>
+<span class="normal">1113</span>
+<span class="normal">1114</span>
+<span class="normal">1115</span>
+<span class="normal">1116</span>
+<span class="normal">1117</span>
+<span class="normal">1118</span>
+<span class="normal">1119</span>
+<span class="normal">1120</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">return_annotation_job_for_edits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new_labeler_email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Move a review job back to labeling, optionally with a new labeler."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">return_annotation_job_for_edits</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
@@ -8191,16 +8241,16 @@ project.restore()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1108</span>
-<span class="normal">1109</span>
-<span class="normal">1110</span>
-<span class="normal">1111</span>
-<span class="normal">1112</span>
-<span class="normal">1113</span>
-<span class="normal">1114</span>
-<span class="normal">1115</span>
-<span class="normal">1116</span>
-<span class="normal">1117</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">review_annotation_job_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">image_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1122</span>
+<span class="normal">1123</span>
+<span class="normal">1124</span>
+<span class="normal">1125</span>
+<span class="normal">1126</span>
+<span class="normal">1127</span>
+<span class="normal">1128</span>
+<span class="normal">1129</span>
+<span class="normal">1130</span>
+<span class="normal">1131</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">review_annotation_job_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">image_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Set the review status for one image in a job."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">review_annotation_job_image</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
@@ -8232,16 +8282,16 @@ project.restore()</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1119</span>
-<span class="normal">1120</span>
-<span class="normal">1121</span>
-<span class="normal">1122</span>
-<span class="normal">1123</span>
-<span class="normal">1124</span>
-<span class="normal">1125</span>
-<span class="normal">1126</span>
-<span class="normal">1127</span>
-<span class="normal">1128</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">review_annotation_job_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">current_status</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1133</span>
+<span class="normal">1134</span>
+<span class="normal">1135</span>
+<span class="normal">1136</span>
+<span class="normal">1137</span>
+<span class="normal">1138</span>
+<span class="normal">1139</span>
+<span class="normal">1140</span>
+<span class="normal">1141</span>
+<span class="normal">1142</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">review_annotation_job_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">current_status</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Set a status for every job image matching the supplied current status."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">review_annotation_job_images</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
@@ -8251,6 +8301,158 @@ project.restore()</p>
         <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
         <span class="n">current_status</span><span class="o">=</span><span class="n">current_status</span><span class="p">,</span>
     <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="roboflow.core.project.Project.save_annotation" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">save_annotation</span><span class="p">(</span><span class="n">annotation_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotation_labelmap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">is_prediction</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">annotation_overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_retry_uploads</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">add_to_dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#roboflow.core.project.Project.save_annotation" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Upload an annotation for an image that is already in the project.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>add_to_dataset</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>whether the annotated image joins the project's
+Dataset, and so the next dataset version. <code>None</code> (the default) leaves the
+choice to the API, which adds the image. Pass <code>False</code> to store the annotation
+without changing Dataset membership — for example while the image is still
+waiting to be labeled or reviewed in a batch.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>roboflow/core/project.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">547</span>
+<span class="normal">548</span>
+<span class="normal">549</span>
+<span class="normal">550</span>
+<span class="normal">551</span>
+<span class="normal">552</span>
+<span class="normal">553</span>
+<span class="normal">554</span>
+<span class="normal">555</span>
+<span class="normal">556</span>
+<span class="normal">557</span>
+<span class="normal">558</span>
+<span class="normal">559</span>
+<span class="normal">560</span>
+<span class="normal">561</span>
+<span class="normal">562</span>
+<span class="normal">563</span>
+<span class="normal">564</span>
+<span class="normal">565</span>
+<span class="normal">566</span>
+<span class="normal">567</span>
+<span class="normal">568</span>
+<span class="normal">569</span>
+<span class="normal">570</span>
+<span class="normal">571</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span>
+<span class="normal">578</span>
+<span class="normal">579</span>
+<span class="normal">580</span>
+<span class="normal">581</span>
+<span class="normal">582</span>
+<span class="normal">583</span>
+<span class="normal">584</span>
+<span class="normal">585</span>
+<span class="normal">586</span>
+<span class="normal">587</span>
+<span class="normal">588</span>
+<span class="normal">589</span>
+<span class="normal">590</span>
+<span class="normal">591</span>
+<span class="normal">592</span>
+<span class="normal">593</span>
+<span class="normal">594</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">save_annotation</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">annotation_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">annotation_labelmap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">image_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">job_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">is_prediction</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">annotation_overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">num_retry_uploads</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">add_to_dataset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Upload an annotation for an image that is already in the project.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        add_to_dataset (bool | None): whether the annotated image joins the project's</span>
+<span class="sd">            Dataset, and so the next dataset version. `None` (the default) leaves the</span>
+<span class="sd">            choice to the API, which adds the image. Pass `False` to store the annotation</span>
+<span class="sd">            without changing Dataset membership — for example while the image is still</span>
+<span class="sd">            waiting to be labeled or reviewed in a batch.</span>
+<span class="sd">    """</span>
+    <span class="n">project_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">annotation_name</span><span class="p">,</span> <span class="n">annotation_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_params</span><span class="p">(</span><span class="n">annotation_path</span><span class="p">)</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">upload_retry_attempts</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">retry</span> <span class="o">=</span> <span class="n">Retry</span><span class="p">(</span><span class="n">num_retry_uploads</span><span class="p">,</span> <span class="n">AnnotationSaveError</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">annotation</span> <span class="o">=</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">save_annotation</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span>
+            <span class="n">project_url</span><span class="p">,</span>
+            <span class="n">annotation_name</span><span class="p">,</span>  <span class="c1"># type: ignore[type-var]</span>
+            <span class="n">annotation_str</span><span class="p">,</span>  <span class="c1"># type: ignore[type-var]</span>
+            <span class="n">image_id</span><span class="p">,</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="n">job_name</span><span class="p">,</span>  <span class="c1"># type: ignore[type-var]</span>
+            <span class="n">is_prediction</span><span class="o">=</span><span class="n">is_prediction</span><span class="p">,</span>
+            <span class="n">annotation_labelmap</span><span class="o">=</span><span class="n">annotation_labelmap</span><span class="p">,</span>
+            <span class="n">overwrite</span><span class="o">=</span><span class="n">annotation_overwrite</span><span class="p">,</span>
+            <span class="n">add_to_dataset</span><span class="o">=</span><span class="n">add_to_dataset</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">upload_retry_attempts</span> <span class="o">=</span> <span class="n">retry</span><span class="o">.</span><span class="n">retries</span>
+    <span class="k">except</span> <span class="n">AnnotationSaveError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">e</span><span class="o">.</span><span class="n">retries</span> <span class="o">=</span> <span class="n">upload_retry_attempts</span>
+        <span class="k">raise</span>
+
+    <span class="n">upload_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+
+    <span class="k">return</span> <span class="n">annotation</span><span class="p">,</span> <span class="n">upload_time</span><span class="p">,</span> <span class="n">upload_retry_attempts</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -8524,21 +8726,7 @@ embedding, user_metadata.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">671</span>
-<span class="normal">672</span>
-<span class="normal">673</span>
-<span class="normal">674</span>
-<span class="normal">675</span>
-<span class="normal">676</span>
-<span class="normal">677</span>
-<span class="normal">678</span>
-<span class="normal">679</span>
-<span class="normal">680</span>
-<span class="normal">681</span>
-<span class="normal">682</span>
-<span class="normal">683</span>
-<span class="normal">684</span>
-<span class="normal">685</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">685</span>
 <span class="normal">686</span>
 <span class="normal">687</span>
 <span class="normal">688</span>
@@ -8623,7 +8811,21 @@ embedding, user_metadata.</p>
 <span class="normal">767</span>
 <span class="normal">768</span>
 <span class="normal">769</span>
-<span class="normal">770</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span>
+<span class="normal">770</span>
+<span class="normal">771</span>
+<span class="normal">772</span>
+<span class="normal">773</span>
+<span class="normal">774</span>
+<span class="normal">775</span>
+<span class="normal">776</span>
+<span class="normal">777</span>
+<span class="normal">778</span>
+<span class="normal">779</span>
+<span class="normal">780</span>
+<span class="normal">781</span>
+<span class="normal">782</span>
+<span class="normal">783</span>
+<span class="normal">784</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">like_image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -8992,21 +9194,7 @@ embedding, user_metadata.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">772</span>
-<span class="normal">773</span>
-<span class="normal">774</span>
-<span class="normal">775</span>
-<span class="normal">776</span>
-<span class="normal">777</span>
-<span class="normal">778</span>
-<span class="normal">779</span>
-<span class="normal">780</span>
-<span class="normal">781</span>
-<span class="normal">782</span>
-<span class="normal">783</span>
-<span class="normal">784</span>
-<span class="normal">785</span>
-<span class="normal">786</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">786</span>
 <span class="normal">787</span>
 <span class="normal">788</span>
 <span class="normal">789</span>
@@ -9066,7 +9254,21 @@ embedding, user_metadata.</p>
 <span class="normal">843</span>
 <span class="normal">844</span>
 <span class="normal">845</span>
-<span class="normal">846</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">search_all</span><span class="p">(</span>
+<span class="normal">846</span>
+<span class="normal">847</span>
+<span class="normal">848</span>
+<span class="normal">849</span>
+<span class="normal">850</span>
+<span class="normal">851</span>
+<span class="normal">852</span>
+<span class="normal">853</span>
+<span class="normal">854</span>
+<span class="normal">855</span>
+<span class="normal">856</span>
+<span class="normal">857</span>
+<span class="normal">858</span>
+<span class="normal">859</span>
+<span class="normal">860</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">search_all</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">like_image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -9163,9 +9365,9 @@ embedding, user_metadata.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1094</span>
-<span class="normal">1095</span>
-<span class="normal">1096</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">submit_annotation_job_for_review</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1108</span>
+<span class="normal">1109</span>
+<span class="normal">1110</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">submit_annotation_job_for_review</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Advance a labeling job into review."""</span>
     <span class="k">return</span> <span class="n">rfapi</span><span class="o">.</span><span class="n">submit_annotation_job_for_review</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__api_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__workspace</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__project_name</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -9437,24 +9639,24 @@ embedding, user_metadata.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1075</span>
-<span class="normal">1076</span>
-<span class="normal">1077</span>
-<span class="normal">1078</span>
-<span class="normal">1079</span>
-<span class="normal">1080</span>
-<span class="normal">1081</span>
-<span class="normal">1082</span>
-<span class="normal">1083</span>
-<span class="normal">1084</span>
-<span class="normal">1085</span>
-<span class="normal">1086</span>
-<span class="normal">1087</span>
-<span class="normal">1088</span>
-<span class="normal">1089</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1089</span>
 <span class="normal">1090</span>
 <span class="normal">1091</span>
-<span class="normal">1092</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_annotation_job</span><span class="p">(</span>
+<span class="normal">1092</span>
+<span class="normal">1093</span>
+<span class="normal">1094</span>
+<span class="normal">1095</span>
+<span class="normal">1096</span>
+<span class="normal">1097</span>
+<span class="normal">1098</span>
+<span class="normal">1099</span>
+<span class="normal">1100</span>
+<span class="normal">1101</span>
+<span class="normal">1102</span>
+<span class="normal">1103</span>
+<span class="normal">1104</span>
+<span class="normal">1105</span>
+<span class="normal">1106</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_annotation_job</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">job_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -9633,21 +9835,7 @@ project.update_image_metadata(
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/project.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1348</span>
-<span class="normal">1349</span>
-<span class="normal">1350</span>
-<span class="normal">1351</span>
-<span class="normal">1352</span>
-<span class="normal">1353</span>
-<span class="normal">1354</span>
-<span class="normal">1355</span>
-<span class="normal">1356</span>
-<span class="normal">1357</span>
-<span class="normal">1358</span>
-<span class="normal">1359</span>
-<span class="normal">1360</span>
-<span class="normal">1361</span>
-<span class="normal">1362</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1362</span>
 <span class="normal">1363</span>
 <span class="normal">1364</span>
 <span class="normal">1365</span>
@@ -9676,7 +9864,21 @@ project.update_image_metadata(
 <span class="normal">1388</span>
 <span class="normal">1389</span>
 <span class="normal">1390</span>
-<span class="normal">1391</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_image_metadata</span><span class="p">(</span>
+<span class="normal">1391</span>
+<span class="normal">1392</span>
+<span class="normal">1393</span>
+<span class="normal">1394</span>
+<span class="normal">1395</span>
+<span class="normal">1396</span>
+<span class="normal">1397</span>
+<span class="normal">1398</span>
+<span class="normal">1399</span>
+<span class="normal">1400</span>
+<span class="normal">1401</span>
+<span class="normal">1402</span>
+<span class="normal">1403</span>
+<span class="normal">1404</span>
+<span class="normal">1405</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_image_metadata</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">image_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>

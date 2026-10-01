@@ -1397,9 +1397,7 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>roboflow/core/version.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 50</span>
-<span class="normal"> 51</span>
-<span class="normal"> 52</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 52</span>
 <span class="normal"> 53</span>
 <span class="normal"> 54</span>
 <span class="normal"> 55</span>
@@ -2295,7 +2293,17 @@
 <span class="normal">945</span>
 <span class="normal">946</span>
 <span class="normal">947</span>
-<span class="normal">948</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Version</span><span class="p">:</span>
+<span class="normal">948</span>
+<span class="normal">949</span>
+<span class="normal">950</span>
+<span class="normal">951</span>
+<span class="normal">952</span>
+<span class="normal">953</span>
+<span class="normal">954</span>
+<span class="normal">955</span>
+<span class="normal">956</span>
+<span class="normal">957</span>
+<span class="normal">958</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Version</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Class representing a Roboflow dataset version.</span>
 <span class="sd">    """</span>
@@ -2477,7 +2485,7 @@
             <span class="n">model_type</span><span class="o">=</span><span class="n">model_type</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">create_training</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">train_recipe</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_training</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">train_recipe</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Training</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create a v2 training run and return a Training object.</span>
 
 <span class="sd">        Unlike :meth:`train`, this does not block until completion or return a</span>
@@ -2488,11 +2496,12 @@
 <span class="sd">        To customize hyperparameters or online augmentation, fetch the recipe</span>
 <span class="sd">        template via :meth:`describe_train_recipe`, edit it, and pass it as</span>
 <span class="sd">        ``train_recipe``; the server dense-fills any defaults the recipe</span>
-<span class="sd">        omits.</span>
+<span class="sd">        omits. A recipe is optional for Action Recognition projects too.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speed: Training speed preset (e.g. ``"fast"``).</span>
 <span class="sd">            model_type: The model type to train (e.g. ``"rfdetr-medium"``).</span>
+<span class="sd">                Required for Action Recognition projects.</span>
 <span class="sd">            checkpoint: Checkpoint to start training from.</span>
 <span class="sd">            epochs: Number of epochs to train. When a ``train_recipe`` is</span>
 <span class="sd">                given, this is folded into the recipe's hyperparameters</span>
@@ -2502,15 +2511,19 @@
 <span class="sd">            train_recipe: A full recipe to submit — typically the</span>
 <span class="sd">                ``template`` from :meth:`describe_train_recipe` with edited</span>
 <span class="sd">                ``hyperparameters`` / ``online_augmentation``. Requires</span>
-<span class="sd">                ``model_type``: recipes are minted per model type, and</span>
-<span class="sd">                without one the platform would train the project's default</span>
-<span class="sd">                architecture instead.</span>
+<span class="sd">                ``model_type``: recipes are minted per model type.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            ValueError: If ``train_recipe`` is given without ``model_type``.</span>
+<span class="sd">            ValueError: If an Action Recognition project has no ``model_type``,</span>
+<span class="sd">                or if ``train_recipe`` is given without ``model_type``.</span>
 <span class="sd">            RoboflowError: If the Roboflow API returns an error.</span>
 
 <span class="sd">        Example:</span>
+<span class="sd">            Start Action Recognition training without blocking::</span>
+
+<span class="sd">                training = version.create_training(model_type="cosmos3-edge", epochs=5)</span>
+<span class="sd">                print(training.training_id)</span>
+
 <span class="sd">            Launch a small learning-rate sweep and poll for completion::</span>
 
 <span class="sd">                import copy</span>
@@ -2532,6 +2545,9 @@
 <span class="sd">                    time.sleep(60)</span>
 <span class="sd">        """</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.core.training</span><span class="w"> </span><span class="kn">import</span> <span class="n">Training</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">TYPE_ACTION_RECOGNITION</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">model_type</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"model_type is required for Action Recognition training"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">train_recipe</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">model_type</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -3316,17 +3332,7 @@ attribute cannot represent that, so it is deprecated in favor of
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">705</span>
-<span class="normal">706</span>
-<span class="normal">707</span>
-<span class="normal">708</span>
-<span class="normal">709</span>
-<span class="normal">710</span>
-<span class="normal">711</span>
-<span class="normal">712</span>
-<span class="normal">713</span>
-<span class="normal">714</span>
-<span class="normal">715</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">715</span>
 <span class="normal">716</span>
 <span class="normal">717</span>
 <span class="normal">718</span>
@@ -3356,7 +3362,17 @@ attribute cannot represent that, so it is deprecated in favor of
 <span class="normal">742</span>
 <span class="normal">743</span>
 <span class="normal">744</span>
-<span class="normal">745</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__download_zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="nb">format</span><span class="p">):</span>
+<span class="normal">745</span>
+<span class="normal">746</span>
+<span class="normal">747</span>
+<span class="normal">748</span>
+<span class="normal">749</span>
+<span class="normal">750</span>
+<span class="normal">751</span>
+<span class="normal">752</span>
+<span class="normal">753</span>
+<span class="normal">754</span>
+<span class="normal">755</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__download_zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="nb">format</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Download a dataset's zip file from the given URL and save it in the desired location</span>
 
@@ -3441,21 +3457,21 @@ attribute cannot represent that, so it is deprecated in favor of
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">747</span>
-<span class="normal">748</span>
-<span class="normal">749</span>
-<span class="normal">750</span>
-<span class="normal">751</span>
-<span class="normal">752</span>
-<span class="normal">753</span>
-<span class="normal">754</span>
-<span class="normal">755</span>
-<span class="normal">756</span>
-<span class="normal">757</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">757</span>
 <span class="normal">758</span>
 <span class="normal">759</span>
 <span class="normal">760</span>
-<span class="normal">761</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__get_download_location</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">761</span>
+<span class="normal">762</span>
+<span class="normal">763</span>
+<span class="normal">764</span>
+<span class="normal">765</span>
+<span class="normal">766</span>
+<span class="normal">767</span>
+<span class="normal">768</span>
+<span class="normal">769</span>
+<span class="normal">770</span>
+<span class="normal">771</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__get_download_location</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Get the local path to save a downloaded dataset to</span>
 
@@ -3545,18 +3561,18 @@ attribute cannot represent that, so it is deprecated in favor of
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">763</span>
-<span class="normal">764</span>
-<span class="normal">765</span>
-<span class="normal">766</span>
-<span class="normal">767</span>
-<span class="normal">768</span>
-<span class="normal">769</span>
-<span class="normal">770</span>
-<span class="normal">771</span>
-<span class="normal">772</span>
-<span class="normal">773</span>
-<span class="normal">774</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__get_download_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">773</span>
+<span class="normal">774</span>
+<span class="normal">775</span>
+<span class="normal">776</span>
+<span class="normal">777</span>
+<span class="normal">778</span>
+<span class="normal">779</span>
+<span class="normal">780</span>
+<span class="normal">781</span>
+<span class="normal">782</span>
+<span class="normal">783</span>
+<span class="normal">784</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__get_download_url</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Get the Roboflow API URL for downloading (and exporting downloadable zips)</span>
 
@@ -3645,17 +3661,7 @@ attribute cannot represent that, so it is deprecated in favor of
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">776</span>
-<span class="normal">777</span>
-<span class="normal">778</span>
-<span class="normal">779</span>
-<span class="normal">780</span>
-<span class="normal">781</span>
-<span class="normal">782</span>
-<span class="normal">783</span>
-<span class="normal">784</span>
-<span class="normal">785</span>
-<span class="normal">786</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">786</span>
 <span class="normal">787</span>
 <span class="normal">788</span>
 <span class="normal">789</span>
@@ -3669,7 +3675,17 @@ attribute cannot represent that, so it is deprecated in favor of
 <span class="normal">797</span>
 <span class="normal">798</span>
 <span class="normal">799</span>
-<span class="normal">800</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__get_format_identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="p">):</span>
+<span class="normal">800</span>
+<span class="normal">801</span>
+<span class="normal">802</span>
+<span class="normal">803</span>
+<span class="normal">804</span>
+<span class="normal">805</span>
+<span class="normal">806</span>
+<span class="normal">807</span>
+<span class="normal">808</span>
+<span class="normal">809</span>
+<span class="normal">810</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__get_format_identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    If `format` is none, fall back to the instance's `model_format` value.</span>
 
@@ -3716,9 +3732,7 @@ attribute cannot represent that, so it is deprecated in favor of
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 55</span>
-<span class="normal"> 56</span>
-<span class="normal"> 57</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 57</span>
 <span class="normal"> 58</span>
 <span class="normal"> 59</span>
 <span class="normal"> 60</span>
@@ -3823,7 +3837,9 @@ attribute cannot represent that, so it is deprecated in favor of
 <span class="normal">159</span>
 <span class="normal">160</span>
 <span class="normal">161</span>
-<span class="normal">162</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">version_dict</span><span class="p">,</span>
     <span class="nb">type</span><span class="p">,</span>
@@ -4000,17 +4016,7 @@ attribute cannot represent that, so it is deprecated in favor of
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">802</span>
-<span class="normal">803</span>
-<span class="normal">804</span>
-<span class="normal">805</span>
-<span class="normal">806</span>
-<span class="normal">807</span>
-<span class="normal">808</span>
-<span class="normal">809</span>
-<span class="normal">810</span>
-<span class="normal">811</span>
-<span class="normal">812</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">812</span>
 <span class="normal">813</span>
 <span class="normal">814</span>
 <span class="normal">815</span>
@@ -4031,7 +4037,17 @@ attribute cannot represent that, so it is deprecated in favor of
 <span class="normal">830</span>
 <span class="normal">831</span>
 <span class="normal">832</span>
-<span class="normal">833</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__reformat_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="normal">833</span>
+<span class="normal">834</span>
+<span class="normal">835</span>
+<span class="normal">836</span>
+<span class="normal">837</span>
+<span class="normal">838</span>
+<span class="normal">839</span>
+<span class="normal">840</span>
+<span class="normal">841</span>
+<span class="normal">842</span>
+<span class="normal">843</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">__reformat_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Certain formats seem to require reformatting the downloaded YAML.</span>
 
@@ -4085,21 +4101,21 @@ attribute cannot represent that, so it is deprecated in favor of
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">934</span>
-<span class="normal">935</span>
-<span class="normal">936</span>
-<span class="normal">937</span>
-<span class="normal">938</span>
-<span class="normal">939</span>
-<span class="normal">940</span>
-<span class="normal">941</span>
-<span class="normal">942</span>
-<span class="normal">943</span>
-<span class="normal">944</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">944</span>
 <span class="normal">945</span>
 <span class="normal">946</span>
 <span class="normal">947</span>
-<span class="normal">948</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">948</span>
+<span class="normal">949</span>
+<span class="normal">950</span>
+<span class="normal">951</span>
+<span class="normal">952</span>
+<span class="normal">953</span>
+<span class="normal">954</span>
+<span class="normal">955</span>
+<span class="normal">956</span>
+<span class="normal">957</span>
+<span class="normal">958</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    String representation of version object.</span>
 <span class="sd">    """</span>
@@ -4139,7 +4155,7 @@ model they want.</p>
 <p>To customize hyperparameters or online augmentation, fetch the recipe
 template via :meth:<code>describe_train_recipe</code>, edit it, and pass it as
 <code>train_recipe</code>; the server dense-fills any defaults the recipe
-omits.</p>
+omits. A recipe is optional for Action Recognition projects too.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4176,7 +4192,8 @@ omits.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The model type to train (e.g. <code>"rfdetr-medium"</code>).</p>
+                <p>The model type to train (e.g. <code>"rfdetr-medium"</code>).
+Required for Action Recognition projects.</p>
               </div>
             </td>
             <td>
@@ -4228,9 +4245,7 @@ top-level value.</p>
                 <p>A full recipe to submit — typically the
 <code>template</code> from :meth:<code>describe_train_recipe</code> with edited
 <code>hyperparameters</code> / <code>online_augmentation</code>. Requires
-<code>model_type</code>: recipes are minted per model type, and
-without one the platform would train the project's default
-architecture instead.</p>
+<code>model_type</code>: recipes are minted per model type.</p>
               </div>
             </td>
             <td>
@@ -4256,7 +4271,8 @@ architecture instead.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If <code>train_recipe</code> is given without <code>model_type</code>.</p>
+                <p>If an Action Recognition project has no <code>model_type</code>,
+or if <code>train_recipe</code> is given without <code>model_type</code>.</p>
               </div>
             </td>
           </tr>
@@ -4276,7 +4292,11 @@ architecture instead.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <p>Launch a small learning-rate sweep and poll for completion::</p>
+  <p>Start Action Recognition training without blocking::</p>
+<pre><code>training = version.create_training(model_type="cosmos3-edge", epochs=5)
+print(training.training_id)
+</code></pre>
+<p>Launch a small learning-rate sweep and poll for completion::</p>
 <pre><code>import copy
 import time
 
@@ -4299,9 +4319,7 @@ while pending:
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">234</span>
 <span class="normal">235</span>
 <span class="normal">236</span>
 <span class="normal">237</span>
@@ -4386,7 +4404,17 @@ while pending:
 <span class="normal">316</span>
 <span class="normal">317</span>
 <span class="normal">318</span>
-<span class="normal">319</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_training</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">train_recipe</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_training</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">train_recipe</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Training</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Create a v2 training run and return a Training object.</span>
 
 <span class="sd">    Unlike :meth:`train`, this does not block until completion or return a</span>
@@ -4397,11 +4425,12 @@ while pending:
 <span class="sd">    To customize hyperparameters or online augmentation, fetch the recipe</span>
 <span class="sd">    template via :meth:`describe_train_recipe`, edit it, and pass it as</span>
 <span class="sd">    ``train_recipe``; the server dense-fills any defaults the recipe</span>
-<span class="sd">    omits.</span>
+<span class="sd">    omits. A recipe is optional for Action Recognition projects too.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        speed: Training speed preset (e.g. ``"fast"``).</span>
 <span class="sd">        model_type: The model type to train (e.g. ``"rfdetr-medium"``).</span>
+<span class="sd">            Required for Action Recognition projects.</span>
 <span class="sd">        checkpoint: Checkpoint to start training from.</span>
 <span class="sd">        epochs: Number of epochs to train. When a ``train_recipe`` is</span>
 <span class="sd">            given, this is folded into the recipe's hyperparameters</span>
@@ -4411,15 +4440,19 @@ while pending:
 <span class="sd">        train_recipe: A full recipe to submit — typically the</span>
 <span class="sd">            ``template`` from :meth:`describe_train_recipe` with edited</span>
 <span class="sd">            ``hyperparameters`` / ``online_augmentation``. Requires</span>
-<span class="sd">            ``model_type``: recipes are minted per model type, and</span>
-<span class="sd">            without one the platform would train the project's default</span>
-<span class="sd">            architecture instead.</span>
+<span class="sd">            ``model_type``: recipes are minted per model type.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If ``train_recipe`` is given without ``model_type``.</span>
+<span class="sd">        ValueError: If an Action Recognition project has no ``model_type``,</span>
+<span class="sd">            or if ``train_recipe`` is given without ``model_type``.</span>
 <span class="sd">        RoboflowError: If the Roboflow API returns an error.</span>
 
 <span class="sd">    Example:</span>
+<span class="sd">        Start Action Recognition training without blocking::</span>
+
+<span class="sd">            training = version.create_training(model_type="cosmos3-edge", epochs=5)</span>
+<span class="sd">            print(training.training_id)</span>
+
 <span class="sd">        Launch a small learning-rate sweep and poll for completion::</span>
 
 <span class="sd">            import copy</span>
@@ -4441,6 +4474,9 @@ while pending:
 <span class="sd">                time.sleep(60)</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">roboflow.core.training</span><span class="w"> </span><span class="kn">import</span> <span class="n">Training</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">TYPE_ACTION_RECOGNITION</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">model_type</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"model_type is required for Action Recognition training"</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">train_recipe</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">model_type</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -4521,18 +4557,18 @@ Trash UI.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">835</span>
-<span class="normal">836</span>
-<span class="normal">837</span>
-<span class="normal">838</span>
-<span class="normal">839</span>
-<span class="normal">840</span>
-<span class="normal">841</span>
-<span class="normal">842</span>
-<span class="normal">843</span>
-<span class="normal">844</span>
-<span class="normal">845</span>
-<span class="normal">846</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">845</span>
+<span class="normal">846</span>
+<span class="normal">847</span>
+<span class="normal">848</span>
+<span class="normal">849</span>
+<span class="normal">850</span>
+<span class="normal">851</span>
+<span class="normal">852</span>
+<span class="normal">853</span>
+<span class="normal">854</span>
+<span class="normal">855</span>
+<span class="normal">856</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Move this version to Trash (soft delete).</span>
 
@@ -4630,17 +4666,7 @@ client-side; several runs raise with their ids listed.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">879</span>
-<span class="normal">880</span>
-<span class="normal">881</span>
-<span class="normal">882</span>
-<span class="normal">883</span>
-<span class="normal">884</span>
-<span class="normal">885</span>
-<span class="normal">886</span>
-<span class="normal">887</span>
-<span class="normal">888</span>
-<span class="normal">889</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">889</span>
 <span class="normal">890</span>
 <span class="normal">891</span>
 <span class="normal">892</span>
@@ -4665,7 +4691,17 @@ client-side; several runs raise with their ids listed.</p>
 <span class="normal">911</span>
 <span class="normal">912</span>
 <span class="normal">913</span>
-<span class="normal">914</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_training</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">training_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="normal">914</span>
+<span class="normal">915</span>
+<span class="normal">916</span>
+<span class="normal">917</span>
+<span class="normal">918</span>
+<span class="normal">919</span>
+<span class="normal">920</span>
+<span class="normal">921</span>
+<span class="normal">922</span>
+<span class="normal">923</span>
+<span class="normal">924</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">delete_training</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">training_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Move one of this version's training runs to Trash (soft delete).</span>
 
@@ -4786,18 +4822,18 @@ client-side; several runs raise with their ids listed.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">648</span>
-<span class="normal">649</span>
-<span class="normal">650</span>
-<span class="normal">651</span>
-<span class="normal">652</span>
-<span class="normal">653</span>
-<span class="normal">654</span>
-<span class="normal">655</span>
-<span class="normal">656</span>
-<span class="normal">657</span>
-<span class="normal">658</span>
-<span class="normal">659</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">deploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"weights/best.pt"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">658</span>
+<span class="normal">659</span>
+<span class="normal">660</span>
+<span class="normal">661</span>
+<span class="normal">662</span>
+<span class="normal">663</span>
+<span class="normal">664</span>
+<span class="normal">665</span>
+<span class="normal">666</span>
+<span class="normal">667</span>
+<span class="normal">668</span>
+<span class="normal">669</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">deploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"weights/best.pt"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Uploads provided weights file to Roboflow.</span>
 
 <span class="sd">    Args:</span>
@@ -4938,9 +4974,7 @@ client-side; several runs raise with their ids listed.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">210</span>
 <span class="normal">211</span>
 <span class="normal">212</span>
 <span class="normal">213</span>
@@ -4960,7 +4994,9 @@ client-side; several runs raise with their ids listed.</p>
 <span class="normal">227</span>
 <span class="normal">228</span>
 <span class="normal">229</span>
-<span class="normal">230</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">describe_train_recipe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">describe_train_recipe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Fetch the v2 training recipe schema and template for a model type.</span>
 
 <span class="sd">    Args:</span>
@@ -5126,17 +5162,7 @@ client-side; several runs raise with their ids listed.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">353</span>
-<span class="normal">354</span>
-<span class="normal">355</span>
-<span class="normal">356</span>
-<span class="normal">357</span>
-<span class="normal">358</span>
-<span class="normal">359</span>
-<span class="normal">360</span>
-<span class="normal">361</span>
-<span class="normal">362</span>
-<span class="normal">363</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">363</span>
 <span class="normal">364</span>
 <span class="normal">365</span>
 <span class="normal">366</span>
@@ -5185,7 +5211,17 @@ client-side; several runs raise with their ids listed.</p>
 <span class="normal">409</span>
 <span class="normal">410</span>
 <span class="normal">411</span>
-<span class="normal">412</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="normal">412</span>
+<span class="normal">413</span>
+<span class="normal">414</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span>
+<span class="normal">418</span>
+<span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Download and extract a ZIP of a version's dataset in a given format</span>
 
@@ -5355,17 +5391,7 @@ client-side; several runs raise with their ids listed.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">414</span>
-<span class="normal">415</span>
-<span class="normal">416</span>
-<span class="normal">417</span>
-<span class="normal">418</span>
-<span class="normal">419</span>
-<span class="normal">420</span>
-<span class="normal">421</span>
-<span class="normal">422</span>
-<span class="normal">423</span>
-<span class="normal">424</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">424</span>
 <span class="normal">425</span>
 <span class="normal">426</span>
 <span class="normal">427</span>
@@ -5405,7 +5431,17 @@ client-side; several runs raise with their ids listed.</p>
 <span class="normal">461</span>
 <span class="normal">462</span>
 <span class="normal">463</span>
-<span class="normal">464</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_format</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">464</span>
+<span class="normal">465</span>
+<span class="normal">466</span>
+<span class="normal">467</span>
+<span class="normal">468</span>
+<span class="normal">469</span>
+<span class="normal">470</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_format</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Ask the Roboflow API to generate a version's dataset in a given format so that it can be downloaded via the `download()` method.</span>
 
@@ -5481,9 +5517,7 @@ trainings" rule. Returns a list of
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">198</span>
 <span class="normal">199</span>
 <span class="normal">200</span>
 <span class="normal">201</span>
@@ -5491,7 +5525,9 @@ trainings" rule. Returns a list of
 <span class="normal">203</span>
 <span class="normal">204</span>
 <span class="normal">205</span>
-<span class="normal">206</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">models</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">models</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""All trained models for this version — the union across its trainings.</span>
 
 <span class="sd">    Mirrors the backend's "a version's models are the union across its</span>
@@ -5549,17 +5585,7 @@ must not itself be in Trash.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">848</span>
-<span class="normal">849</span>
-<span class="normal">850</span>
-<span class="normal">851</span>
-<span class="normal">852</span>
-<span class="normal">853</span>
-<span class="normal">854</span>
-<span class="normal">855</span>
-<span class="normal">856</span>
-<span class="normal">857</span>
-<span class="normal">858</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">858</span>
 <span class="normal">859</span>
 <span class="normal">860</span>
 <span class="normal">861</span>
@@ -5578,7 +5604,17 @@ must not itself be in Trash.</p>
 <span class="normal">874</span>
 <span class="normal">875</span>
 <span class="normal">876</span>
-<span class="normal">877</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">877</span>
+<span class="normal">878</span>
+<span class="normal">879</span>
+<span class="normal">880</span>
+<span class="normal">881</span>
+<span class="normal">882</span>
+<span class="normal">883</span>
+<span class="normal">884</span>
+<span class="normal">885</span>
+<span class="normal">886</span>
+<span class="normal">887</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Restore this version from Trash.</span>
 
@@ -5686,23 +5722,23 @@ runs are invisible to the sole-run fallback).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">916</span>
-<span class="normal">917</span>
-<span class="normal">918</span>
-<span class="normal">919</span>
-<span class="normal">920</span>
-<span class="normal">921</span>
-<span class="normal">922</span>
-<span class="normal">923</span>
-<span class="normal">924</span>
-<span class="normal">925</span>
-<span class="normal">926</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">926</span>
 <span class="normal">927</span>
 <span class="normal">928</span>
 <span class="normal">929</span>
 <span class="normal">930</span>
 <span class="normal">931</span>
-<span class="normal">932</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">restore_training</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">training_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="normal">932</span>
+<span class="normal">933</span>
+<span class="normal">934</span>
+<span class="normal">935</span>
+<span class="normal">936</span>
+<span class="normal">937</span>
+<span class="normal">938</span>
+<span class="normal">939</span>
+<span class="normal">940</span>
+<span class="normal">941</span>
+<span class="normal">942</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">restore_training</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">training_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Restore one of this version's trashed training runs.</span>
 
@@ -5887,17 +5923,7 @@ runs are invisible to the sole-run fallback).</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">466</span>
-<span class="normal">467</span>
-<span class="normal">468</span>
-<span class="normal">469</span>
-<span class="normal">470</span>
-<span class="normal">471</span>
-<span class="normal">472</span>
-<span class="normal">473</span>
-<span class="normal">474</span>
-<span class="normal">475</span>
-<span class="normal">476</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">476</span>
 <span class="normal">477</span>
 <span class="normal">478</span>
 <span class="normal">479</span>
@@ -6066,7 +6092,17 @@ runs are invisible to the sole-run fallback).</p>
 <span class="normal">642</span>
 <span class="normal">643</span>
 <span class="normal">644</span>
-<span class="normal">645</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span>
+<span class="normal">645</span>
+<span class="normal">646</span>
+<span class="normal">647</span>
+<span class="normal">648</span>
+<span class="normal">649</span>
+<span class="normal">650</span>
+<span class="normal">651</span>
+<span class="normal">652</span>
+<span class="normal">653</span>
+<span class="normal">654</span>
+<span class="normal">655</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">speed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plot_in_notebook</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InferenceModel</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -6270,16 +6306,16 @@ run. Returns a list of :class:<code>~roboflow.core.training.Training</code>.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>roboflow/core/version.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">187</span>
 <span class="normal">188</span>
 <span class="normal">189</span>
 <span class="normal">190</span>
 <span class="normal">191</span>
 <span class="normal">192</span>
 <span class="normal">193</span>
-<span class="normal">194</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">trainings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">trainings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""List this version's trainings as Training objects (DNA ``trainings.list``).</span>
 
 <span class="sd">    An MMPV version may own many; a legacy (SMPV) version reports its single</span>

@@ -1046,7 +1046,11 @@
 <span class="normal">47</span>
 <span class="normal">48</span>
 <span class="normal">49</span>
-<span class="normal">50</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SemanticSegmentationModel</span><span class="p">(</span><span class="n">InferenceModel</span><span class="p">):</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SemanticSegmentationModel</span><span class="p">(</span><span class="n">InferenceModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Run inference on a semantic segmentation model hosted on Roboflow or served through Roboflow Inference.</span>
 <span class="sd">    """</span>  <span class="c1"># noqa: E501 // docs</span>
@@ -1084,6 +1088,10 @@
 
 <span class="sd">            &gt;&gt;&gt; prediction = model.predict("YOUR_IMAGE.jpg")</span>
 <span class="sd">        """</span>  <span class="c1"># noqa: E501 // docs</span>
+        <span class="c1"># Resolve the destination now, with the same lookup the residency check uses,</span>
+        <span class="c1"># so the check always applies to the host that receives the image.</span>
+        <span class="n">base_url</span> <span class="o">=</span> <span class="n">resolve_available_url</span><span class="p">(</span><span class="s2">"SEMANTIC_SEGMENTATION_URL"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">"</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
             <span class="n">image_path</span><span class="p">,</span>
             <span class="n">confidence</span><span class="o">=</span><span class="n">confidence</span><span class="p">,</span>
@@ -1322,7 +1330,11 @@
 <span class="normal">44</span>
 <span class="normal">45</span>
 <span class="normal">46</span>
-<span class="normal">47</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">confidence</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">confidence</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Infers detections based on image from a specified model and image path.</span>
 
@@ -1344,6 +1356,10 @@
 
 <span class="sd">        &gt;&gt;&gt; prediction = model.predict("YOUR_IMAGE.jpg")</span>
 <span class="sd">    """</span>  <span class="c1"># noqa: E501 // docs</span>
+    <span class="c1"># Resolve the destination now, with the same lookup the residency check uses,</span>
+    <span class="c1"># so the check always applies to the host that receives the image.</span>
+    <span class="n">base_url</span> <span class="o">=</span> <span class="n">resolve_available_url</span><span class="p">(</span><span class="s2">"SEMANTIC_SEGMENTATION_URL"</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base_url</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_id</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2">"</span>
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
         <span class="n">image_path</span><span class="p">,</span>
         <span class="n">confidence</span><span class="o">=</span><span class="n">confidence</span><span class="p">,</span>
