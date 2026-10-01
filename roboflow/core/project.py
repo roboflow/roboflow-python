@@ -593,6 +593,43 @@ class Project:
 
         return annotation, upload_time, upload_retry_attempts
 
+    def annotate_video_segments(
+        self,
+        video_id: str,
+        document: Dict,
+        *,
+        overwrite: bool = False,
+        split: Optional[str] = None,
+        add_to_dataset: Optional[bool] = None,
+    ) -> Dict:
+        """Annotate a canonical video Source in an Action Recognition project.
+
+        ``document`` is a complete ``roboflow-video-coco`` document. Its native PTS,
+        frame indices, and rational time base are forwarded without conversion.
+        Use the final ``videoId`` from an uploaded video's status, which may differ
+        from the initial upload ID after content reuse.
+
+        The API adds the Source to the Dataset by default. Set ``add_to_dataset=False``
+        to keep its existing membership, ``split`` to assign train/valid/test, or
+        ``overwrite=True`` to replace different existing segments. An identical
+        retry succeeds without overwrite. Server rejections, including HTTP 409
+        preservation, raise ``AnnotationSaveError`` with ``status_code``.
+
+        Returns:
+            The API response, including ``success``, ``inDataset``, and
+            ``createdClasses``.
+        """
+        return rfapi.annotate_video_segments(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            video_id,
+            document,
+            overwrite=overwrite,
+            split=split,
+            add_to_dataset=add_to_dataset,
+        )
+
     def single_upload(
         self,
         image_path=None,

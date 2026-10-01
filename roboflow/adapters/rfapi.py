@@ -842,6 +842,48 @@ def save_annotation(
     return responsejson
 
 
+def annotate_video_segments(
+    api_key: str,
+    workspace_url: str,
+    project_url: str,
+    video_id: str,
+    document: Dict[str, Any],
+    *,
+    overwrite: bool = False,
+    split: Optional[str] = None,
+    add_to_dataset: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """Send a roboflow-video-coco document to the public Source annotation route."""
+    params = {"api_key": api_key, "name": "annotations.json"}
+    if overwrite:
+        params["overwrite"] = "true"
+    if split is not None:
+        params["split"] = split
+    if add_to_dataset is not None:
+        params["addToDataset"] = "true" if add_to_dataset else "false"
+
+    url = f"{API_URL}/{quote(workspace_url, safe='')}/{quote(project_url, safe='')}/annotate/{quote(video_id, safe='')}"
+    try:
+        response = requests.post(
+            url,
+            params=params,
+            json={"annotationFile": json.dumps(document)},
+            timeout=(60, 60),
+        )
+    except RequestException as e:
+        raise AnnotationSaveError(str(e)) from e
+
+    try:
+        result = response.json()
+    except ValueError:
+        raise _save_annotation_error(response) from None
+    if not isinstance(result, dict):
+        raise AnnotationSaveError(response.text, status_code=response.status_code)
+    if response.status_code != 200 or result.get("success") is not True:
+        raise _save_annotation_error(response)
+    return result
+
+
 def _save_annotation_url(
     api_key, project_url, name, image_id, job_name, is_prediction, overwrite=False, add_to_dataset=None
 ):
