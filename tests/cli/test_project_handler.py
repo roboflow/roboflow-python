@@ -148,7 +148,11 @@ class TestProjectCreateHandler(unittest.TestCase):
                     }
                 )
             )
-            with patch.dict(os.environ, {"HOME": config_dir, "ROBOFLOW_CONFIG_DIR": str(config_path)}, clear=True):
+            with patch.dict(
+                os.environ,
+                {"HOME": config_dir, "USERPROFILE": config_dir, "ROBOFLOW_CONFIG_DIR": str(config_path)},
+                clear=True,
+            ):
                 result = runner.invoke(
                     app,
                     [
