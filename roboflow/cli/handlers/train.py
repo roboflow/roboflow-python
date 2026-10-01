@@ -17,7 +17,7 @@ def _train_callback(
     project: Annotated[Optional[str], typer.Option("-p", "--project", help="Project ID to train")] = None,
     version_number: Annotated[Optional[int], typer.Option("-v", "--version", help="Version number to train")] = None,
     model_type: Annotated[
-        Optional[str], typer.Option("-t", "--type", help="Model type (e.g. rfdetr-nano, yolov8n)")
+        Optional[str], typer.Option("-t", "--type", help="Model type (e.g. cosmos3-edge, rfdetr-nano)")
     ] = None,
     checkpoint: Annotated[Optional[str], typer.Option(help="Checkpoint to resume training from")] = None,
     speed: Annotated[Optional[str], typer.Option(help="Training speed preset")] = None,
@@ -69,7 +69,7 @@ def start_training(
     project: Annotated[str, typer.Option("-p", "--project", help="Project ID to train")],
     version_number: Annotated[int, typer.Option("-v", "--version", help="Version number to train")],
     model_type: Annotated[
-        Optional[str], typer.Option("-t", "--type", help="Model type (e.g. rfdetr-nano, yolov8n)")
+        Optional[str], typer.Option("-t", "--type", help="Model type (e.g. cosmos3-edge, rfdetr-nano)")
     ] = None,
     checkpoint: Annotated[Optional[str], typer.Option(help="Checkpoint to resume training from")] = None,
     speed: Annotated[Optional[str], typer.Option(help="Training speed preset")] = None,
@@ -88,8 +88,9 @@ def start_training(
 ) -> None:
     """Start training for a dataset version.
 
-    With --train-recipe, the training is created via the v2 trainings API
-    and the new trainingId is printed. Start from the ``template`` field of
+    Action Recognition with ``--type cosmos3-edge`` uses the v2 trainings API
+    and prints the trainingId without requiring a recipe. Other models also
+    use v2 when --train-recipe is supplied. Start from the ``template`` field of
     ``roboflow train recipe`` output, edit it (hyperparameters, online
     augmentation), and pass it inline or as ``@path/to/file.json``; --epochs is folded into its
     hyperparameters unless the recipe already sets epochs.
@@ -297,11 +298,10 @@ def _start(args):  # noqa: ANN001
         output_error(args, "No API key found.", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'.", exit_code=2)
         return
 
-    # Custom recipes go through the v2 trainings API. Presence, not
-    # truthiness: an explicitly supplied empty value (e.g. an unset shell
-    # variable) must fail JSON validation, not fall through and start a
-    # legacy training.
-    if getattr(args, "train_recipe", None) is not None:
+    # Exact Cosmos 3 Edge and custom recipes use v2 so callers receive the
+    # trainingId. Presence, not truthiness: an explicitly supplied empty
+    # recipe must fail validation rather than start another training.
+    if args.model_type == "cosmos3-edge" or getattr(args, "train_recipe", None) is not None:
         _start_v2(args, api_key, workspace_url, project_slug)
         return
 
@@ -383,7 +383,7 @@ def _parse_json_flag(args, raw, flag):
 
 
 def _start_v2(args, api_key, workspace_url, project_slug):
-    """Create a training via the v2 trainings API with a custom trainRecipe."""
+    """Create a v2 training, with a trainRecipe only when supplied."""
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.util.train_recipe import fold_epochs_into_recipe
@@ -400,8 +400,10 @@ def _start_v2(args, api_key, workspace_url, project_slug):
             ),
         )
         return
-    train_recipe = _parse_json_flag(args, args.train_recipe, "--train-recipe")
-    if args.epochs is not None:
+    train_recipe = None
+    if getattr(args, "train_recipe", None) is not None:
+        train_recipe = _parse_json_flag(args, args.train_recipe, "--train-recipe")
+    if train_recipe is not None and args.epochs is not None:
         # Fold --epochs into the recipe: the server dense-fills recipe
         # hyperparameters (including a default epochs) and resolves them
         # ahead of the body's top-level value, which would otherwise be

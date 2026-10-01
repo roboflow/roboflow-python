@@ -80,6 +80,7 @@ roboflow train start -p my-project -v 3 --type rfdetr-base
 roboflow train start -p my-project -v 3 --type rfdetr-nas-parent      # NAS sweep
 roboflow train start -p my-project -v 3 --type rfdetr-nas-base-parent # NAS Base sweep
 roboflow train start -p my-project -v 3 --type rfdetr-nas-seg-parent  # NAS instance-segmentation
+roboflow train start -p my-actions -v 3 --type cosmos3-edge         # Action Recognition; prints trainingId
 
 # Cancel an in-flight training (any architecture; NAS-aware):
 roboflow train cancel my-project/3
@@ -96,6 +97,8 @@ roboflow train results my-project/3
 
 NAS sweeps require the version's validation split to have at least 15 images;
 the server returns `code: "insufficient_validation_images_for_nas"` otherwise.
+Action Recognition uses the v2 training route without a recipe. The CLI prepares
+the `video-coco` export and prints the run's `trainingId` for later monitoring.
 
 ### Train recipes — custom hyperparameters & augmentation (v2)
 
