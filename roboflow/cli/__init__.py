@@ -207,6 +207,7 @@ from roboflow.cli.handlers.version import version_app  # noqa: E402
 from roboflow.cli.handlers.video import video_app  # noqa: E402
 from roboflow.cli.handlers.vision_events import vision_events_app  # noqa: E402
 from roboflow.cli.handlers.workflow import workflow_app  # noqa: E402
+from roboflow.cli.handlers.workflow_eval import workflow_eval_app  # noqa: E402
 from roboflow.cli.handlers.workspace import workspace_app  # noqa: E402
 
 # Register ALL commands in alphabetical order for clean --help output
@@ -239,6 +240,7 @@ app.add_typer(version_app, name="version")
 app.add_typer(video_app, name="video")
 app.add_typer(vision_events_app, name="vision-events")
 app.add_typer(workflow_app, name="workflow")
+app.add_typer(workflow_eval_app, name="workflow-eval")
 app.add_typer(workspace_app, name="workspace")
 
 # Hidden aliases (loaded last — still functional but not in --help)

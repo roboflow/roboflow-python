@@ -457,6 +457,42 @@ roboflow eval compare --project my-project --version 3 --frontier-metric mAP5095
 Reads existing evaluations; does not start new ones. Requires `model-eval:read`
 and workspace Model Evaluation access.
 
+### Evaluate Workflows (Workflow Evals)
+
+```bash
+# Discover the engine catalog and what your key may do.
+roboflow workflow-eval capabilities --json
+roboflow workflow-eval evaluator list
+roboflow workflow-eval schema get spec --json
+
+# Author: Spec, Eval Dataset, Cases, Eval.
+roboflow workflow-eval spec create --body @spec.json --name "Boolean answer"
+roboflow workflow-eval dataset create --body @dataset.json
+roboflow workflow-eval case upload ./image.png --dataset <dataset-id>   # prints artifactId
+roboflow workflow-eval case add --dataset <dataset-id> --body @case.json
+roboflow workflow-eval case import --dataset <dataset-id> --input-field image --from-dataset my-project:valid
+roboflow workflow-eval create --name "Answer accuracy" --spec <spec-id> --dataset <dataset-id>
+
+# Bind a Workflow, run it, and read results.
+roboflow workflow-eval binding suggest --spec <spec-id> --dataset <dataset-id> --workflow <workflow-id> --json
+roboflow workflow-eval run start --eval <eval-id> --body @run.json --wait
+roboflow workflow-eval execution overview <execution-id> --eval <eval-id> --run <run-id> --json
+roboflow workflow-eval execution results <execution-id> --eval <eval-id> --run <run-id> --failed-check
+roboflow workflow-eval compare --eval <eval-id> -x <execution-a> -x <execution-b> --json
+roboflow workflow-eval export start --eval <eval-id> --run <run-id> --format csv --wait
+
+# Agent guidance served by the installed engine.
+roboflow workflow-eval agent manifest --json
+roboflow workflow-eval agent skill skill:create-eval
+```
+
+`--body` accepts inline JSON, `@file.json`, a file path, or `-` for stdin. Commands that create
+resources or start work send a fresh `Idempotency-Key` (override with `--idempotency-key` to retry
+safely); updates take the resource's current `--revision`. Deleting an Eval or Run shows its impact
+and asks for confirmation (`--yes` to skip). Requires the Workflow Evals feature and the
+`workflow-evals:read|write|run|export` scopes; running saved Workflows also needs `workflow:read`
+and `model:infer`. The same API is available in Python via `rf.workspace().workflow_evals()`.
+
 ### Workspace stats and billing
 
 ```bash
@@ -560,6 +596,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `device` | List, get, create, and observe RFDM devices (v2 deployment API) |
 | `eval` | Inspect model evaluation runs (mAP, confusion matrix, recommendations, ...) |
 | `workflow` | Manage workflows |
+| `workflow-eval` | Evaluate Workflows: Specs, Eval Datasets, Cases, Runs, results, exports |
 | `folder` | Manage workspace folders |
 | `annotation` | Annotation batches and jobs |
 | `autolabel` | Auto-label batches with hosted foundation or Roboflow models |

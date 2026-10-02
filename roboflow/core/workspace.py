@@ -21,6 +21,7 @@ from roboflow.config import API_URL, APP_URL, DEMO_KEYS
 if TYPE_CHECKING:
     from roboflow.core.device import Device
     from roboflow.core.model_eval import ModelEval
+    from roboflow.core.workflow_evals import WorkflowEvals
 
 
 class Workspace:
@@ -1660,6 +1661,17 @@ class Workspace:
 
         info = rfapi.get_model_eval(self.__api_key, self.url, eval_id)
         return ModelEval(self.__api_key, self.url, info.get("id", eval_id), info=info)
+
+    def workflow_evals(self) -> "WorkflowEvals":
+        """Return a client for this workspace's Workflow Evals.
+
+        Example:
+            >>> evals = rf.workspace().workflow_evals()
+            >>> evals.list(limit=10)["items"]
+        """
+        from roboflow.core.workflow_evals import WorkflowEvals
+
+        return WorkflowEvals(self.__api_key, self.url)
 
     def trash(self) -> dict:
         """
