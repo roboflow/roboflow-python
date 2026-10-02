@@ -868,6 +868,89 @@ class Project:
 
         return json.dumps(json_str, indent=2)
 
+    def upload_video(
+        self,
+        video_path: str,
+        *,
+        batch_name: Optional[str] = None,
+        tag_names: Optional[Union[str, List[str]]] = None,
+        metadata: Optional[Dict] = None,
+        split: Optional[str] = None,
+        wait: bool = False,
+        poll_interval: float = 2,
+        poll_timeout: float = 300,
+    ) -> Dict:
+        """Upload original MP4/MOV bytes as a native video Source.
+
+        Returns the API processing status, including ``videoId``. Once the
+        status is ``uploaded``, that ID is the canonical Source ID to annotate.
+        The ID can change during ingestion if the video is deduplicated.
+        ``wait=False`` reads status once after the signed PUT; use
+        :meth:`wait_for_video_upload` to continue polling later.
+        """
+        if not os.path.isfile(video_path):
+            raise ValueError(f"Video file not found: {video_path}")
+        content_type = {".mp4": "video/mp4", ".mov": "video/quicktime"}.get(os.path.splitext(video_path)[1].lower())
+        if content_type is None:
+            raise ValueError("Native video upload accepts .mp4 and .mov files")
+
+        body: Dict = {"name": os.path.basename(video_path), "contentType": content_type}
+        if batch_name is not None:
+            body["batch"] = batch_name
+        if tag_names is not None:
+            body["tag"] = tag_names
+        if metadata is not None:
+            body["metadata"] = metadata
+        if split is not None:
+            body["split"] = split
+
+        prepared = rfapi.prepare_video_upload(self.__api_key, self.__workspace, self.__project_name, body)
+        video_id = prepared["videoId"]
+        if not prepared.get("signedUrl"):
+            raise rfapi.RoboflowError("Video upload API did not return a signedUrl")
+        rfapi.put_video_upload(prepared["signedUrl"], video_path, prepared.get("requiredHeaders", {}), content_type)
+        if wait:
+            return self.wait_for_video_upload(video_id, poll_interval=poll_interval, poll_timeout=poll_timeout)
+        return self.get_video_upload_status(video_id)
+
+    def get_video_upload_status(self, video_id: str, *, timeout: Optional[float] = None) -> Dict:
+        """Get a native video's processing state and canonical Source ID.
+
+        ``timeout`` limits connection and response-read inactivity. It is not
+        a strict total request-duration cap.
+        """
+        return rfapi.get_video_upload_status(self.__api_key, self.__workspace, video_id, timeout=timeout)
+
+    def wait_for_video_upload(self, video_id: str, *, poll_interval: float = 2, poll_timeout: float = 300) -> Dict:
+        """Poll until uploaded or failed, limiting each status read to the remaining budget.
+
+        With ``poll_timeout=0``, perform one status read using the default
+        transport timeout and return a terminal result if it is already ready.
+        Requests' timeouts measure connection/read inactivity, so this is not
+        a strict wall-clock cap on a slowly streaming response.
+        """
+        if poll_interval <= 0 or poll_timeout < 0:
+            raise ValueError("poll_interval must be positive and poll_timeout must be nonnegative")
+        deadline = time.monotonic() + poll_timeout
+        while True:
+            remaining = deadline - time.monotonic()
+            if poll_timeout > 0 and remaining <= 0:
+                raise rfapi.RoboflowError(
+                    f"Video upload {video_id} did not finish within the {poll_timeout}s polling budget; "
+                    "call get_video_upload_status to check later"
+                )
+            request_timeout = min(rfapi.VIDEO_UPLOAD_STATUS_TIMEOUT, remaining) if poll_timeout > 0 else None
+            status = self.get_video_upload_status(video_id, timeout=request_timeout)
+            if status.get("status") in {"uploaded", "failed"}:
+                return status
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise rfapi.RoboflowError(
+                    f"Video upload {video_id} is still {status.get('status')} after {poll_timeout}s; "
+                    "call get_video_upload_status to check later"
+                )
+            time.sleep(min(poll_interval, remaining))
+
     def image(self, image_id: str) -> Dict:
         """
         Fetch the details of a specific image from the Roboflow API.
