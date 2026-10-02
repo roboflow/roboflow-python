@@ -1,7 +1,11 @@
 """Tests for the project CLI handler."""
 
 import json
+import os
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 import responses
 from typer.testing import CliRunner
@@ -55,26 +59,22 @@ class TestProjectHandlerRegistration(unittest.TestCase):
 class TestProjectCreateHandler(unittest.TestCase):
     """project create sends the chosen type and reports server errors."""
 
-    @responses.activate
-    def test_create_sends_action_recognition_type(self) -> None:
-        from unittest.mock import patch
-
+    def _mock_create_flow(self, api_key: str, project_type: str) -> None:
         from roboflow.config import API_URL
-        from roboflow.core.workspace import Workspace
 
-        workspace = Workspace(
-            {"workspace": {"name": "My WS", "url": "my-ws", "projects": []}},
-            api_key="fake-key",
-            default_workspace="my-ws",
-            model_format="yolov8",
+        responses.add(responses.POST, f"{API_URL}/?api_key={api_key}", json={"workspace": "target-ws"})
+        responses.add(
+            responses.GET,
+            f"{API_URL}/target-ws?api_key={api_key}",
+            json={"workspace": {"name": "Target", "url": "target-ws", "projects": []}},
         )
         responses.add(
             responses.POST,
-            f"{API_URL}/my-ws/projects",
+            f"{API_URL}/target-ws/projects?api_key={api_key}",
             json={
-                "id": "my-ws/clips",
+                "id": "target-ws/clips",
                 "name": "Clips",
-                "type": "action-recognition",
+                "type": project_type,
                 "annotation": "Clips",
                 "classes": {},
                 "colors": {},
@@ -87,21 +87,90 @@ class TestProjectCreateHandler(unittest.TestCase):
             },
         )
 
-        with patch("roboflow.Roboflow") as mock_rf:
-            mock_rf.return_value.workspace.return_value = workspace
-            result = runner.invoke(app, ["--json", "project", "create", "Clips", "--type", "action-recognition"])
+    def _assert_create_flow(self, result, api_key: str, project_type: str) -> None:
+        from roboflow.config import API_URL
 
         self.assertEqual(result.exit_code, 0, result.output)
-        self.assertEqual(len(responses.calls), 1)
         self.assertEqual(
-            json.loads(responses.calls[0].request.body),
-            {"name": "Clips", "type": "action-recognition", "license": "Private", "annotation": "Clips"},
+            json.loads(result.stdout),
+            {"id": "target-ws/clips", "name": "Clips", "type": project_type},
+        )
+        self.assertEqual(
+            [(call.request.method, call.request.url) for call in responses.calls],
+            [
+                ("POST", f"{API_URL}/?api_key={api_key}"),
+                ("GET", f"{API_URL}/target-ws?api_key={api_key}"),
+                ("POST", f"{API_URL}/target-ws/projects?api_key={api_key}"),
+            ],
+        )
+        self.assertEqual(
+            json.loads(responses.calls[2].request.body),
+            {"name": "Clips", "type": project_type, "license": "Private", "annotation": "Clips"},
         )
 
     @responses.activate
-    def test_create_preserves_server_error_message(self) -> None:
-        from unittest.mock import patch
+    def test_create_explicit_api_key_overrides_environment_key(self) -> None:
+        self._mock_create_flow("override-key", "object-detection")
 
+        with patch.dict(os.environ, {"ROBOFLOW_API_KEY": "environment-key"}):
+            result = runner.invoke(
+                app,
+                [
+                    "--json",
+                    "--api-key",
+                    "override-key",
+                    "--workspace",
+                    "target-ws",
+                    "project",
+                    "create",
+                    "Clips",
+                    "--type",
+                    "object-detection",
+                ],
+            )
+
+        self._assert_create_flow(result, "override-key", "object-detection")
+
+    @responses.activate
+    def test_create_uses_selected_workspaces_stored_key(self) -> None:
+        self._mock_create_flow("target-key", "action-recognition")
+
+        with tempfile.TemporaryDirectory() as config_dir:
+            config_path = Path(config_dir) / "config.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "RF_WORKSPACE": "default-ws",
+                        "workspaces": {
+                            "default": {"url": "default-ws", "apiKey": "default-key"},
+                            "target": {"url": "target-ws", "apiKey": "target-key"},
+                        },
+                    }
+                )
+            )
+            with patch.dict(
+                os.environ,
+                {"HOME": config_dir, "USERPROFILE": config_dir, "ROBOFLOW_CONFIG_DIR": str(config_path)},
+                clear=True,
+            ):
+                result = runner.invoke(
+                    app,
+                    [
+                        "--json",
+                        "--workspace",
+                        "target-ws",
+                        "project",
+                        "create",
+                        "Clips",
+                        "--type",
+                        "action-recognition",
+                    ],
+                )
+
+        self._assert_create_flow(result, "target-key", "action-recognition")
+
+    @responses.activate
+    def test_create_preserves_server_error_message(self) -> None:
         from roboflow.config import API_URL
         from roboflow.core.workspace import Workspace
 

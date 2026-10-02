@@ -8,7 +8,7 @@ from typing import Optional
 import requests
 from PIL import Image
 
-from roboflow.config import KEYPOINT_DETECTION_MODEL
+from roboflow.config import KEYPOINT_DETECTION_MODEL, SERVERLESS_URL
 from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
@@ -53,7 +53,7 @@ class KeypointDetectionModel(InferenceModel):
         self.confidence = confidence
         self.version = version
         self.colors = {}
-        self.base_url = "https://serverless.roboflow.com/"
+        self.base_url = SERVERLESS_URL + "/"
 
         if self.name is not None and version is not None:
             self.__generate_url()
