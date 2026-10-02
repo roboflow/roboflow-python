@@ -215,7 +215,9 @@ def stream_events(
     if not 200 <= response.status_code < 300:
         raise error_from_response(response)
     try:
-        yield from parse_sse(response.iter_lines(decode_unicode=True))
+        # Iterate raw bytes: the server omits a charset, so requests would decode the
+        # stream as ISO-8859-1. parse_sse decodes each line as UTF-8.
+        yield from parse_sse(response.iter_lines())
     finally:
         response.close()
 

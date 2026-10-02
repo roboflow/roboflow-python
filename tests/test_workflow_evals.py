@@ -307,6 +307,18 @@ class TestWorkflowEvalsClient(unittest.TestCase):
         self.assertEqual(request.headers["Accept"], "text/event-stream")
 
     @responses.activate
+    def test_ai_draft_decodes_utf8_without_charset(self):
+        stream = 'event: draft\ndata: {"name": "Avaliação → Ångström 中文"}\n\nevent: done\ndata: {}\n\n'
+        responses.add(
+            responses.POST,
+            f"{BASE}/specs/ai-draft",
+            body=stream.encode("utf-8"),
+            status=200,
+            content_type="text/event-stream",
+        )
+        self.assertEqual(self.client.ai_draft(E), {"name": "Avaliação → Ångström 中文"})
+
+    @responses.activate
     def test_ai_draft_error_event_raises(self):
         stream = 'event: error\ndata: {"message": "No subject"}\n\nevent: done\ndata: {}\n\n'
         responses.add(responses.POST, f"{BASE}/specs/ai-draft", body=stream, status=200)

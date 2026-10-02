@@ -315,6 +315,17 @@ class TestWorkflowEvalCommands(unittest.TestCase):
         self.assertEqual(mock_start.call_args.args[2], {"format": "csv"})
         mock_wait.assert_called_once_with("e1", "r1", "t1", timeout=1800)
 
+    @patch(f"{CLIENT}.start_export")
+    def test_export_start_keeps_body_format_and_defaults_to_json(self, mock_start) -> None:
+        mock_start.return_value = {"asyncTaskId": "t1"}
+        result = _invoke(
+            "--json", "workflow-eval", "export", "start", "-e", "e1", "-r", "r1", "--body", '{"format": "xlsx"}'
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(mock_start.call_args.args[2], {"format": "xlsx"})
+        _invoke("--json", "workflow-eval", "export", "start", "-e", "e1", "-r", "r1")
+        self.assertEqual(mock_start.call_args.args[2], {"format": "json"})
+
     @patch(f"{CLIENT}.get_agent_skill")
     def test_agent_skill_prints_markdown_in_text_mode(self, mock_skill) -> None:
         mock_skill.return_value = {"engineVersion": "1", "id": "skill:x", "path": "x.md", "content": "# Skill"}

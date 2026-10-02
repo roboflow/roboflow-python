@@ -1197,7 +1197,9 @@ def start_export(
     ctx: typer.Context,
     eval_id: EvalOpt,
     run_id: RunOpt,
-    export_format: Annotated[str, typer.Option("--format", "-f", help="csv, json or xlsx")] = "json",
+    export_format: Annotated[
+        Optional[str], typer.Option("--format", "-f", help="csv, json or xlsx (default: json)")
+    ] = None,
     execution: Annotated[
         Optional[List[str]], typer.Option("--execution", "-x", help="Limit to these Execution ids (repeatable)")
     ] = None,
@@ -1209,6 +1211,7 @@ def start_export(
     """Export a stable Run's results."""
     args = ctx_to_args(ctx)
     payload = _merge(_load_object(args, body), format=export_format, executionIds=execution or None)
+    payload.setdefault("format", "json")
 
     def call(c: Any) -> Any:
         admission = c.start_export(eval_id, run_id, payload, idempotency_key=idempotency_key)
