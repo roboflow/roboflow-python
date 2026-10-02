@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.6.1
+
+### Added
+
+- Native Action Recognition video uploads with `Project.upload_video`
+  ([#535](https://github.com/roboflow/roboflow-python/pull/535)). Upload original
+  MP4/MOV bytes with batch, tags, metadata, and split; read processing state
+  with `get_video_upload_status` or use bounded polling with
+  `wait_for_video_upload` / `upload_video(..., wait=True)`. Use the final
+  `uploaded` response's `videoId`: deduplication can change the canonical
+  Source ID and return `resolvedBatch: null`. See the
+  [public upload example](docs/core/project.md#upload-a-native-action-recognition-video).
+
+### Fixed
+
+- CLI project creation honors `--api-key` and the selected workspace's stored
+  credentials ([#536](https://github.com/roboflow/roboflow-python/pull/536)).
+- `roboflow train start --type cosmos3-edge` returns a `trainingId`
+  through the v2 training API even without a custom recipe
+  ([#537](https://github.com/roboflow/roboflow-python/pull/537)).
+
 ## 1.6.0
 
 ### Added
