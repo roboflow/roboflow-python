@@ -517,7 +517,6 @@ class Project:
             tag_names = []
 
         t0 = time.time()
-        upload_retry_attempts = 0
         retry = Retry(num_retry_uploads, ImageUploadError)
 
         try:
@@ -535,14 +534,13 @@ class Project:
                 metadata=metadata,
                 **kwargs,
             )
-            upload_retry_attempts = retry.retries
         except ImageUploadError as e:
-            e.retries = upload_retry_attempts
+            e.retries = retry.retries
             raise e
 
         upload_time = time.time() - t0
 
-        return image, upload_time, upload_retry_attempts
+        return image, upload_time, retry.retries
 
     def save_annotation(
         self,
@@ -568,30 +566,29 @@ class Project:
         project_url = self.id.rsplit("/")[1]
         annotation_name, annotation_str = self._annotation_params(annotation_path)
         t0 = time.time()
-        upload_retry_attempts = 0
         retry = Retry(num_retry_uploads, AnnotationSaveError)
 
         try:
-            annotation = rfapi.save_annotation(
+            annotation = retry(
+                rfapi.save_annotation,
                 self.__api_key,
                 project_url,
-                annotation_name,  # type: ignore[type-var]
-                annotation_str,  # type: ignore[type-var]
+                annotation_name,
+                annotation_str,
                 image_id,
-                job_name=job_name,  # type: ignore[type-var]
+                job_name=job_name,
                 is_prediction=is_prediction,
                 annotation_labelmap=annotation_labelmap,
                 overwrite=annotation_overwrite,
                 add_to_dataset=add_to_dataset,
             )
-            upload_retry_attempts = retry.retries
         except AnnotationSaveError as e:
-            e.retries = upload_retry_attempts
+            e.retries = retry.retries
             raise
 
         upload_time = time.time() - t0
 
-        return annotation, upload_time, upload_retry_attempts
+        return annotation, upload_time, retry.retries
 
     def single_upload(
         self,
