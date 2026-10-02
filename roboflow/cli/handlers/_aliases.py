@@ -40,12 +40,15 @@ def register_hidden_aliases(app: typer.Typer) -> None:
         login_api_key: Annotated[
             Optional[str], typer.Option("--api-key", help="API key (skip interactive login)")
         ] = None,
+        region: Annotated[
+            Optional[str], typer.Option("--region", metavar="{us,eu}", help="Roboflow platform region")
+        ] = None,
         force: Annotated[bool, typer.Option("--force", "-f", help="Force re-login")] = False,
     ) -> None:
         """Log in to Roboflow (alias for 'auth login')."""
         from roboflow.cli.handlers.auth import _login
 
-        args = ctx_to_args(ctx, login_api_key=login_api_key, force=force)
+        args = ctx_to_args(ctx, login_api_key=login_api_key, region=region, force=force)
         _login(args)
 
     @app.command("whoami", hidden=True)

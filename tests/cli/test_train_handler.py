@@ -8,10 +8,13 @@ import sys
 import types
 import unittest
 from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs, urlsplit
 
+import responses
 from typer.testing import CliRunner
 
 from roboflow.cli import app
+from roboflow.config import API_URL
 
 runner = CliRunner()
 
@@ -464,7 +467,99 @@ class TestTrainStartV2(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         output = _strip_ansi(result.output)
         self.assertIn("--train-recipe", output)
+        self.assertIn("Action Recognition", output)
+        self.assertIn("trainingId", output)
         self.assertNotIn("--hyperparameters", output)
+
+
+class TestActionRecognitionTrainCLI(unittest.TestCase):
+    """Exercise the public train command through its real HTTP adapters."""
+
+    BASE = f"{API_URL}/audit-ws/audit-project/1"
+
+    def _invoke(self, model_type, *, json_output=True, recipe=None):
+        args = ["--api-key", "fixture-key", "--workspace", "audit-ws", "--quiet"]
+        if json_output:
+            args.append("--json")
+        args.extend(["train", "start", "-p", "audit-project", "-v", "1", "-t", model_type, "--epochs", "5"])
+        if recipe is not None:
+            args.extend(["--train-recipe", recipe])
+        return runner.invoke(app, args)
+
+    def test_recipe_free_cosmos_exports_video_coco_and_returns_id_in_json_and_text(self):
+        for json_output in (True, False):
+            with self.subTest(json_output=json_output), responses.RequestsMock() as mocked, patch("time.sleep"):
+                mocked.add(responses.GET, self.BASE, json={"version": {"generating": False, "exports": []}})
+                mocked.add(responses.GET, f"{self.BASE}/video-coco", json={"export": {"link": "https://fixture.test"}})
+                mocked.add(responses.GET, self.BASE, json={"version": {"generating": False, "exports": ["video-coco"]}})
+                mocked.add(
+                    responses.POST,
+                    f"{self.BASE}/v2/trainings",
+                    json={"trainingId": "audit-t1", "status": "queued", "jobId": "audit-j1"},
+                )
+
+                result = self._invoke("cosmos3-edge", json_output=json_output)
+
+                self.assertEqual(result.exit_code, 0, result.output)
+                self.assertIn("audit-t1", result.stdout)
+                if json_output:
+                    self.assertEqual(json.loads(result.stdout)["trainingId"], "audit-t1")
+                paths = [urlsplit(call.request.url).path for call in mocked.calls]
+                self.assertEqual(
+                    paths,
+                    [
+                        "/audit-ws/audit-project/1",
+                        "/audit-ws/audit-project/1/video-coco",
+                        "/audit-ws/audit-project/1",
+                        "/audit-ws/audit-project/1/v2/trainings",
+                    ],
+                )
+                create = mocked.calls[-1].request
+                self.assertEqual(parse_qs(urlsplit(create.url).query)["api_key"], ["fixture-key"])
+                self.assertEqual(json.loads(create.body), {"modelType": "cosmos3-edge", "epochs": 5})
+
+    def test_recipe_free_other_models_keep_legacy_route(self):
+        for model_type in ("rfdetr-medium", "cosmos3-edge-vlm"):
+            with self.subTest(model_type=model_type), responses.RequestsMock() as mocked:
+                mocked.add(
+                    responses.GET,
+                    self.BASE,
+                    json={"version": {"generating": False, "exports": ["coco", "yolov5pytorch"]}},
+                )
+                mocked.add(responses.POST, f"{self.BASE}/train", status=204)
+
+                result = self._invoke(model_type)
+
+                self.assertEqual(result.exit_code, 0, result.output)
+                self.assertEqual(json.loads(result.stdout)["status"], "training_started")
+                self.assertEqual(
+                    [urlsplit(call.request.url).path for call in mocked.calls][-1], "/audit-ws/audit-project/1/train"
+                )
+                self.assertEqual(json.loads(mocked.calls[-1].request.body)["modelType"], model_type)
+
+    def test_explicit_recipe_still_folds_epochs_and_uses_v2(self):
+        with responses.RequestsMock() as mocked:
+            mocked.add(responses.GET, self.BASE, json={"version": {"generating": False, "exports": ["video-coco"]}})
+            mocked.add(responses.POST, f"{self.BASE}/v2/trainings", json={"trainingId": "audit-t2", "status": "queued"})
+
+            result = self._invoke("cosmos3-edge", recipe='{"schema_version":1,"hyperparameters":{"lr":0.1}}')
+
+            self.assertEqual(result.exit_code, 0, result.output)
+            self.assertEqual(json.loads(result.stdout)["trainingId"], "audit-t2")
+            self.assertEqual(
+                json.loads(mocked.calls[-1].request.body)["trainRecipe"]["hyperparameters"],
+                {"lr": 0.1, "epochs": 5},
+            )
+            self.assertEqual(len(mocked.calls), 2)
+
+    def test_malformed_explicit_recipe_does_not_start_training(self):
+        for recipe in ("", "{invalid"):
+            with self.subTest(recipe=recipe), responses.RequestsMock() as mocked:
+                result = self._invoke("cosmos3-edge", recipe=recipe)
+
+                self.assertEqual(result.exit_code, 1)
+                self.assertIn("Invalid JSON", result.output)
+                self.assertEqual(len(mocked.calls), 0)
 
 
 class TestTrainSubcommandsRegister(unittest.TestCase):

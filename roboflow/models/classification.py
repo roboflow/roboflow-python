@@ -8,7 +8,7 @@ from typing import Optional
 import requests
 from PIL import Image
 
-from roboflow.config import CLASSIFICATION_MODEL
+from roboflow.config import CLASSIFICATION_MODEL, SERVERLESS_URL
 from roboflow.models.inference import InferenceModel
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
@@ -51,7 +51,7 @@ class ClassificationModel(InferenceModel):
         self.id = id
         self.name = name
         self.version = version
-        self.base_url = "https://serverless.roboflow.com/"
+        self.base_url = SERVERLESS_URL + "/"
 
         if self.name is not None and version is not None:
             self.__generate_url()

@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.6.1
+
+### Added
+
+- Native Action Recognition video uploads with `Project.upload_video`
+  ([#535](https://github.com/roboflow/roboflow-python/pull/535)). Upload original
+  MP4/MOV bytes with batch, tags, metadata, and split; read processing state
+  with `get_video_upload_status` or use bounded polling with
+  `wait_for_video_upload` / `upload_video(..., wait=True)`. Use the final
+  `uploaded` response's `videoId`: deduplication can change the canonical
+  Source ID and return `resolvedBatch: null`. See the
+  [public upload example](docs/core/project.md#upload-a-native-action-recognition-video).
+
+### Fixed
+
+- CLI project creation honors `--api-key` and the selected workspace's stored
+  credentials ([#536](https://github.com/roboflow/roboflow-python/pull/536)).
+- `roboflow train start --type cosmos3-edge` returns a `trainingId`
+  through the v2 training API even without a custom recipe
+  ([#537](https://github.com/roboflow/roboflow-python/pull/537)).
+
+## 1.6.0
+
+### Added
+
+- EU region selection for the SDK and CLI
+  ([#513](https://github.com/roboflow/roboflow-python/pull/513)):
+  - `ROBOFLOW_REGION=us|eu` (case-insensitive) selects the platform; an
+    environment value takes precedence over the saved region.
+  - `roboflow auth login --region eu` authenticates against the EU
+    data-residency platform and records the credentials' region.
+  - `roboflow auth set-region <us|eu>` saves the region; `roboflow auth status`
+    reports the region and environment.
+  - Explicit per-URL settings such as `API_URL` still take precedence over the
+    region. Hosted semantic segmentation has no EU deployment and raises an
+    error in the EU region instead of sending images to the US.
+- `project create --type action-recognition` in the CLI
+  ([#532](https://github.com/roboflow/roboflow-python/pull/532)). Requires a
+  Roboflow platform release that accepts the type; older releases answer
+  HTTP 422 and the CLI adds a hint.
+- Action Recognition training from the SDK
+  ([#533](https://github.com/roboflow/roboflow-python/pull/533)):
+  `Version.create_training(model_type="cosmos3-edge", ...)` ensures the
+  `video-coco` export and returns a `Training` handle. `Version.train()` is
+  unchanged.
+- `add_to_dataset` on `Project.single_upload` / `Project.save_annotation`
+  ([#531](https://github.com/roboflow/roboflow-python/pull/531)). Pass
+  `False` to store an annotation without moving the image out of its batch
+  into the Dataset. The default (`None`) keeps the API's current behavior.
+
 ## 1.5.1
 
 ### Added
