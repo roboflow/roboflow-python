@@ -179,6 +179,44 @@ class TestTopLevelSearchMediaTypes(unittest.TestCase):
         error = json.loads(result.output)["error"]
         self.assertIn("--media-types is not supported with --export", error["message"])
 
+    @responses.activate
+    def test_export_rejects_an_explicitly_blank_media_types(self):
+        """A blank value is an explicit selection; it must not fall through to the export route."""
+        _stub_workspace_init()
+
+        result = runner.invoke(
+            app,
+            [
+                "--json",
+                "--api-key",
+                API_KEY,
+                "--workspace",
+                WORKSPACE,
+                "search",
+                "*",
+                "--export",
+                "--media-types",
+                "",
+            ],
+        )
+
+        self.assertEqual(result.exit_code, 1)
+        error = json.loads(result.output)["error"]
+        self.assertIn("--media-types is not supported with --export", error["message"])
+
+    @responses.activate
+    def test_blank_media_types_without_export_is_rejected(self):
+        _stub_workspace_init()
+
+        result = runner.invoke(
+            app,
+            ["--json", "--api-key", API_KEY, "--workspace", WORKSPACE, "search", "*", "--media-types", ""],
+        )
+
+        self.assertEqual(result.exit_code, 1)
+        self.assertEqual(_search_bodies(), [])
+        self.assertIn("at least one of", json.loads(result.output)["error"]["message"])
+
 
 class TestImageSearchMediaTypes(unittest.TestCase):
     """`roboflow image search` covers both the workspace and project-scoped paths."""

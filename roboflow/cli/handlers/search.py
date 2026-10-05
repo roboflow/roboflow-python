@@ -80,7 +80,9 @@ def _search(args):  # noqa: ANN001
         return
 
     if args.export:
-        if getattr(args, "media_types", None):
+        # `is not None` on purpose: an explicit but invalid value (e.g. --media-types "")
+        # must not silently fall through to the export route.
+        if getattr(args, "media_types", None) is not None:
             output_error(
                 args,
                 "--media-types is not supported with --export",

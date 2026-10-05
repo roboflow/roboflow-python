@@ -546,6 +546,7 @@ def workspace_search(
     page_size: int = 50,
     fields: Optional[List[str]] = None,
     continuation_token: Optional[str] = None,
+    *,
     media_types: Optional[List[str]] = None,
 ) -> dict:
     """Search across all media in a workspace using RoboQL syntax.

@@ -242,6 +242,29 @@ class TestWorkspaceSearchMediaTypes(unittest.TestCase):
 
         self.assertEqual(self._sent()["mediaTypes"], ["video"])
 
+    def test_adapter_media_types_is_keyword_only(self):
+        """Positional callers must keep working, so media_types sits behind a bare `*`."""
+        import inspect
+
+        sig = inspect.signature(rfapi.workspace_search)
+        self.assertEqual(sig.parameters["media_types"].kind, inspect.Parameter.KEYWORD_ONLY)
+        # The pre-existing parameters stay positional-or-keyword, in their original order.
+        positional = [n for n, p in sig.parameters.items() if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD]
+        self.assertEqual(
+            positional,
+            ["api_key", "workspace_url", "query", "page_size", "fields", "continuation_token"],
+        )
+
+    def test_sdk_search_media_types_is_keyword_only(self):
+        import inspect
+
+        from roboflow.core.project import Project
+        from roboflow.core.workspace import Workspace
+
+        for func in (Project.search, Project.search_all, Workspace.search, Workspace.search_all):
+            kind = inspect.signature(func).parameters["media_types"].kind
+            self.assertEqual(kind, inspect.Parameter.KEYWORD_ONLY, func.__qualname__)
+
     @responses.activate
     def test_adapter_without_selection_omits_media_types(self):
         responses.add(responses.POST, self.SEARCH_URL, json={"results": [], "total": 0}, status=200)

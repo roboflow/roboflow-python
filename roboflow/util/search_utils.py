@@ -51,14 +51,16 @@ def parse_media_types_option(raw: Optional[str]) -> Optional[List[str]]:
     """Parse a comma-separated CLI ``--media-types`` value into a normalized list.
 
     Args:
-        raw: Raw option value, e.g. ``"video"`` or ``"image,video"``. ``None`` or an
-            empty string means "use the API default".
+        raw: Raw option value, e.g. ``"video"`` or ``"image,video"``. Only ``None``
+            (the option was not given) means "use the API default".
 
     Returns:
-        A normalized media type list, or ``None`` when nothing was requested.
+        A normalized media type list, or ``None`` when the option was not given.
 
     Raises:
-        ValueError: If the value contains anything other than valid media types.
+        ValueError: If the value is given but blank, or names anything other than a
+            valid media type. A blank value is an explicit empty selection, not a
+            request for the default.
     """
     if raw is None:
         return None
