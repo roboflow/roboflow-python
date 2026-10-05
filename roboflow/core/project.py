@@ -602,22 +602,13 @@ class Project:
         split: Optional[str] = None,
         add_to_dataset: Optional[bool] = None,
     ) -> Dict:
-        """Annotate a canonical video Source in an Action Recognition project.
+        """Send a complete roboflow-video-coco document without converting timestamps.
 
-        ``document`` is a complete ``roboflow-video-coco`` document. Its native PTS,
-        frame indices, and rational time base are forwarded without conversion.
-        Use the final ``videoId`` from an uploaded video's status, which may differ
-        from the initial upload ID after content reuse.
-
-        The API adds the Source to the Dataset by default. Set ``add_to_dataset=False``
-        to keep its existing membership, ``split`` to assign train/valid/test, or
-        ``overwrite=True`` to replace different existing segments. An identical
-        retry succeeds without overwrite. Server rejections, including HTTP 409
-        preservation, raise ``AnnotationSaveError`` with ``status_code``.
-
-        Returns:
-            The API response, including ``success``, ``inDataset``, and
-            ``createdClasses``.
+        Use the final uploaded-status ``videoId``. The API adds the video to the
+        Dataset unless ``add_to_dataset=False``; ``split`` assigns train/valid/test.
+        Identical retries succeed; different segments require ``overwrite=True``.
+        Returns the API response (``success``, ``inDataset``, ``createdClasses``).
+        Rejections raise ``AnnotationSaveError`` with the server's HTTP status.
         """
         return rfapi.annotate_video_segments(
             self.__api_key,
