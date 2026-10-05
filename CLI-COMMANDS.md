@@ -503,6 +503,12 @@ roboflow video annotate -p my-ar-project -i aBcD1234 -a segments.json --json
 # { "success": true, "inDataset": true, "createdClasses": ["walking"] }
 ```
 
+In `segments.json`, `segments` belongs at the document top level and
+`videos[0].time_base` is a rational object such as
+`{"numerator": 1, "denominator": 15360}`. `images` and `annotations` may be
+omitted; if supplied, each must be an empty array. Use the original video's
+probed PTS values rather than deriving them from frame indices or nominal FPS.
+
 Upload accepts `-b/--batch`, `-t/--tag` (comma-separated), `--metadata` (JSON object) and
 `-s/--split`. Annotate defaults to the API behaviour of adding the Source to the Dataset;
 override with `--no-add-to-dataset`, set the split with `-s/--split`, and pass `--overwrite`
