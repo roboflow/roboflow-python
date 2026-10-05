@@ -399,10 +399,18 @@ def _video_annotate(args) -> None:  # noqa: ANN001
     from roboflow.cli._output import output, output_api_error, output_error
 
     try:
-        with open(args.annotation_file) as handle:
+        # Explicit UTF-8: the locale default (cp1252 on Windows) would silently corrupt non-ASCII class names.
+        with open(args.annotation_file, encoding="utf-8") as handle:
             document = json_mod.load(handle)
     except OSError as exc:
         output_error(args, f"Cannot read annotation file: {exc}", hint="Pass the path to a video-coco JSON file.")
+        return
+    except UnicodeDecodeError as exc:
+        output_error(
+            args,
+            f"{args.annotation_file} is not UTF-8: {exc}",
+            hint="Save the video-coco document as UTF-8 JSON.",
+        )
         return
     except json_mod.JSONDecodeError as exc:
         output_error(

@@ -528,8 +528,12 @@ class TestVideoAnnotate(NativeVideoCliTest):
         malformed = os.path.join(self.tmp.name, "bad.json")
         with open(malformed, "w") as handle:
             handle.write('{"segments": ')
+        utf16 = os.path.join(self.tmp.name, "utf16.json")
+        with open(utf16, "w", encoding="utf-16") as handle:  # what Windows PowerShell 5.1 redirection writes
+            json.dump(VIDEO_COCO_DOCUMENT, handle)
         cases = [
             (malformed, "Invalid JSON"),
+            (utf16, "is not UTF-8"),
             (_write_json(self.tmp.name, "list.json", [1, 2, 3]), "must contain a JSON object"),
             (os.path.join(self.tmp.name, "absent.json"), "Cannot read annotation file"),
         ]
