@@ -88,7 +88,7 @@ class TestTopLevelSearchMediaTypes(unittest.TestCase):
                 "--media-types",
                 "video",
                 "--fields",
-                "id,filename,url",
+                "id, filename, url",
             ],
         )
 

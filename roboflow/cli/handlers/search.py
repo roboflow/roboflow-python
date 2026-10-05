@@ -98,7 +98,7 @@ def _do_search(args: Any, workspace: Any) -> None:
     from roboflow.cli._output import output, output_error
     from roboflow.util.search_utils import parse_media_types_option
 
-    fields = args.fields.split(",") if args.fields else None
+    fields = [field.strip() for field in args.fields.split(",") if field.strip()] if args.fields else None
     try:
         media_types = parse_media_types_option(getattr(args, "media_types", None))
     except ValueError as exc:
