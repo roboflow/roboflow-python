@@ -1,6 +1,7 @@
 """CLI `--media-types` selection on `roboflow search` and `roboflow image search`."""
 
 import json
+import re
 import unittest
 from unittest.mock import patch
 
@@ -17,6 +18,14 @@ WORKSPACE = "cli-test-ws"
 PROJECT = "cli-test-project"
 SEARCH_URL = f"{API_URL}/{WORKSPACE}/search/v1?api_key={API_KEY}"
 WORKSPACE_URL = f"{API_URL}/{WORKSPACE}?api_key={API_KEY}"
+
+
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _plain(text: str) -> str:
+    """Rich styles each `-` of an option name separately, so strip ANSI before matching."""
+    return _ANSI.sub("", text)
 
 
 def _search_bodies():
@@ -48,13 +57,14 @@ class TestSearchHelpAdvertisesMediaTypes(unittest.TestCase):
     def test_top_level_search_help(self):
         result = runner.invoke(app, ["search", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("--media-types", result.output)
+        self.assertIn("--media-types", _plain(result.output))
 
     def test_image_search_help(self):
         result = runner.invoke(app, ["image", "search", "--help"])
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("--media-types", result.output)
-        self.assertIn("--fields", result.output)
+        plain = _plain(result.output)
+        self.assertIn("--media-types", plain)
+        self.assertIn("--fields", plain)
 
 
 class TestTopLevelSearchMediaTypes(unittest.TestCase):
@@ -126,9 +136,10 @@ class TestTopLevelSearchMediaTypes(unittest.TestCase):
         )
 
         self.assertEqual(result.exit_code, 0, result.output)
-        self.assertIn("clip.mp4", result.output)
-        self.assertIn("[video]", result.output)
-        self.assertIn("https://s/clip.mp4", result.output)
+        plain = _plain(result.output)
+        self.assertIn("clip.mp4", plain)
+        self.assertIn("[video]", plain)
+        self.assertIn("https://s/clip.mp4", plain)
 
     @responses.activate
     def test_invalid_selection_is_a_structured_error_with_no_request(self):
