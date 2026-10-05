@@ -471,7 +471,52 @@ roboflow workspace stats --start-date 2026-01-01 --end-date 2026-03-31
 roboflow universe search "hard hats" --type dataset --limit 5
 ```
 
+### Native video upload and segment annotation
+
+Action Recognition projects take whole videos as Sources. `video upload` streams the
+original MP4/MOV bytes without re-encoding, then reports the **canonical video ID** to use
+for every later action. That ID can differ from the ID reserved at the start of the upload,
+because identical content is deduplicated onto the existing Source.
+
+```bash
+# 1. Upload original bytes and wait for a terminal state (the default).
+roboflow video upload -p my-ar-project -f clip.mov --json
+# { "videoId": "aBcD1234", "status": "uploaded", "resolvedBatch": { ... } }
+```
+
+Pass `--no-wait` to return as soon as the bytes are stored, then poll separately.
+`video upload-status` reports ingestion state — it is distinct from `video status`, which
+checks a legacy video *inference* job.
+
+```bash
+# 2. Poll ingestion yourself.
+roboflow video upload -p my-ar-project -f clip.mov --no-wait --json
+roboflow video upload-status aBcD1234 -p my-ar-project --json
+roboflow video upload-status aBcD1234 -p my-ar-project --wait --poll-timeout 120
+```
+
+```bash
+# 3. Annotate segments from a complete roboflow-video-coco document.
+#    The file is forwarded unchanged, so native frame indices, PTS and
+#    rational time bases are preserved exactly as authored.
+roboflow video annotate -p my-ar-project -i aBcD1234 -a segments.json --json
+# { "success": true, "inDataset": true, "createdClasses": ["walking"] }
+```
+
+Upload accepts `-b/--batch`, `-t/--tag` (comma-separated), `--metadata` (JSON object) and
+`-s/--split`. Annotate defaults to the API behaviour of adding the Source to the Dataset;
+override with `--no-add-to-dataset`, set the split with `-s/--split`, and pass `--overwrite`
+to replace segments that already differ (otherwise a conflicting save is rejected and an
+identical re-submit succeeds).
+
+Exit codes follow the CLI contract: `0` success, `1` error, `2` auth, `3` not found. A
+`failed` ingestion state and a `--wait` timeout both exit nonzero; the timeout message names
+the video ID so you can re-check it with `video upload-status`.
+
 ### Video inference
+
+Separate from native upload: this submits a legacy asynchronous inference job for a trained
+model version.
 
 ```bash
 roboflow video infer -p my-project -v 3 -f video.mp4 --fps 10
@@ -566,7 +611,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `asynctasks` | Inspect async background tasks (e.g. project forks) |
 | `trash` | List items in Trash |
 | `universe` | Search Roboflow Universe |
-| `video` | Video inference |
+| `video` | Native video upload/status/annotation, and video inference |
 | `batch` | Batch processing jobs *(coming soon)* |
 | `completion` | Install or generate shell completion scripts (bash, zsh, fish) |
 
