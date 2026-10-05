@@ -287,10 +287,24 @@ def _emit_upload_status(args, status) -> None:  # noqa: ANN001
     output(args, status, text="\n".join(lines))
 
 
+def _poll_bounds_are_valid(args) -> bool:  # noqa: ANN001
+    """Reject bad wait bounds before any network call, so an upload never starts and then fails."""
+    from roboflow.cli._output import output_error
+
+    if args.wait and (args.poll_interval <= 0 or args.poll_timeout < 0):
+        output_error(
+            args,
+            f"Invalid wait bounds: --poll-interval {args.poll_interval}, --poll-timeout {args.poll_timeout}.",
+            hint="Use a positive --poll-interval and a nonnegative --poll-timeout.",
+        )
+        return False
+    return True
+
+
 def _wait_for_upload(args, project, video_id):  # noqa: ANN001
     """Bounded wait, reporting the video ID so a timeout stays actionable."""
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output_api_error, output_error
+    from roboflow.cli._output import output_api_error
 
     try:
         return project.wait_for_video_upload(
@@ -298,9 +312,6 @@ def _wait_for_upload(args, project, video_id):  # noqa: ANN001
             poll_interval=args.poll_interval,
             poll_timeout=args.poll_timeout,
         )
-    except ValueError as exc:
-        output_error(args, str(exc), hint="Use a positive --poll-interval and a nonnegative --poll-timeout.")
-        return None
     except rfapi.RoboflowError as exc:
         output_api_error(
             args,
@@ -313,9 +324,16 @@ def _wait_for_upload(args, project, video_id):  # noqa: ANN001
 
 def _video_upload(args) -> None:  # noqa: ANN001
     import json as json_mod
+    import os
 
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output_error
+    from roboflow.cli._output import output_api_error, output_error
+
+    if not os.path.isfile(args.video_file):
+        output_error(args, f"Video file not found: {args.video_file}", hint="Check the path to the video file.")
+        return
+    if not _poll_bounds_are_valid(args):
+        return
 
     metadata = None
     if args.metadata:
@@ -346,19 +364,17 @@ def _video_upload(args) -> None:  # noqa: ANN001
             wait=False,
         )
     except ValueError as exc:
-        # The SDK rejects a missing path and an unsupported container with the
-        # same type, so point each one at its own fix.
-        missing = "not found" in str(exc)
-        output_error(
-            args,
-            str(exc),
-            hint="Check the path to the video file."
-            if missing
-            else "Native video upload accepts original .mp4 and .mov files.",
-        )
+        output_error(args, str(exc), hint="Native video upload accepts original .mp4 and .mov files.")
         return
     except rfapi.RoboflowError as exc:
-        output_error(args, str(exc), hint="Check the project type, your plan limits and the video file.")
+        # The failing call may come after the bytes were stored; a re-upload then
+        # deduplicates onto that Source instead of creating a second one.
+        output_api_error(
+            args,
+            exc,
+            hint="Check the project type and plan limits. If the bytes were already stored, "
+            "re-uploading the same file reuses that Source.",
+        )
         return
 
     video_id = status.get("videoId")
@@ -374,6 +390,8 @@ def _video_upload_status(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output_api_error
 
+    if not _poll_bounds_are_valid(args):
+        return
     project = _load_project(args)
     if project is None:
         return
