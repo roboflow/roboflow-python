@@ -412,6 +412,16 @@ class TestVideoUploadStatus(NativeVideoCliTest):
 
         self.assertEqual(result.exit_code, 3)
 
+    @patch("roboflow.core.project.Project.wait_for_video_upload")
+    def test_unknown_video_with_wait_exits_not_found(self, mock_wait) -> None:
+        from roboflow.adapters.rfapi import RoboflowError
+
+        mock_wait.side_effect = RoboflowError("not found", status_code=404)
+        result = runner.invoke(app, ["--json", "video", "upload-status", "nope", "-p", self.project_ref, "--wait"])
+
+        self.assertEqual(result.exit_code, 3)
+        self.assertIn("Check the video ID", json.loads(result.output)["error"]["hint"])
+
     @patch("roboflow.core.project.Project.get_video_upload_status")
     def test_failed_state_exits_nonzero(self, mock_status) -> None:
         mock_status.return_value = {"videoId": "source-3", "status": "failed"}

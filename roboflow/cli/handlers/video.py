@@ -299,10 +299,14 @@ def _wait_for_upload(args, project, video_id):  # noqa: ANN001
         output_error(args, str(exc), hint="Use a positive --poll-interval and a nonnegative --poll-timeout.")
         return None
     except rfapi.RoboflowError as exc:
+        not_found = getattr(exc, "status_code", None) == 404
         output_error(
             args,
             str(exc),
-            hint=f"Re-check with 'roboflow video upload-status {video_id} -p {args.project}'.",
+            hint=f"Check the video ID reported by 'roboflow video upload -p {args.project}'."
+            if not_found
+            else f"Re-check with 'roboflow video upload-status {video_id} -p {args.project}'.",
+            exit_code=3 if not_found else 1,
         )
         return None
 
