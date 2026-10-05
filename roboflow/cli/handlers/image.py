@@ -1,4 +1,4 @@
-"""Media management commands: upload, get, search, tag, delete, annotate."""
+"""Image management commands: upload, get, search, tag, delete, annotate."""
 
 from __future__ import annotations
 
