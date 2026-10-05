@@ -977,21 +977,31 @@ class Workspace:
         page_size: int = 50,
         fields: Optional[List[str]] = None,
         continuation_token: Optional[str] = None,
+        *,
+        media_types: Optional[List[str]] = None,
     ) -> dict:
-        """Search across all images in the workspace using RoboQL syntax.
+        """Search across all media in the workspace using RoboQL syntax.
 
         Args:
             query: RoboQL search query (e.g. ``"tag:review"``, ``"project:false"``
-                for orphan images, or free-text for semantic CLIP search).
+                for orphan media, or free-text for semantic CLIP search).
             page_size: Number of results per page (default 50).
             fields: Fields to include in each result.
                 Defaults to ``["tags", "projects", "filename"]``.
             continuation_token: Token returned by a previous call for fetching
                 the next page.
+            media_types: Media types to search: ``["image"]``, ``["video"]`` or
+                ``["image", "video"]``. Omit to search images only (the API default).
 
         Returns:
             Dict with ``results`` (list), ``total`` (int), and
-            ``continuationToken`` (str or None).
+            ``continuationToken`` (str or None). Every result carries ``mediaType``;
+            video results add a signed ``videoUrl`` when ``url`` is requested in
+            ``fields``, while ``url`` itself stays the poster frame.
+
+        Raises:
+            ValueError: If ``media_types`` is not a non-empty list of
+                ``"image"``/``"video"``.
 
         Example:
             >>> ws = rf.workspace()
@@ -999,6 +1009,17 @@ class Workspace:
             >>> print(page["total"])
             >>> for img in page["results"]:
             ...     print(img["filename"])
+
+            >>> # Native videos only, with a signed video URL on each hit
+            >>> page = ws.search(
+            ...     "*",
+            ...     media_types=["video"],
+            ...     fields=["id", "filename", "url"]
+            ... )
+            >>> page["results"][0]["mediaType"], page["results"][0]["videoUrl"]
+
+            >>> # Images and videos together
+            >>> page = ws.search("tag:review", media_types=["image", "video"])
         """
         if fields is None:
             fields = ["tags", "projects", "filename"]
@@ -1010,6 +1031,7 @@ class Workspace:
             page_size=page_size,
             fields=fields,
             continuation_token=continuation_token,
+            media_types=media_types,
         )
 
     def delete_images(self, image_ids: List[str]) -> dict:
@@ -1040,8 +1062,10 @@ class Workspace:
         query: str,
         page_size: int = 50,
         fields: Optional[List[str]] = None,
+        *,
+        media_types: Optional[List[str]] = None,
     ) -> Generator[List[dict], None, None]:
-        """Paginated search across all images in the workspace.
+        """Paginated search across all media in the workspace.
 
         Yields one page of results at a time, automatically following
         ``continuationToken`` until all results have been returned.
@@ -1051,15 +1075,28 @@ class Workspace:
             page_size: Number of results per page (default 50).
             fields: Fields to include in each result.
                 Defaults to ``["tags", "projects", "filename"]``.
+            media_types: Media types to search: ``["image"]``, ``["video"]`` or
+                ``["image", "video"]``. Omit to search images only (the API default).
 
         Yields:
-            A list of result dicts for each page.
+            A list of result dicts for each page. Every result carries ``mediaType``;
+            video results add a signed ``videoUrl`` when ``url`` is requested in
+            ``fields``.
+
+        Raises:
+            ValueError: If ``media_types`` is not a non-empty list of
+                ``"image"``/``"video"``.
 
         Example:
             >>> ws = rf.workspace()
             >>> for page in ws.search_all("tag:review"):
             ...     for img in page:
             ...         print(img["filename"])
+
+            >>> # Page through every native video in the workspace
+            >>> for page in ws.search_all("*", media_types=["video"]):
+            ...     for video in page:
+            ...         print(video["id"], video["mediaType"])
         """
         token = None
         while True:
@@ -1068,6 +1105,7 @@ class Workspace:
                 page_size=page_size,
                 fields=fields,
                 continuation_token=token,
+                media_types=media_types,
             )
             results = response.get("results", [])
             if not results:

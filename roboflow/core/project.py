@@ -20,6 +20,7 @@ from roboflow.util.autolabel_utils import ontology_payload as _autolabel_ontolog
 from roboflow.util.autolabel_utils import resolve_model as _resolve_autolabel_model
 from roboflow.util.general import Retry
 from roboflow.util.image_utils import load_labelmap
+from roboflow.util.search_utils import normalize_media_types
 
 ACCEPTED_IMAGE_FORMATS = {
     "image/bmp",
@@ -697,6 +698,7 @@ class Project:
         *,
         annotation_job: Optional[bool] = None,
         annotation_job_id: Optional[str] = None,
+        media_types: Optional[List[str]] = None,
     ):
         """
         Search for images in a project.
@@ -713,12 +715,16 @@ class Project:
             batch_id (str): batch id that an image must be in
             annotation_job (bool): whether the image must be in an annotation job
             annotation_job_id (str): annotation job id that an image must be in
+            media_types (list): media types to search: ``["image"]``, ``["video"]`` or
+                ``["image", "video"]``. Omit to search images only (the API default).
             fields (list): fields to return in results (default: ["id", "created", "name", "labels"]).
                 Available fields: id, name, created, annotations, labels, split, tags, owner,
                 embedding, user_metadata.
 
         Returns:
-            A list of images that match the search criteria.
+            A list of media that match the search criteria. Every hit carries ``mediaType``
+            (``"image"`` or ``"video"``); video hits add a signed ``videoUrl`` when ``url``
+            is requested in ``fields``, while ``url`` itself stays the poster frame.
 
         Example:
             >>> import roboflow
@@ -735,6 +741,16 @@ class Project:
             ...     limit=10,
             ...     fields=["id", "name", "tags", "user_metadata"]
             ... )
+
+            >>> # Native videos only, with a signed video URL on each hit
+            >>> videos = project.search(
+            ...     media_types=["video"],
+            ...     fields=["id", "name", "url"]
+            ... )
+            >>> videos[0]["mediaType"], videos[0]["videoUrl"]
+
+            >>> # Images and videos together
+            >>> mixed = project.search(media_types=["image", "video"], limit=10)
         """  # noqa: E501 // docs
         if fields is None:
             fields = ["id", "created", "name", "labels"]
@@ -774,6 +790,11 @@ class Project:
         if annotation_job_id is not None:
             payload["annotation_job_id"] = annotation_job_id
 
+        # Omitted media_types leaves `mediaTypes` off the body so the API default (images) applies.
+        normalized_media_types = normalize_media_types(media_types)
+        if normalized_media_types is not None:
+            payload["mediaTypes"] = normalized_media_types
+
         payload["fields"] = fields
 
         data = requests.post(
@@ -798,6 +819,7 @@ class Project:
         *,
         annotation_job: Optional[bool] = None,
         annotation_job_id: Optional[str] = None,
+        media_types: Optional[List[str]] = None,
     ):
         """
         Create a paginated list of search results for use in searching the images in a project.
@@ -814,12 +836,16 @@ class Project:
             batch_id (str): batch id that an image must be in
             annotation_job (bool): whether the image must be in an annotation job
             annotation_job_id (str): annotation job id that an image must be in
+            media_types (list): media types to search: ``["image"]``, ``["video"]`` or
+                ``["image", "video"]``. Omit to search images only (the API default).
             fields (list): fields to return in results (default: ["id", "created"]).
                 Available fields: id, name, created, annotations, labels, split, tags, owner,
                 embedding, user_metadata.
 
         Returns:
-            A generator yielding images that match the search criteria.
+            A generator yielding pages of media that match the search criteria. Every hit
+            carries ``mediaType``; video hits add a signed ``videoUrl`` when ``url`` is
+            requested in ``fields``.
 
         Example:
             >>> import roboflow
@@ -832,6 +858,11 @@ class Project:
 
             >>> for result in results:
             >>>     print(result)
+
+            >>> # Page through every native video in the project
+            >>> for page in project.search_all(media_types=["video"], limit=50):
+            >>>     for video in page:
+            >>>         print(video["id"])
         """  # noqa: E501 // docs
         if fields is None:
             fields = ["id", "created"]
@@ -850,6 +881,7 @@ class Project:
                 fields=fields,
                 annotation_job=annotation_job,
                 annotation_job_id=annotation_job_id,
+                media_types=media_types,
             )
 
             yield data

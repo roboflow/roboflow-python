@@ -10,6 +10,7 @@ from requests.exceptions import RequestException
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
+from roboflow.util.search_utils import normalize_media_types
 
 
 class RoboflowError(Exception):
@@ -545,8 +546,9 @@ def workspace_search(
     page_size: int = 50,
     fields: Optional[List[str]] = None,
     continuation_token: Optional[str] = None,
+    media_types: Optional[List[str]] = None,
 ) -> dict:
-    """Search across all images in a workspace using RoboQL syntax.
+    """Search across all media in a workspace using RoboQL syntax.
 
     Args:
         api_key: Roboflow API key.
@@ -555,11 +557,14 @@ def workspace_search(
         page_size: Number of results per page (default 50).
         fields: Fields to include in each result.
         continuation_token: Token for fetching the next page.
+        media_types: Media types to search: ``["image"]``, ``["video"]`` or
+            ``["image", "video"]``. Omit to search images only (the API default).
 
     Returns:
         Parsed JSON response with ``results``, ``total``, and ``continuationToken``.
 
     Raises:
+        ValueError: If ``media_types`` is not a non-empty list of ``"image"``/``"video"``.
         RoboflowError: On non-200 response status codes.
     """
     url = f"{API_URL}/{workspace_url}/search/v1?api_key={api_key}"
@@ -571,6 +576,10 @@ def workspace_search(
         payload["fields"] = fields
     if continuation_token is not None:
         payload["continuationToken"] = continuation_token
+    # Omitted media_types leaves `mediaTypes` off the body so the API default (images) applies.
+    normalized_media_types = normalize_media_types(media_types)
+    if normalized_media_types is not None:
+        payload["mediaTypes"] = normalized_media_types
 
     response = requests.post(url, json=payload)
     if response.status_code != 200:

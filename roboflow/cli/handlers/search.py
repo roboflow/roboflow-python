@@ -1,4 +1,4 @@
-"""Search commands: query workspace images and export search results."""
+"""Search commands: query workspace media and export search results."""
 
 from __future__ import annotations
 
@@ -19,6 +19,13 @@ def search_command(app: typer.Typer) -> None:
         limit: Annotated[int, typer.Option(help="Max results to return")] = 50,
         cursor: Annotated[Optional[str], typer.Option(help="Continuation token for pagination")] = None,
         fields: Annotated[Optional[str], typer.Option(help="Comma-separated list of fields to include")] = None,
+        media_types: Annotated[
+            Optional[str],
+            typer.Option(
+                "--media-types",
+                help="Comma-separated media types to search: image, video, or image,video (default: image)",
+            ),
+        ] = None,
         export: Annotated[bool, typer.Option("--export", help="Export search results as a dataset")] = False,
         format: Annotated[str, typer.Option("-f", "--format", help="Annotation format for export")] = "coco",
         location: Annotated[Optional[str], typer.Option("-l", "--location", help="Local directory for export")] = None,
@@ -32,13 +39,22 @@ def search_command(app: typer.Typer) -> None:
         name: Annotated[Optional[str], typer.Option(help="Optional name for the export")] = None,
         no_extract: Annotated[bool, typer.Option("--no-extract", help="Keep zip file, skip extraction")] = False,
     ) -> None:
-        """Search workspace images or export results as a dataset."""
+        """Search workspace media or export results as a dataset.
+
+        Searches images only unless --media-types asks otherwise.
+
+        Examples:
+            roboflow search "tag:review"
+            roboflow search "*" --media-types video --fields id,filename,url
+            roboflow search "tag:review" --media-types image,video
+        """
         args = ctx_to_args(
             ctx,
             query=query,
             limit=limit,
             cursor=cursor,
             fields=fields,
+            media_types=media_types,
             export=export,
             format=format,
             location=location,
@@ -64,6 +80,13 @@ def _search(args):  # noqa: ANN001
         return
 
     if args.export:
+        if getattr(args, "media_types", None):
+            output_error(
+                args,
+                "--media-types is not supported with --export",
+                hint="Drop --media-types to export, or omit --export to search with media type selection",
+            )
+            return
         _do_export(args, workspace)
     else:
         _do_search(args, workspace)
@@ -71,14 +94,22 @@ def _search(args):  # noqa: ANN001
 
 def _do_search(args: Any, workspace: Any) -> None:
     from roboflow.cli._output import output, output_error
+    from roboflow.util.search_utils import parse_media_types_option
 
     fields = args.fields.split(",") if args.fields else None
+    try:
+        media_types = parse_media_types_option(getattr(args, "media_types", None))
+    except ValueError as exc:
+        output_error(args, str(exc), hint="Valid media types: image, video")
+        return
+
     try:
         result = workspace.search(
             query=args.query,
             page_size=args.limit,
             fields=fields,
             continuation_token=args.cursor,
+            media_types=media_types,
         )
     except Exception as exc:
         output_error(args, str(exc))
@@ -89,16 +120,30 @@ def _do_search(args: Any, workspace: Any) -> None:
     token = result.get("continuationToken")
 
     data = {"results": results, "total": total}
+    if media_types:
+        data["mediaTypes"] = media_types
     if token:
         data["cursor"] = token
 
     text_lines = [f"Found {total} result(s)."]
     for r in results:
-        text_lines.append(f"  {r.get('filename', r.get('id', ''))}")
+        text_lines.append(f"  {_describe_hit(r)}")
     if token:
         text_lines.append(f"\nNext page: --cursor {token}")
 
     output(args, data, text="\n".join(text_lines))
+
+
+def _describe_hit(hit: dict) -> str:
+    """One text line per hit: label, media type, and the signed video URL when present."""
+    label = hit.get("filename") or hit.get("name") or hit.get("id", "")
+    parts = [str(label)]
+    media_type = hit.get("mediaType")
+    if media_type:
+        parts.append(f"[{media_type}]")
+    if hit.get("videoUrl"):
+        parts.append(str(hit["videoUrl"]))
+    return "  ".join(parts)
 
 
 def _do_export(args: Any, workspace: Any) -> None:
