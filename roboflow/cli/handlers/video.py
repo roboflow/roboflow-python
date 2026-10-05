@@ -396,7 +396,7 @@ def _video_annotate(args) -> None:  # noqa: ANN001
     import json as json_mod
 
     from roboflow.adapters.rfapi import AnnotationSaveError
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import output, output_api_error, output_error
 
     try:
         with open(args.annotation_file) as handle:
@@ -434,14 +434,16 @@ def _video_annotate(args) -> None:  # noqa: ANN001
             add_to_dataset=args.add_to_dataset,
         )
     except AnnotationSaveError as exc:
-        status_code = getattr(exc, "status_code", None)
-        if status_code == 409:
-            hint = "Different segments already exist on this video. Re-run with --overwrite to replace them."
-        elif status_code == 404:
-            hint = "Check the canonical video ID from 'roboflow video upload'."
-        else:
-            hint = "Check that the document is a complete video-coco with at least one segment."
-        output_error(args, str(exc), hint=hint, exit_code=3 if status_code == 404 else 1)
+        hints = {
+            400: "Check that the document is a complete video-coco with at least one segment.",
+            409: "Different segments already exist on this video. Re-run with --overwrite to replace them.",
+        }
+        output_api_error(
+            args,
+            exc,
+            hint=hints.get(exc.status_code),
+            not_found_hint="Check the canonical video ID from 'roboflow video upload'.",
+        )
         return
 
     lines = [f"Annotated video {args.video_id}."]

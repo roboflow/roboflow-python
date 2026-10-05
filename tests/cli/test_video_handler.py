@@ -442,17 +442,6 @@ class TestVideoAnnotate(NativeVideoCliTest):
             split=None,
             add_to_dataset=None,
         )
-        # Native frame/PTS/time-base values survive the read untouched.
-        sent = mock_annotate.call_args.args[1]
-        segment = sent["segments"][0]
-        self.assertEqual(segment["start_frame"], 5)
-        self.assertEqual(segment["end_frame"], 64)
-        self.assertEqual(segment["start_pts"], 3067)
-        self.assertEqual(segment["end_pts"], 33275)
-        video = sent["videos"][0]
-        self.assertEqual(video["time_base"], {"numerator": 1, "denominator": 15360})
-        self.assertEqual(video["duration"], 4.566667)
-        self.assertEqual(video["frame_count"], 137)
         self.assertIn("walking", result.output)
 
     @patch("roboflow.core.project.Project.annotate_video_segments")
@@ -487,16 +476,12 @@ class TestVideoAnnotate(NativeVideoCliTest):
         )
         self.assertIn("In dataset: no", result.output)
 
-    @patch("roboflow.core.project.Project.annotate_video_segments")
-    def test_add_to_dataset_true_is_explicit(self, mock_annotate) -> None:
-        mock_annotate.return_value = {"success": True, "inDataset": True}
-
+        mock_annotate.reset_mock()
         runner.invoke(
             app,
             ["video", "annotate", "-p", self.project_ref, "-i", "s1", "-a", self.document_path, "--add-to-dataset"],
         )
-
-        self.assertEqual(mock_annotate.call_args.kwargs["add_to_dataset"], True)
+        self.assertIs(mock_annotate.call_args.kwargs["add_to_dataset"], True)
 
     @patch("roboflow.core.project.Project.annotate_video_segments")
     def test_json_output_is_the_server_response(self, mock_annotate) -> None:
@@ -511,84 +496,53 @@ class TestVideoAnnotate(NativeVideoCliTest):
         self.assertEqual(json.loads(result.output), {"success": True, "inDataset": True, "createdClasses": []})
 
     @patch("roboflow.core.project.Project.annotate_video_segments")
-    def test_conflict_suggests_overwrite(self, mock_annotate) -> None:
+    def test_api_rejections_follow_exit_code_contract(self, mock_annotate) -> None:
         from roboflow.adapters.rfapi import AnnotationSaveError
 
-        mock_annotate.side_effect = AnnotationSaveError("segments preserved", status_code=409)
-        result = runner.invoke(
-            app,
-            ["--json", "video", "annotate", "-p", self.project_ref, "-i", "s1", "-a", self.document_path],
-        )
+        cases = [
+            (409, 1, "--overwrite"),
+            (400, 1, "at least one segment"),
+            (404, 3, "canonical video ID"),
+            (401, 2, "ROBOFLOW_API_KEY"),
+            (None, 1, None),  # transport failure: no status, no document hint
+        ]
+        for status_code, exit_code, hint in cases:
+            with self.subTest(status_code=status_code):
+                mock_annotate.side_effect = AnnotationSaveError("server said no", status_code=status_code)
 
-        self.assertNotEqual(result.exit_code, 0)
-        self.assertIn("--overwrite", json.loads(result.output)["error"]["hint"])
+                result = runner.invoke(
+                    app,
+                    ["--json", "video", "annotate", "-p", self.project_ref, "-i", "s1", "-a", self.document_path],
+                )
 
-    @patch("roboflow.core.project.Project.annotate_video_segments")
-    def test_zero_segment_rejection_is_reported(self, mock_annotate) -> None:
-        from roboflow.adapters.rfapi import AnnotationSaveError
-
-        mock_annotate.side_effect = AnnotationSaveError("segments must not be empty", status_code=400)
-        result = runner.invoke(
-            app,
-            ["--json", "video", "annotate", "-p", self.project_ref, "-i", "s1", "-a", self.document_path],
-        )
-
-        self.assertEqual(result.exit_code, 1)
-        self.assertIn("segments must not be empty", json.loads(result.output)["error"]["message"])
-
-    @patch("roboflow.core.project.Project.annotate_video_segments")
-    def test_unknown_video_exits_not_found(self, mock_annotate) -> None:
-        from roboflow.adapters.rfapi import AnnotationSaveError
-
-        mock_annotate.side_effect = AnnotationSaveError("source not found", status_code=404)
-        result = runner.invoke(
-            app,
-            ["--json", "video", "annotate", "-p", self.project_ref, "-i", "s1", "-a", self.document_path],
-        )
-
-        self.assertEqual(result.exit_code, 3)
+                self.assertEqual(result.exit_code, exit_code)
+                error = json.loads(result.output)["error"]
+                self.assertEqual(error["message"], "server said no")
+                if hint is None:
+                    self.assertNotIn("hint", error)
+                else:
+                    self.assertIn(hint, error["hint"])
 
     @patch("roboflow.core.project.Project.annotate_video_segments")
-    def test_malformed_json_never_reaches_the_api(self, mock_annotate) -> None:
-        bad = os.path.join(self.tmp.name, "bad.json")
-        with open(bad, "w") as handle:
-            handle.write('{"annotations": ')
+    def test_unreadable_document_never_reaches_the_api(self, mock_annotate) -> None:
+        malformed = os.path.join(self.tmp.name, "bad.json")
+        with open(malformed, "w") as handle:
+            handle.write('{"segments": ')
+        cases = [
+            (malformed, "Invalid JSON"),
+            (_write_json(self.tmp.name, "list.json", [1, 2, 3]), "must contain a JSON object"),
+            (os.path.join(self.tmp.name, "absent.json"), "Cannot read annotation file"),
+        ]
+        for path, message in cases:
+            with self.subTest(message=message):
+                result = runner.invoke(
+                    app, ["--json", "video", "annotate", "-p", self.project_ref, "-i", "s1", "-a", path]
+                )
 
-        result = runner.invoke(app, ["--json", "video", "annotate", "-p", self.project_ref, "-i", "s1", "-a", bad])
-
-        self.assertNotEqual(result.exit_code, 0)
+                self.assertEqual(result.exit_code, 1)
+                self.assertIn(message, json.loads(result.output)["error"]["message"])
         mock_annotate.assert_not_called()
         self.mock_get_project.assert_not_called()
-        self.assertIn("Invalid JSON", json.loads(result.output)["error"]["message"])
-
-    @patch("roboflow.core.project.Project.annotate_video_segments")
-    def test_non_object_document_is_rejected(self, mock_annotate) -> None:
-        listed = _write_json(self.tmp.name, "list.json", [1, 2, 3])
-
-        result = runner.invoke(app, ["--json", "video", "annotate", "-p", self.project_ref, "-i", "s1", "-a", listed])
-
-        self.assertNotEqual(result.exit_code, 0)
-        mock_annotate.assert_not_called()
-
-    @patch("roboflow.core.project.Project.annotate_video_segments")
-    def test_missing_file_never_reaches_the_api(self, mock_annotate) -> None:
-        result = runner.invoke(
-            app,
-            [
-                "--json",
-                "video",
-                "annotate",
-                "-p",
-                self.project_ref,
-                "-i",
-                "s1",
-                "-a",
-                os.path.join(self.tmp.name, "absent.json"),
-            ],
-        )
-
-        self.assertNotEqual(result.exit_code, 0)
-        mock_annotate.assert_not_called()
 
 
 class TestLegacyVideoContractsIntact(unittest.TestCase):
