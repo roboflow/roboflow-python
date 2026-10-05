@@ -471,7 +471,7 @@ roboflow workspace stats --start-date 2026-01-01 --end-date 2026-03-31
 roboflow universe search "hard hats" --type dataset --limit 5
 ```
 
-### Native video upload and status
+### Native video upload and segment annotation
 
 Action Recognition projects take whole videos as Sources. `video upload` streams the
 original MP4/MOV bytes without re-encoding, then reports the **canonical video ID** to use
@@ -495,8 +495,25 @@ roboflow video upload-status aBcD1234 -p my-ar-project --json
 roboflow video upload-status aBcD1234 -p my-ar-project --wait --poll-timeout 120
 ```
 
+```bash
+# 3. Annotate segments from a complete roboflow-video-coco document.
+#    The file is forwarded unchanged, so native frame indices, PTS and
+#    rational time bases are preserved exactly as authored.
+roboflow video annotate -p my-ar-project -i aBcD1234 -a segments.json --json
+# { "success": true, "inDataset": true, "createdClasses": ["walking"] }
+```
+
+In `segments.json`, `segments` belongs at the document top level and
+`videos[0].time_base` is a rational object such as
+`{"numerator": 1, "denominator": 15360}`. `images` and `annotations` may be
+omitted; if supplied, each must be an empty array. Use the original video's
+probed PTS values rather than deriving them from frame indices or nominal FPS.
+
 Upload accepts `-b/--batch`, `-t/--tag` (comma-separated), `--metadata` (JSON object) and
-`-s/--split`.
+`-s/--split`. Annotate defaults to the API behaviour of adding the Source to the Dataset;
+override with `--no-add-to-dataset`, set the split with `-s/--split`, and pass `--overwrite`
+to replace segments that already differ (otherwise a conflicting save is rejected and an
+identical re-submit succeeds).
 
 Exit codes follow the CLI contract: `0` success, `1` error, `2` auth, `3` not found. A
 `failed` ingestion state and a `--wait` timeout both exit nonzero; the timeout message names
@@ -600,7 +617,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `asynctasks` | Inspect async background tasks (e.g. project forks) |
 | `trash` | List items in Trash |
 | `universe` | Search Roboflow Universe |
-| `video` | Native video upload/status and video inference |
+| `video` | Native video upload/status/annotation, and video inference |
 | `batch` | Batch processing jobs *(coming soon)* |
 | `completion` | Install or generate shell completion scripts (bash, zsh, fish) |
 

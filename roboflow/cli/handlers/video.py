@@ -1,4 +1,4 @@
-"""Video commands: native video Source ingestion and legacy video inference."""
+"""Video commands: native video Source ingestion/annotation and legacy video inference."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from roboflow.cli._compat import SortedGroup, ctx_to_args
 
 video_app = typer.Typer(
     cls=SortedGroup,
-    help="Native video upload and video inference operations",
+    help="Native video upload/annotation and video inference operations",
     no_args_is_help=True,
 )
 
@@ -59,7 +59,7 @@ def upload(
 ) -> None:
     """Upload original video bytes as a native video Source.
 
-    Streams the file unchanged and reports the canonical video ID.
+    Streams the file unchanged and reports the canonical video ID to annotate.
     """
     args = ctx_to_args(
         ctx,
@@ -99,6 +99,43 @@ def upload_status(
         wait=wait,
     )
     _video_upload_status(args)
+
+
+@video_app.command("annotate")
+def annotate(
+    ctx: typer.Context,
+    annotation_file: Annotated[
+        str, typer.Option("-a", "--annotation-file", help="Path to a complete roboflow-video-coco JSON file")
+    ],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID, or workspace/project")],
+    video_id: Annotated[str, typer.Option("-i", "--video-id", help="Canonical video ID from 'video upload'")],
+    add_to_dataset: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--add-to-dataset/--no-add-to-dataset",
+            help="Override the API default of adding the Source to the Dataset",
+        ),
+    ] = None,
+    overwrite: Annotated[
+        bool, typer.Option("--overwrite", help="Replace different existing segments on this video")
+    ] = False,
+    split: Annotated[Optional[str], typer.Option("-s", "--split", help="Dataset split: train, valid or test")] = None,
+) -> None:
+    """Annotate a native video Source's segments from a video-coco file.
+
+    The file is read whole and forwarded unchanged, so native frame indices,
+    PTS and rational time bases survive exactly as authored.
+    """
+    args = ctx_to_args(
+        ctx,
+        annotation_file=annotation_file,
+        project=project,
+        video_id=video_id,
+        add_to_dataset=add_to_dataset,
+        overwrite=overwrite,
+        split=split,
+    )
+    _video_annotate(args)
 
 
 # ---------------------------------------------------------------------------
@@ -361,3 +398,64 @@ def _video_upload_status(args) -> None:  # noqa: ANN001
             return
 
     _emit_upload_status(args, status)
+
+
+def _video_annotate(args) -> None:  # noqa: ANN001
+    import json as json_mod
+
+    from roboflow.adapters.rfapi import AnnotationSaveError
+    from roboflow.cli._output import output, output_error
+
+    try:
+        with open(args.annotation_file) as handle:
+            document = json_mod.load(handle)
+    except OSError as exc:
+        output_error(args, f"Cannot read annotation file: {exc}", hint="Pass the path to a video-coco JSON file.")
+        return
+    except json_mod.JSONDecodeError as exc:
+        output_error(
+            args,
+            f"Invalid JSON in {args.annotation_file}: {exc}",
+            hint="The file must be one complete roboflow-video-coco document.",
+        )
+        return
+
+    if not isinstance(document, dict):
+        output_error(
+            args,
+            f"{args.annotation_file} must contain a JSON object.",
+            hint="The file must be one complete roboflow-video-coco document.",
+        )
+        return
+
+    project = _load_project(args)
+    if project is None:
+        return
+
+    try:
+        # `document` is forwarded as parsed: no re-encoding of frames, PTS or time bases.
+        result = project.annotate_video_segments(
+            args.video_id,
+            document,
+            overwrite=args.overwrite,
+            split=args.split,
+            add_to_dataset=args.add_to_dataset,
+        )
+    except AnnotationSaveError as exc:
+        status_code = getattr(exc, "status_code", None)
+        if status_code == 409:
+            hint = "Different segments already exist on this video. Re-run with --overwrite to replace them."
+        elif status_code == 404:
+            hint = "Check the canonical video ID from 'roboflow video upload'."
+        else:
+            hint = "Check that the document is a complete video-coco with at least one segment."
+        output_error(args, str(exc), hint=hint, exit_code=3 if status_code == 404 else 1)
+        return
+
+    lines = [f"Annotated video {args.video_id}."]
+    if "inDataset" in result:
+        lines.append(f"In dataset: {'yes' if result.get('inDataset') else 'no'}")
+    created = result.get("createdClasses")
+    if created:
+        lines.append(f"Created classes: {', '.join(map(str, created))}")
+    output(args, result, text="\n".join(lines))
