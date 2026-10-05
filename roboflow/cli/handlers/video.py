@@ -342,7 +342,16 @@ def _video_upload(args) -> None:  # noqa: ANN001
             wait=False,
         )
     except ValueError as exc:
-        output_error(args, str(exc), hint="Native video upload accepts original .mp4 and .mov files.")
+        # The SDK rejects a missing path and an unsupported container with the
+        # same type, so point each one at its own fix.
+        missing = "not found" in str(exc)
+        output_error(
+            args,
+            str(exc),
+            hint="Check the path to the video file."
+            if missing
+            else "Native video upload accepts original .mp4 and .mov files.",
+        )
         return
     except rfapi.RoboflowError as exc:
         output_error(args, str(exc), hint="Check the project type, your plan limits and the video file.")

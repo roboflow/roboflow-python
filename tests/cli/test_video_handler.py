@@ -78,38 +78,40 @@ AR_PROJECT_PAYLOAD = {
     }
 }
 
-# A complete video-coco document with native frame indices, PTS and a rational
-# time base. Tests assert it reaches the SDK byte-for-value identical.
+# A complete video-coco document in the shape the import schema accepts, taken
+# from a real MOV: `segments` is top level, `time_base` is a rational object,
+# and `images`/`annotations` stay empty. Tests assert it reaches the SDK with
+# every value identical.
 VIDEO_COCO_DOCUMENT = {
-    "info": {"version": "roboflow-video-coco"},
+    "info": {"format": "roboflow-video-coco"},
     "videos": [
         {
             "id": 1,
             "file_name": "clip.mov",
-            "fps": 30000 / 1001,
-            "time_base": [1, 600],
-            "duration": 12.659047,
-            "nb_frames": 379,
+            "width": 1620,
+            "height": 1080,
+            "duration": 4.566667,
+            "fps": 30,
+            "frame_count": 137,
+            "time_base": {"numerator": 1, "denominator": 15360},
         }
     ],
-    "categories": [
-        {"id": 0, "name": "actions"},
-        {"id": 1, "name": "walking", "supercategory": "actions"},
+    "categories": [{"id": 1, "name": "hand_gesture"}],
+    # Real MOV presentation timestamps are not frame_index * ticks_per_frame,
+    # so they must survive the read exactly rather than being recomputed.
+    "segments": [
+        {
+            "id": 1,
+            "video_id": 1,
+            "category_id": 1,
+            "start_frame": 5,
+            "end_frame": 64,
+            "start_pts": 3067,
+            "end_pts": 33275,
+        }
     ],
-    "annotations": {
-        "segments": [
-            {
-                "id": 1,
-                "video_id": 1,
-                "category_id": 1,
-                "start_frame": 12,
-                "end_frame": 96,
-                "start_pts": 240,
-                "end_pts": 1920,
-                "time_base": [1, 600],
-            }
-        ]
-    },
+    "images": [],
+    "annotations": [],
 }
 
 
@@ -309,6 +311,15 @@ class TestVideoUpload(NativeVideoCliTest):
         self.assertIn(".mp4", payload["error"]["message"])
 
     @patch("roboflow.core.project.Project.upload_video")
+    def test_missing_file_hint_differs_from_bad_container(self, mock_upload) -> None:
+        mock_upload.side_effect = ValueError("Video file not found: /tmp/absent.mp4")
+
+        result = runner.invoke(app, ["--json", "video", "upload", "-p", self.project_ref, "-f", self.video_path])
+
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn("Check the path", json.loads(result.output)["error"]["hint"])
+
+    @patch("roboflow.core.project.Project.upload_video")
     def test_malformed_metadata_never_reaches_the_api(self, mock_upload) -> None:
         result = runner.invoke(
             app,
@@ -434,12 +445,15 @@ class TestVideoAnnotate(NativeVideoCliTest):
         )
         # Native frame/PTS/time-base values survive the read untouched.
         sent = mock_annotate.call_args.args[1]
-        segment = sent["annotations"]["segments"][0]
-        self.assertEqual(segment["start_pts"], 240)
-        self.assertEqual(segment["end_pts"], 1920)
-        self.assertEqual(segment["time_base"], [1, 600])
-        self.assertEqual(sent["videos"][0]["fps"], 30000 / 1001)
-        self.assertEqual(sent["videos"][0]["nb_frames"], 379)
+        segment = sent["segments"][0]
+        self.assertEqual(segment["start_frame"], 5)
+        self.assertEqual(segment["end_frame"], 64)
+        self.assertEqual(segment["start_pts"], 3067)
+        self.assertEqual(segment["end_pts"], 33275)
+        video = sent["videos"][0]
+        self.assertEqual(video["time_base"], {"numerator": 1, "denominator": 15360})
+        self.assertEqual(video["duration"], 4.566667)
+        self.assertEqual(video["frame_count"], 137)
         self.assertIn("walking", result.output)
 
     @patch("roboflow.core.project.Project.annotate_video_segments")
