@@ -229,7 +229,7 @@ _TERMINAL_UPLOAD_STATES = frozenset({"uploaded", "failed"})
 def _load_project(args):  # noqa: ANN001
     """Load the project for a native video command, honoring CLI credential precedence."""
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output_error
+    from roboflow.cli._output import output_api_error
     from roboflow.cli._resolver import resolve_project_context
 
     resolved = resolve_project_context(args)
@@ -240,17 +240,20 @@ def _load_project(args):  # noqa: ANN001
     try:
         data = rfapi.get_project(api_key, workspace, project_slug)
     except rfapi.RoboflowError as exc:
-        output_error(
+        output_api_error(
             args,
-            str(exc),
+            exc,
             hint=f"Check that project '{workspace}/{project_slug}' exists and your API key can read it.",
-            exit_code=3,
         )
         return None
 
     from roboflow.core.project import Project
 
     return Project(api_key, data["project"])
+
+
+def _unknown_video_hint(args) -> str:  # noqa: ANN001
+    return f"Check the video ID reported by 'roboflow video upload -p {args.project}'."
 
 
 def _emit_upload_status(args, status) -> None:  # noqa: ANN001
@@ -287,7 +290,7 @@ def _emit_upload_status(args, status) -> None:  # noqa: ANN001
 def _wait_for_upload(args, project, video_id):  # noqa: ANN001
     """Bounded wait, reporting the video ID so a timeout stays actionable."""
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output_error
+    from roboflow.cli._output import output_api_error, output_error
 
     try:
         return project.wait_for_video_upload(
@@ -299,14 +302,11 @@ def _wait_for_upload(args, project, video_id):  # noqa: ANN001
         output_error(args, str(exc), hint="Use a positive --poll-interval and a nonnegative --poll-timeout.")
         return None
     except rfapi.RoboflowError as exc:
-        not_found = getattr(exc, "status_code", None) == 404
-        output_error(
+        output_api_error(
             args,
-            str(exc),
-            hint=f"Check the video ID reported by 'roboflow video upload -p {args.project}'."
-            if not_found
-            else f"Re-check with 'roboflow video upload-status {video_id} -p {args.project}'.",
-            exit_code=3 if not_found else 1,
+            exc,
+            hint=f"Re-check with 'roboflow video upload-status {video_id} -p {args.project}'.",
+            not_found_hint=_unknown_video_hint(args),
         )
         return None
 
@@ -372,7 +372,7 @@ def _video_upload(args) -> None:  # noqa: ANN001
 
 def _video_upload_status(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
-    from roboflow.cli._output import output_error
+    from roboflow.cli._output import output_api_error
 
     project = _load_project(args)
     if project is None:
@@ -386,15 +386,7 @@ def _video_upload_status(args) -> None:  # noqa: ANN001
         try:
             status = project.get_video_upload_status(args.video_id)
         except rfapi.RoboflowError as exc:
-            not_found = getattr(exc, "status_code", None) == 404
-            output_error(
-                args,
-                str(exc),
-                hint=f"Check the video ID reported by 'roboflow video upload -p {args.project}'."
-                if not_found
-                else None,
-                exit_code=3 if not_found else 1,
-            )
+            output_api_error(args, exc, not_found_hint=_unknown_video_hint(args))
             return
 
     _emit_upload_status(args, status)

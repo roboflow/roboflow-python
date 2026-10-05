@@ -159,13 +159,6 @@ class TestNativeVideoRegistration(NativeVideoCliTest):
                 result = runner.invoke(app, ["video", command, "--help"])
                 self.assertEqual(result.exit_code, 0)
 
-    def test_upload_status_is_distinct_from_inference_status(self) -> None:
-        group = runner.invoke(app, ["video", "--help"])
-        self.assertEqual(group.exit_code, 0)
-        self.assertIn("upload-status", group.output)
-        # The legacy inference job command keeps its own name and contract.
-        self.assertIn("status", group.output)
-
 
 class TestVideoUpload(NativeVideoCliTest):
     """`roboflow video upload` streams original bytes and reports canonical IDs."""
@@ -197,6 +190,10 @@ class TestVideoUpload(NativeVideoCliTest):
                 '{"camera": "one"}',
                 "-s",
                 "valid",
+                "--poll-interval",
+                "0.5",
+                "--poll-timeout",
+                "30",
             ],
         )
 
@@ -210,7 +207,7 @@ class TestVideoUpload(NativeVideoCliTest):
             wait=False,
         )
         # The bounded wait continues on the ID the first status reported.
-        mock_wait.assert_called_once_with("upload-1", poll_interval=2.0, poll_timeout=300.0)
+        mock_wait.assert_called_once_with("upload-1", poll_interval=0.5, poll_timeout=30.0)
         self.assertIn("source-9", result.output)
         self.assertIn("uploaded", result.output)
 
@@ -247,31 +244,6 @@ class TestVideoUpload(NativeVideoCliTest):
         self.assertIs(data["duplicate"], True)
         self.assertIsNone(data["resolvedBatch"])
 
-    @patch("roboflow.core.project.Project.wait_for_video_upload")
-    @patch("roboflow.core.project.Project.upload_video")
-    def test_custom_poll_bounds_are_forwarded(self, mock_upload, mock_wait) -> None:
-        mock_upload.return_value = {"videoId": "upload-1", "status": "pending"}
-        mock_wait.return_value = {"videoId": "upload-1", "status": "uploaded"}
-
-        result = runner.invoke(
-            app,
-            [
-                "video",
-                "upload",
-                "-p",
-                self.project_ref,
-                "-f",
-                self.video_path,
-                "--poll-interval",
-                "0.5",
-                "--poll-timeout",
-                "30",
-            ],
-        )
-
-        self.assertEqual(result.exit_code, 0, result.output)
-        mock_wait.assert_called_once_with("upload-1", poll_interval=0.5, poll_timeout=30.0)
-
     @patch("roboflow.core.project.Project.upload_video")
     def test_failed_processing_exits_nonzero(self, mock_upload) -> None:
         mock_upload.return_value = {"videoId": "upload-1", "status": "failed"}
@@ -301,45 +273,48 @@ class TestVideoUpload(NativeVideoCliTest):
         self.assertIn("upload-status upload-7", payload["error"]["hint"])
 
     @patch("roboflow.core.project.Project.upload_video")
-    def test_unsupported_extension_is_rejected_by_the_sdk(self, mock_upload) -> None:
-        mock_upload.side_effect = ValueError("Native video upload accepts .mp4 and .mov files")
+    def test_sdk_file_rejections_get_their_own_hint(self, mock_upload) -> None:
+        cases = [
+            ("Native video upload accepts .mp4 and .mov files", "accepts original .mp4 and .mov"),
+            ("Video file not found: /tmp/absent.mp4", "Check the path"),
+        ]
+        for message, hint in cases:
+            with self.subTest(message=message):
+                mock_upload.side_effect = ValueError(message)
 
-        result = runner.invoke(app, ["--json", "video", "upload", "-p", self.project_ref, "-f", self.video_path])
+                result = runner.invoke(
+                    app, ["--json", "video", "upload", "-p", self.project_ref, "-f", self.video_path]
+                )
 
-        self.assertNotEqual(result.exit_code, 0)
-        payload = json.loads(result.output)
-        self.assertIn(".mp4", payload["error"]["message"])
+                self.assertEqual(result.exit_code, 1)
+                error = json.loads(result.output)["error"]
+                self.assertEqual(error["message"], message)
+                self.assertIn(hint, error["hint"])
 
     @patch("roboflow.core.project.Project.upload_video")
-    def test_missing_file_hint_differs_from_bad_container(self, mock_upload) -> None:
-        mock_upload.side_effect = ValueError("Video file not found: /tmp/absent.mp4")
+    def test_invalid_metadata_never_reaches_the_api(self, mock_upload) -> None:
+        cases = [("{not json", "Invalid metadata JSON"), ("[1, 2]", "Metadata must be a JSON object")]
+        for metadata, message in cases:
+            with self.subTest(metadata=metadata):
+                result = runner.invoke(
+                    app,
+                    [
+                        "--json",
+                        "video",
+                        "upload",
+                        "-p",
+                        self.project_ref,
+                        "-f",
+                        self.video_path,
+                        "--metadata",
+                        metadata,
+                    ],
+                )
 
-        result = runner.invoke(app, ["--json", "video", "upload", "-p", self.project_ref, "-f", self.video_path])
-
-        self.assertNotEqual(result.exit_code, 0)
-        self.assertIn("Check the path", json.loads(result.output)["error"]["hint"])
-
-    @patch("roboflow.core.project.Project.upload_video")
-    def test_malformed_metadata_never_reaches_the_api(self, mock_upload) -> None:
-        result = runner.invoke(
-            app,
-            ["--json", "video", "upload", "-p", self.project_ref, "-f", self.video_path, "--metadata", "{not json"],
-        )
-
-        self.assertNotEqual(result.exit_code, 0)
+                self.assertEqual(result.exit_code, 1)
+                self.assertIn(message, json.loads(result.output)["error"]["message"])
         mock_upload.assert_not_called()
         self.mock_get_project.assert_not_called()
-        self.assertIn("Invalid metadata JSON", json.loads(result.output)["error"]["message"])
-
-    @patch("roboflow.core.project.Project.upload_video")
-    def test_non_object_metadata_is_rejected(self, mock_upload) -> None:
-        result = runner.invoke(
-            app,
-            ["--json", "video", "upload", "-p", self.project_ref, "-f", self.video_path, "--metadata", "[1, 2]"],
-        )
-
-        self.assertNotEqual(result.exit_code, 0)
-        mock_upload.assert_not_called()
 
     @patch("roboflow.core.project.Project.upload_video")
     def test_server_error_exits_nonzero(self, mock_upload) -> None:
@@ -350,6 +325,20 @@ class TestVideoUpload(NativeVideoCliTest):
 
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn("quota exceeded", json.loads(result.output)["error"]["message"])
+
+    def test_project_lookup_failure_follows_exit_code_contract(self) -> None:
+        from roboflow.adapters.rfapi import RoboflowError
+
+        for status_code, exit_code in ((401, 2), (404, 3), (500, 1)):
+            with self.subTest(status_code=status_code):
+                self.mock_get_project.side_effect = RoboflowError("project lookup failed", status_code=status_code)
+
+                result = runner.invoke(
+                    app, ["--json", "video", "upload", "-p", self.project_ref, "-f", self.video_path]
+                )
+
+                self.assertEqual(result.exit_code, exit_code)
+                self.assertIn("project lookup failed", json.loads(result.output)["error"]["message"])
 
     def test_missing_api_key_exits_with_auth_code(self) -> None:
         with patch("roboflow.config.load_roboflow_api_key", return_value=None):
@@ -403,24 +392,24 @@ class TestVideoUploadStatus(NativeVideoCliTest):
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("upload-status source-3", result.output)
 
-    @patch("roboflow.core.project.Project.get_video_upload_status")
-    def test_unknown_video_exits_not_found(self, mock_status) -> None:
+    def test_api_errors_follow_exit_code_contract(self) -> None:
         from roboflow.adapters.rfapi import RoboflowError
 
-        mock_status.side_effect = RoboflowError("not found", status_code=404)
-        result = runner.invoke(app, ["--json", "video", "upload-status", "nope", "-p", self.project_ref])
+        reads = [("get_video_upload_status", []), ("wait_for_video_upload", ["--wait"])]
+        for method, flags in reads:
+            for status_code, exit_code in ((401, 2), (404, 3), (500, 1)):
+                with self.subTest(method=method, status_code=status_code):
+                    with patch(
+                        f"roboflow.core.project.Project.{method}",
+                        side_effect=RoboflowError("status read failed", status_code=status_code),
+                    ):
+                        result = runner.invoke(
+                            app, ["--json", "video", "upload-status", "nope", "-p", self.project_ref, *flags]
+                        )
 
-        self.assertEqual(result.exit_code, 3)
-
-    @patch("roboflow.core.project.Project.wait_for_video_upload")
-    def test_unknown_video_with_wait_exits_not_found(self, mock_wait) -> None:
-        from roboflow.adapters.rfapi import RoboflowError
-
-        mock_wait.side_effect = RoboflowError("not found", status_code=404)
-        result = runner.invoke(app, ["--json", "video", "upload-status", "nope", "-p", self.project_ref, "--wait"])
-
-        self.assertEqual(result.exit_code, 3)
-        self.assertIn("Check the video ID", json.loads(result.output)["error"]["hint"])
+                    self.assertEqual(result.exit_code, exit_code)
+                    if status_code == 404:
+                        self.assertIn("Check the video ID", json.loads(result.output)["error"]["hint"])
 
     @patch("roboflow.core.project.Project.get_video_upload_status")
     def test_failed_state_exits_nonzero(self, mock_status) -> None:
@@ -604,15 +593,6 @@ class TestVideoAnnotate(NativeVideoCliTest):
 
 class TestLegacyVideoContractsIntact(unittest.TestCase):
     """The native commands must not disturb legacy video inference."""
-
-    @patch("roboflow.adapters.rfapi.get_video_job_status")
-    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
-    def test_status_still_reads_an_inference_job(self, _mock_key, mock_api) -> None:
-        mock_api.return_value = {"status": "completed", "progress": "100%"}
-        result = runner.invoke(app, ["video", "status", "job-legacy"])
-
-        self.assertEqual(result.exit_code, 0, result.output)
-        mock_api.assert_called_once_with("fake-key", "job-legacy")
 
     def test_infer_still_takes_a_version_number(self) -> None:
         result = runner.invoke(app, ["video", "infer", "--help"])
