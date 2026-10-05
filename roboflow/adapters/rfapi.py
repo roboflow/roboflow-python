@@ -54,7 +54,7 @@ def get_project(api_key, workspace_url, project_url):
     url = f"{API_URL}/{workspace_url}/{project_url}?api_key={api_key}"
     response = requests.get(url)
     if response.status_code != 200:
-        raise RoboflowError(response.text)
+        raise RoboflowError(response.text, status_code=response.status_code)
     result = response.json()
     return result
 
