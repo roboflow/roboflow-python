@@ -1,3 +1,32 @@
+## Action Recognition video segments
+
+Pass the **final** `videoId` from the uploaded video status to
+`Project.annotate_video_segments`. An upload's initial ID can change when the
+server reuses an existing video Source. The annotation document uses the
+official `roboflow-video-coco` format; keep its PTS and rational time base from
+the video rather than converting them to seconds or rounding frames.
+
+```python
+import json
+import roboflow
+
+project = roboflow.Roboflow(api_key="MY_API_KEY").workspace("my-workspace").project("actions")
+with open("clip.video-coco.json") as annotations:
+    document = json.load(annotations)  # An official video-coco document for clip.mp4.
+status = project.upload_video("clip.mp4", wait=True)
+if status["status"] != "uploaded":
+    raise RuntimeError(status["message"])
+result = project.annotate_video_segments(status["videoId"], document)
+```
+
+The API adds the video to the Dataset by default. Use `add_to_dataset=False`
+to preserve membership, `split="valid"` to choose a split, or `overwrite=True`
+to replace different existing segments. An identical retry succeeds. A
+conflicting annotation raises `AnnotationSaveError` with `status_code == 409`;
+the server keeps the prior segments. This route requires the public video
+annotate API from [platform PR #16236](https://github.com/roboflow/roboflow/pull/16236)
+and its [atomic save prerequisite](https://github.com/roboflow/roboflow/pull/16456).
+
 :::roboflow.core.project
 
 ## Upload a native Action Recognition video

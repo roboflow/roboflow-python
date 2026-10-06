@@ -593,6 +593,34 @@ class Project:
 
         return annotation, upload_time, upload_retry_attempts
 
+    def annotate_video_segments(
+        self,
+        video_id: str,
+        document: Dict,
+        *,
+        overwrite: bool = False,
+        split: Optional[str] = None,
+        add_to_dataset: Optional[bool] = None,
+    ) -> Dict:
+        """Send a complete roboflow-video-coco document without converting timestamps.
+
+        Use the final uploaded-status ``videoId``. The API adds the video to the
+        Dataset unless ``add_to_dataset=False``; ``split`` assigns train/valid/test.
+        Identical retries succeed; different segments require ``overwrite=True``.
+        Returns the API response (``success``, ``inDataset``, ``createdClasses``).
+        Rejections raise ``AnnotationSaveError`` with the server's HTTP status.
+        """
+        return rfapi.annotate_video_segments(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            video_id,
+            document,
+            overwrite=overwrite,
+            split=split,
+            add_to_dataset=add_to_dataset,
+        )
+
     def single_upload(
         self,
         image_path=None,
