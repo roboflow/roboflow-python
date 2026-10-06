@@ -219,6 +219,24 @@ roboflow search "tag:reviewed" --limit 100
 roboflow search "class:person" --export -f coco -l ./export/
 ```
 
+Search returns images only unless `--media-types` asks otherwise. Valid values are
+`image`, `video`, or both:
+
+```bash
+# Native videos only, with a signed video URL on each hit
+roboflow search "*" --media-types video --fields id,filename,url
+
+# Images and videos together
+roboflow search "tag:reviewed" --media-types image,video
+
+# Scope to one project
+roboflow image search "*" -p my-project --media-types video --fields id,url
+```
+
+Every hit carries `mediaType`. Video hits add a signed `videoUrl` when you request the
+`url` field; `url` itself stays the poster frame, so image-only consumers keep a
+thumbnail for every hit. `--media-types` is not accepted with `--export`.
+
 ### Browse resources
 
 ```bash
@@ -587,11 +605,11 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `workspace` | List and inspect workspaces |
 | `project` | List, get, create projects |
 | `version` | List, get, download, export dataset versions |
-| `image` | Upload, get, search, metadata, tag, delete, annotate images |
+| `image` | Upload, get, search, metadata, tag, delete, annotate images and videos |
 | `model` | List, get, upload trained models |
 | `train` | Start model training |
 | `infer` | Run inference on images |
-| `search` | Search workspace images (RoboQL), export results |
+| `search` | Search workspace images and videos (RoboQL), export results |
 | `deployment` | Manage dedicated deployments |
 | `device` | List, get, create, and observe RFDM devices (v2 deployment API) |
 | `eval` | Inspect model evaluation runs (mAP, confusion matrix, recommendations, ...) |
