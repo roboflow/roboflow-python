@@ -359,7 +359,7 @@ def _handle_upload_directory(args, api_key: str, path: str) -> None:  # noqa: AN
     import os
 
     import roboflow
-    from roboflow.cli._output import output, output_error, suppress_sdk_output
+    from roboflow.cli._output import output, output_error, sdk_output_to_stderr, suppress_sdk_output
 
     # Always suppress SDK "loading..." noise during workspace init
     with suppress_sdk_output():
@@ -376,19 +376,20 @@ def _handle_upload_directory(args, api_key: str, path: str) -> None:  # noqa: AN
     wait = not getattr(args, "no_wait", False)
 
     try:
-        result = workspace.upload_dataset(
-            dataset_path=path,
-            project_name=args.project,
-            num_workers=args.concurrency,
-            batch_name=getattr(args, "batch", None),
-            num_retries=retries,
-            is_prediction=getattr(args, "is_prediction", False),
-            use_zip_upload=getattr(args, "zip_upload", False),
-            annotation_overwrite=getattr(args, "annotation_overwrite", None),
-            split=getattr(args, "split", None),
-            tags=tags,
-            wait=wait,
-        )
+        with sdk_output_to_stderr(args):
+            result = workspace.upload_dataset(
+                dataset_path=path,
+                project_name=args.project,
+                num_workers=args.concurrency,
+                batch_name=getattr(args, "batch", None),
+                num_retries=retries,
+                is_prediction=getattr(args, "is_prediction", False),
+                use_zip_upload=getattr(args, "zip_upload", False),
+                annotation_overwrite=getattr(args, "annotation_overwrite", None),
+                split=getattr(args, "split", None),
+                tags=tags,
+                wait=wait,
+            )
     except Exception as exc:
         output_error(args, str(exc))
         return
