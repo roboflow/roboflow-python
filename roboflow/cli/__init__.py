@@ -429,8 +429,20 @@ def main() -> None:
         except Exception as exc:
             import json as _json
 
-            payload = {"error": {"message": str(exc)}}
+            from roboflow.util.redact import redact_api_key
+
+            payload = {"error": {"message": redact_api_key(str(exc))}}
             print(_json.dumps(payload), file=sys.stderr)
             sys.exit(1)
     else:
-        app()
+        try:
+            app()
+        except Exception as exc:
+            # Print the traceback as Python would, but without the API key that
+            # request URLs in `requests` exception messages may contain.
+            import traceback
+
+            from roboflow.util.redact import redact_api_key
+
+            sys.stderr.write(redact_api_key("".join(traceback.format_exception(exc))))
+            sys.exit(1)

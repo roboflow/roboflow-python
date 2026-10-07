@@ -17,6 +17,7 @@ from tqdm import tqdm
 from roboflow.adapters import rfapi, vision_events_api
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS
+from roboflow.util.redact import redact_api_key
 
 if TYPE_CHECKING:
     from roboflow.core.device import Device
@@ -713,7 +714,7 @@ class Workspace:
                 annotation_msg = f"annotations = ERR: {e.message}"
                 print(f"{image_msg} / {annotation_msg}")
             except Exception as e:
-                print(f"[ERR] {image_path} ({e})")
+                print(f"[ERR] {image_path} ({redact_api_key(str(e))})")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
             list(executor.map(_upload, images))
@@ -946,7 +947,7 @@ class Workspace:
         try:
             res.raise_for_status()
         except Exception as e:
-            error_message = str(e)
+            error_message = redact_api_key(str(e))
             status_code = str(res.status_code)
 
             print("\n\033[91m❌ ERROR\033[0m: Failed to get model deployment URL")
@@ -970,7 +971,7 @@ class Workspace:
                 )
 
         except Exception as e:
-            print(f"An error occured when uploading the model: {e}")
+            print(f"An error occured when uploading the model: {redact_api_key(str(e))}")
 
     def search(
         self,
