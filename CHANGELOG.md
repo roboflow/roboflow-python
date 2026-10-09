@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.8.0
+
+### Added
+
+- Native Action Recognition video in the CLI
+  ([#544](https://github.com/roboflow/roboflow-python/pull/544)):
+  - `roboflow video upload` streams the original MP4/MOV bytes unchanged and
+    reports the canonical video ID. It waits for processing by default;
+    `--no-wait` returns once the bytes are stored.
+  - `roboflow video upload-status` reads or waits for ingestion state.
+  - `roboflow video annotate` sends one complete `roboflow-video-coco` document
+    unchanged, so native frame indices, PTS and rational time bases are kept.
+    It supports `--overwrite`, `-s/--split` and
+    `--add-to-dataset/--no-add-to-dataset`.
+  - Errors follow the CLI exit-code contract: `2` for a rejected API key, `3`
+    for an unknown project or video, `1` otherwise. See the
+    [CLI quickstart](CLI-COMMANDS.md#native-video-upload-and-segment-annotation).
+- `Project.annotate_video_segments(video_id, document, ...)` submits video
+  segment annotations from Python
+  ([#534](https://github.com/roboflow/roboflow-python/pull/534)). Identical
+  re-submits succeed; different segments require `overwrite=True`.
+- Search can select media types
+  ([#542](https://github.com/roboflow/roboflow-python/pull/542)). Pass
+  `media_types=["video"]` or `["image", "video"]` in the SDK, or
+  `--media-types` in `roboflow search` and `roboflow image search`. Every hit
+  carries `mediaType`; video hits add a signed `videoUrl` when `url` is
+  requested. Omitting it keeps the image-only default.
+
+### Changed
+
+- JSON usage errors keep the option name, e.g.
+  `Invalid value for '--poll-interval': ...`.
+- NumPy is no longer capped below 2.4 at runtime
+  ([#519](https://github.com/roboflow/roboflow-python/pull/519)).
+
 ## 1.7.0
 
 ### Added
