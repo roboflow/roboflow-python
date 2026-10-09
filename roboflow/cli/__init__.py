@@ -421,7 +421,8 @@ def main() -> None:
             # Click/typer validation error — emit JSON on stderr
             import json as _json
 
-            payload = {"error": {"message": str(exc), "hint": "Run with --help for usage information."}}
+            # format_message() keeps the option name that str() drops for bad values.
+            payload = {"error": {"message": exc.format_message(), "hint": "Run with --help for usage information."}}
             print(_json.dumps(payload), file=sys.stderr)
             sys.exit(2)
         except click.exceptions.Abort:
