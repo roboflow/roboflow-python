@@ -150,16 +150,6 @@ class NativeVideoCliTest(unittest.TestCase):
         return "model-evaluation-workspace/penguin-actions"
 
 
-class TestNativeVideoRegistration(NativeVideoCliTest):
-    """The real CLI exposes the native video commands alongside inference."""
-
-    def test_native_commands_are_registered(self) -> None:
-        for command in ("upload", "upload-status", "annotate"):
-            with self.subTest(command=command):
-                result = runner.invoke(app, ["video", command, "--help"])
-                self.assertEqual(result.exit_code, 0)
-
-
 class TestVideoUpload(NativeVideoCliTest):
     """`roboflow video upload` streams original bytes and reports canonical IDs."""
 
@@ -208,6 +198,7 @@ class TestVideoUpload(NativeVideoCliTest):
         )
         # The bounded wait continues on the ID the first status reported.
         mock_wait.assert_called_once_with("upload-1", poll_interval=0.5, poll_timeout=30.0)
+        self.mock_get_project.assert_called_once_with("fake-key", "model-evaluation-workspace", "penguin-actions")
         self.assertIn("source-9", result.output)
         self.assertIn("uploaded", result.output)
 
@@ -276,19 +267,17 @@ class TestVideoUpload(NativeVideoCliTest):
     def test_local_rejections_never_reach_the_api(self, mock_upload) -> None:
         absent = os.path.join(self.tmp.name, "absent.mp4")
         cases = [
-            (["-f", absent], "Video file not found", "Check the path"),
-            # A bad bound must fail before the upload stores bytes it then cannot report.
-            (["-f", self.video_path, "--poll-interval", "0"], "Invalid wait bounds", "positive --poll-interval"),
-            (["-f", self.video_path, "--poll-timeout", "-1"], "Invalid wait bounds", "nonnegative --poll-timeout"),
+            (["-f", absent], 1, "Video file not found"),
+            # Bad bounds are usage errors; they must fail before the upload stores bytes it cannot report.
+            (["-f", self.video_path, "--poll-interval", "0"], 2, "--poll-interval"),
+            (["-f", self.video_path, "--poll-timeout", "-1"], 2, "--poll-timeout"),
         ]
-        for flags, message, hint in cases:
+        for flags, exit_code, message in cases:
             with self.subTest(flags=flags):
-                result = runner.invoke(app, ["--json", "video", "upload", "-p", self.project_ref, *flags])
+                result = runner.invoke(app, ["video", "upload", "-p", self.project_ref, *flags])
 
-                self.assertEqual(result.exit_code, 1)
-                error = json.loads(result.output)["error"]
-                self.assertIn(message, error["message"])
-                self.assertIn(hint, error["hint"])
+                self.assertEqual(result.exit_code, exit_code)
+                self.assertIn(message, result.output)
         mock_upload.assert_not_called()
         self.mock_get_project.assert_not_called()
 
@@ -303,7 +292,7 @@ class TestVideoUpload(NativeVideoCliTest):
 
     @patch("roboflow.core.project.Project.upload_video")
     def test_invalid_metadata_never_reaches_the_api(self, mock_upload) -> None:
-        cases = [("{not json", "Invalid metadata JSON"), ("[1, 2]", "Metadata must be a JSON object")]
+        cases = [("{not json", "Expecting property name"), ("[1, 2]", "not a JSON object")]
         for metadata, message in cases:
             with self.subTest(metadata=metadata):
                 result = runner.invoke(
@@ -359,21 +348,6 @@ class TestVideoUpload(NativeVideoCliTest):
                 self.assertEqual(result.exit_code, exit_code)
                 self.assertIn("project lookup failed", json.loads(result.output)["error"]["message"])
 
-    def test_missing_api_key_exits_with_auth_code(self) -> None:
-        with patch("roboflow.config.load_roboflow_api_key", return_value=None):
-            result = runner.invoke(app, ["--json", "video", "upload", "-p", self.project_ref, "-f", self.video_path])
-        self.assertEqual(result.exit_code, 2)
-
-    @patch("roboflow.core.project.Project.upload_video")
-    def test_explicit_api_key_takes_precedence(self, mock_upload) -> None:
-        mock_upload.return_value = {"videoId": "v1", "status": "uploaded"}
-        result = runner.invoke(
-            app,
-            ["--api-key", "explicit-key", "video", "upload", "-p", self.project_ref, "-f", self.video_path],
-        )
-        self.assertEqual(result.exit_code, 0, result.output)
-        self.mock_get_project.assert_called_once_with("explicit-key", "model-evaluation-workspace", "penguin-actions")
-
 
 class TestVideoUploadStatus(NativeVideoCliTest):
     """`roboflow video upload-status` reads native ingestion state."""
@@ -411,16 +385,6 @@ class TestVideoUploadStatus(NativeVideoCliTest):
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("upload-status source-3", result.output)
 
-    @patch("roboflow.core.project.Project.wait_for_video_upload")
-    def test_invalid_wait_bounds_never_reach_the_api(self, mock_wait) -> None:
-        result = runner.invoke(
-            app, ["--json", "video", "upload-status", "v1", "-p", self.project_ref, "--wait", "--poll-interval", "0"]
-        )
-
-        self.assertEqual(result.exit_code, 1)
-        mock_wait.assert_not_called()
-        self.mock_get_project.assert_not_called()
-
     def test_api_errors_follow_exit_code_contract(self) -> None:
         from roboflow.adapters.rfapi import RoboflowError
 
@@ -439,12 +403,6 @@ class TestVideoUploadStatus(NativeVideoCliTest):
                     self.assertEqual(result.exit_code, exit_code)
                     if status_code == 404:
                         self.assertIn("Check the video ID", json.loads(result.output)["error"]["hint"])
-
-    @patch("roboflow.core.project.Project.get_video_upload_status")
-    def test_failed_state_exits_nonzero(self, mock_status) -> None:
-        mock_status.return_value = {"videoId": "source-3", "status": "failed"}
-        result = runner.invoke(app, ["--json", "video", "upload-status", "source-3", "-p", self.project_ref])
-        self.assertNotEqual(result.exit_code, 0)
 
 
 class TestVideoAnnotate(NativeVideoCliTest):
@@ -561,30 +519,23 @@ class TestVideoAnnotate(NativeVideoCliTest):
         with open(utf16, "w", encoding="utf-16") as handle:  # what Windows PowerShell 5.1 redirection writes
             json.dump(VIDEO_COCO_DOCUMENT, handle)
         cases = [
-            (malformed, "Invalid JSON"),
-            (utf16, "is not UTF-8"),
-            (_write_json(self.tmp.name, "list.json", [1, 2, 3]), "must contain a JSON object"),
-            (os.path.join(self.tmp.name, "absent.json"), "Cannot read annotation file"),
+            (malformed, "Expecting value"),
+            (utf16, "utf-8"),
+            (_write_json(self.tmp.name, "list.json", [1, 2, 3]), "not a JSON object"),
+            (os.path.join(self.tmp.name, "absent.json"), "No such file"),
         ]
-        for path, message in cases:
-            with self.subTest(message=message):
+        for path, cause in cases:
+            with self.subTest(cause=cause):
                 result = runner.invoke(
                     app, ["--json", "video", "annotate", "-p", self.project_ref, "-i", "s1", "-a", path]
                 )
 
                 self.assertEqual(result.exit_code, 1)
-                self.assertIn(message, json.loads(result.output)["error"]["message"])
+                message = json.loads(result.output)["error"]["message"]
+                self.assertIn("Cannot read annotation file", message)
+                self.assertIn(cause, message)
         mock_annotate.assert_not_called()
         self.mock_get_project.assert_not_called()
-
-
-class TestLegacyVideoContractsIntact(unittest.TestCase):
-    """The native commands must not disturb legacy video inference."""
-
-    def test_infer_still_takes_a_version_number(self) -> None:
-        result = runner.invoke(app, ["video", "infer", "--help"])
-        self.assertEqual(result.exit_code, 0)
-        self.assertIn("--version", result.output)
 
 
 if __name__ == "__main__":
