@@ -11,6 +11,7 @@ from roboflow.adapters.rfapi import (
     _save_annotation_url,
     create_training_v2,
     delete_version_training,
+    get_project,
     get_train_recipe,
     get_training,
     list_trainings_for_version,
@@ -477,3 +478,14 @@ class TestSaveAnnotationUrl(unittest.TestCase):
         self.assertIn("prediction=true", url)
         self.assertIn("overwrite=true", url)
         self.assertIn("addToDataset=false", url)
+
+
+class TestGetProject(unittest.TestCase):
+    @responses.activate
+    def test_error_carries_http_status_for_exit_code_mapping(self):
+        responses.add(responses.GET, f"{API_URL}/ws/missing?api_key=key", json={"error": "not found"}, status=404)
+
+        with self.assertRaises(RoboflowError) as ctx:
+            get_project("key", "ws", "missing")
+
+        self.assertEqual(ctx.exception.status_code, 404)

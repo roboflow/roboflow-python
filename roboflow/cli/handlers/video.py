@@ -48,9 +48,11 @@ def upload(
         Optional[str], typer.Option("--metadata", help='JSON object of metadata, e.g. \'{"camera": "one"}\'')
     ] = None,
     poll_interval: Annotated[
-        float, typer.Option("--poll-interval", help="Seconds between status polls while waiting")
+        float, typer.Option("--poll-interval", min=0.1, help="Seconds between status polls while waiting")
     ] = 2.0,
-    poll_timeout: Annotated[float, typer.Option("--poll-timeout", help="Seconds to wait for a terminal state")] = 300.0,
+    poll_timeout: Annotated[
+        float, typer.Option("--poll-timeout", min=0, help="Seconds to wait for a terminal state")
+    ] = 300.0,
     split: Annotated[Optional[str], typer.Option("-s", "--split", help="Dataset split: train, valid or test")] = None,
     tag: Annotated[Optional[str], typer.Option("-t", "--tag", help="Comma-separated tag names")] = None,
     wait: Annotated[
@@ -82,9 +84,11 @@ def upload_status(
     video_id: Annotated[str, typer.Argument(help="Video ID reported by 'roboflow video upload'")],
     project: Annotated[str, typer.Option("-p", "--project", help="Project ID, or workspace/project")],
     poll_interval: Annotated[
-        float, typer.Option("--poll-interval", help="Seconds between status polls while waiting")
+        float, typer.Option("--poll-interval", min=0.1, help="Seconds between status polls while waiting")
     ] = 2.0,
-    poll_timeout: Annotated[float, typer.Option("--poll-timeout", help="Seconds to wait for a terminal state")] = 300.0,
+    poll_timeout: Annotated[
+        float, typer.Option("--poll-timeout", min=0, help="Seconds to wait for a terminal state")
+    ] = 300.0,
     wait: Annotated[
         bool, typer.Option("--wait/--no-wait", help="Poll until a terminal state instead of reading once")
     ] = False,
@@ -250,20 +254,6 @@ def _emit_upload_status(args, status) -> None:  # noqa: ANN001
     output(args, status, text="\n".join(lines))
 
 
-def _poll_bounds_are_valid(args) -> bool:  # noqa: ANN001
-    """Reject bad wait bounds before any network call, so an upload never starts and then fails."""
-    from roboflow.cli._output import output_error
-
-    if args.wait and (args.poll_interval <= 0 or args.poll_timeout < 0):
-        output_error(
-            args,
-            f"Invalid wait bounds: --poll-interval {args.poll_interval}, --poll-timeout {args.poll_timeout}.",
-            hint="Use a positive --poll-interval and a nonnegative --poll-timeout.",
-        )
-        return False
-    return True
-
-
 def _wait_for_upload(args, project, video_id):  # noqa: ANN001
     """Bounded wait, reporting the video ID so a timeout stays actionable."""
     from roboflow.adapters import rfapi
@@ -295,18 +285,15 @@ def _video_upload(args) -> None:  # noqa: ANN001
     if not os.path.isfile(args.video_file):
         output_error(args, f"Video file not found: {args.video_file}", hint="Check the path to the video file.")
         return
-    if not _poll_bounds_are_valid(args):
-        return
 
     metadata = None
     if args.metadata:
         try:
             metadata = json_mod.loads(args.metadata)
-        except json_mod.JSONDecodeError as exc:
-            output_error(args, f"Invalid metadata JSON: {exc}", hint='Example: \'{"camera": "one"}\'')
-            return
-        if not isinstance(metadata, dict):
-            output_error(args, "Metadata must be a JSON object.", hint='Example: \'{"camera": "one"}\'')
+            if not isinstance(metadata, dict):
+                raise ValueError("not a JSON object")
+        except ValueError as exc:
+            output_error(args, f"Invalid --metadata: {exc}", hint='Example: \'{"camera": "one"}\'')
             return
 
     tags = [t.strip() for t in args.tag.split(",") if t.strip()] if args.tag else None
@@ -353,8 +340,6 @@ def _video_upload_status(args) -> None:  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output_api_error
 
-    if not _poll_bounds_are_valid(args):
-        return
     project = _load_project(args)
     if project is None:
         return
