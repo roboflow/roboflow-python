@@ -269,8 +269,9 @@ class TestVideoUpload(NativeVideoCliTest):
         cases = [
             (["-f", absent], 1, "Video file not found"),
             # Bad bounds are usage errors; they must fail before the upload stores bytes it cannot report.
-            (["-f", self.video_path, "--poll-interval", "0"], 2, "--poll-interval"),
-            (["-f", self.video_path, "--poll-timeout", "-1"], 2, "--poll-timeout"),
+            # CI forces Rich color, which splits option names with ANSI codes, so match the range text.
+            (["-f", self.video_path, "--poll-interval", "0"], 2, "is not in the range x>=0.1"),
+            (["-f", self.video_path, "--poll-timeout", "-1"], 2, "is not in the range x>=0."),
         ]
         for flags, exit_code, message in cases:
             with self.subTest(flags=flags):
