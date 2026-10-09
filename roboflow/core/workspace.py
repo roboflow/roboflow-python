@@ -907,6 +907,9 @@ class Workspace:
             model_path (str): File path to the model weights to be uploaded.
             project_ids (list[str]): List of project IDs to deploy the model to.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
+
+        Raises:
+            RoboflowError: If Roboflow refuses the upload or the upload of the weights fails.
         """
 
         from roboflow.util.model_processor import (
@@ -945,32 +948,24 @@ class Workspace:
         )
         try:
             res.raise_for_status()
-        except Exception as e:
-            error_message = str(e)
-            status_code = str(res.status_code)
-
-            print("\n\033[91m❌ ERROR\033[0m: Failed to get model deployment URL")
-            print("\033[93mDetails\033[0m:", error_message)
-            print("\033[93mStatus\033[0m:", status_code)
-            print(f"\033[93mResponse\033[0m:\n{res.text}\n")
-            return
+        except HTTPError as e:
+            raise RoboflowError(
+                f"Failed to get model deployment URL: {e}. Response: {res.text}", status_code=res.status_code
+            ) from e
 
         # Upload the model to the signed URL
-        res = requests.put(
-            res.json()["url"],
-            data=open(os.path.join(model_path, model_file_name), "rb"),
-        )
+        with open(os.path.join(model_path, model_file_name), "rb") as model_file:
+            res = requests.put(res.json()["url"], data=model_file)
         try:
             res.raise_for_status()
+        except HTTPError as e:
+            raise RoboflowError(f"An error occurred when uploading the model: {e}", status_code=res.status_code) from e
 
-            for project_id in project_ids:
-                print(
-                    f"View the status of your deployment for project {project_id} at:"
-                    f" {APP_URL}/{self.url}/{project_id}/models"
-                )
-
-        except Exception as e:
-            print(f"An error occured when uploading the model: {e}")
+        for project_id in project_ids:
+            print(
+                f"View the status of your deployment for project {project_id} at:"
+                f" {APP_URL}/{self.url}/{project_id}/models"
+            )
 
     def search(
         self,
