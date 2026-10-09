@@ -95,6 +95,14 @@ def search_images(
     ] = None,
     limit: Annotated[int, typer.Option(help="Number of results")] = 50,
     cursor: Annotated[Optional[str], typer.Option(help="Continuation token for pagination")] = None,
+    fields: Annotated[Optional[str], typer.Option(help="Comma-separated list of fields to include")] = None,
+    media_types: Annotated[
+        Optional[str],
+        typer.Option(
+            "--media-types",
+            help="Comma-separated media types to search: image, video, or image,video (default: image)",
+        ),
+    ] = None,
     export: Annotated[bool, typer.Option("--export", help="Export search results as a dataset")] = False,
     format: Annotated[str, typer.Option("-f", "--format", help="Annotation format for export")] = "coco",
     location: Annotated[Optional[str], typer.Option("-l", "--location", help="Local directory for export")] = None,
@@ -107,11 +115,19 @@ def search_images(
     name: Annotated[Optional[str], typer.Option(help="Optional name for the export")] = None,
     no_extract: Annotated[bool, typer.Option("--no-extract", help="Keep zip file, skip extraction")] = False,
 ) -> None:
-    """Search images in workspace or project.
+    """Search media in workspace or project.
 
     Without -p/--project, searches across the entire workspace using RoboQL.
     With -p/--project, searches within a specific project.
     Use --export to download matching results as a dataset.
+
+    Searches images only unless --media-types asks otherwise. Request the 'url' field
+    to get a signed 'videoUrl' on each native video hit.
+
+    Examples:
+        roboflow image search "tag:review"
+        roboflow image search "*" --media-types video --fields id,filename,url
+        roboflow image search "*" -p my-project --media-types image,video
     """
     if export:
         # Export scopes to a project via the `dataset` (project slug) body param,
@@ -131,11 +147,21 @@ def search_images(
             annotation_group=annotation_group,
             name=name,
             no_extract=no_extract,
+            fields=fields,
+            media_types=media_types,
         )
         _search(args)
     elif project:
         # _handle_search scopes by injecting a `project:<slug>` RoboQL filter.
-        args = ctx_to_args(ctx, query=query, project=project, limit=limit, cursor=cursor)
+        args = ctx_to_args(
+            ctx,
+            query=query,
+            project=project,
+            limit=limit,
+            cursor=cursor,
+            fields=fields,
+            media_types=media_types,
+        )
         _handle_search(args)
     else:
         # Workspace-level search
@@ -153,7 +179,8 @@ def search_images(
             annotation_group=annotation_group,
             name=name,
             no_extract=no_extract,
-            fields=None,
+            fields=fields,
+            media_types=media_types,
         )
         _search(args)
 
@@ -424,6 +451,7 @@ def _handle_search(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
     from roboflow.config import load_roboflow_api_key
+    from roboflow.util.search_utils import parse_media_types_option
 
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
@@ -442,13 +470,29 @@ def _handle_search(args):  # noqa: ANN001
     if project:
         query = f"project:{project} {args.query}"
 
-    result = rfapi.workspace_search(
-        api_key=api_key,
-        workspace_url=workspace_url,
-        query=query,
-        page_size=args.limit,
-        continuation_token=args.cursor,
-    )
+    try:
+        media_types = parse_media_types_option(getattr(args, "media_types", None))
+    except ValueError as exc:
+        output_error(args, str(exc), hint="Valid media types: image, video")
+        return
+
+    fields_raw = getattr(args, "fields", None)
+    fields = [f.strip() for f in fields_raw.split(",") if f.strip()] if fields_raw else None
+
+    try:
+        result = rfapi.workspace_search(
+            api_key=api_key,
+            workspace_url=workspace_url,
+            query=query,
+            page_size=args.limit,
+            fields=fields,
+            continuation_token=args.cursor,
+            media_types=media_types,
+        )
+    except Exception as exc:
+        output_error(args, str(exc))
+        return
+
     output(args, result, text=json.dumps(result, indent=2))
 
 

@@ -29,7 +29,7 @@ setuptools.setup(
     packages=find_packages(exclude=("tests",)),
     # create optional [desktop]
     extras_require={
-        "desktop": ["opencv-python==4.8.0.74"],
+        "desktop": ["opencv-python==4.8.1.78"],
         # Local HEIC/HEIF decoding. Opt-in because pillow-heif's binary wheels
         # bundle the x265 encoder, which makes them GPL-2.0 (#398).
         "heic": ["pillow-heif>=1.7.0"],

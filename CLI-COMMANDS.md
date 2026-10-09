@@ -219,6 +219,24 @@ roboflow search "tag:reviewed" --limit 100
 roboflow search "class:person" --export -f coco -l ./export/
 ```
 
+Search returns images only unless `--media-types` asks otherwise. Valid values are
+`image`, `video`, or both:
+
+```bash
+# Native videos only, with a signed video URL on each hit
+roboflow search "*" --media-types video --fields id,filename,url
+
+# Images and videos together
+roboflow search "tag:reviewed" --media-types image,video
+
+# Scope to one project
+roboflow image search "*" -p my-project --media-types video --fields id,url
+```
+
+Every hit carries `mediaType`. Video hits add a signed `videoUrl` when you request the
+`url` field; `url` itself stays the poster frame, so image-only consumers keep a
+thumbnail for every hit. `--media-types` is not accepted with `--export`.
+
 ### Browse resources
 
 ```bash
@@ -457,6 +475,42 @@ roboflow eval compare --project my-project --version 3 --frontier-metric mAP5095
 Reads existing evaluations; does not start new ones. Requires `model-eval:read`
 and workspace Model Evaluation access.
 
+### Evaluate Workflows (Workflow Evals)
+
+```bash
+# Discover the engine catalog and what your key may do.
+roboflow workflow-eval capabilities --json
+roboflow workflow-eval evaluator list
+roboflow workflow-eval schema get spec --json
+
+# Author: Spec, Eval Dataset, Cases, Eval.
+roboflow workflow-eval spec create --body @spec.json --name "Boolean answer"
+roboflow workflow-eval dataset create --body @dataset.json
+roboflow workflow-eval case upload ./image.png --dataset <dataset-id>   # prints artifactId
+roboflow workflow-eval case add --dataset <dataset-id> --body @case.json
+roboflow workflow-eval case import --dataset <dataset-id> --input-field image --from-dataset my-project:valid
+roboflow workflow-eval create --name "Answer accuracy" --spec <spec-id> --dataset <dataset-id>
+
+# Bind a Workflow, run it, and read results.
+roboflow workflow-eval binding suggest --spec <spec-id> --dataset <dataset-id> --workflow <workflow-id> --json
+roboflow workflow-eval run start --eval <eval-id> --body @run.json --wait
+roboflow workflow-eval execution overview <execution-id> --eval <eval-id> --run <run-id> --json
+roboflow workflow-eval execution results <execution-id> --eval <eval-id> --run <run-id> --failed-check
+roboflow workflow-eval compare --eval <eval-id> -x <execution-a> -x <execution-b> --json
+roboflow workflow-eval export start --eval <eval-id> --run <run-id> --format csv --wait
+
+# Agent guidance served by the installed engine.
+roboflow workflow-eval agent manifest --json
+roboflow workflow-eval agent skill skill:create-eval
+```
+
+`--body` accepts inline JSON, `@file.json`, a file path, or `-` for stdin. Commands that create
+resources or start work send a fresh `Idempotency-Key` (override with `--idempotency-key` to retry
+safely); updates take the resource's current `--revision`. Deleting an Eval or Run shows its impact
+and asks for confirmation (`--yes` to skip). Requires the Workflow Evals feature and the
+`workflow-evals:read|write|run|export` scopes; running saved Workflows also needs `workflow:read`
+and `model:infer`. The same API is available in Python via `rf.workspace().workflow_evals()`.
+
 ### Workspace stats and billing
 
 ```bash
@@ -585,15 +639,16 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `workspace` | List and inspect workspaces |
 | `project` | List, get, create projects |
 | `version` | List, get, download, export dataset versions |
-| `image` | Upload, get, search, metadata, tag, delete, annotate images |
+| `image` | Upload, get, search, metadata, tag, delete, annotate images and videos |
 | `model` | List, get, upload trained models |
 | `train` | Start model training |
 | `infer` | Run inference on images |
-| `search` | Search workspace images (RoboQL), export results |
+| `search` | Search workspace images and videos (RoboQL), export results |
 | `deployment` | Manage dedicated deployments |
 | `device` | List, get, create, and observe RFDM devices (v2 deployment API) |
 | `eval` | Inspect model evaluation runs (mAP, confusion matrix, recommendations, ...) |
 | `workflow` | Manage workflows |
+| `workflow-eval` | Evaluate Workflows: Specs, Eval Datasets, Cases, Runs, results, exports |
 | `folder` | Manage workspace folders |
 | `annotation` | Annotation batches and jobs |
 | `autolabel` | Auto-label batches with hosted foundation or Roboflow models |
