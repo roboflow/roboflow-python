@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.7.0
+
+### Added
+
+- Workflow Evals in the SDK and CLI
+  ([#540](https://github.com/roboflow/roboflow-python/pull/540)):
+  - `rf.workspace().workflow_evals()` provides access to evaluations, specs,
+    datasets and cases, bindings, preparation, runs, exports, embeddings,
+    evaluator discovery, schemas, and agent resources.
+  - Helpers support case asset uploads, streamed AI drafting, confirmed deletion,
+    and bounded polling for runs and exports.
+  - `roboflow workflow-eval ...` exposes the same operations. Request bodies
+    accept inline JSON, files, or stdin; `--json` returns structured output and
+    errors. Destructive commands request confirmation unless `--yes` is passed.
+  - Requires Workflow Evals access in the workspace and the corresponding
+    `workflow-evals:*` API-key scopes. See the
+    [CLI quickstart](CLI-COMMANDS.md#evaluate-workflows-workflow-evals).
+
 ## 1.6.1
 
 ### Added
