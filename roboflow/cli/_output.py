@@ -281,3 +281,19 @@ def suppress_sdk_output(args: Any = None) -> Iterator[None]:
     """
     with contextlib.redirect_stdout(io.StringIO()):
         yield
+
+
+@contextlib.contextmanager
+def sdk_output_to_stderr(args: Any) -> Iterator[None]:
+    """Move SDK stdout output to stderr in ``--json`` mode.
+
+    Some SDK calls print progress or per-item status that is worth seeing,
+    for example the per-image results of a directory upload, so it is not
+    suppressed. With ``--json`` it goes to stderr, so that stdout carries
+    only the JSON document written by ``output()``.
+    """
+    if getattr(args, "json", False):
+        with contextlib.redirect_stdout(sys.stderr):
+            yield
+    else:
+        yield

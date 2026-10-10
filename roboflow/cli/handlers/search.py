@@ -149,18 +149,19 @@ def _describe_hit(hit: dict) -> str:
 
 
 def _do_export(args: Any, workspace: Any) -> None:
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import output, output_error, sdk_output_to_stderr
 
     try:
-        result_path = workspace.search_export(
-            query=args.query,
-            format=args.format,
-            location=args.location,
-            dataset=args.dataset,
-            annotation_group=getattr(args, "annotation_group", None),
-            name=args.name,
-            extract_zip=not args.no_extract,
-        )
+        with sdk_output_to_stderr(args):
+            result_path = workspace.search_export(
+                query=args.query,
+                format=args.format,
+                location=args.location,
+                dataset=args.dataset,
+                annotation_group=getattr(args, "annotation_group", None),
+                name=args.name,
+                extract_zip=not args.no_extract,
+            )
     except Exception as exc:
         output_error(args, str(exc))
         return
