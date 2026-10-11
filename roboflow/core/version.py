@@ -28,17 +28,9 @@ from roboflow.config import (
     UNIVERSE_URL,
 )
 from roboflow.core.dataset import Dataset
-from roboflow.models.classification import ClassificationModel
-from roboflow.models.instance_segmentation import InstanceSegmentationModel
-from roboflow.models.keypoint_detection import KeypointDetectionModel
-from roboflow.models.object_detection import ObjectDetectionModel
-from roboflow.models.semantic_segmentation import SemanticSegmentationModel
-from roboflow.models.vlm import VLMModel
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import extract_zip, write_line
-from roboflow.util.model_processor import package_custom_weights_interactive, validate_model_type_for_project
 from roboflow.util.train_recipe import fold_epochs_into_recipe
-from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions
 
 if TYPE_CHECKING:
     import numpy as np
@@ -105,6 +97,8 @@ class Version:
             if not has_model:
                 self.model = None
             elif self.type == TYPE_OBJECT_DETECTION:
+                from roboflow.models.object_detection import ObjectDetectionModel
+
                 self.model = ObjectDetectionModel(
                     self.__api_key,
                     self.id,
@@ -115,6 +109,8 @@ class Version:
                     preprocessing=self.preprocessing,
                 )
             elif self.type == TYPE_CLASSICATION:
+                from roboflow.models.classification import ClassificationModel
+
                 self.model = ClassificationModel(
                     self.__api_key,
                     self.id,
@@ -125,6 +121,8 @@ class Version:
                     preprocessing=self.preprocessing,
                 )
             elif self.type == TYPE_INSTANCE_SEGMENTATION:
+                from roboflow.models.instance_segmentation import InstanceSegmentationModel
+
                 self.model = InstanceSegmentationModel(
                     self.__api_key,
                     self.id,
@@ -133,10 +131,16 @@ class Version:
                     local=local,
                 )
             elif self.type == TYPE_SEMANTIC_SEGMENTATION:
+                from roboflow.models.semantic_segmentation import SemanticSegmentationModel
+
                 self.model = SemanticSegmentationModel(self.__api_key, self.id)
             elif self.type == TYPE_KEYPOINT_DETECTION:
+                from roboflow.models.keypoint_detection import KeypointDetectionModel
+
                 self.model = KeypointDetectionModel(self.__api_key, self.id, version=version_without_workspace)
             elif self.type == TYPE_TEXT_IMAGE_PAIRS:
+                from roboflow.models.vlm import VLMModel
+
                 self.model = VLMModel(
                     self.__api_key,
                     self.id,
@@ -310,6 +314,8 @@ class Version:
         self.__wait_if_generating()
 
         if model_type:
+            from roboflow.util.versions import get_model_format
+
             train_model_format = get_model_format(model_type)
             if train_model_format not in self.exports:
                 self.export(train_model_format)
@@ -496,6 +502,8 @@ class Version:
 
         self.__wait_if_generating()
 
+        from roboflow.util.versions import get_model_format
+
         train_model_format = get_model_format(model_type)
         if train_model_format not in self.exports:
             self.export(train_model_format)
@@ -619,6 +627,8 @@ class Version:
 
         if not getattr(self, "_model", None):
             if self.type == TYPE_OBJECT_DETECTION:
+                from roboflow.models.object_detection import ObjectDetectionModel
+
                 self.model = ObjectDetectionModel(
                     self.__api_key,
                     self.id,
@@ -628,6 +638,8 @@ class Version:
                     preprocessing=self.preprocessing,
                 )
             elif self.type == TYPE_CLASSICATION:
+                from roboflow.models.classification import ClassificationModel
+
                 self.model = ClassificationModel(
                     self.__api_key,
                     self.id,
@@ -637,6 +649,8 @@ class Version:
                     preprocessing=self.preprocessing,
                 )
             elif self.type == TYPE_INSTANCE_SEGMENTATION:
+                from roboflow.models.instance_segmentation import InstanceSegmentationModel
+
                 self.model = InstanceSegmentationModel(
                     self.__api_key,
                     self.id,
@@ -644,8 +658,12 @@ class Version:
                     preprocessing=self.preprocessing,
                 )
             elif self.type == TYPE_SEMANTIC_SEGMENTATION:
+                from roboflow.models.semantic_segmentation import SemanticSegmentationModel
+
                 self.model = SemanticSegmentationModel(self.__api_key, self.id)
             elif self.type == TYPE_KEYPOINT_DETECTION:
+                from roboflow.models.keypoint_detection import KeypointDetectionModel
+
                 self.model = KeypointDetectionModel(self.__api_key, self.id, version=self.version)
             else:
                 raise ValueError(f"Unsupported model type: {self.type}")
@@ -663,12 +681,16 @@ class Version:
             model_path (str): File path to the model weights to be uploaded.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
+        from roboflow.util.model_processor import package_custom_weights_interactive
+
         bundle = package_custom_weights_interactive(model_type, model_path, filename, build_dir=model_path)
 
         self._validate_against_project_type(bundle.model_type)
         self._upload_zip(bundle.model_type, model_path, bundle.archive_path.name)
 
     def _validate_against_project_type(self, model_type: str) -> None:
+        from roboflow.util.model_processor import validate_model_type_for_project
+
         validate_model_type_for_project(model_type, self.type, self.project)
 
     def _upload_zip(self, model_type: str, model_path: str, model_file_name: str):
@@ -828,6 +850,8 @@ class Version:
                 content["train"] = location + content["train"].lstrip("..")
                 content["val"] = location + content["val"].lstrip("..")
             try:
+                from roboflow.util.versions import get_wrong_dependencies_versions
+
                 # get_wrong_dependencies_versions raises exception if ultralytics is not installed at all  # noqa: E501 // docs
                 if format == "yolov8" and not get_wrong_dependencies_versions(
                     dependencies_versions=[("ultralytics", "==", "8.0.196")]

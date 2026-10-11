@@ -38,6 +38,11 @@ class TestSlimImport(unittest.TestCase):
 
         self.assertTrue(issubclass(RoboflowError, Exception))
 
+    def test_import_version(self):
+        from roboflow.core.version import Version
+
+        self.assertTrue(callable(Version))
+
     def test_import_cli(self):
         from roboflow.cli import app
 
