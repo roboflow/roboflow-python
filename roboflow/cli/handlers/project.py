@@ -201,9 +201,9 @@ def _get_project(args):  # noqa: ANN001
         if key in project:
             val = project[key]
             if key in epoch_keys and isinstance(val, (int, float)):
-                import datetime
+                from datetime import datetime
 
-                val = datetime.datetime.fromtimestamp(val).strftime("%Y-%m-%d %H:%M:%S")
+                val = datetime.fromtimestamp(val).strftime("%Y-%m-%d %H:%M:%S")
             elif isinstance(val, dict):
                 val = ", ".join(f"{k}: {v}" for k, v in val.items())
             lines.append(f"  {label:12s} {val}")
