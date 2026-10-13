@@ -540,7 +540,7 @@ class Workspace:
             num_retries (int, optional): number of times to retry uploading an image if the upload fails. Defaults to 0.
             is_prediction (bool, optional): whether the annotations provided in the dataset are predictions and not ground truth. Defaults to False.
             use_zip_upload (bool, optional): opt-in to the zip flow for a directory input (the SDK zips it client-side). Ignored when dataset_path is already a `.zip`.
-            annotation_overwrite (bool, optional): zip flow only — overwrite existing annotations on duplicate images. Defaults to False, except classification projects where it defaults to True (the API requires it).
+            annotation_overwrite (bool, optional): overwrite existing annotations on duplicate images. Defaults to False, except classification projects where it defaults to True (the API requires it).
             tags (list[str], optional): zip flow only — tags to apply to the uploaded batch.
             split (str, optional): dataset split for the uploaded batch. In per-image directory
                 uploads, this overrides inferred splits for every image.
@@ -569,6 +569,9 @@ class Workspace:
                 "Call upload_dataset without use_zip_upload for prediction uploads."
             )
 
+        if annotation_overwrite is None:
+            annotation_overwrite = project.type == "classification"
+
         if use_zip_flow:
             project_slug = project.id.rsplit("/")[1]
             temp_zip = None
@@ -578,9 +581,6 @@ class Workspace:
                 else:
                     zip_path = temp_zip = _zip_directory(dataset_path)
                     print(f"Zipped {dataset_path} -> {zip_path}")
-
-                if annotation_overwrite is None:
-                    annotation_overwrite = project.type == "classification"
 
                 init = rfapi.init_zip_upload(
                     self.__api_key,
@@ -635,6 +635,8 @@ class Workspace:
             if annotation:
                 if annotation.get("success"):
                     msg += f" / annotations = OK {annotation_time_str}"
+                elif annotation.get("warn") == "already annotated":
+                    msg += " / annotations = kept existing (pass annotation_overwrite=True to replace)"
                 elif annotation.get("warn"):
                     msg += f" / annotations = WARN: {annotation['warn']} {annotation_time_str}"
                 else:
@@ -687,6 +689,7 @@ class Workspace:
                 job_name=batch_name,
                 num_retry_uploads=num_retries,
                 is_prediction=is_prediction,
+                annotation_overwrite=annotation_overwrite,
             )
 
             return annotation, upload_time

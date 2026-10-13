@@ -44,7 +44,7 @@ def upload_image(
         Optional[bool],
         typer.Option(
             "--annotation-overwrite/--no-annotation-overwrite",
-            help="Zip flow: overwrite existing annotations on duplicate images "
+            help="Overwrite existing annotations on duplicate images "
             "(default: off, except classification projects where the API requires it on)",
         ),
     ] = None,
