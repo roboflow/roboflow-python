@@ -393,8 +393,8 @@ def _handle_upload_directory(args, api_key: str, path: str) -> None:  # noqa: AN
         output_error(args, str(exc))
         return
 
-    if "failed" not in result:
-        # Zip flow returns the server's task status
+    if "status" in result:
+        # Zip flow returns the server's task status; the per-image summary has no "status"
         status = result.get("status", "unknown")
         task_id = result.get("task_id") or result.get("taskId")
         if status == "failed":
@@ -420,7 +420,7 @@ def _handle_upload_directory(args, api_key: str, path: str) -> None:  # noqa: AN
         lines = [f"  {f['path']} ({f['stage']}): {f['error']}" for f in failed[:10]]
         if len(failed) > 10:
             lines.append(f"  ... and {len(failed) - 10} more")
-        message = f"{len(failed)} of {total} images failed to upload from {path} to {args.project}:\n" + "\n".join(
+        message = f"{len(failed)} of {total} images failed to import from {path} to {args.project}:\n" + "\n".join(
             lines
         )
         error = {

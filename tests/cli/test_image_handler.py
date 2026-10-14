@@ -411,6 +411,7 @@ class TestImageUploadDirectory(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_ws = MagicMock()
+            mock_ws.upload_dataset.return_value = {"uploaded": 0, "duplicates": 0, "failed": []}
             mock_rf_cls.return_value.workspace.return_value = mock_ws
 
             args = _make_args(
@@ -445,6 +446,7 @@ class TestImageUploadDirectory(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_ws = MagicMock()
+            mock_ws.upload_dataset.return_value = {"uploaded": 0, "duplicates": 0, "failed": []}
             mock_rf_cls.return_value.workspace.return_value = mock_ws
 
             args = _make_args(
@@ -833,7 +835,7 @@ class TestImageUploadDirectoryFailures(RoboflowTest):
 
         self.assertEqual(result.exit_code, 1)
         error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
-        self.assertTrue(error["message"].startswith("3 of 3 images failed to upload"))
+        self.assertTrue(error["message"].startswith("3 of 3 images failed to import"))
         self.assertEqual(error["failed_count"], 3)
         self.assertEqual(error["uploaded"], 0)
         self.assertEqual({f["error"] for f in error["failed"]}, {"Invalid image"})
@@ -890,3 +892,26 @@ class TestImageUploadDirectoryFailures(RoboflowTest):
         self.assertEqual(result.exit_code, 1, result.stdout)
         error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
         self.assertIn("No images found in zip", error["message"])
+
+    def test_zip_status_with_failed_field_is_not_mistaken_for_per_image(self):
+        zip_path = os.path.join(self.tmpdir, "dataset.zip")
+        with open(zip_path, "wb") as f:
+            f.write(b"PK")
+        responses.add(
+            responses.POST,
+            f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/upload/zip",
+            json={"taskId": "t1", "signedUrl": "https://storage.example.com/zip"},
+        )
+        responses.add(responses.PUT, "https://storage.example.com/zip")
+        responses.add(
+            responses.GET,
+            f"{API_URL}/{WORKSPACE_NAME}/upload/zip/t1",
+            json={"status": "completed", "failed": 0},
+        )
+
+        result = runner.invoke(
+            app, ["--json", "--api-key", ROBOFLOW_API_KEY, "image", "upload", zip_path, "-p", PROJECT_NAME]
+        )
+
+        self.assertEqual(result.exit_code, 0, result.stderr)
+        self.assertIn('"status": "completed"', result.stdout)
