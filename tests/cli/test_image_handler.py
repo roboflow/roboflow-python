@@ -348,19 +348,20 @@ class TestImageUploadDirectory(unittest.TestCase):
     @patch("roboflow.cli.handlers.image._handle_upload")
     def test_annotation_overwrite_flag_three_states(self, mock_handle_upload):
         with tempfile.TemporaryDirectory() as tmpdir:
-            for extra_argv, expected in [
-                ([], None),
-                (["--annotation-overwrite"], True),
-                (["--no-annotation-overwrite"], False),
-            ]:
-                mock_handle_upload.reset_mock()
-                result = runner.invoke(
-                    app,
-                    ["--workspace", "ws", "--api-key", "k", "image", "upload", tmpdir, "-p", "proj"] + extra_argv,
-                )
-                self.assertEqual(result.exit_code, 0)
-                args = mock_handle_upload.call_args.args[0]
-                self.assertEqual(args.annotation_overwrite, expected)
+            for command in (["image", "upload"], ["upload"]):
+                for extra_argv, expected in [
+                    ([], None),
+                    (["--annotation-overwrite"], True),
+                    (["--no-annotation-overwrite"], False),
+                ]:
+                    mock_handle_upload.reset_mock()
+                    result = runner.invoke(
+                        app,
+                        ["--workspace", "ws", "--api-key", "k", *command, tmpdir, "-p", "proj"] + extra_argv,
+                    )
+                    self.assertEqual(result.exit_code, 0, result.output)
+                    args = mock_handle_upload.call_args.args[0]
+                    self.assertEqual(args.annotation_overwrite, expected)
 
     @patch("roboflow.Roboflow")
     def test_annotation_overwrite_forwarded_to_upload_dataset(self, mock_rf_cls):
