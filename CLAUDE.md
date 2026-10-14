@@ -90,7 +90,7 @@ The CLI is built on [typer](https://typer.tiangolo.com/) (which uses Click under
 
 **Package structure:**
 - `__init__.py` — Root `typer.Typer()` app with global `@app.callback()` for `--json`, `--workspace`, `--api-key`, `--quiet`. Explicitly registers all handler apps via `app.add_typer()`.
-- `_output.py` — `output(args, data, text)` for JSON/text output, `output_error(args, msg, hint, exit_code)` for structured errors, `suppress_sdk_output()` to silence SDK noise, `stub()` for unimplemented commands
+- `_output.py` — `output(args, data, text)` for JSON/text output, `output_error(args, msg, hint, exit_code)` for structured errors, `suppress_sdk_output()` to silence SDK noise, `sdk_output_to_stderr(args)` to move SDK prints to stderr under `--json`, `stub()` for unimplemented commands
 - `_compat.py` — `ctx_to_args(ctx, **kwargs)` bridge that converts `typer.Context` to the `SimpleNamespace` that output helpers expect
 - `_table.py` — `format_table(rows, columns)` for columnar list output
 - `_resolver.py` — `resolve_resource(shorthand)` for parsing `project`, `ws/project`, `ws/project/3`
@@ -102,7 +102,7 @@ The CLI is built on [typer](https://typer.tiangolo.com/) (which uses Click under
 3. Add commands with `@mycommand_app.command("verb")` decorators
 4. Each command takes `ctx: typer.Context` + typed params, calls `ctx_to_args(ctx, **params)` to create args namespace
 5. Use `output()` for all output, `output_error()` for all errors
-6. Wrap SDK calls in `with suppress_sdk_output():` to prevent "loading..." noise
+6. Wrap SDK calls in `with suppress_sdk_output():` to prevent "loading..." noise. If the SDK's prints are progress or failure signals worth keeping (per-image `[ERR]`, export progress), use `with sdk_output_to_stderr(args):` instead, so `--json` stdout stays one JSON document
 7. Register in `roboflow/cli/__init__.py`: `app.add_typer(mycommand_app, name="mycommand")`
 8. Add tests using `typer.testing.CliRunner` in `tests/cli/test_mycommand_handler.py`
 

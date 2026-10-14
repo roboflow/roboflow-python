@@ -127,7 +127,7 @@ app.add_typer(mycommand_app, name="mycommand")
 - [ ] Supports `--json` via `output()` helper
 - [ ] No interactive prompts when all required flags are provided
 - [ ] Errors use `output_error(args, message, hint=..., exit_code=N)`
-- [ ] SDK calls wrapped in `with suppress_sdk_output():`
+- [ ] SDK calls wrapped in `with suppress_sdk_output():` (or `sdk_output_to_stderr(args)` when their prints should stay visible)
 - [ ] Exit codes: 0=success, 1=error, 2=auth, 3=not found
 
 **Documentation policy:** `CLI-COMMANDS.md` in this repo is a quickstart only. The comprehensive command reference lives in [`roboflow-dev-reference`](https://github.com/roboflow/roboflow-dev-reference) and is published to docs.roboflow.com/developer/command-line-interface. When adding a new command, update both: add a quick example to `CLI-COMMANDS.md` and the full reference to the dev-reference CLI page.
