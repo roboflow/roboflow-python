@@ -3,15 +3,20 @@
 import io
 import json
 import os
+import shutil
 import sys
 import tempfile
 import types
 import unittest
 from unittest.mock import MagicMock, patch
 
+import responses
 from typer.testing import CliRunner
 
+from roboflow.adapters.rfapi import ImageUploadError
 from roboflow.cli import app
+from roboflow.config import API_URL
+from tests import PROJECT_NAME, ROBOFLOW_API_KEY, WORKSPACE_NAME, RoboflowTest
 
 runner = CliRunner()
 
@@ -155,6 +160,7 @@ class TestImageUploadDirectory(unittest.TestCase):
                     f.write("x")
 
             mock_ws = MagicMock()
+            mock_ws.upload_dataset.return_value = {"uploaded": 1, "duplicates": 1, "failed": []}
             mock_rf_cls.return_value.workspace.return_value = mock_ws
 
             args = _make_args(
@@ -315,8 +321,7 @@ class TestImageUploadDirectory(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_ws = MagicMock()
-            # MagicMock return → not a dict → per-image output branch
-            mock_ws.upload_dataset.return_value = None
+            mock_ws.upload_dataset.return_value = {"uploaded": 0, "duplicates": 0, "failed": []}
             mock_rf_cls.return_value.workspace.return_value = mock_ws
 
             args = _make_args(
@@ -800,3 +805,88 @@ class TestImageMetadataBatch(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestImageUploadDirectoryFailures(RoboflowTest):
+    """Failed directory uploads exit non-zero with a failure count (#545)."""
+
+    def setUp(self):
+        super().setUp()
+        rf_patch = patch("roboflow.Roboflow")
+        rf_patch.start().return_value.workspace.return_value = self.workspace
+        self.addCleanup(rf_patch.stop)
+        self.tmpdir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmpdir)
+        for name in ["a.jpg", "b.jpg", "c.jpg"]:
+            with open(os.path.join(self.tmpdir, name), "wb") as f:
+                f.write(b"x")
+
+    def _invoke(self):
+        return runner.invoke(
+            app,
+            ["--json", "--api-key", ROBOFLOW_API_KEY, "image", "upload", self.tmpdir, "-p", PROJECT_NAME, "-c", "1"],
+        )
+
+    def test_every_image_fails(self):
+        with patch("roboflow.core.project.Project.upload_image", side_effect=ImageUploadError("Invalid image")):
+            result = self._invoke()
+
+        self.assertEqual(result.exit_code, 1)
+        error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+        self.assertTrue(error["message"].startswith("3 of 3 images failed to upload"))
+        self.assertEqual(error["failed_count"], 3)
+        self.assertEqual(error["uploaded"], 0)
+        self.assertEqual({f["error"] for f in error["failed"]}, {"Invalid image"})
+        self.assertIn("hint", error)
+        self.assertNotIn('"status"', result.stdout)
+
+    def test_partial_failure_reports_count(self):
+        def upload_image(image_path, **kwargs):
+            if image_path.endswith("b.jpg"):
+                raise ImageUploadError("Invalid image")
+            return {"id": image_path, "success": True}, 0.1, 0
+
+        with patch("roboflow.core.project.Project.upload_image", side_effect=upload_image):
+            result = self._invoke()
+
+        self.assertEqual(result.exit_code, 1)
+        error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+        self.assertEqual(error["failed_count"], 1)
+        self.assertEqual(error["uploaded"], 2)
+        self.assertTrue(error["failed"][0]["path"].endswith("b.jpg"))
+
+    def test_all_uploaded_exits_zero(self):
+        image = ({"id": "img", "success": True}, 0.1, 0)
+        with patch("roboflow.core.project.Project.upload_image", return_value=image):
+            result = self._invoke()
+
+        self.assertEqual(result.exit_code, 0, result.stderr)
+        # SDK progress lines precede the indented JSON document on stdout
+        data = json.loads(result.stdout[result.stdout.index("\n{") + 1 :])
+        self.assertEqual(data["status"], "imported")
+        self.assertEqual(data["count"], 3)
+        self.assertEqual(data["uploaded"], 3)
+
+    def test_zip_upload_failed_status_exits_nonzero(self):
+        zip_path = os.path.join(self.tmpdir, "dataset.zip")
+        with open(zip_path, "wb") as f:
+            f.write(b"PK")
+        responses.add(
+            responses.POST,
+            f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/upload/zip",
+            json={"taskId": "t1", "signedUrl": "https://storage.example.com/zip"},
+        )
+        responses.add(responses.PUT, "https://storage.example.com/zip")
+        responses.add(
+            responses.GET,
+            f"{API_URL}/{WORKSPACE_NAME}/upload/zip/t1",
+            json={"status": "failed", "error": "No images found in zip"},
+        )
+
+        result = runner.invoke(
+            app, ["--json", "--api-key", ROBOFLOW_API_KEY, "image", "upload", zip_path, "-p", PROJECT_NAME]
+        )
+
+        self.assertEqual(result.exit_code, 1, result.stdout)
+        error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+        self.assertIn("No images found in zip", error["message"])

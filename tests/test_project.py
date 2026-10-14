@@ -78,6 +78,45 @@ class TestProject(RoboflowTest):
 
         return mocks
 
+    def test_upload_dataset_returns_summary_with_failures(self):
+        dataset = self._create_test_dataset(
+            [
+                {"file": "ok.jpg", "split": "train"},
+                {"file": "dup.jpg", "split": "train"},
+                {"file": "bad.jpg", "split": "train"},
+                {"file": "bad-ann.jpg", "split": "train", "annotationfile": {"file": "bad-ann.xml"}},
+            ]
+        )
+
+        def upload_image(image_path, **kwargs):
+            if image_path.endswith("/bad.jpg"):
+                raise ImageUploadError("Invalid image")
+            duplicate = image_path.endswith("/dup.jpg")
+            return {"id": image_path, "success": not duplicate, "duplicate": duplicate}, 0.1, 0
+
+        mocks = self._setup_upload_dataset_mocks(
+            test_dataset=dataset,
+            upload_image_side_effect=upload_image,
+            save_annotation_side_effect=AnnotationSaveError("Bad annotation"),
+        )
+        for mock in mocks.values():
+            mock.start()
+        try:
+            result = self.workspace.upload_dataset("/test/dataset", PROJECT_NAME, num_workers=1)
+        finally:
+            for mock in mocks.values():
+                mock.stop()
+
+        self.assertEqual(result["uploaded"], 1)
+        self.assertEqual(result["duplicates"], 1)
+        self.assertEqual(
+            result["failed"],
+            [
+                {"path": "/test/location/bad.jpg", "stage": "image", "error": "Invalid image"},
+                {"path": "/test/location/bad-ann.jpg", "stage": "annotation", "error": "Bad annotation"},
+            ],
+        )
+
     def test_check_valid_image_with_accepted_formats(self):
         images_to_test = [
             "rabbit.JPG",
@@ -1104,7 +1143,7 @@ class TestZipUpload(RoboflowTest):
             started = {name: m.start() for name, m in {**rfapi_mocks, **per_image}.items()}
             try:
                 result = self.workspace.upload_dataset(dataset_path=src_dir, project_name=PROJECT_NAME)
-                self.assertIsNone(result)
+                self.assertEqual(result, {"uploaded": 0, "duplicates": 0, "failed": []})
                 started["init"].assert_not_called()
                 started["parser"].assert_called_once()
             finally:

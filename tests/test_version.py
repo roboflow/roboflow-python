@@ -1,5 +1,7 @@
 import json
 import os
+import shutil
+import tempfile
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -20,6 +22,7 @@ from roboflow.config import (
 from roboflow.core.training import Training
 from roboflow.core.version import Version, unwrap_version_id
 from roboflow.models.object_detection import ObjectDetectionModel
+from tests import PROJECT_NAME, PROJECT_VERSION, WORKSPACE_NAME, RoboflowTest
 from tests.helpers import get_version
 
 
@@ -537,3 +540,46 @@ class TestCreateActionRecognitionTraining(unittest.TestCase):
         self.assertEqual(body["modelType"], "cosmos3-edge")
         self.assertEqual(body["trainRecipe"], recipe)
         self.assertEqual(training.status, "queued")
+
+
+class TestDeployUploadFailures(RoboflowTest):
+    """Version.deploy() raises when the model upload fails (#545)."""
+
+    upload_url = f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/{PROJECT_VERSION}/uploadModel"
+    signed_url = "https://storage.example.com/signed-upload"
+
+    def setUp(self):
+        super().setUp()
+        self.model_dir = tempfile.mkdtemp()
+        with open(os.path.join(self.model_dir, "roboflow_deploy.zip"), "wb") as f:
+            f.write(b"weights")
+        bundle = SimpleNamespace(model_type="yolov8n", archive_path=SimpleNamespace(name="roboflow_deploy.zip"))
+        packager = patch("roboflow.core.version.package_custom_weights_interactive", return_value=bundle)
+        packager.start()
+        self.addCleanup(packager.stop)
+        self.addCleanup(shutil.rmtree, self.model_dir)
+
+    def _deploy(self):
+        return self.version.deploy("yolov8n", self.model_dir, "weights/best.pt")
+
+    def test_raises_when_upload_url_request_fails(self):
+        responses.add(responses.GET, self.upload_url, status=500, body="internal error")
+        with self.assertRaisesRegex(rfapi.RoboflowError, r"model upload URL \(HTTP 500\): internal error"):
+            self._deploy()
+
+    def test_raises_with_server_message_on_429(self):
+        responses.add(responses.GET, self.upload_url, status=429, json={"error": "already has a model"})
+        with self.assertRaisesRegex(rfapi.RoboflowError, r"HTTP 429.*already has a model"):
+            self._deploy()
+
+    def test_raises_when_signed_upload_fails(self):
+        responses.add(responses.GET, self.upload_url, json={"url": self.signed_url})
+        responses.add(responses.PUT, self.signed_url, status=403, body="AccessDenied")
+        with self.assertRaisesRegex(rfapi.RoboflowError, r"upload the model \(HTTP 403\): AccessDenied"):
+            self._deploy()
+
+    def test_returns_normally_on_success(self):
+        responses.add(responses.GET, self.upload_url, json={"url": self.signed_url})
+        responses.add(responses.PUT, self.signed_url, status=200)
+        self.assertIsNone(self._deploy())
+        self.assertEqual(responses.calls[-1].request.body, b"weights")

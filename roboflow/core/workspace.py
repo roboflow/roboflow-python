@@ -521,7 +521,7 @@ class Workspace:
         wait: bool = True,
         poll_interval: float = 5.0,
         poll_timeout: float = 3600.0,
-    ) -> Optional[dict]:
+    ) -> dict:
         """
         Upload a dataset to Roboflow.
 
@@ -549,7 +549,9 @@ class Workspace:
             poll_timeout (float, optional): zip flow only — total seconds to wait before timing out.
 
         Returns:
-            dict | None: zip flow returns the final/pending status dict; per-image flow returns None.
+            dict: zip flow returns the final/pending status dict. Per-image flow returns a summary:
+                ``{"uploaded": int, "duplicates": int, "failed": [{"path", "stage", "error"}]}``,
+                where ``stage`` is ``"image"`` or ``"annotation"``. Failed images do not raise.
         """  # noqa: E501 // docs
         if dataset_format != "NOT_USED":
             print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
@@ -703,22 +705,31 @@ class Workspace:
                 image_id = image["id"]
                 annotation, annotation_time = _save_annotation(image_id, imagedesc)
                 _log_img_upload(image_path, image, annotation, image_upload_time, image_retry_attempts, annotation_time)
+                return "duplicate" if image.get("duplicate") else "uploaded", None
             except ImageUploadError as e:
                 retry_attempts = f" (with {e.retries} retries)" if e.retries > 0 else ""
                 print(f"[ERR]{retry_attempts} {image_path} ({e.message})")
+                return "failed", {"path": image_path, "stage": "image", "error": e.message}
             except AnnotationSaveError as e:
                 upload_time_str = f"[{image_upload_time:.1f}s]"
                 retry_attempts = f" (with {image_retry_attempts} retries)" if image_retry_attempts > 0 else ""
                 image_msg = f"[UPLOADED]{retry_attempts} {image_path} ({image_id}) {upload_time_str}"
                 annotation_msg = f"annotations = ERR: {e.message}"
                 print(f"{image_msg} / {annotation_msg}")
+                return "failed", {"path": image_path, "stage": "annotation", "error": e.message}
             except Exception as e:
                 print(f"[ERR] {image_path} ({e})")
+                return "failed", {"path": image_path, "stage": "image", "error": str(e)}
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-            list(executor.map(_upload, images))
+            results = list(executor.map(_upload, images))
 
-        return None
+        statuses = [status for status, _ in results]
+        return {
+            "uploaded": statuses.count("uploaded"),
+            "duplicates": statuses.count("duplicate"),
+            "failed": [failure for _, failure in results if failure],
+        }
 
     def _get_or_create_project(self, project_id, license: str = "MIT", type: str = "object-detection"):
         try:
@@ -907,6 +918,9 @@ class Workspace:
             model_path (str): File path to the model weights to be uploaded.
             project_ids (list[str]): List of project IDs to deploy the model to.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
+
+        Raises:
+            RoboflowError: If the upload URL cannot be obtained or the upload fails.
         """
 
         from roboflow.util.model_processor import (
@@ -943,34 +957,20 @@ class Workspace:
         res = requests.post(
             f"{API_URL}/{self.url}/models/prepareUpload?api_key={self.__api_key}&modelType={model_type}&modelName={model_name}&projectIds={','.join(project_ids)}&nocache=true"
         )
-        try:
-            res.raise_for_status()
-        except Exception as e:
-            error_message = str(e)
-            status_code = str(res.status_code)
-
-            print("\n\033[91m❌ ERROR\033[0m: Failed to get model deployment URL")
-            print("\033[93mDetails\033[0m:", error_message)
-            print("\033[93mStatus\033[0m:", status_code)
-            print(f"\033[93mResponse\033[0m:\n{res.text}\n")
-            return
+        if not res.ok:
+            raise RoboflowError(f"Failed to get the model upload URL (HTTP {res.status_code}): {res.text}")
 
         # Upload the model to the signed URL
-        res = requests.put(
-            res.json()["url"],
-            data=open(os.path.join(model_path, model_file_name), "rb"),
-        )
-        try:
-            res.raise_for_status()
+        with open(os.path.join(model_path, model_file_name), "rb") as f:
+            res = requests.put(res.json()["url"], data=f)
+        if not res.ok:
+            raise RoboflowError(f"Failed to upload the model (HTTP {res.status_code}): {res.text}")
 
-            for project_id in project_ids:
-                print(
-                    f"View the status of your deployment for project {project_id} at:"
-                    f" {APP_URL}/{self.url}/{project_id}/models"
-                )
-
-        except Exception as e:
-            print(f"An error occured when uploading the model: {e}")
+        for project_id in project_ids:
+            print(
+                f"View the status of your deployment for project {project_id} at:"
+                f" {APP_URL}/{self.url}/{project_id}/models"
+            )
 
     def search(
         self,

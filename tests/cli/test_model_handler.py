@@ -2,14 +2,20 @@
 
 import io
 import json
+import os
+import shutil
 import sys
+import tempfile
 import types
 import unittest
 from unittest.mock import MagicMock, patch
 
+import responses
 from typer.testing import CliRunner
 
 from roboflow.cli import app
+from roboflow.config import API_URL
+from tests import PROJECT_NAME, PROJECT_VERSION, ROBOFLOW_API_KEY, WORKSPACE_NAME, RoboflowTest
 
 runner = CliRunner()
 
@@ -398,3 +404,72 @@ class TestModelListGroupFilter(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestModelUploadFailures(RoboflowTest):
+    """`roboflow model upload` exits non-zero when the upload fails (#545)."""
+
+    signed_url = "https://storage.example.com/signed-upload"
+
+    def setUp(self):
+        super().setUp()
+        rf_patch = patch("roboflow.Roboflow")
+        rf_patch.start().return_value.workspace.return_value = self.workspace
+        self.addCleanup(rf_patch.stop)
+        self.model_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.model_dir)
+        with open(os.path.join(self.model_dir, "roboflow_deploy.zip"), "wb") as f:
+            f.write(b"weights")
+        bundle = types.SimpleNamespace(
+            model_type="yolov8n", archive_path=types.SimpleNamespace(name="roboflow_deploy.zip")
+        )
+        for target in (
+            "roboflow.core.version.package_custom_weights_interactive",
+            "roboflow.util.model_processor.package_custom_weights_interactive",
+        ):
+            packager = patch(target, return_value=bundle)
+            packager.start()
+            self.addCleanup(packager.stop)
+
+    def _invoke(self, *extra: str):
+        return runner.invoke(
+            app,
+            ["--json", "--api-key", ROBOFLOW_API_KEY, "model", "upload", "-p", PROJECT_NAME]
+            + ["-t", "yolov8n", "-m", self.model_dir, *extra],
+        )
+
+    def test_version_upload_url_failure(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/{PROJECT_VERSION}/uploadModel",
+            status=500,
+            body="internal error",
+        )
+        result = self._invoke("-v", PROJECT_VERSION)
+
+        self.assertEqual(result.exit_code, 1)
+        self.assertNotIn("uploaded", result.stdout)
+        error = json.loads(result.stderr)["error"]
+        self.assertIn("Failed to get the model upload URL (HTTP 500)", error["message"])
+
+    def test_workspace_signed_upload_failure(self) -> None:
+        responses.add(responses.POST, f"{API_URL}/{WORKSPACE_NAME}/models/prepareUpload", json={"url": self.signed_url})
+        responses.add(responses.PUT, self.signed_url, status=403, body="AccessDenied")
+        result = self._invoke("-n", "my-model")
+
+        self.assertEqual(result.exit_code, 1)
+        self.assertNotIn("uploaded", result.stdout)
+        error = json.loads(result.stderr)["error"]
+        self.assertIn("Failed to upload the model (HTTP 403): AccessDenied", error["message"])
+
+    def test_version_upload_success(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/{PROJECT_VERSION}/uploadModel",
+            json={"url": self.signed_url},
+        )
+        responses.add(responses.PUT, self.signed_url)
+        result = self._invoke("-v", PROJECT_VERSION)
+
+        self.assertEqual(result.exit_code, 0, result.stderr)
+        self.assertIn('"status": "uploaded"', result.stdout)

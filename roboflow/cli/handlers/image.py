@@ -356,7 +356,7 @@ def _handle_upload_single(args, api_key: str, path: str) -> None:  # noqa: ANN00
 
 
 def _handle_upload_directory(args, api_key: str, path: str) -> None:  # noqa: ANN001
-    import os
+    import json
 
     import roboflow
     from roboflow.cli._output import output, output_error, suppress_sdk_output
@@ -393,11 +393,20 @@ def _handle_upload_directory(args, api_key: str, path: str) -> None:  # noqa: AN
         output_error(args, str(exc))
         return
 
-    if isinstance(result, dict):
+    if "failed" not in result:
+        # Zip flow returns the server's task status
         status = result.get("status", "unknown")
+        task_id = result.get("task_id") or result.get("taskId")
+        if status == "failed":
+            output_error(
+                args,
+                f"Zip upload of {path} to {args.project} failed (task_id={task_id}): {result.get('error') or result}",
+                hint="Check the dataset format, then retry; run without --zip-upload to see per-image errors.",
+            )
+            return
         data = {
             "status": status,
-            "task_id": result.get("task_id") or result.get("taskId"),
+            "task_id": task_id,
             "path": path,
             "project": args.project,
             "result": result,
@@ -405,15 +414,37 @@ def _handle_upload_directory(args, api_key: str, path: str) -> None:  # noqa: AN
         output(args, data, text=f"Imported {path} to {args.project} (zip upload, status={status})")
         return
 
-    # Per-image fallback — count files via image extensions
-    count = 0
-    image_exts = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"}
-    for root, _dirs, files in os.walk(path):
-        for f in files:
-            if os.path.splitext(f)[1].lower() in image_exts:
-                count += 1
+    failed = result["failed"]
+    if failed:
+        total = len(failed) + result["uploaded"] + result["duplicates"]
+        lines = [f"  {f['path']} ({f['stage']}): {f['error']}" for f in failed[:10]]
+        if len(failed) > 10:
+            lines.append(f"  ... and {len(failed) - 10} more")
+        message = f"{len(failed)} of {total} images failed to upload from {path} to {args.project}:\n" + "\n".join(
+            lines
+        )
+        error = {
+            "message": message,
+            "uploaded": result["uploaded"],
+            "duplicates": result["duplicates"],
+            "failed_count": len(failed),
+            "failed": failed,
+        }
+        output_error(
+            args,
+            json.dumps(error),
+            hint="Fix the listed files and re-run; images already uploaded are skipped as duplicates.",
+        )
+        return
 
-    data = {"status": "imported", "path": path, "count": count}
+    count = result["uploaded"] + result["duplicates"]
+    data = {
+        "status": "imported",
+        "path": path,
+        "count": count,
+        "uploaded": result["uploaded"],
+        "duplicates": result["duplicates"],
+    }
     output(args, data, text=f"Imported {count} images from {path} to {args.project}")
 
 

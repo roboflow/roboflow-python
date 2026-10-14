@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from tqdm import tqdm
 
 from roboflow.adapters import rfapi
+from roboflow.adapters.rfapi import RoboflowError
 from roboflow.config import (
     API_URL,
     APP_URL,
@@ -662,6 +663,9 @@ class Version:
             model_type (str): The type of the model to be deployed.
             model_path (str): File path to the model weights to be uploaded.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
+
+        Raises:
+            RoboflowError: If the upload URL cannot be obtained or the upload fails.
         """
         bundle = package_custom_weights_interactive(model_type, model_path, filename, build_dir=model_path)
 
@@ -676,41 +680,21 @@ class Version:
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}"
             f"/uploadModel?api_key={self.__api_key}&modelType={model_type}&nocache=true"
         )
-        try:
-            if res.status_code == 429:
-                raise RuntimeError(
-                    "This version already has a trained model. Please generate and"
-                    " train a new version in order to upload model to Roboflow."
-                )
-            else:
-                res.raise_for_status()
-        except Exception as e:
-            print(f"An error occured when getting the model upload URL: {e}")
-            return
+        if not res.ok:
+            raise RoboflowError(f"Failed to get the model upload URL (HTTP {res.status_code}): {res.text}")
 
-        res = requests.put(
-            res.json()["url"],
-            data=open(os.path.join(model_path, model_file_name), "rb"),
-        )
-        try:
-            res.raise_for_status()
+        with open(os.path.join(model_path, model_file_name), "rb") as f:
+            res = requests.put(res.json()["url"], data=f)
+        if not res.ok:
+            raise RoboflowError(f"Failed to upload the model (HTTP {res.status_code}): {res.text}")
 
-            if self.public:
-                print(
-                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
-                )
-                print(
-                    "Share your model with the world at:"
-                    f" {UNIVERSE_URL}/{self.workspace}/{self.project}/"
-                    f"model/{self.version}"
-                )
-            else:
-                print(
-                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
-                )
-
-        except Exception as e:
-            print(f"An error occured when uploading the model: {e}")
+        print(f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}")
+        if self.public:
+            print(
+                "Share your model with the world at:"
+                f" {UNIVERSE_URL}/{self.workspace}/{self.project}/"
+                f"model/{self.version}"
+            )
 
     def __download_zip(self, link, location, format):
         """

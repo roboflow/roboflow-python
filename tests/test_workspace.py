@@ -1,12 +1,19 @@
 """Unit tests for module-level helpers in roboflow.core.workspace."""
 
 import os
+import shutil
 import tempfile
 import unittest
 import zipfile
+from types import SimpleNamespace
 from unittest.mock import patch
 
+import responses
+
+from roboflow.adapters.rfapi import RoboflowError
+from roboflow.config import API_URL
 from roboflow.core.workspace import Workspace, _zip_directory
+from tests import PROJECT_NAME, WORKSPACE_NAME, RoboflowTest
 
 
 def _make_workspace():
@@ -178,3 +185,40 @@ class TestWorkspaceImageMetadata(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDeployModelUploadFailures(RoboflowTest):
+    """Workspace.deploy_model() raises when the model upload fails (#545)."""
+
+    prepare_url = f"{API_URL}/{WORKSPACE_NAME}/models/prepareUpload"
+    signed_url = "https://storage.example.com/signed-upload"
+
+    def setUp(self):
+        super().setUp()
+        self.model_dir = tempfile.mkdtemp()
+        with open(os.path.join(self.model_dir, "roboflow_deploy.zip"), "wb") as f:
+            f.write(b"weights")
+        bundle = SimpleNamespace(model_type="yolov8n", archive_path=SimpleNamespace(name="roboflow_deploy.zip"))
+        packager = patch("roboflow.util.model_processor.package_custom_weights_interactive", return_value=bundle)
+        packager.start()
+        self.addCleanup(packager.stop)
+        self.addCleanup(shutil.rmtree, self.model_dir)
+
+    def _deploy(self):
+        return self.workspace.deploy_model("yolov8n", self.model_dir, [PROJECT_NAME], "my-model")
+
+    def test_raises_when_prepare_upload_fails(self):
+        responses.add(responses.POST, self.prepare_url, status=400, json={"error": "bad model type"})
+        with self.assertRaisesRegex(RoboflowError, r"model upload URL \(HTTP 400\).*bad model type"):
+            self._deploy()
+
+    def test_raises_when_signed_upload_fails(self):
+        responses.add(responses.POST, self.prepare_url, json={"url": self.signed_url})
+        responses.add(responses.PUT, self.signed_url, status=500, body="boom")
+        with self.assertRaisesRegex(RoboflowError, r"upload the model \(HTTP 500\): boom"):
+            self._deploy()
+
+    def test_returns_normally_on_success(self):
+        responses.add(responses.POST, self.prepare_url, json={"url": self.signed_url})
+        responses.add(responses.PUT, self.signed_url, status=200)
+        self.assertIsNone(self._deploy())
