@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import json
 import mimetypes
 import os
@@ -68,7 +68,7 @@ class Project:
             self.annotation = a_project["annotation"]
             self.classes = a_project["classes"]
             self.colors = a_project["colors"]
-            self.created = datetime.datetime.fromtimestamp(a_project["created"])
+            self.created = dt.datetime.fromtimestamp(a_project["created"])
             self.id = a_project["id"]
             self.images = a_project["images"]
             self.name = a_project["name"]
@@ -77,7 +77,7 @@ class Project:
             self.type = a_project["type"]
             self.multilabel = a_project.get("multilabel", False)
             self.unannotated = a_project["unannotated"]
-            self.updated = datetime.datetime.fromtimestamp(a_project["updated"])
+            self.updated = dt.datetime.fromtimestamp(a_project["updated"])
             self.model_format = model_format
 
             temp = self.id.rsplit("/")
