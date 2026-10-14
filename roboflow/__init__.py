@@ -326,6 +326,7 @@ class Roboflow:
         :param project_name api_key: project name
         :param the_workspace workspace name
         :return project object
+        :raises ProjectNotFoundError: the project does not exist, is in Trash, or is not visible to this API key
         """
         if Project is None:
             raise ImportError(

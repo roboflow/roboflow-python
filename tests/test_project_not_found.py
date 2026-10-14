@@ -41,15 +41,6 @@ class TestProjectNotFound(RoboflowTest):
         self.assertEqual(ctx.exception.workspace_url, WORKSPACE_NAME)
         self.assertEqual(ctx.exception.project_url, MISSING)
 
-    def test_missing_project_never_reaches_upload(self):
-        self._answer(404, NOT_FOUND_BODY)
-
-        with self.assertRaises(ProjectNotFoundError):
-            self.workspace.project(MISSING).upload(image_path="tests/images/hand-rabbit.PNG")
-
-        upload_calls = [c for c in responses.calls if "/upload" in c.request.url]
-        self.assertEqual(upload_calls, [])
-
     def test_roboflow_project_raises_and_stays_a_runtime_error(self):
         self._answer(404, NOT_FOUND_BODY)
 

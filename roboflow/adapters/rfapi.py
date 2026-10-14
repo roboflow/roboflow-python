@@ -32,15 +32,16 @@ class ProjectNotFoundError(RoboflowError, RuntimeError):
     """The API answered 404 for a project lookup.
 
     Roboflow answers 404 alike for a project that never existed, one that
-    was deleted (in Trash) and one the API key cannot see. Subclasses
-    `RuntimeError` because `Roboflow.project()` raised that before.
+    was deleted (in Trash), one the API key cannot see, and a misspelled
+    workspace. Subclasses `RuntimeError` because `Roboflow.project()`
+    raised that before.
     """
 
     def __init__(self, workspace_url, project_url):
         super().__init__(
             f"Project '{project_url}' not found in workspace '{workspace_url}'. "
             "It may not exist, may have been deleted (check the workspace Trash), "
-            "or your API key may not have access to it. "
+            "or the workspace slug or your API key may be wrong. "
             "Check the project id: it is the URL slug, e.g. 'my-project', not the display name.",
             status_code=404,
         )

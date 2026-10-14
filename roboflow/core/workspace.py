@@ -82,6 +82,9 @@ class Workspace:
 
         Returns:
             Project Object
+
+        Raises:
+            ProjectNotFoundError: the project does not exist, is in Trash, or is not visible to this API key.
         """
         from roboflow.core.project import Project
 
