@@ -636,7 +636,10 @@ class Workspace:
                 if annotation.get("success"):
                     msg += f" / annotations = OK {annotation_time_str}"
                 elif annotation.get("warn") == "already annotated":
-                    msg += " / annotations = kept existing (pass annotation_overwrite=True to replace)"
+                    msg += (
+                        " / annotations = kept existing (pass --annotation-overwrite / annotation_overwrite=True"
+                        f" to replace) {annotation_time_str}"
+                    )
                 elif annotation.get("warn"):
                     msg += f" / annotations = WARN: {annotation['warn']} {annotation_time_str}"
                 else:

@@ -80,7 +80,8 @@ def register_hidden_aliases(app: typer.Typer) -> None:
             Optional[bool],
             typer.Option(
                 "--annotation-overwrite/--no-annotation-overwrite",
-                help="Overwrite existing annotations on duplicate images",
+                help="Overwrite existing annotations on duplicate images "
+                "(default: off, except classification projects where the API requires it on)",
             ),
         ] = None,
     ) -> None:

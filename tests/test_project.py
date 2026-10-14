@@ -1269,10 +1269,19 @@ class TestPerImageAnnotationOverwrite(RoboflowTest):
         )
         self.assertEqual(len(calls), 1)
         self.assertNotIn("overwrite=true", calls[0].request.url)
-        self.assertIn("annotations = kept existing (pass annotation_overwrite=True to replace)", logs)
+        self.assertIn(
+            "annotations = kept existing (pass --annotation-overwrite / annotation_overwrite=True to replace)", logs
+        )
 
     @responses.activate
     def test_duplicate_with_overwrite_true_sends_overwrite(self):
         calls, _ = self._upload({"id": "img-id", "duplicate": True}, annotation_overwrite=True)
+        self.assertEqual(len(calls), 1)
+        self.assertIn("overwrite=true", calls[0].request.url)
+
+    @responses.activate
+    def test_classification_defaults_to_overwrite(self):
+        self.project.type = "classification"
+        calls, _ = self._upload({"id": "img-id", "duplicate": True})
         self.assertEqual(len(calls), 1)
         self.assertIn("overwrite=true", calls[0].request.url)
