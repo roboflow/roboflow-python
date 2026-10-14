@@ -1218,3 +1218,70 @@ class TestZipUpload(RoboflowTest):
 
             if _os.path.exists(zip_path):
                 _os.unlink(zip_path)
+
+
+class TestPerImageAnnotationOverwrite(RoboflowTest):
+    """upload_dataset on a directory (per-image flow) forwards annotation_overwrite to the annotate POST."""
+
+    def _upload(self, image, annotate_status=200, annotate_json=None, **kwargs):
+        import re
+
+        dataset = {
+            "location": "/test/location/",
+            "images": [
+                {
+                    "file": "img.jpg",
+                    "split": "train",
+                    "annotationfile": {"name": "annotation.coco.json", "rawText": "{}"},
+                }
+            ],
+        }
+        responses.add(
+            responses.POST,
+            re.compile(rf"{API_URL}/dataset/{PROJECT_NAME}/annotate/img-id\?.*"),
+            json=annotate_json or {"success": True},
+            status=annotate_status,
+        )
+        with (
+            patch("roboflow.util.folderparser.parsefolder", return_value=dataset),
+            patch("roboflow.core.project.Project.upload_image", return_value=(image, 0.1, 0)),
+            patch("roboflow.core.workspace.Workspace._get_or_create_project", return_value=(self.project, False)),
+            patch("builtins.print") as mock_print,
+        ):
+            self.workspace.upload_dataset(dataset_path="/test/dataset", project_name=PROJECT_NAME, **kwargs)
+        annotate_calls = [c for c in responses.calls if "/annotate/" in c.request.url]
+        logs = " ".join(str(c.args[0]) for c in mock_print.call_args_list if c.args)
+        return annotate_calls, logs
+
+    @responses.activate
+    def test_fresh_image_annotates_without_overwrite(self):
+        calls, logs = self._upload({"id": "img-id", "success": True})
+        self.assertEqual(len(calls), 1)
+        self.assertNotIn("overwrite=true", calls[0].request.url)
+        self.assertIn("annotations = OK", logs)
+
+    @responses.activate
+    def test_duplicate_without_overwrite_keeps_existing_annotations(self):
+        calls, logs = self._upload(
+            {"id": "img-id", "duplicate": True},
+            annotate_status=409,
+            annotate_json={"error": {"message": "Image was already annotated. To overwrite, pass overwrite=true."}},
+        )
+        self.assertEqual(len(calls), 1)
+        self.assertNotIn("overwrite=true", calls[0].request.url)
+        self.assertIn(
+            "annotations = kept existing (pass --annotation-overwrite / annotation_overwrite=True to replace)", logs
+        )
+
+    @responses.activate
+    def test_duplicate_with_overwrite_true_sends_overwrite(self):
+        calls, _ = self._upload({"id": "img-id", "duplicate": True}, annotation_overwrite=True)
+        self.assertEqual(len(calls), 1)
+        self.assertIn("overwrite=true", calls[0].request.url)
+
+    @responses.activate
+    def test_classification_defaults_to_overwrite(self):
+        self.project.type = "classification"
+        calls, _ = self._upload({"id": "img-id", "duplicate": True})
+        self.assertEqual(len(calls), 1)
+        self.assertIn("overwrite=true", calls[0].request.url)

@@ -76,6 +76,14 @@ def register_hidden_aliases(app: typer.Typer) -> None:
         metadata: Annotated[Optional[str], typer.Option("-M", "--metadata", help="JSON metadata")] = None,
         concurrency: Annotated[int, typer.Option("-c", "--concurrency", help="Concurrency")] = 10,
         is_prediction: Annotated[bool, typer.Option("--is-prediction", help="Mark as prediction")] = False,
+        annotation_overwrite: Annotated[
+            Optional[bool],
+            typer.Option(
+                "--annotation-overwrite/--no-annotation-overwrite",
+                help="Overwrite existing annotations on duplicate images "
+                "(default: off, except classification projects where the API requires it on)",
+            ),
+        ] = None,
     ) -> None:
         """Upload images to a project (alias for 'image upload')."""
         from roboflow.cli.handlers.image import _handle_upload
@@ -93,6 +101,7 @@ def register_hidden_aliases(app: typer.Typer) -> None:
             metadata=metadata,
             concurrency=concurrency,
             is_prediction=is_prediction,
+            annotation_overwrite=annotation_overwrite,
         )
         _handle_upload(args)
 
