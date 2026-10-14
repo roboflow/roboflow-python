@@ -339,14 +339,13 @@ class Roboflow:
             else:
                 the_workspace = self.current_workspace
 
-        dataset_info = requests.get(API_URL + "/" + the_workspace + "/" + project_name + "?api_key=" + self.api_key)
-
-        # Throw error if dataset isn't valid/user doesn't have
-        #   permissions to access the dataset
-        if dataset_info.status_code != 200:
-            raise RuntimeError(dataset_info.text)
-
-        dataset_info = dataset_info.json()["project"]
+        try:
+            dataset_info = rfapi.get_project(self.api_key, the_workspace, project_name)["project"]
+        except rfapi.ProjectNotFoundError:
+            raise
+        except rfapi.RoboflowError as e:
+            # keep the RuntimeError callers have always caught
+            raise RuntimeError(str(e)) from e
 
         return Project(self.api_key, dataset_info)
 

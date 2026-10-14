@@ -28,6 +28,26 @@ class RoboflowError(Exception):
         self.status_code = status_code
 
 
+class ProjectNotFoundError(RoboflowError, RuntimeError):
+    """The API answered 404 for a project lookup.
+
+    Roboflow answers 404 alike for a project that never existed, one that
+    was deleted (in Trash) and one the API key cannot see. Subclasses
+    `RuntimeError` because `Roboflow.project()` raised that before.
+    """
+
+    def __init__(self, workspace_url, project_url):
+        super().__init__(
+            f"Project '{project_url}' not found in workspace '{workspace_url}'. "
+            "It may not exist, may have been deleted (check the workspace Trash), "
+            "or your API key may not have access to it. "
+            "Check the project id: it is the URL slug, e.g. 'my-project', not the display name.",
+            status_code=404,
+        )
+        self.workspace_url = workspace_url
+        self.project_url = project_url
+
+
 class ImageUploadError(RoboflowError):
     def __init__(self, message, status_code=None):
         self.message = message
@@ -54,6 +74,8 @@ def get_workspace(api_key, workspace_url):
 def get_project(api_key, workspace_url, project_url):
     url = f"{API_URL}/{workspace_url}/{project_url}?api_key={api_key}"
     response = requests.get(url)
+    if response.status_code == 404:
+        raise ProjectNotFoundError(workspace_url, project_url)
     if response.status_code != 200:
         raise RoboflowError(response.text, status_code=response.status_code)
     result = response.json()
