@@ -88,12 +88,9 @@ def _translate_api_hints(message: str) -> str:
 
 def _sanitize_credentials(text: str) -> str:
     """Strip API keys from URLs and other sensitive patterns in error messages."""
-    import re
+    from roboflow.util.redact import redact_api_key
 
-    # Match api_key=... up to the next whitespace, query separator, quote, or backslash.
-    # Older patterns missed keys containing '-' or other URL-safe characters and would
-    # echo them to the terminal when an exception bubbled up from `requests`.
-    return re.sub(r"api_key=[^\s&\"'\\<>]+", "api_key=***", text)
+    return redact_api_key(text)
 
 
 def _parse_error_message(raw: str) -> tuple[Optional[dict[str, Any]], str]:

@@ -10,6 +10,7 @@ from requests.exceptions import RequestException
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
+from roboflow.util.redact import redact_api_key
 from roboflow.util.search_utils import normalize_media_types
 
 
@@ -21,23 +22,26 @@ class RoboflowError(Exception):
     callers can branch on auth (401) vs not-found (404) without string
     matching the message. Existing call sites that pass only a message
     still work; the attribute defaults to `None`.
+
+    API keys in the message (for example in the URL of a wrapped `requests`
+    exception) are replaced with `***`.
     """
 
     def __init__(self, message, status_code=None):
-        super().__init__(message)
+        super().__init__(redact_api_key(message))
         self.status_code = status_code
 
 
 class ImageUploadError(RoboflowError):
     def __init__(self, message, status_code=None):
-        self.message = message
+        self.message = redact_api_key(message)
         self.retries = 0
         super().__init__(self.message, status_code=status_code)
 
 
 class AnnotationSaveError(RoboflowError):
     def __init__(self, message, status_code=None):
-        self.message = message
+        self.message = redact_api_key(message)
         self.retries = 0
         super().__init__(self.message, status_code=status_code)
 
