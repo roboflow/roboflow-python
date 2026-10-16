@@ -1331,7 +1331,7 @@ class Project:
 
         Args:
             model: Foundation model id from ``Workspace.autolabel_models()``
-                (e.g. ``"gpt-6-astra-boxes"``, ``"sam3-rle"``, ``"gemini-boxes"``).
+                (e.g. ``"gpt-6-astra-boxes"``, ``"sam3-rle"``, ``"gemini-3-8-flash-boxes"``).
             image: HTTPS URL, local file path, or base64-encoded image.
             ontology: ``{"text prompt": "class name"}`` -- keyed by prompt, so
                 several prompts can share one class
@@ -1377,7 +1377,7 @@ class Project:
             batch_id: Source batch containing the images to auto-label.
             model: For ``model_type="foundational"``, a model id from
                 ``Workspace.autolabel_models()`` (e.g. ``"gpt-6-astra-boxes"``,
-                ``"sam3-rle"``, ``"sam3-polygon"``, ``"gemini-boxes"``). For
+                ``"sam3-rle"``, ``"sam3-polygon"``, ``"gemini-3-8-flash-boxes"``). For
                 ``model_type="roboflow"``, a Roboflow model id such as
                 ``"project-slug/3"`` or ``"workspace-slug/model-id"``.
             model_type: ``"foundational"`` (hosted foundation model, sent as-is;
