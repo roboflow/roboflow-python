@@ -32,6 +32,10 @@ ACCEPTED_IMAGE_FORMATS = {
     "image/heic",
 }
 
+# The project search API pages with offset and limit inside the search backend's result window,
+# so a page must end within the first SEARCH_RESULT_WINDOW results.
+SEARCH_RESULT_WINDOW = 10000
+
 
 def custom_formatwarning(msg, *args, **kwargs):
     # ignore everything except the message
@@ -754,6 +758,10 @@ class Project:
             (``"image"`` or ``"video"``); video hits add a signed ``videoUrl`` when ``url``
             is requested in ``fields``, while ``url`` itself stays the poster frame.
 
+        Raises:
+            RoboflowError: If the API answers with an error, ex: a page (``offset + limit``)
+                that ends past the first 10,000 results.
+
         Example:
             >>> import roboflow
 
@@ -830,7 +838,7 @@ class Project:
             json=payload,
         )
 
-        return data.json()["results"]
+        return rfapi._json_response_or_raise(data)["results"]
 
     def search_all(
         self,
@@ -875,6 +883,12 @@ class Project:
             carries ``mediaType``; video hits add a signed ``videoUrl`` when ``url`` is
             requested in ``fields``.
 
+        Raises:
+            RoboflowError: After yielding the first 10,000 results, the most the project search
+                API serves, or if the API answers with an error. To page through every match,
+                use ``Workspace.search_all("project:<project> ...")``, which follows a
+                continuation token.
+
         Example:
             >>> import roboflow
 
@@ -896,11 +910,21 @@ class Project:
             fields = ["id", "created"]
 
         while True:
+            if offset >= SEARCH_RESULT_WINDOW:
+                workspace_search = f'rf.workspace("{self.__workspace}").search_all("project:{self.__project_name}")'
+                raise rfapi.RoboflowError(
+                    f"The project search API serves the first {SEARCH_RESULT_WINDOW} results only. "
+                    f"To page through every match, use {workspace_search} "
+                    "and add the other filters as RoboQL (ex: tag:review)."
+                )
+
+            # The last page ends at the window, so every result the API can serve is yielded.
+            page_limit = min(limit, SEARCH_RESULT_WINDOW - offset)
             data = self.search(
                 like_image=like_image,
                 prompt=prompt,
                 offset=offset,
-                limit=limit,
+                limit=page_limit,
                 tag=tag,
                 class_name=class_name,
                 in_dataset=in_dataset,
@@ -914,10 +938,10 @@ class Project:
 
             yield data
 
-            if len(data) < limit:
+            if len(data) < page_limit:
                 break
 
-            offset += limit
+            offset += page_limit
 
     def __str__(self):
         """
