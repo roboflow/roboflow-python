@@ -1756,7 +1756,7 @@ class Workspace:
         List the foundation models available for hosted auto-labeling in this workspace.
 
         Returns ``{models: [...]}``. Each entry's ``id`` (e.g.
-        ``gpt-6-astra-boxes``, ``sam3-rle``, ``gemini-boxes``) is a valid
+        ``gpt-6-astra-boxes``, ``sam3-rle``, ``gemini-3-8-flash-boxes``) is a valid
         ``model`` for ``Project.autolabel`` and ``Project.autolabel_preview``.
         Entries carry ``guidance`` on when to prefer each model, the
         ``projectTypes`` they support, ``ontologyFormat``, ``creditsPerImage``,

@@ -36,13 +36,13 @@ class TestAutolabelModels(unittest.TestCase):
         mock_api.return_value = {
             "models": [
                 {"id": "gpt-6-astra-boxes", "name": "GPT-6 Astra", "available": True, "isDefault": True},
-                {"id": "gemini-boxes", "name": "Gemini", "available": False, "unavailableReason": "plan"},
+                {"id": "gemini-3-8-flash-boxes", "name": "Gemini", "available": False, "unavailableReason": "plan"},
             ]
         }
         result = runner.invoke(app, ["autolabel", "models"])
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("gpt-6-astra-boxes", result.output)
-        self.assertIn("gemini-boxes", result.output)
+        self.assertIn("gemini-3-8-flash-boxes", result.output)
         mock_api.assert_called_once_with("key", "ws")
 
     @patch("roboflow.adapters.rfapi.list_autolabel_models", return_value={"models": [{"id": "sam3-rle"}]})
