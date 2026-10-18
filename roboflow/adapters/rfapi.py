@@ -1,6 +1,7 @@
 import json
 import mimetypes
 import os
+import threading
 import urllib
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import quote
@@ -683,6 +684,19 @@ def batch_update_image_metadata(
     return response.json()
 
 
+# Image uploads and annotation saves keep their connections open between calls. requests does not
+# document Session as thread-safe, so each thread gets its own; a child process started with fork
+# gets a new one instead of sharing the parent's sockets.
+_upload_sessions = threading.local()
+
+
+def _upload_session() -> requests.Session:
+    if getattr(_upload_sessions, "pid", None) != os.getpid():
+        _upload_sessions.session = requests.Session()
+        _upload_sessions.pid = os.getpid()
+    return _upload_sessions.session
+
+
 def upload_image(
     api_key,
     project_url,
@@ -731,7 +745,9 @@ def upload_image(
         m = MultipartEncoder(fields=fields)
 
         try:
-            response = requests.post(upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300))
+            response = _upload_session().post(
+                upload_url, data=m, headers={"Content-Type": m.content_type}, timeout=(300, 300)
+            )
         except RequestException as e:
             raise ImageUploadError(str(e)) from e
 
@@ -746,7 +762,7 @@ def upload_image(
 
         try:
             # Get response
-            response = requests.post(upload_url, timeout=(300, 300))
+            response = _upload_session().post(upload_url, timeout=(300, 300))
         except RequestException as e:
             raise ImageUploadError(str(e)) from e
 
@@ -817,7 +833,7 @@ def save_annotation(
     )
 
     try:
-        response = requests.post(
+        response = _upload_session().post(
             upload_url,
             data=json.dumps({"annotationFile": annotation_string, "labelmap": annotation_labelmap}),
             headers={"Content-Type": "application/json"},

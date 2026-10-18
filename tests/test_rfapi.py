@@ -1,7 +1,10 @@
+import concurrent.futures
 import json
 import os
+import threading
 import unittest
 import urllib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import mock_open, patch
 
 import responses
@@ -17,6 +20,7 @@ from roboflow.adapters.rfapi import (
     list_trainings_for_version,
     resolve_version_training_id,
     restore_trash_item,
+    save_annotation,
     upload_image,
 )
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME
@@ -208,6 +212,75 @@ class TestUploadImage(unittest.TestCase):
 
     def _reset_responses(self):
         responses.reset()
+
+
+class TestUploadConnectionReuse(unittest.TestCase):
+    """Image uploads and annotation saves over a real local server, counting TCP connections."""
+
+    HOSTED_IMAGE = "https://example.com/rabbit.jpg"
+
+    def setUp(self):
+        self.connections = connections = []
+        self.paths = paths = []
+
+        class Handler(BaseHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"
+
+            def log_message(self, *_args):
+                pass
+
+            def setup(self):
+                super().setup()
+                connections.append(self.client_address)
+
+            def do_POST(self):
+                self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                paths.append(self.path)
+                payload = json.dumps({"success": True, "id": "img-1"}).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(thread.join)
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        api_url = patch("roboflow.adapters.rfapi.API_URL", f"http://127.0.0.1:{server.server_port}")
+        api_url.start()
+        self.addCleanup(api_url.stop)
+
+    @staticmethod
+    def _run_in_new_thread(func):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            executor.submit(func).result()
+
+    def test_uploads_and_annotations_reuse_one_connection_per_thread(self):
+        def upload_two_annotated_images():
+            upload_image("key", "project", "tests/images/rabbit.JPG")
+            save_annotation("key", "project", "annotation.json", "{}", "img-1")
+            upload_image("key", "project", self.HOSTED_IMAGE, hosted_image=True)
+            save_annotation("key", "project", "annotation.json", "{}", "img-1")
+
+        self._run_in_new_thread(upload_two_annotated_images)
+        self._run_in_new_thread(upload_two_annotated_images)
+
+        self.assertEqual(len(self.paths), 8)
+        self.assertEqual(len(self.connections), 2)
+
+    def test_forked_child_does_not_reuse_the_parent_connection(self):
+        def upload_before_and_after_fork():
+            upload_image("key", "project", self.HOSTED_IMAGE, hosted_image=True)
+            with patch("roboflow.adapters.rfapi.os.getpid", return_value=os.getpid() + 1):
+                upload_image("key", "project", self.HOSTED_IMAGE, hosted_image=True)
+
+        self._run_in_new_thread(upload_before_and_after_fork)
+
+        self.assertEqual(len(self.paths), 2)
+        self.assertEqual(len(self.connections), 2)
 
 
 class TestV2Trainings(unittest.TestCase):
