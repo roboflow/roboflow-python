@@ -573,13 +573,14 @@ class Project:
         retry = Retry(num_retry_uploads, AnnotationSaveError)
 
         try:
-            annotation = rfapi.save_annotation(
+            annotation = retry(
+                rfapi.save_annotation,
                 self.__api_key,
                 project_url,
-                annotation_name,  # type: ignore[type-var]
-                annotation_str,  # type: ignore[type-var]
+                annotation_name,
+                annotation_str,
                 image_id,
-                job_name=job_name,  # type: ignore[type-var]
+                job_name=job_name,
                 is_prediction=is_prediction,
                 annotation_labelmap=annotation_labelmap,
                 overwrite=annotation_overwrite,
