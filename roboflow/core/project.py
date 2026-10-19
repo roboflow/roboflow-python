@@ -32,10 +32,6 @@ ACCEPTED_IMAGE_FORMATS = {
     "image/heic",
 }
 
-# The project search API pages with offset and limit inside the search backend's result window,
-# so a page must end within the first SEARCH_RESULT_WINDOW results.
-SEARCH_RESULT_WINDOW = 10000
-
 
 def custom_formatwarning(msg, *args, **kwargs):
     # ignore everything except the message
@@ -759,8 +755,7 @@ class Project:
             is requested in ``fields``, while ``url`` itself stays the poster frame.
 
         Raises:
-            RoboflowError: If the API answers with an error, ex: a page (``offset + limit``)
-                that ends past the first 10,000 results.
+            RoboflowError: If the API answers with an error.
 
         Example:
             >>> import roboflow
@@ -883,12 +878,6 @@ class Project:
             carries ``mediaType``; video hits add a signed ``videoUrl`` when ``url`` is
             requested in ``fields``.
 
-        Raises:
-            RoboflowError: After yielding the first 10,000 results, the most the project search
-                API serves, or if the API answers with an error. To page through every match,
-                use ``Workspace.search_all("project:<project> ...")``, which follows a
-                continuation token.
-
         Example:
             >>> import roboflow
 
@@ -910,21 +899,11 @@ class Project:
             fields = ["id", "created"]
 
         while True:
-            if offset >= SEARCH_RESULT_WINDOW:
-                workspace_search = f'rf.workspace("{self.__workspace}").search_all("project:{self.__project_name}")'
-                raise rfapi.RoboflowError(
-                    f"The project search API serves the first {SEARCH_RESULT_WINDOW} results only. "
-                    f"To page through every match, use {workspace_search} "
-                    "and add the other filters as RoboQL (ex: tag:review)."
-                )
-
-            # The last page ends at the window, so every result the API can serve is yielded.
-            page_limit = min(limit, SEARCH_RESULT_WINDOW - offset)
             data = self.search(
                 like_image=like_image,
                 prompt=prompt,
                 offset=offset,
-                limit=page_limit,
+                limit=limit,
                 tag=tag,
                 class_name=class_name,
                 in_dataset=in_dataset,
@@ -938,10 +917,10 @@ class Project:
 
             yield data
 
-            if len(data) < page_limit:
+            if len(data) < limit:
                 break
 
-            offset += page_limit
+            offset += limit
 
     def __str__(self):
         """
@@ -1355,7 +1334,7 @@ class Project:
 
         Args:
             model: Foundation model id from ``Workspace.autolabel_models()``
-                (e.g. ``"gpt-6-astra-boxes"``, ``"sam3-rle"``, ``"gemini-boxes"``).
+                (e.g. ``"gpt-6-astra-boxes"``, ``"sam3-rle"``, ``"gemini-3-8-flash-boxes"``).
             image: HTTPS URL, local file path, or base64-encoded image.
             ontology: ``{"text prompt": "class name"}`` -- keyed by prompt, so
                 several prompts can share one class
@@ -1401,7 +1380,7 @@ class Project:
             batch_id: Source batch containing the images to auto-label.
             model: For ``model_type="foundational"``, a model id from
                 ``Workspace.autolabel_models()`` (e.g. ``"gpt-6-astra-boxes"``,
-                ``"sam3-rle"``, ``"sam3-polygon"``, ``"gemini-boxes"``). For
+                ``"sam3-rle"``, ``"sam3-polygon"``, ``"gemini-3-8-flash-boxes"``). For
                 ``model_type="roboflow"``, a Roboflow model id such as
                 ``"project-slug/3"`` or ``"workspace-slug/model-id"``.
             model_type: ``"foundational"`` (hosted foundation model, sent as-is;

@@ -942,7 +942,7 @@ class TestProject(RoboflowTest):
         self.assertEqual(len(results), 2)
 
     def test_search_raises_the_api_error(self):
-        message = "offset + limit must stay within the first 10000 results."
+        message = "Invalid search request."
         responses.add(
             responses.POST,
             f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/search?api_key={ROBOFLOW_API_KEY}",
@@ -951,41 +951,10 @@ class TestProject(RoboflowTest):
         )
 
         with self.assertRaises(RoboflowError) as ctx:
-            self.project.search(offset=10000, limit=250)
+            self.project.search()
 
         self.assertEqual(str(ctx.exception), message)
         self.assertEqual(ctx.exception.status_code, 400)
-
-    def test_search_all_stops_at_the_result_window(self):
-        requested_pages = []
-
-        # A project with more matches than the API can page through: full pages inside the
-        # window, 400 for a page that ends past it.
-        def full_page(request):
-            body = json.loads(request.body)
-            requested_pages.append((body["offset"], body["limit"]))
-            if body["offset"] + body["limit"] > 10000:
-                return (400, {}, json.dumps({"error": "offset + limit must stay within the first 10000 results."}))
-            results = [{"id": f"image{body['offset'] + i}"} for i in range(body["limit"])]
-            return (200, {}, json.dumps({"results": results}))
-
-        responses.add_callback(
-            responses.POST,
-            f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/search?api_key={ROBOFLOW_API_KEY}",
-            callback=full_page,
-            content_type="application/json",
-        )
-
-        images = []
-        with self.assertRaises(RoboflowError) as ctx:
-            for page in self.project.search_all(limit=150):
-                images.extend(page)
-
-        # The last page shrinks to end at the window, so every result the API can serve is yielded.
-        self.assertEqual(len(images), 10000)
-        self.assertEqual(requested_pages[-1], (9900, 100))
-        self.assertTrue(all(offset + limit <= 10000 for offset, limit in requested_pages))
-        self.assertIn(f'search_all("project:{PROJECT_NAME}")', str(ctx.exception))
 
 
 class TestZipUpload(RoboflowTest):
