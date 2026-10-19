@@ -126,7 +126,7 @@ class Prediction:
         import cv2
         import numpy as np
 
-        if "http://" in self.image_path:
+        if "http://" in self.image_path or "https://" in self.image_path:
             req = urllib.request.urlopen(self.image_path)
             arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
             image = cv2.imdecode(arr, -1)  # 'Load it as it is'
@@ -182,10 +182,10 @@ class Prediction:
             # Draw background rectangle for text
             cv2.rectangle(
                 image,
-                (x - width / 2, y - height / 2 + 1),
+                (int(x - width / 2), int(y - height / 2 + 1)),
                 (
-                    x - width / 2 + text_size[0] + 1,
-                    y - height / 2 + int(1.5 * text_size[1]),
+                    int(x - width / 2 + text_size[0] + 1),
+                    int(y - height / 2 + int(1.5 * text_size[1])),
                 ),
                 stroke_color,
                 -1,
@@ -194,7 +194,7 @@ class Prediction:
             cv2.putText(
                 image,
                 class_name,
-                (int(x - width / 2), y + text_size[1]),
+                (int(x - width / 2), int(y - height / 2 + text_size[1])),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.4,
                 (255, 255, 255),
@@ -224,7 +224,7 @@ class Prediction:
             # Add text and relax
             cv2.putText(
                 image,
-                (self["top"] + " | " + "Confidence: " + self["confidence"]),
+                (self["top"] + " | " + "Confidence: " + str(self["confidence"])),
                 (int(width / 2), 5),
                 cv2.FONT_HERSHEY_DUPLEX,
                 0.5,

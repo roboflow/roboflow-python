@@ -53,7 +53,7 @@ def mask_image(image, encoded_mask, transparency=60):
     import cv2
     import numpy as np
 
-    np_data = np.fromstring(base64.b64decode(encoded_mask), np.uint8)  # type: ignore[no-overload]
+    np_data = np.frombuffer(base64.b64decode(encoded_mask), np.uint8)
     mask = cv2.imdecode(np_data, cv2.IMREAD_UNCHANGED)
 
     # Fallback in case the API returns an incorrectly sized mask
