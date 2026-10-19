@@ -947,7 +947,11 @@ class TestZipUpload(RoboflowTest):
         import_target = "roboflow.core.workspace.rfapi"
         init_mock = patch(
             f"{import_target}.init_zip_upload",
-            return_value={"signedUrl": "https://signed.example/upload", "taskId": "task-123"},
+            return_value={
+                "signedUrl": "https://signed.example/upload",
+                "taskId": "task-123",
+                "requiredHeaders": {"x-ms-blob-type": "BlockBlob"},
+            },
         )
         put_mock = patch(f"{import_target}.upload_zip_to_signed_url", return_value=None)
         if get_status_side_effect is not None:
@@ -983,6 +987,7 @@ class TestZipUpload(RoboflowTest):
             put_args, _ = started["put"].call_args
             self.assertEqual(put_args[0], "https://signed.example/upload")
             self.assertEqual(put_args[1], zip_path)
+            self.assertEqual(put_args[2], {"x-ms-blob-type": "BlockBlob"})
         finally:
             for m in list(mocks.values()) + [zip_dir_mock]:
                 m.stop()
