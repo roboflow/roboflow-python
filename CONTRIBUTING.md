@@ -84,12 +84,14 @@ The CLI is built on [typer](https://typer.tiangolo.com/). Each command group is 
 
 ```python
 """My command description."""
+
 from __future__ import annotations
 from typing import Annotated, Optional
 import typer
 from roboflow.cli._compat import ctx_to_args
 
 mycommand_app = typer.Typer(help="Do something", no_args_is_help=True)
+
 
 @mycommand_app.command("list")
 def list_things(
@@ -99,6 +101,7 @@ def list_things(
     """List things in a project."""
     args = ctx_to_args(ctx, project=project)
     _list(args)
+
 
 def _list(args) -> None:
     from roboflow.cli._output import output, output_error, suppress_sdk_output
@@ -117,6 +120,7 @@ def _list(args) -> None:
 2. Register in `roboflow/cli/__init__.py`:
 ```python
 from roboflow.cli.handlers.mycommand import mycommand_app
+
 app.add_typer(mycommand_app, name="mycommand")
 ```
 
