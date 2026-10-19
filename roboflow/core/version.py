@@ -8,7 +8,6 @@ import time
 import warnings
 from typing import TYPE_CHECKING, Optional, Union
 
-import requests
 from dotenv import load_dotenv
 from tqdm import tqdm
 
@@ -34,6 +33,7 @@ from roboflow.models.keypoint_detection import KeypointDetectionModel
 from roboflow.models.object_detection import ObjectDetectionModel
 from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.models.vlm import VLMModel
+from roboflow.util import http
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import extract_zip, write_line
 from roboflow.util.model_processor import package_custom_weights_interactive, validate_model_type_for_project
@@ -672,7 +672,7 @@ class Version:
         validate_model_type_for_project(model_type, self.type, self.project)
 
     def _upload_zip(self, model_type: str, model_path: str, model_file_name: str):
-        res = requests.get(
+        res = http.get(
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}"
             f"/uploadModel?api_key={self.__api_key}&modelType={model_type}&nocache=true"
         )
@@ -688,7 +688,7 @@ class Version:
             print(f"An error occured when getting the model upload URL: {e}")
             return
 
-        res = requests.put(
+        res = http.put(
             res.json()["url"],
             data=open(os.path.join(model_path, model_file_name), "rb"),
         )
@@ -733,7 +733,7 @@ class Version:
             sys.stdout.flush()
 
         try:
-            response = requests.get(link, stream=True)
+            response = http.get(link, stream=True)
 
             # write the zip file to the desired location
             with open(location + "/roboflow.zip", "wb") as f:

@@ -10,13 +10,13 @@ import time
 import zipfile
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Union
 
-import requests
 from requests.exceptions import HTTPError
 from tqdm import tqdm
 
 from roboflow.adapters import rfapi, vision_events_api
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS
+from roboflow.util import http
 
 if TYPE_CHECKING:
     from roboflow.core.device import Device
@@ -124,7 +124,7 @@ class Workspace:
             "annotation": annotation,
         }
 
-        r = requests.post(API_URL + "/" + self.url + "/projects?api_key=" + self.__api_key, json=data)
+        r = http.post(API_URL + "/" + self.url + "/projects?api_key=" + self.__api_key, json=data)
 
         r.raise_for_status()
 
@@ -946,7 +946,7 @@ class Workspace:
         model_file_name: str,
     ):
         # This endpoint returns a signed URL to upload the model
-        res = requests.post(
+        res = http.post(
             f"{API_URL}/{self.url}/models/prepareUpload?api_key={self.__api_key}&modelType={model_type}&modelName={model_name}&projectIds={','.join(project_ids)}&nocache=true"
         )
         try:
@@ -962,7 +962,7 @@ class Workspace:
             return
 
         # Upload the model to the signed URL
-        res = requests.put(
+        res = http.put(
             res.json()["url"],
             data=open(os.path.join(model_path, model_file_name), "rb"),
         )
@@ -1162,7 +1162,7 @@ class Workspace:
         location = os.path.abspath(location)
 
         # 1. Start the export
-        session = requests.Session()
+        session = http.Session()
         export_id = rfapi.start_search_export(
             api_key=self.__api_key,
             workspace_url=self.url,

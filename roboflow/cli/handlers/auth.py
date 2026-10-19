@@ -190,13 +190,12 @@ def _login(args):  # noqa: ANN001
 
     if api_key:
         # Non-interactive: validate key and fetch workspace info
-        import requests
-
         from roboflow.config import resolve_url
+        from roboflow.util import http
 
         api_url = resolve_url("API_URL", region=region)
         app_url = resolve_url("APP_URL", region=region)
-        resp = requests.post(api_url + "/?api_key=" + api_key)
+        resp = http.post(api_url + "/?api_key=" + api_key)
         if resp.status_code == 401:
             output_error(args, "Invalid API key.", hint=f"Check your key at {app_url}/settings", exit_code=2)
             return
@@ -218,7 +217,7 @@ def _login(args):  # noqa: ANN001
         # Fetch workspace name from the API
         ws_name = ws_url
         try:
-            ws_resp = requests.get(f"{api_url}/{ws_url}?api_key={api_key}")
+            ws_resp = http.get(f"{api_url}/{ws_url}?api_key={api_key}")
             ws_resp.raise_for_status()
             ws_json = ws_resp.json()
             ws_detail = ws_json.get("workspace", ws_json)
@@ -298,12 +297,11 @@ def _status(args):  # noqa: ANN001
     # When an explicit --api-key is provided, always validate it against the
     # API rather than showing saved config — the user wants to check *this* key.
     if explicit_api_key or (api_key and not default_ws_url):
-        import requests
-
         from roboflow.config import resolve_url
+        from roboflow.util import http
 
         assert api_key is not None  # guaranteed by the condition above
-        resp = requests.post(resolve_url("API_URL", region=region_data["region"]) + "/?api_key=" + api_key)
+        resp = http.post(resolve_url("API_URL", region=region_data["region"]) + "/?api_key=" + api_key)
         if resp.status_code == 200:
             ws_url = resp.json().get("workspace", "unknown")
             data = {

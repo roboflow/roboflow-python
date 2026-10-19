@@ -6,11 +6,11 @@ import os
 import random
 import urllib
 
-import requests
 from PIL import Image
 
 from roboflow.config import OBJECT_DETECTION_MODEL, OBJECT_DETECTION_URL
 from roboflow.models.inference import InferenceModel
+from roboflow.util import http
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 from roboflow.util.versions import print_warn_for_wrong_dependencies_versions
@@ -209,7 +209,7 @@ class ObjectDetectionModel(InferenceModel):
                 img_str = base64.b64encode(buffered.getvalue())
                 img_str = img_str.decode("ascii")
                 # Post to API and return response
-                resp = requests.post(
+                resp = http.post(
                     self.api_url,
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -226,7 +226,7 @@ class ObjectDetectionModel(InferenceModel):
                 dimensions = buffer.shape
                 img_str = base64.b64encode(buffer)  # type: ignore[arg-type]
                 img_str = img_str.decode("ascii")
-                resp = requests.post(
+                resp = http.post(
                     self.api_url,
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -241,7 +241,7 @@ class ObjectDetectionModel(InferenceModel):
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
             image_dims = {"width": "0", "height": "0"}
             # POST to the API
-            resp = requests.post(self.api_url)
+            resp = http.post(self.api_url)
 
         resp.raise_for_status()
         # Return a prediction group if JSON data
@@ -404,7 +404,7 @@ class ObjectDetectionModel(InferenceModel):
                 img_str = img_str.decode("ascii")
 
                 # post frame to the Roboflow API
-                r = requests.post(
+                r = http.post(
                     self.api_url,
                     data=img_str,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},

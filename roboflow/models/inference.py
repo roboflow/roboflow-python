@@ -6,12 +6,12 @@ import urllib
 from typing import List, Optional, Tuple
 from urllib.parse import urljoin
 
-import requests
 from PIL import Image
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 from tqdm import tqdm
 
 from roboflow.config import API_URL
+from roboflow.util import http
 from roboflow.util.image_utils import validate_image_path
 from roboflow.util.prediction import PredictionGroup
 
@@ -134,7 +134,7 @@ class InferenceModel:
 
         params.update(**kwargs)
         url = f"{self.api_url}?{urllib.parse.urlencode(params)}"  # type: ignore[attr-defined]
-        response = requests.post(url, **request_kwargs)
+        response = http.post(url, **request_kwargs)
         response.raise_for_status()
 
         return PredictionGroup.create_prediction_group(
@@ -219,7 +219,7 @@ class InferenceModel:
             headers = {"Content-Type": "application/json"}
 
             try:
-                response = requests.request("POST", url, headers=headers, data=payload)
+                response = http.request("POST", url, headers=headers, data=payload)
             except Exception as e:
                 raise Exception(f"Error uploading video: {e}")
 
@@ -240,7 +240,7 @@ class InferenceModel:
                 raise Exception(f"Error reading video: {e}")
 
             try:
-                result = requests.put(signed_url, data=video_data, headers=headers)
+                result = http.put(signed_url, data=video_data, headers=headers)
             except Exception as e:
                 raise Exception(f"There was an error uploading the video: {e}")
 
@@ -280,7 +280,7 @@ class InferenceModel:
         headers = {"Content-Type": "application/json"}
 
         try:
-            response = requests.request("POST", url, headers=headers, data=payload)
+            response = http.request("POST", url, headers=headers, data=payload)
         except Exception as e:
             raise Exception(f"Error starting video inference: {e}")
 
@@ -319,7 +319,7 @@ class InferenceModel:
 
         url = urljoin(API_URL, "/videoinfer/?api_key=" + self.__api_key + "&job_id=" + job_id)
         try:
-            response = requests.get(url, headers={"Content-Type": "application/json"})
+            response = http.get(url, headers={"Content-Type": "application/json"})
         except Exception as e:
             raise Exception(f"Error getting video inference results: {e}")
 
@@ -334,7 +334,7 @@ class InferenceModel:
             return {}  # Still running
         else:  # done
             output_signed_url = data["output_signed_url"]
-            inference_data = requests.get(output_signed_url, headers={"Content-Type": "application/json"})
+            inference_data = http.get(output_signed_url, headers={"Content-Type": "application/json"})
 
             # frame_offset and model name are top-level keys
             return inference_data.json()
@@ -393,13 +393,13 @@ class InferenceModel:
         # get pt url
         pt_api_url = f"{API_URL}/{workspace}/{project}/{self.version}/ptFile"
 
-        r = requests.get(pt_api_url, params={"api_key": self.__api_key})
+        r = http.get(pt_api_url, params={"api_key": self.__api_key})
 
         r.raise_for_status()
 
         pt_weights_url = r.json()["weightsUrl"]
 
-        response = requests.get(pt_weights_url, stream=True)
+        response = http.get(pt_weights_url, stream=True)
 
         # write the zip file to the desired location
         with open(location + "/weights.pt", "wb") as f:

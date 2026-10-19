@@ -412,7 +412,7 @@ class TestExitCodeMapping(unittest.TestCase):
 
 
 class TestEvalCompareCommand(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_not_found_is_a_structured_error(self, mock_get):
         mock_get.return_value = MagicMock(status_code=404, text="Project not found")
         mock_get.return_value.json.return_value = {"error": "Project not found"}
@@ -429,7 +429,7 @@ class TestEvalCompareCommand(unittest.TestCase):
         )
         self.assertEqual(result.stdout, "")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_null_frontier_metric_shows_exclusion_without_accuracy(self, mock_get):
         mock_get.return_value = MagicMock(status_code=200)
         mock_get.return_value.json.return_value = {
@@ -454,7 +454,7 @@ class TestEvalCompareCommand(unittest.TestCase):
             self.assertIn(text, result.stdout)
         self.assertNotIn("90.0%", result.stdout)
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_list_access_error_includes_auth_and_entitlement_hint(self, mock_get):
         mock_get.return_value = MagicMock(status_code=403, text="Access denied")
         mock_get.return_value.json.return_value = {"error": "Access denied"}
@@ -465,7 +465,7 @@ class TestEvalCompareCommand(unittest.TestCase):
         for text in ["API key", "model-eval:read", "Model Evaluation access"]:
             self.assertIn(text, hint)
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_json_preserves_the_full_comparison(self, mock_get):
         comparison = json.loads((Path(__file__).parents[1] / "fixtures/model_eval_comparison.json").read_text())
         mock_get.return_value = MagicMock(status_code=200)
@@ -495,7 +495,7 @@ class TestEvalCompareCommand(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 1)
         self.assertEqual(mock_get.call_args.kwargs["params"]["frontierMetric"], "mAP5095")
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_text_shows_server_frontier_and_exclusion_with_zero_values(self, mock_get):
         mock_get.return_value = MagicMock(status_code=200)
         mock_get.return_value.json.return_value = {
@@ -542,7 +542,7 @@ class TestEvalCompareCommand(unittest.TestCase):
         ]:
             self.assertIn(text, result.stdout)
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_permission_failure_is_a_structured_auth_error(self, mock_get):
         mock_get.return_value = MagicMock(status_code=403, text="Comparison access denied")
         mock_get.return_value.json.return_value = {"error": "forbidden", "message": "Comparison access denied"}

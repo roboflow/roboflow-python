@@ -158,14 +158,14 @@ class TestNativeVideoUpload(RoboflowTest):
         self.assertEqual(len(responses.calls), before)
 
     def test_preparation_and_status_transport_errors_are_sanitized(self):
-        with patch("roboflow.adapters.rfapi.requests.post", side_effect=requests.exceptions.ConnectTimeout) as post:
+        with patch("roboflow.util.http.requests.post", side_effect=requests.exceptions.ConnectTimeout) as post:
             with self.assertRaises(RoboflowError) as preparation:
                 self.project.upload_video(self.video_path)
         self.assertIn("ConnectTimeout", str(preparation.exception))
         self.assertNotIn(ROBOFLOW_API_KEY, str(preparation.exception))
         self.assertEqual(post.call_args.kwargs["timeout"], (5, 30))
 
-        with patch("roboflow.adapters.rfapi.requests.get", side_effect=requests.exceptions.ConnectionError) as get:
+        with patch("roboflow.util.http.requests.get", side_effect=requests.exceptions.ConnectionError) as get:
             with self.assertRaises(RoboflowError) as status:
                 self.project.get_video_upload_status("upload-1")
         self.assertIn("ConnectionError", str(status.exception))

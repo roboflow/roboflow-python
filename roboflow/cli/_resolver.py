@@ -37,12 +37,11 @@ def resolve_default_workspace(api_key: Optional[str] = None) -> Optional[str]:
     if not key:
         return None
 
-    import requests
-
     from roboflow.config import API_URL
+    from roboflow.util import http
 
     try:
-        resp = requests.post(API_URL + "/?api_key=" + key)
+        resp = http.post(API_URL + "/?api_key=" + key)
         if resp.status_code == 200:
             return resp.json().get("workspace") or None
     except Exception:  # noqa: BLE001

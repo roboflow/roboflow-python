@@ -11,7 +11,7 @@ def _response(payload=None, status_code=200, text="error"):
 
 
 class TestAutolabelAdapters(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_list_models_contract(self, mock_get):
         mock_get.return_value = _response({"models": []})
 
@@ -19,7 +19,7 @@ class TestAutolabelAdapters(unittest.TestCase):
         self.assertTrue(mock_get.call_args.args[0].endswith("/ws/autolabel/models"))
         self.assertEqual(mock_get.call_args.kwargs["params"], {"api_key": "key"})
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_get_job_contract(self, mock_get):
         mock_get.return_value = _response({"status": "running"})
 
@@ -27,7 +27,7 @@ class TestAutolabelAdapters(unittest.TestCase):
         self.assertTrue(mock_get.call_args.args[0].endswith("/ws/autolabel/jobs/job-1"))
         self.assertEqual(mock_get.call_args.kwargs["params"], {"api_key": "key"})
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_preview_contract(self, mock_post):
         mock_post.return_value = _response({"predictions": []})
         image = {"type": "url", "value": "https://example.com/cat.jpg"}
@@ -51,7 +51,7 @@ class TestAutolabelAdapters(unittest.TestCase):
             {"modelType": "sam3-rle", "image": image, "ontology": {"cat": "cat"}, "confidenceThreshold": 0.4},
         )
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_start_job_contract_omits_unset_fields(self, mock_post):
         mock_post.return_value = _response({"jobId": "job-1"})
 
@@ -64,7 +64,7 @@ class TestAutolabelAdapters(unittest.TestCase):
             {"batchId": "batch-1", "modelType": "gpt-6-astra-boxes"},
         )
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_start_job_contract_full_payload(self, mock_post):
         mock_post.return_value = _response({"jobId": "job-1"})
 
@@ -99,7 +99,7 @@ class TestAutolabelAdapters(unittest.TestCase):
             },
         )
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_errors_raise_roboflow_error_with_status(self, mock_post):
         mock_post.return_value = _response({"error": {"message": "batch not found"}}, status_code=404)
 
