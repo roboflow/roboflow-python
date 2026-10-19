@@ -10,6 +10,8 @@ import requests
 import yaml
 from PIL import Image
 
+from roboflow.util import http
+
 # HEIC/HEIF decoding is optional: pip install "roboflow[heic]"
 try:
     import pillow_heif
@@ -38,7 +40,7 @@ def check_image_url(url):
     if urllib.parse.urlparse(url).scheme not in ("http", "https"):
         return False
 
-    r = requests.head(url)
+    r = http.head(url)
     return r.status_code == requests.codes.ok
 
 

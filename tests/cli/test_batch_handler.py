@@ -138,7 +138,7 @@ class TestBatchCreate(unittest.TestCase):
             with self.subTest(transport_error=type(transport_error).__name__):
                 with (
                     patch("roboflow.cli.handlers.batch.uuid.uuid4", return_value=request_id),
-                    patch("roboflow.adapters.rfapi.requests.post", side_effect=transport_error),
+                    patch("roboflow.util.http.requests.post", side_effect=transport_error),
                 ):
                     result = runner.invoke(
                         app,

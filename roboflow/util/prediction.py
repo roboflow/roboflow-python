@@ -4,7 +4,6 @@ import json
 import urllib.request
 import warnings
 
-import requests
 from PIL import Image
 
 from roboflow.config import (
@@ -15,6 +14,7 @@ from roboflow.config import (
     PREDICTION_OBJECT,
     SEMANTIC_SEGMENTATION_MODEL,
 )
+from roboflow.util import http
 from roboflow.util.image_utils import mask_image, validate_image_path
 
 
@@ -32,7 +32,7 @@ def plot_image(image_path):
         img = Image.open(image_path)
     except OSError:
         # Try opening Hosted image
-        response = requests.get(image_path)
+        response = http.get(image_path)
         img = Image.open(io.BytesIO(response.content))
 
     figure, axes = plt.subplots()
@@ -127,7 +127,9 @@ class Prediction:
         import numpy as np
 
         if "http://" in self.image_path or "https://" in self.image_path:
-            req = urllib.request.urlopen(self.image_path)
+            req = urllib.request.urlopen(
+                urllib.request.Request(self.image_path, headers={"User-Agent": http.USER_AGENT})
+            )
             arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
             image = cv2.imdecode(arr, -1)  # 'Load it as it is'
 
@@ -328,7 +330,9 @@ class PredictionGroup:
 
         # Check if it is a hosted image and open image as needed
         if "http://" in self.base_image_path or "https://" in self.base_image_path:
-            req = urllib.request.urlopen(self.base_image_path)
+            req = urllib.request.urlopen(
+                urllib.request.Request(self.base_image_path, headers={"User-Agent": http.USER_AGENT})
+            )
             arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
             image = cv2.imdecode(arr, -1)  # 'Load it as it is'
             # Return array with image info

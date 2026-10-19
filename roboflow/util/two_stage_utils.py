@@ -1,9 +1,8 @@
 import base64
 import io
 
-import requests
-
 from roboflow.config import OCR_URL
+from roboflow.util import http
 
 
 def ocr_infer(image):
@@ -19,7 +18,7 @@ def ocr_infer(image):
     upload_url = "".join([OCR_URL])
 
     # POST to the API
-    r = requests.post(
+    r = http.post(
         upload_url,
         data=img_str,
         headers={"Content-Type": "application/x-www-form-urlencoded"},

@@ -420,10 +420,9 @@ def _handle_upload_directory(args, api_key: str, path: str) -> None:  # noqa: AN
 def _handle_get(args):  # noqa: ANN001
     import json
 
-    import requests
-
     from roboflow.cli._output import output, output_error
     from roboflow.config import API_URL, load_roboflow_api_key
+    from roboflow.util import http
 
     api_key = args.api_key or load_roboflow_api_key(args.workspace)
     if not api_key:
@@ -436,7 +435,7 @@ def _handle_get(args):  # noqa: ANN001
         return
 
     url = f"{API_URL}/{workspace_url}/{args.project}/images/{args.image_id}"
-    response = requests.get(url, params={"api_key": api_key})
+    response = http.get(url, params={"api_key": api_key})
     if response.status_code != 200:
         output_error(args, f"Failed to get image: {response.text}", exit_code=3)
         return

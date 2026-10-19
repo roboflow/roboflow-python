@@ -5,11 +5,11 @@ import os
 import urllib
 from typing import Optional
 
-import requests
 from PIL import Image
 
 from roboflow.config import KEYPOINT_DETECTION_MODEL, SERVERLESS_URL
 from roboflow.models.inference import InferenceModel
+from roboflow.util import http
 from roboflow.util.image_utils import check_image_url
 from roboflow.util.prediction import PredictionGroup
 
@@ -101,7 +101,7 @@ class KeypointDetectionModel(InferenceModel):
             img_str = base64.b64encode(buffered.getvalue())
             img_str = img_str.decode("ascii")
             # Post to API and return response
-            resp = requests.post(
+            resp = http.post(
                 self.api_url,
                 data=img_str,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -110,7 +110,7 @@ class KeypointDetectionModel(InferenceModel):
             # Create API URL for hosted image (slightly different)
             self.api_url += "&image=" + urllib.parse.quote_plus(image_path)
             # POST to the API
-            resp = requests.post(self.api_url)
+            resp = http.post(self.api_url)
             img_dims = {"width": "0", "height": "0"}
 
         if resp.status_code != 200:
