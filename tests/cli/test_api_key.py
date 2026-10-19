@@ -668,7 +668,7 @@ class TestStatusCodePropagation(unittest.TestCase):
         resp.text = text
         return resp
 
-    @patch("roboflow.adapters.rfapi.requests.delete")
+    @patch("roboflow.util.http.requests.delete")
     def test_revoke_attaches_status_code(self, mock_delete) -> None:
         from roboflow.adapters.rfapi import RoboflowError, revoke_api_key
 
@@ -677,7 +677,7 @@ class TestStatusCodePropagation(unittest.TestCase):
             revoke_api_key("fake-key", "test-ws", "k1")
         self.assertEqual(ctx.exception.status_code, 409)
 
-    @patch("roboflow.adapters.rfapi.requests.patch")
+    @patch("roboflow.util.http.requests.patch")
     def test_update_attaches_status_code(self, mock_patch) -> None:
         from roboflow.adapters.rfapi import RoboflowError, update_api_key
 
@@ -686,7 +686,7 @@ class TestStatusCodePropagation(unittest.TestCase):
             update_api_key("fake-key", "test-ws", "k1", protected=False)
         self.assertEqual(ctx.exception.status_code, 403)
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_get_attaches_status_code(self, mock_get) -> None:
         from roboflow.adapters.rfapi import RoboflowError, get_api_key
 
@@ -896,7 +896,7 @@ class TestApiKeyBodySerialization(unittest.TestCase):
         resp.json.return_value = payload or {}
         return resp
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_create_full_access_serializes_null_scopes(self, mock_post) -> None:
         from roboflow.adapters.rfapi import FULL_ACCESS, create_api_key
 
@@ -906,7 +906,7 @@ class TestApiKeyBodySerialization(unittest.TestCase):
         self.assertIn("scopes", body)
         self.assertIsNone(body["scopes"])
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_create_empty_scopes_serializes_empty_list(self, mock_post) -> None:
         from roboflow.adapters.rfapi import create_api_key
 
@@ -915,7 +915,7 @@ class TestApiKeyBodySerialization(unittest.TestCase):
         body = mock_post.call_args.kwargs["json"]
         self.assertEqual(body["scopes"], [])
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_create_omitted_scopes_absent_from_body(self, mock_post) -> None:
         from roboflow.adapters.rfapi import create_api_key
 
@@ -924,7 +924,7 @@ class TestApiKeyBodySerialization(unittest.TestCase):
         body = mock_post.call_args.kwargs["json"]
         self.assertNotIn("scopes", body)
 
-    @patch("roboflow.adapters.rfapi.requests.patch")
+    @patch("roboflow.util.http.requests.patch")
     def test_update_full_access_serializes_null_scopes(self, mock_patch) -> None:
         from roboflow.adapters.rfapi import FULL_ACCESS, update_api_key
 
@@ -934,7 +934,7 @@ class TestApiKeyBodySerialization(unittest.TestCase):
         self.assertIn("scopes", body)
         self.assertIsNone(body["scopes"])
 
-    @patch("roboflow.adapters.rfapi.requests.patch")
+    @patch("roboflow.util.http.requests.patch")
     def test_update_empty_scopes_serializes_empty_list(self, mock_patch) -> None:
         from roboflow.adapters.rfapi import update_api_key
 
@@ -943,7 +943,7 @@ class TestApiKeyBodySerialization(unittest.TestCase):
         body = mock_patch.call_args.kwargs["json"]
         self.assertEqual(body["scopes"], [])
 
-    @patch("roboflow.adapters.rfapi.requests.patch")
+    @patch("roboflow.util.http.requests.patch")
     def test_update_clear_metadata_serializes_empty_dict(self, mock_patch) -> None:
         from roboflow.adapters.rfapi import update_api_key
 
@@ -956,7 +956,7 @@ class TestApiKeyBodySerialization(unittest.TestCase):
         self.assertEqual(body["customMetadata"], {})
         self.assertNotIn("custom_metadata", body)
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_create_metadata_serializes_camelcase(self, mock_post) -> None:
         from roboflow.adapters.rfapi import create_api_key
 
@@ -966,7 +966,7 @@ class TestApiKeyBodySerialization(unittest.TestCase):
         self.assertEqual(body["customMetadata"], {"env": "prod"})
         self.assertNotIn("custom_metadata", body)
 
-    @patch("roboflow.adapters.rfapi.requests.patch")
+    @patch("roboflow.util.http.requests.patch")
     def test_update_none_scopes_absent_from_body(self, mock_patch) -> None:
         from roboflow.adapters.rfapi import update_api_key
 

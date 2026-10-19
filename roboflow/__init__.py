@@ -1,3 +1,6 @@
+# Set before the imports below, so roboflow.util.http can read it for the User-Agent while they run.
+__version__ = "1.7.1"
+
 import json
 import os
 import sys
@@ -6,11 +9,10 @@ from getpass import getpass
 from pathlib import Path
 from urllib.parse import urlparse
 
-import requests
-
 from roboflow.adapters import rfapi
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS, load_roboflow_api_key
 from roboflow.core.workspace import Workspace
+from roboflow.util import http
 from roboflow.util.general import write_line
 
 try:
@@ -20,8 +22,6 @@ except ImportError:
     Project = None  # type: ignore[assignment,misc]
     CLIPModel = None  # type: ignore[assignment,misc]
     GazeModel = None  # type: ignore[assignment,misc]
-
-__version__ = "1.7.1"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
@@ -36,7 +36,7 @@ def check_key(api_key, model, notebook, num_retries=0):
             return api_key
         else:
             # validate key normally
-            response = requests.post(API_URL + "/?api_key=" + api_key)
+            response = http.post(API_URL + "/?api_key=" + api_key)
 
             if response.status_code == 401:
                 raise RuntimeError(response.text)
@@ -137,7 +137,7 @@ def login(workspace=None, force=False, region=None):
 
     token = getpass("Paste the authentication token here: ")
 
-    r_login = requests.get(app_url + "/query/cliAuthToken/" + token)
+    r_login = http.get(app_url + "/query/cliAuthToken/" + token)
 
     if r_login.status_code == 200:
         r_login = r_login.json()
@@ -339,7 +339,7 @@ class Roboflow:
             else:
                 the_workspace = self.current_workspace
 
-        dataset_info = requests.get(API_URL + "/" + the_workspace + "/" + project_name + "?api_key=" + self.api_key)
+        dataset_info = http.get(API_URL + "/" + the_workspace + "/" + project_name + "?api_key=" + self.api_key)
 
         # Throw error if dataset isn't valid/user doesn't have
         #   permissions to access the dataset

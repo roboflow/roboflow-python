@@ -32,7 +32,7 @@ def _mock_response(status: int, payload: Any) -> MagicMock:
 class TestDevicesApiUrlBuilding(unittest.TestCase):
     """The adapter must build correct workspace-scoped /devices/v2/* URLs."""
 
-    @patch("roboflow.adapters.devicesapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_list_devices_url(self, mock_get):
         mock_get.return_value = _mock_response(200, {"data": []})
         result = devicesapi.list_devices(API_KEY, WORKSPACE)
@@ -41,14 +41,14 @@ class TestDevicesApiUrlBuilding(unittest.TestCase):
         self.assertIn(f"api_key={API_KEY}", called_url)
         self.assertEqual(result, {"data": []})
 
-    @patch("roboflow.adapters.devicesapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_get_device_url(self, mock_get):
         mock_get.return_value = _mock_response(200, {"id": DEVICE_ID})
         devicesapi.get_device(API_KEY, WORKSPACE, DEVICE_ID)
         called_url = mock_get.call_args[0][0]
         self.assertIn(f"/{WORKSPACE}/devices/v2/{DEVICE_ID}", called_url)
 
-    @patch("roboflow.adapters.devicesapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_list_device_streams_returns_envelope(self, mock_get):
         mock_get.return_value = _mock_response(200, {"data": [{"id": "s1"}]})
         result = devicesapi.list_device_streams(API_KEY, WORKSPACE, DEVICE_ID)
@@ -56,7 +56,7 @@ class TestDevicesApiUrlBuilding(unittest.TestCase):
         self.assertIn(f"/{WORKSPACE}/devices/v2/{DEVICE_ID}/streams", called_url)
         self.assertEqual(result, {"data": [{"id": "s1"}]})
 
-    @patch("roboflow.adapters.devicesapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_logs_csv_serialization(self, mock_get):
         mock_get.return_value = _mock_response(200, {"data": [], "pagination": {}})
         devicesapi.get_device_logs(
@@ -73,14 +73,14 @@ class TestDevicesApiUrlBuilding(unittest.TestCase):
         self.assertIn("severity=INFO%2CWARN", called_url)
         self.assertIn("limit=50", called_url)
 
-    @patch("roboflow.adapters.devicesapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_telemetry_time_period(self, mock_get):
         mock_get.return_value = _mock_response(200, {"buckets": []})
         devicesapi.get_device_telemetry(API_KEY, WORKSPACE, DEVICE_ID, time_period="7d")
         called_url = mock_get.call_args[0][0]
         self.assertIn("time_period=7d", called_url)
 
-    @patch("roboflow.adapters.devicesapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_events_passes_cursor_unparsed(self, mock_get):
         mock_get.return_value = _mock_response(200, {"data": [], "pagination": {}})
         # Cursors are opaque base64url strings; must round-trip without parsing.
@@ -90,7 +90,7 @@ class TestDevicesApiUrlBuilding(unittest.TestCase):
         self.assertIn(f"cursor={cursor}", called_url)
         self.assertIn("direction=forward", called_url)
 
-    @patch("roboflow.adapters.devicesapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_create_device_body_field_names(self, mock_post):
         mock_post.return_value = _mock_response(201, {"deviceId": "d1", "installId": "i1"})
         devicesapi.create_device(
@@ -112,8 +112,8 @@ class TestDevicesApiUrlBuilding(unittest.TestCase):
         # Body field is camelCase per docs/api/deployments/overview.md
         self.assertEqual(body["sourceDeviceId"], "other")
 
-    @patch("roboflow.adapters.devicesapi.requests.post")
-    @patch("roboflow.adapters.devicesapi.requests.get")
+    @patch("roboflow.util.http.requests.post")
+    @patch("roboflow.util.http.requests.get")
     def test_requests_use_default_timeout(self, mock_get, mock_post):
         mock_get.return_value = _mock_response(200, {"data": [], "pagination": {}})
         mock_post.return_value = _mock_response(201, {"deviceId": "d1", "installId": "i1"})
@@ -139,7 +139,7 @@ class TestDevicesApiErrors(unittest.TestCase):
     """Each non-2xx HTTP status maps to a typed exception."""
 
     def _expect(self, status: int, expected_cls: type) -> None:
-        with patch("roboflow.adapters.devicesapi.requests.get") as mock_get:
+        with patch("roboflow.util.http.requests.get") as mock_get:
             mock_get.return_value = _mock_response(status, {"error": "bad"})
             with self.assertRaises(expected_cls) as ctx:
                 devicesapi.get_device(API_KEY, WORKSPACE, DEVICE_ID)
@@ -161,7 +161,7 @@ class TestDevicesApiErrors(unittest.TestCase):
         # validateToken.js returns 404 + GraphMethodException when the api_key
         # is valid for the workspace but lacks the device:read/update scope.
         body = {"error": {"type": "GraphMethodException", "message": "scope missing"}}
-        with patch("roboflow.adapters.devicesapi.requests.get") as mock_get:
+        with patch("roboflow.util.http.requests.get") as mock_get:
             mock_get.return_value = _mock_response(404, body)
             with self.assertRaises(DeviceAuthError) as ctx:
                 devicesapi.get_device(API_KEY, WORKSPACE, DEVICE_ID)
@@ -177,7 +177,7 @@ class TestDevicesApiErrors(unittest.TestCase):
         # Server-side 500s sometimes return a multi-KB HTML stack trace. The
         # adapter must cap that before it lands in str(exc).
         huge_body = "X" * 10_000  # 10x the cap
-        with patch("roboflow.adapters.devicesapi.requests.get") as mock_get:
+        with patch("roboflow.util.http.requests.get") as mock_get:
             response = MagicMock()
             response.status_code = 500
             response.json.side_effect = ValueError("not JSON")

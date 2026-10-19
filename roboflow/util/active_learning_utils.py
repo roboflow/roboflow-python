@@ -2,8 +2,9 @@ import base64
 import io
 import json
 
-import requests
 from PIL import Image
+
+from roboflow.util import http
 
 
 # a for loop that counts the number of occurances within an array
@@ -64,6 +65,6 @@ def clip_encode(image1, image2, CLIP_FEATURIZE_URL):
     headers = {"Content-Type": "text/plain"}
     data = json.dumps({"image1": image1, "image2": image2})
 
-    r = requests.post(url, data=data, headers=headers)
+    r = http.post(url, data=data, headers=headers)
 
     return float(r.json()["similarity"])

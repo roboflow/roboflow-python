@@ -8,12 +8,12 @@ from datetime import datetime
 from typing import Dict, List, Optional, Union
 
 import filetype
-import requests
 
 from roboflow.adapters import rfapi
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError
 from roboflow.config import API_URL, DEMO_KEYS
 from roboflow.core.version import Version
+from roboflow.util import http
 from roboflow.util.autolabel_utils import Ontology as _AutolabelOntology
 from roboflow.util.autolabel_utils import image_payload as _autolabel_image_payload
 from roboflow.util.autolabel_utils import ontology_payload as _autolabel_ontology_payload
@@ -107,7 +107,7 @@ class Project:
 
             >>> version_info = project.get_version_information()
         """
-        dataset_info = requests.get(
+        dataset_info = http.get(
             API_URL + "/" + self.__workspace + "/" + self.__project_name + "?api_key=" + self.__api_key
         )
 
@@ -237,7 +237,7 @@ class Project:
                 )
             )
 
-        r = requests.post(
+        r = http.post(
             f"{API_URL}/{self.__workspace}/{self.__project_name}/generate?api_key={self.__api_key}",
             json=settings,
         )
@@ -826,7 +826,7 @@ class Project:
 
         payload["fields"] = fields
 
-        data = requests.post(
+        data = http.post(
             API_URL + "/" + self.__workspace + "/" + self.__project_name + "/search?api_key=" + self.__api_key,
             json=payload,
         )
@@ -1033,7 +1033,7 @@ class Project:
         """
         url = f"{API_URL}/{self.__workspace}/{self.__project_name}/images/{image_id}?api_key={self.__api_key}"
 
-        data = requests.get(url).json()
+        data = http.get(url).json()
 
         if "error" in data:
             raise RuntimeError(data["error"])
@@ -1456,7 +1456,7 @@ class Project:
         """
         url = f"{API_URL}/{self.__workspace}/{self.__project_name}/batches?api_key={self.__api_key}"
 
-        response = requests.get(url)
+        response = http.get(url)
 
         if response.status_code != 200:
             try:
@@ -1490,7 +1490,7 @@ class Project:
         """
         url = f"{API_URL}/{self.__workspace}/{self.__project_name}/batches/{batch_id}?api_key={self.__api_key}"
 
-        response = requests.get(url)
+        response = http.get(url)
 
         if response.status_code != 200:
             try:
@@ -1565,7 +1565,7 @@ class Project:
 
         payload = {"images": image_ids}
 
-        response = requests.delete(url, headers={"Content-Type": "application/json"}, json=payload)
+        response = http.delete(url, headers={"Content-Type": "application/json"}, json=payload)
 
         if response.status_code != 204:
             try:
