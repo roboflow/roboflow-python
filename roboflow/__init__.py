@@ -1,3 +1,6 @@
+# Set before the imports below, so roboflow.util.http can read it for the User-Agent while they run.
+__version__ = "1.7.1"
+
 import json
 import os
 import sys
@@ -20,8 +23,6 @@ except ImportError:
     Project = None  # type: ignore[assignment,misc]
     CLIPModel = None  # type: ignore[assignment,misc]
     GazeModel = None  # type: ignore[assignment,misc]
-
-__version__ = "1.7.1"
 
 
 def check_key(api_key, model, notebook, num_retries=0):
