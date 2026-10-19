@@ -12,8 +12,6 @@ import json
 import os
 from typing import List
 
-import requests
-
 from roboflow.adapters import rfapi
 from roboflow.config import (
     CLASSIFICATION_MODEL,
@@ -30,6 +28,7 @@ from roboflow.config import (
     resolve_available_url,
 )
 from roboflow.models.inference import InferenceModel
+from roboflow.util import http
 from roboflow.util.model_processor import task_of_model_type
 
 
@@ -166,7 +165,7 @@ class TrainedModel:
         )
         os.makedirs(location, exist_ok=True)
         out_path = os.path.join(location, "weights.pt")
-        response = requests.get(weights_url, stream=True)
+        response = http.get(weights_url, stream=True)
         response.raise_for_status()
         with open(out_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):

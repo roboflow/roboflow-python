@@ -12,13 +12,15 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import Any, Dict, Iterator, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 from urllib.parse import quote
-
-import requests
 
 from roboflow.adapters.rfapi import RoboflowError
 from roboflow.config import API_URL
+from roboflow.util import http
+
+if TYPE_CHECKING:
+    import requests
 
 DEFAULT_TIMEOUT = 60
 
@@ -171,7 +173,7 @@ def request(
     Returns ``None`` for ``204 No Content``. Raises :class:`WorkflowEvalError`
     for any non-2xx response.
     """
-    response = requests.request(
+    response = http.request(
         method.upper(),
         f"{base_url(workspace_url)}{path}",
         params=_clean_params(params),
@@ -205,7 +207,7 @@ def stream_events(
     ``data`` is decoded as JSON when possible, otherwise left as text. The
     stream ends after the server's terminal ``done`` event.
     """
-    response = requests.post(
+    response = http.post(
         f"{base_url(workspace_url)}{path}",
         json=body,
         headers=_headers(api_key, idempotency_key=idempotency_key, accept="text/event-stream"),
@@ -256,7 +258,7 @@ def _decode_data(data: str) -> Any:
 
 def put_signed_upload(upload_url: str, data: bytes, headers: Dict[str, str], *, timeout: float = 300) -> None:
     """PUT bytes to a signed upload URL with exactly the headers the API returned."""
-    response = requests.put(upload_url, data=data, headers=headers, timeout=timeout)
+    response = http.put(upload_url, data=data, headers=headers, timeout=timeout)
     if not 200 <= response.status_code < 300:
         raise WorkflowEvalError(
             f"Signed upload failed ({response.status_code}): {response.text}", status_code=response.status_code

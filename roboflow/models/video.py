@@ -4,10 +4,10 @@ from typing import Optional, Tuple
 from urllib.parse import urljoin
 
 import filetype
-import requests
 
 from roboflow.config import API_URL
 from roboflow.models.inference import InferenceModel
+from roboflow.util import http
 
 SUPPORTED_ROBOFLOW_MODELS = ["object-detection", "classification", "instance-segmentation", "keypoint-detection"]
 
@@ -121,7 +121,7 @@ class VideoInferenceModel(InferenceModel):
 
         headers = {"Content-Type": "application/json"}
 
-        response = requests.request("POST", url, headers=headers, data=payload)
+        response = http.request("POST", url, headers=headers, data=payload)
 
         signed_url = response.json()["signed_url"]
 
@@ -142,7 +142,7 @@ class VideoInferenceModel(InferenceModel):
 
         payload = json.dumps({"input_url": signed_url, "infer_fps": fps, "models": models})
 
-        response = requests.request("POST", url, headers=headers, data=payload)
+        response = http.request("POST", url, headers=headers, data=payload)
 
         job_id = response.json()["job_id"]
 
@@ -177,7 +177,7 @@ class VideoInferenceModel(InferenceModel):
         url = urljoin(API_URL, f"/videoinfer/?api_key={self.__api_key}&job_id={self.job_id}")
 
         try:
-            response = requests.get(url, headers={"Content-Type": "application/json"})
+            response = http.get(url, headers={"Content-Type": "application/json"})
         except Exception as e:
             print(e)
             raise Exception("Error polling for results.")
@@ -190,7 +190,7 @@ class VideoInferenceModel(InferenceModel):
         if data["success"] == 0:
             output_signed_url = data["output_signed_url"]
 
-            inference_data = requests.get(output_signed_url, headers={"Content-Type": "application/json"})
+            inference_data = http.get(output_signed_url, headers={"Content-Type": "application/json"})
 
             # frame_offset and model name are top-level keys
             return inference_data.json()

@@ -92,6 +92,9 @@ convention = "google"
 "tests/manual/*.py" = [
     "INP001", # Manual scripts don't need __init__.py
 ]
+"roboflow/util/http.py" = [
+    "TID251", # Wraps the requests functions that the rest of the SDK can't call
+]
 
 [tool.ruff.lint.pyupgrade]
 # Preserve types, even if a file imports `from __future__ import annotations`.
@@ -103,6 +106,15 @@ banned-module-level-imports = [
     "matplotlib",
     "numpy",
 ]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"requests.delete".msg = "Use roboflow.util.http.delete, which sends the SDK's User-Agent."
+"requests.get".msg = "Use roboflow.util.http.get, which sends the SDK's User-Agent."
+"requests.head".msg = "Use roboflow.util.http.head, which sends the SDK's User-Agent."
+"requests.patch".msg = "Use roboflow.util.http.patch, which sends the SDK's User-Agent."
+"requests.post".msg = "Use roboflow.util.http.post, which sends the SDK's User-Agent."
+"requests.put".msg = "Use roboflow.util.http.put, which sends the SDK's User-Agent."
+"requests.request".msg = "Use roboflow.util.http.request, which sends the SDK's User-Agent."
 
 [tool.mypy]
 python_version = "3.10"

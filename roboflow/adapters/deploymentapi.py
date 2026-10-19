@@ -1,8 +1,7 @@
 import urllib
 
-import requests
-
 from roboflow.config import DEDICATED_DEPLOYMENT_URL
+from roboflow.util import http
 
 
 class DeploymentApiError(Exception):
@@ -24,7 +23,7 @@ def add_deployment(
     }
     if machine_type is not None:
         params["machine_type"] = machine_type
-    response = requests.post(url, json=params)
+    response = http.post(url, json=params)
     if response.status_code != 200:
         return response.status_code, response.text
     return response.status_code, response.json()
@@ -32,7 +31,7 @@ def add_deployment(
 
 def get_deployment(api_key, deployment_name):
     url = f"{DEDICATED_DEPLOYMENT_URL}/get?api_key={api_key}&deployment_name={deployment_name}"
-    response = requests.get(url)
+    response = http.get(url)
     if response.status_code != 200:
         return response.status_code, response.text
     return response.status_code, response.json()
@@ -40,7 +39,7 @@ def get_deployment(api_key, deployment_name):
 
 def list_deployment(api_key):
     url = f"{DEDICATED_DEPLOYMENT_URL}/list?api_key={api_key}"
-    response = requests.get(url)
+    response = http.get(url)
     if response.status_code != 200:
         return response.status_code, response.text
     return response.status_code, response.json()
@@ -53,7 +52,7 @@ def get_workspace_usage(api_key, from_timestamp, to_timestamp):
     if to_timestamp is not None:
         params["to_timestamp"] = to_timestamp.isoformat()  # may contain + sign
     url = f"{DEDICATED_DEPLOYMENT_URL}/usage_workspace?{urllib.parse.urlencode(params)}"
-    response = requests.get(url)
+    response = http.get(url)
     if response.status_code != 200:
         return response.status_code, response.text
     return response.status_code, response.json()
@@ -66,7 +65,7 @@ def get_deployment_usage(api_key, deployment_name, from_timestamp, to_timestamp)
     if to_timestamp is not None:
         params["to_timestamp"] = to_timestamp.isoformat()  # may contain + sign
     url = f"{DEDICATED_DEPLOYMENT_URL}/usage_deployment?{urllib.parse.urlencode(params)}"
-    response = requests.get(url)
+    response = http.get(url)
     if response.status_code != 200:
         return response.status_code, response.text
     return response.status_code, response.json()
@@ -74,7 +73,7 @@ def get_deployment_usage(api_key, deployment_name, from_timestamp, to_timestamp)
 
 def pause_deployment(api_key, deployment_name):
     url = f"{DEDICATED_DEPLOYMENT_URL}/pause"
-    response = requests.post(url, json={"api_key": api_key, "deployment_name": deployment_name})
+    response = http.post(url, json={"api_key": api_key, "deployment_name": deployment_name})
     if response.status_code != 200:
         return response.status_code, response.text
     return response.status_code, response.json()
@@ -82,7 +81,7 @@ def pause_deployment(api_key, deployment_name):
 
 def resume_deployment(api_key, deployment_name):
     url = f"{DEDICATED_DEPLOYMENT_URL}/resume"
-    response = requests.post(url, json={"api_key": api_key, "deployment_name": deployment_name})
+    response = http.post(url, json={"api_key": api_key, "deployment_name": deployment_name})
     if response.status_code != 200:
         return response.status_code, response.text
     return response.status_code, response.json()
@@ -90,7 +89,7 @@ def resume_deployment(api_key, deployment_name):
 
 def delete_deployment(api_key, deployment_name):
     url = f"{DEDICATED_DEPLOYMENT_URL}/delete"
-    response = requests.post(url, json={"api_key": api_key, "deployment_name": deployment_name})
+    response = http.post(url, json={"api_key": api_key, "deployment_name": deployment_name})
     if response.status_code != 200:
         return response.status_code, response.text
     return response.status_code, response.json()
@@ -98,7 +97,7 @@ def delete_deployment(api_key, deployment_name):
 
 def list_machine_types(api_key):
     url = f"{DEDICATED_DEPLOYMENT_URL}/machine_types?api_key={api_key}"
-    response = requests.get(url)
+    response = http.get(url)
     if response.status_code != 200:
         return response.status_code, response.text
     return response.status_code, response.json()
@@ -113,7 +112,7 @@ def get_deployment_log(api_key, deployment_name, from_timestamp=None, to_timesta
     if max_entries > 0:
         params["max_entries"] = max_entries
     url = f"{DEDICATED_DEPLOYMENT_URL}/get_log?{urllib.parse.urlencode(params)}"
-    response = requests.get(url)
+    response = http.get(url)
     if response.status_code != 200:
         return response.status_code, response.text
     return response.status_code, response.json()

@@ -8,10 +8,11 @@ from unittest.mock import Mock, patch
 from requests.exceptions import ConnectionError, Timeout
 
 from roboflow.adapters import rfapi
+from roboflow.util.http import USER_AGENT
 
 
 class TestBatchProcessingAdapter(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_create_uses_bearer_auth_and_idempotent_payload(self, mock_post) -> None:
         response = Mock(status_code=202)
         response.json.return_value = {"status": "queued", "jobId": "al-123"}
@@ -27,7 +28,7 @@ class TestBatchProcessingAdapter(unittest.TestCase):
 
         self.assertEqual(result["jobId"], "al-123")
         _, kwargs = mock_post.call_args
-        self.assertEqual(kwargs["headers"], {"Authorization": "Bearer private-key"})
+        self.assertEqual(kwargs["headers"], {"User-Agent": USER_AGENT, "Authorization": "Bearer private-key"})
         self.assertNotIn("private-key", mock_post.call_args.args[0])
         self.assertEqual(
             mock_post.call_args.args[0],
@@ -36,7 +37,7 @@ class TestBatchProcessingAdapter(unittest.TestCase):
         self.assertEqual(kwargs["json"]["idempotencyKey"], "request-123")
         self.assertEqual(kwargs["timeout"], rfapi.BATCH_PROCESSING_REQUEST_TIMEOUT)
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_list_uses_canonical_jobs_endpoint(self, mock_get) -> None:
         response = Mock(status_code=200)
         response.json.return_value = {"status": "ok", "jobs": []}
@@ -49,7 +50,7 @@ class TestBatchProcessingAdapter(unittest.TestCase):
             f"{rfapi.API_URL}/batch-processing/v1/external/workspace-1/jobs",
         )
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_status_encodes_untrusted_job_id(self, mock_get) -> None:
         response = Mock(status_code=200)
         response.json.return_value = {"status": "ok", "job": {"jobId": "bad/id"}}
@@ -62,7 +63,7 @@ class TestBatchProcessingAdapter(unittest.TestCase):
             f"{rfapi.API_URL}/batch-processing/v1/external/workspace-1/jobs/bad%2Fid",
         )
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_error_preserves_http_status_for_cli_exit_codes(self, mock_get) -> None:
         response = Mock(status_code=404, text='{"error":{"message":"Job not found"}}')
         response.json.return_value = {"error": {"message": "Job not found"}}
@@ -78,7 +79,7 @@ class TestBatchProcessingAdapter(unittest.TestCase):
         for transport_error in (ConnectionError("connection reset"), Timeout("request timed out")):
             with self.subTest(transport_error=type(transport_error).__name__):
                 with patch(
-                    "roboflow.adapters.rfapi.requests.post",
+                    "roboflow.util.http.requests.post",
                     side_effect=transport_error,
                 ):
                     with self.assertRaises(rfapi.RoboflowError) as ctx:

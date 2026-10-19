@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from roboflow.models.vlm import VLMModel
+from roboflow.util.http import USER_AGENT
 
 
 class TestVLMModel(unittest.TestCase):
@@ -13,7 +14,7 @@ class TestVLMModel(unittest.TestCase):
         return VLMModel(api_key="k", id="ws/proj/3", name="proj", version="3")
 
     @patch("roboflow.models.vlm.check_image_url", return_value=True)
-    @patch("roboflow.models.vlm.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_predict_url_returns_raw_dict(self, mock_get: MagicMock, _chk: MagicMock) -> None:
         mock_get.return_value = MagicMock(
             status_code=200,
@@ -29,7 +30,7 @@ class TestVLMModel(unittest.TestCase):
         self.assertIn("image=", called_url)
 
     @patch("roboflow.models.vlm.check_image_url", return_value=True)
-    @patch("roboflow.models.vlm.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_predict_forwards_extra_kwargs_as_query(self, mock_get: MagicMock, _chk: MagicMock) -> None:
         mock_get.return_value = MagicMock(status_code=200, json=lambda: {"ok": True})
         self._make().predict("https://example.com/img.jpg", prompt="caption")
@@ -38,7 +39,7 @@ class TestVLMModel(unittest.TestCase):
         self.assertIn("prompt=caption", called_url)
 
     @patch("roboflow.models.vlm.check_image_url", return_value=True)
-    @patch("roboflow.models.vlm.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_predict_non_200_raises(self, mock_get: MagicMock, _chk: MagicMock) -> None:
         mock_get.return_value = MagicMock(status_code=401, text="unauthorized")
         with self.assertRaises(Exception) as ctx:
@@ -47,7 +48,7 @@ class TestVLMModel(unittest.TestCase):
 
     @patch("roboflow.models.vlm.os.path.exists", return_value=True)
     @patch("roboflow.models.vlm.Image.open")
-    @patch("roboflow.models.vlm.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_predict_local_path_posts_base64(
         self, mock_post: MagicMock, mock_open: MagicMock, _exists: MagicMock
     ) -> None:
@@ -64,7 +65,9 @@ class TestVLMModel(unittest.TestCase):
         result = self._make().predict("/tmp/x.jpg")
         self.assertEqual(result, {"ok": True})
         _, kwargs = mock_post.call_args
-        self.assertEqual(kwargs["headers"], {"Content-Type": "application/x-www-form-urlencoded"})
+        self.assertEqual(
+            kwargs["headers"], {"User-Agent": USER_AGENT, "Content-Type": "application/x-www-form-urlencoded"}
+        )
         self.assertIsInstance(kwargs["data"], str)
 
     def test_predict_missing_local_file_raises(self) -> None:

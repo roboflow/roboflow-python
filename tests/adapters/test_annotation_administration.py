@@ -11,7 +11,7 @@ def _response(payload=None, status_code=200):
 
 
 class TestAnnotationBatchAdministration(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_read_contracts(self, mock_get):
         mock_get.return_value = _response()
 
@@ -32,7 +32,7 @@ class TestAnnotationBatchAdministration(unittest.TestCase):
             {"api_key": "key", "limit": 10, "after": "next"},
         )
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_create_and_merge_contracts(self, mock_post):
         mock_post.return_value = _response()
 
@@ -59,7 +59,7 @@ class TestAnnotationBatchAdministration(unittest.TestCase):
             {"sourceBatchIds": ["source-1", "source-2"], "targetBatchId": "target"},
         )
 
-    @patch("roboflow.adapters.rfapi.requests.delete")
+    @patch("roboflow.util.http.requests.delete")
     def test_delete_contract(self, mock_delete):
         mock_delete.return_value = _response()
         rfapi.delete_annotation_batch("key", "ws", "proj", "batch-1", permanent=True)
@@ -68,7 +68,7 @@ class TestAnnotationBatchAdministration(unittest.TestCase):
 
 
 class TestAnnotationJobAdministration(unittest.TestCase):
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_read_contracts(self, mock_get):
         mock_get.return_value = _response()
 
@@ -89,7 +89,7 @@ class TestAnnotationJobAdministration(unittest.TestCase):
             {"api_key": "key", "limit": 5, "after": "next"},
         )
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_create_reassign_and_add_contracts(self, mock_post):
         mock_post.return_value = _response()
 
@@ -134,7 +134,7 @@ class TestAnnotationJobAdministration(unittest.TestCase):
         self.assertTrue(mock_post.call_args.args[0].endswith("/annotation-jobs/job-1/images"))
         self.assertEqual(mock_post.call_args.kwargs["json"], {"imageIds": ["image-2"]})
 
-    @patch("roboflow.adapters.rfapi.requests.patch")
+    @patch("roboflow.util.http.requests.patch")
     def test_update_contract_and_validation(self, mock_patch):
         mock_patch.return_value = _response()
         rfapi.update_annotation_job("key", "ws", "proj", "job-1", reviewer_email="new@example.com")
@@ -145,7 +145,7 @@ class TestAnnotationJobAdministration(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "exactly one"):
             rfapi.update_annotation_job("key", "ws", "proj", "job-1", labeler_email="a@example.com", instructions="new")
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_review_transition_contracts(self, mock_post):
         mock_post.return_value = _response()
 
@@ -168,7 +168,7 @@ class TestAnnotationJobAdministration(unittest.TestCase):
             {"status": "rejected", "currentStatus": "annotated"},
         )
 
-    @patch("roboflow.adapters.rfapi.requests.post")
+    @patch("roboflow.util.http.requests.post")
     def test_accept_and_move_contracts(self, mock_post):
         mock_post.return_value = _response()
 
@@ -201,13 +201,13 @@ class TestAnnotationJobAdministration(unittest.TestCase):
         self.assertTrue(mock_post.call_args.args[0].endswith("/annotation-jobs/job-1/move-to-unassigned"))
         self.assertEqual(mock_post.call_args.kwargs["json"], {})
 
-    @patch("roboflow.adapters.rfapi.requests.delete")
+    @patch("roboflow.util.http.requests.delete")
     def test_delete_annotations_contract(self, mock_delete):
         mock_delete.return_value = _response()
         rfapi.delete_annotation_job_annotations("key", "ws", "proj", "job-1")
         self.assertTrue(mock_delete.call_args.args[0].endswith("/annotation-jobs/job-1/annotations"))
 
-    @patch("roboflow.adapters.rfapi.requests.get")
+    @patch("roboflow.util.http.requests.get")
     def test_http_error_preserves_status_code(self, mock_get):
         mock_get.return_value = _response(status_code=403)
         with self.assertRaises(rfapi.RoboflowError) as context:

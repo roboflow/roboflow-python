@@ -15,11 +15,11 @@ import os
 import urllib.parse
 from typing import Any, Optional
 
-import requests
 from PIL import Image
 
 from roboflow.config import SERVERLESS_URL
 from roboflow.models.inference import InferenceModel
+from roboflow.util import http
 from roboflow.util.image_utils import check_image_url
 
 
@@ -75,7 +75,7 @@ class VLMModel(InferenceModel):
                 raise Exception(f"Image URL is not reachable: {image_path}")
             params["image"] = image_path
             url = f"{self._endpoint()}?{urllib.parse.urlencode(params)}"
-            resp = requests.get(url)
+            resp = http.get(url)
         else:
             if not os.path.exists(image_path):
                 raise Exception(f"Image does not exist at {image_path}!")
@@ -84,7 +84,7 @@ class VLMModel(InferenceModel):
             image.save(buffered, quality=90, format="JPEG")
             img_b64 = base64.b64encode(buffered.getvalue()).decode("ascii")
             url = f"{self._endpoint()}?{urllib.parse.urlencode(params)}"
-            resp = requests.post(
+            resp = http.post(
                 url,
                 data=img_b64,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
