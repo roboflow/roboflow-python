@@ -156,6 +156,37 @@ class TestProject(RoboflowTest):
 
         self.assertEqual(str(error.exception), "Image was already annotated.")
 
+    ANNOTATE_URL = (
+        f"{API_URL}/dataset/{PROJECT_NAME}/annotate/img-1?api_key={ROBOFLOW_API_KEY}&name=valid_annotation.json"
+    )
+
+    def _save_annotation(self, num_retry_uploads):
+        with patch("roboflow.util.general.time.sleep"):
+            return self.project.save_annotation(
+                annotation_path="tests/annotations/valid_annotation.json",
+                image_id="img-1",
+                num_retry_uploads=num_retry_uploads,
+            )
+
+    def test_save_annotation_retries_a_failed_save(self):
+        responses.add(responses.POST, self.ANNOTATE_URL, json={"error": {"message": "Internal error"}}, status=500)
+        responses.add(responses.POST, self.ANNOTATE_URL, json={"success": True}, status=200)
+
+        annotation, _, retry_attempts = self._save_annotation(num_retry_uploads=2)
+
+        self.assertEqual(annotation, {"success": True})
+        self.assertEqual(retry_attempts, 1)
+        responses.assert_call_count(self.ANNOTATE_URL, 2)
+
+    def test_save_annotation_raises_after_the_configured_retries(self):
+        responses.add(responses.POST, self.ANNOTATE_URL, json={"error": {"message": "Internal error"}}, status=500)
+
+        with self.assertRaises(AnnotationSaveError) as error:
+            self._save_annotation(num_retry_uploads=2)
+
+        self.assertEqual(str(error.exception), "Internal error")
+        responses.assert_call_count(self.ANNOTATE_URL, 3)
+
     def test_upload_single_file_returns_result(self):
         """upload() should return a list with the single_upload result dict for a single file (#254)."""
         image_id = "test-upload-id"
