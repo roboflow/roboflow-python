@@ -755,6 +755,9 @@ class Project:
             (``"image"`` or ``"video"``); video hits add a signed ``videoUrl`` when ``url``
             is requested in ``fields``, while ``url`` itself stays the poster frame.
 
+        Raises:
+            RoboflowError: If the API answers with an error.
+
         Example:
             >>> import roboflow
 
@@ -831,7 +834,7 @@ class Project:
             json=payload,
         )
 
-        return data.json()["results"]
+        return rfapi._json_response_or_raise(data)["results"]
 
     def search_all(
         self,

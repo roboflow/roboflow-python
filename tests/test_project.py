@@ -7,7 +7,7 @@ import responses
 from responses.matchers import json_params_matcher
 
 from roboflow import API_URL
-from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError
+from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
 from roboflow.config import DEFAULT_BATCH_NAME
 from tests import PROJECT_NAME, ROBOFLOW_API_KEY, WORKSPACE_NAME, RoboflowTest, ordered
 
@@ -971,6 +971,21 @@ class TestProject(RoboflowTest):
         # specified keys match, it doesn't fail if additional keys are missing
         results = self.project.search()
         self.assertEqual(len(results), 2)
+
+    def test_search_raises_the_api_error(self):
+        message = "Invalid search request."
+        responses.add(
+            responses.POST,
+            f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/search?api_key={ROBOFLOW_API_KEY}",
+            json={"error": message},
+            status=400,
+        )
+
+        with self.assertRaises(RoboflowError) as ctx:
+            self.project.search()
+
+        self.assertEqual(str(ctx.exception), message)
+        self.assertEqual(ctx.exception.status_code, 400)
 
 
 class TestZipUpload(RoboflowTest):
