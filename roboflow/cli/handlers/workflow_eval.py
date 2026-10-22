@@ -1272,7 +1272,7 @@ def start_run(
                 warn(f"--inference-url has no effect: Run {run_id} executes on Roboflow; waiting for it.")
         if mode == "browser" and run_id:
             resume = (
-                f"Resume with `roboflow workflow-eval run local -e {eval_id} -r {run_id} --inference-url "
+                f"Resume with `roboflow workflow-eval run local {run_id} -e {eval_id} --inference-url "
                 f"{inference_url}`; the journal is in {{state_dir}}."
             )
             result = _run_locally(args, c, eval_id, run_id, resume, warn, created_run=True, **local_options)
@@ -1296,8 +1296,8 @@ def start_run(
 @run_app.command("local")
 def run_local(
     ctx: typer.Context,
+    run_id: Annotated[str, typer.Argument(help="Run id")],
     eval_id: EvalOpt,
-    run_id: RunOpt,
     inference_url: Annotated[
         Optional[str], typer.Option("--inference-url", help="Inference server URL (default: the URL frozen in the Run)")
     ] = None,

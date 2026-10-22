@@ -501,7 +501,7 @@ roboflow workflow-eval run get <run-id> --eval <eval-id> --wait --timeout 0
 # Start and run one in this process, then wait for the result:
 roboflow workflow-eval run start --eval <eval-id> --body @run.json --wait --inference-url http://localhost:9001
 # Or run an existing local Run in the background (default --concurrency 4, max 16):
-nohup roboflow workflow-eval run local -e <eval-id> -r <run-id> --concurrency 4 > run-local.log 2>&1 &
+nohup roboflow workflow-eval run local <run-id> -e <eval-id> --concurrency 4 > run-local.log 2>&1 &
 # Interrupted (Ctrl-C, exit 130)? Run the same command again: captured outputs are resubmitted from the
 # journal in ~/.cache/roboflow/workflow-evals/<workspace>/<run-id>/ (--state-dir), not re-run.
 # Inference server unreachable? Those Cases are not captured (they stay pending; PENDING in the summary) and

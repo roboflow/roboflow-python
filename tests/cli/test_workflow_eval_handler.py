@@ -432,7 +432,7 @@ class TestWorkflowEvalRunWait(unittest.TestCase):
 
 
 RUNNER = "roboflow.core.workflow_eval_local_runner.LocalRunner"
-LOCAL = ["workflow-eval", "run", "local", "-e", "e1", "-r", "r1"]
+LOCAL = ["workflow-eval", "run", "local", "r1", "-e", "e1"]
 
 
 def _result(state: str = "completed") -> LocalRunResult:
@@ -519,6 +519,13 @@ class TestWorkflowEvalRunLocal(unittest.TestCase):
         self.assertEqual((options["concurrency"], options["case_timeout"]), (4, 300))
         self.assertIsNone(options["inference_url"])
         self.assertIsNone(options["state_dir"])
+
+    def test_run_option_is_not_accepted(self) -> None:
+        with patch(RUNNER, _fake(lambda runner: _result())):
+            result = _invoke("workflow-eval", "run", "local", "-e", "e1", "-r", "r1")
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn("No such option '-r'", result.output)
+        self.assertEqual(_FakeRunner.instances, [])
 
     def test_concurrency_out_of_range_is_rejected(self) -> None:
         for value in ("0", "17"):
@@ -891,7 +898,7 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
         self.assertEqual(calls, ["runner"])
         hint = json.loads(result.stderr.strip().splitlines()[-1])["error"]["hint"]
         self.assertTrue(hint.startswith("Start the inference server. "))
-        self.assertIn("run local -e e1 -r r1 --inference-url http://x", hint)
+        self.assertIn("run local r1 -e e1 --inference-url http://x", hint)
 
     def test_any_runner_error_hints_run_local_and_carries_the_run_id(self) -> None:
         error = LocalRunnerError("Could not reach the inference server at http://x.", hint=PREFLIGHT_HINT)
@@ -900,7 +907,7 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
         self.assertEqual(calls, ["runner"])
         payload = json.loads(result.stderr.strip().splitlines()[-1])["error"]
         self.assertTrue(payload["hint"].startswith(PREFLIGHT_HINT + " "))
-        self.assertIn("run local -e e1 -r r1 --inference-url http://x", payload["hint"])
+        self.assertIn("run local r1 -e e1 --inference-url http://x", payload["hint"])
         self.assertEqual(payload["details"]["runId"], "r1")
 
     def test_interrupt_hints_run_local_to_resume(self) -> None:
@@ -910,7 +917,7 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
         self.assertEqual(result.exit_code, 130)
         self.assertEqual(calls, ["runner"])
         hint = json.loads(result.stderr.strip().splitlines()[-1])["error"]["hint"]
-        self.assertIn("run local -e e1 -r r1 --inference-url http://x", hint)
+        self.assertIn("run local r1 -e e1 --inference-url http://x", hint)
 
     def test_runner_resume_hint_is_replaced_by_run_local(self) -> None:
         error = LocalRunnerError(
@@ -923,7 +930,7 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
         self.assertNotIn("run the command again", payload["hint"])
         self.assertEqual(
             payload["hint"],
-            f"{PREFLIGHT_HINT} Resume with `roboflow workflow-eval run local -e e1 -r r1 --inference-url http://x`; "
+            f"{PREFLIGHT_HINT} Resume with `roboflow workflow-eval run local r1 -e e1 --inference-url http://x`; "
             "the journal is in /tmp/rf-state/r1.",
         )
         self.assertEqual(payload["details"]["runId"], "r1")
@@ -948,7 +955,7 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
         self.assertEqual(calls, ["runner"])
         payload = json.loads(result.stderr.strip().splitlines()[-1])["error"]
         self.assertIn("Permission denied", payload["message"])
-        self.assertIn("run local -e e1 -r r1 --inference-url http://x", payload["hint"])
+        self.assertIn("run local r1 -e e1 --inference-url http://x", payload["hint"])
         self.assertEqual(payload["details"]["runId"], "r1")
 
 

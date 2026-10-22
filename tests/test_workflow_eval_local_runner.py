@@ -1189,7 +1189,7 @@ def test_inference_down_stops_then_the_same_command_completes_every_case_once(en
     env.inference.default = refused
     env.inference.behaviors.update(c1=ok("c1"), c2=ok("c2"))  # the server goes down after c2
     fake_time = {"clock": env.clock.time, "monotonic": env.clock.time, "sleep": env.clock.sleep}
-    argv = ["--workspace", WS, "--api-key", KEY, "--json", "workflow-eval", "run", "local", "-e", E, "-r", R]
+    argv = ["--workspace", WS, "--api-key", KEY, "--json", "workflow-eval", "run", "local", R, "-e", E]
     argv += ["--concurrency", "1", "--state-dir", env.state_dir]
 
     def invoke() -> Any:
