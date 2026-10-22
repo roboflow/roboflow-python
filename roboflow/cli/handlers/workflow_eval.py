@@ -1263,8 +1263,9 @@ def start_run(
         typer.Option(
             "--case-timeout",
             help="With --inference-url: seconds per connection attempt and per read of each inference request, "
-            "not a total per Case; 0 = no limit (default 300). Worst case per Case: about 31 s of connect backoff "
-            "plus 3 attempts x --case-timeout (no bound with --case-timeout 0).",
+            "not a total per Case; 0 = no limit (default 300). Worst case per Case for a server that stops "
+            "responding: about 34 s of backoff plus 9 x --case-timeout (6 connection attempts and 3 connected "
+            "attempts); a response that keeps sending data is not cut off (no bound with --case-timeout 0).",
         ),
     ] = None,
 ) -> None:
@@ -1340,8 +1341,9 @@ def run_local(
         typer.Option(
             "--case-timeout",
             help="Seconds per connection attempt and per read of each inference request, not a total per Case; "
-            "0 = no limit. Worst case per Case: about 31 s of connect backoff plus 3 attempts x --case-timeout "
-            "(no bound with --case-timeout 0).",
+            "0 = no limit. Worst case per Case for a server that stops responding: about 34 s of backoff plus "
+            "9 x --case-timeout (6 connection attempts and 3 connected attempts); a response that keeps sending "
+            "data is not cut off (no bound with --case-timeout 0).",
         ),
     ] = 300,
     state_dir: Annotated[
