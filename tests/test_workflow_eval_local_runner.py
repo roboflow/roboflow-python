@@ -885,6 +885,49 @@ def test_capture_409_processing_follows_a_lease_that_moves(env: Env) -> None:
     assert env.clock.now == START + 50
 
 
+@pytest.mark.parametrize("change", ["case_left_the_page", "attempt_changed"])
+def test_capture_409_processing_restarts_the_execution_when_the_wait_reread_drops_the_case(
+    env: Env, change: str
+) -> None:
+    server = env.serve([case("c1")])
+    lease = START + 600
+
+    def page_changes() -> None:
+        if env.clock.now >= START + 5 and server.attempt == 1 and len(server.items) == 1:
+            if change == "case_left_the_page":
+                # The other runner finished c1, which moved to the second page.
+                server.checkpoint("c1", {"state": "completed", "attemptCount": 1, "hasCapture": False})
+                with server.lock:
+                    server.items = [case("c0"), case("c1")]
+            else:
+                with server.lock:
+                    server.attempt = 2
+
+    server.before_page[None] = page_changes
+    server.capture_script["c1"] = [processing_until(server, lease)]
+    result = env.runner(concurrency=1).run()
+
+    # The first periodic re-read (t=5) abandons the wait: no resend at attempt 1, and the
+    # Execution restarts from the first page without waiting for the lease.
+    # Page reads: the pass, the immediate re-read, the t=5 re-read, then the restarted pass.
+    assert env.clock.now == START + 5
+    counts = {"id": X, "submitted": 1, "skipped": 0, "failed": 0, "pending": 0}
+    if change == "case_left_the_page":
+        # The restarted pass runs c0 and finds c1 done on page "1".
+        assert server.page_requests == [(None, 1)] * 4 + [("1", 1)]
+        assert [body["attemptCount"] for body in server.capture_bodies("c1")] == [1]
+        assert env.inference.names == ["c1", "c0"]
+        assert outcomes(env) == [("c0", 200, "submitted")]
+        assert result.executions[0].to_dict() == dict(counts, alreadyDone=1)
+    else:
+        # The restarted pass runs c1 again and captures it once, at attempt 2.
+        assert server.page_requests == [(None, 1)] * 4
+        assert [body["attemptCount"] for body in server.capture_bodies("c1")] == [1, 2]
+        assert env.inference.names == ["c1", "c1"]
+        assert outcomes(env) == [("c1", 200, "submitted")]
+        assert result.executions[0].to_dict() == dict(counts, alreadyDone=0)
+
+
 def test_run_completed_while_waiting_for_a_lease_exits_0_without_waiting(env: Env) -> None:
     server = env.serve([case("c1")])
 
