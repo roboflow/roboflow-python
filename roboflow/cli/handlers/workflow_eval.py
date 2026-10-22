@@ -155,6 +155,8 @@ def _fail(args: Any, exc: Exception, warnings: Optional[List[str]] = None) -> No
         if warnings:
             payload["warnings"] = warnings
         output_error(args, json.dumps({"error": payload}, default=str), hint=_error_hint(exc), exit_code=exc.exit_code)
+    elif warnings and getattr(args, "json", False):
+        output_error(args, json.dumps({"error": {"message": str(exc), "warnings": warnings}}))
     else:
         output_error(args, str(exc))
 
@@ -1091,12 +1093,14 @@ def _run_locally(
     pending because the inference server was unreachable, is re-raised with
     ``resume_hint`` (formatted with ``state_dir``). With ``created_run`` (``run
     start`` just created the Run, so running that command again would start
-    another one), every other :class:`LocalRunnerError` gets ``resume_hint``
-    appended to its own hint, and every one gets ``runId`` in its ``details``.
+    another one), every other resumable :class:`LocalRunnerError` gets ``resume_hint``
+    in place of the runner's "run the command again", any other exception is
+    wrapped in a :class:`LocalRunnerError`, and every one gets ``runId`` in its ``details``.
     """
     import contextlib
 
     from roboflow.core.workflow_eval_local_runner import (
+        RESUME_HINT,
         InferenceServerUnreachable,
         LocalRunner,
         LocalRunnerError,
@@ -1127,17 +1131,27 @@ def _run_locally(
     try:
         with handlers:
             return runner.run()
-    except LocalRunnerError as exc:
-        resume = resume_hint.format(state_dir=runner.state_dir)
-        if isinstance(exc, LocalRunnerInterrupted):
-            exc.hint = resume
-        elif isinstance(exc, InferenceServerUnreachable):
-            exc.hint = "Start the inference server. " + resume
+    except Exception as exc:  # noqa: BLE001 — after run start, any failure must keep the Run id
+        if isinstance(exc, LocalRunnerError):
+            error = exc
         elif created_run:
-            exc.hint = f"{exc.hint} {resume}" if exc.hint else resume
+            error = LocalRunnerError(str(exc))  # e.g. OSError creating the journal
+        else:
+            raise
+        resume = resume_hint.format(state_dir=runner.state_dir)
+        if isinstance(error, LocalRunnerInterrupted):
+            error.hint = resume
+        elif isinstance(error, InferenceServerUnreachable):
+            error.hint = "Start the inference server. " + resume
+        elif created_run and error.resumable:
+            # RESUME_HINT says "run the command again", which here would start another Run.
+            hint = (error.hint or "").replace(RESUME_HINT, "").strip()
+            error.hint = f"{hint} {resume}" if hint else resume
         if created_run:
-            exc.details = {**(exc.details or {}), "runId": run_id}
-        raise
+            error.details = {**(error.details or {}), "runId": run_id}
+        if error is exc:
+            raise
+        raise error from exc
 
 
 def _local_result_text(result: Dict[str, Any]) -> str:

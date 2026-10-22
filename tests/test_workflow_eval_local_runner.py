@@ -673,6 +673,7 @@ def test_run_closed_while_cancellation_is_finalizing_exits_1(env: Env) -> None:
     with pytest.raises(LocalRunnerError, match="was cancelled") as raised:
         env.runner().run()
     assert raised.value.exit_code == 1 and not isinstance(raised.value, LocalRunnerInterrupted)
+    assert raised.value.resumable is False
     assert ("c1", 409, "run_closed") in outcomes(env)
 
 

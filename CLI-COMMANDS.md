@@ -507,7 +507,10 @@ nohup roboflow workflow-eval run local -e <eval-id> -r <run-id> --concurrency 4 
 # Inference server unreachable? Those Cases are not captured (they stay pending; PENDING in the summary) and
 # the command exits 1, at once after 10 connection failures in a row; start the server and run it again.
 # A read timeout (--case-timeout: per connection attempt and per read, not per Case) or a persistent
-# 408/429/5xx is captured as a retryable failure. With --json, warnings are in the result's "warnings" array.
+# 408/429/5xx is captured as a retryable failure. With --json, warnings are in "warnings" on success, or in
+# "error.warnings" on failure. If `run start --wait --inference-url` fails after creating the Run, the error
+# has the Run id (error.details.runId) and a `run local` command to resume it; running `run start` again
+# would start another Run.
 roboflow workflow-eval execution overview <execution-id> --eval <eval-id> --run <run-id> --json
 roboflow workflow-eval execution results <execution-id> --eval <eval-id> --run <run-id> --failed-check
 roboflow workflow-eval compare --eval <eval-id> -x <execution-a> -x <execution-b> --json

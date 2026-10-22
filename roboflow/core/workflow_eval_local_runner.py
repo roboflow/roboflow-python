@@ -118,7 +118,8 @@ class LocalRunnerError(Exception):
     """A local run failed. ``exit_code`` is the CLI exit code (1 error, 2 auth, 3 not found).
 
     ``result`` holds the run summary when one is available (for example a
-    cancelled Run), so the CLI can still print it.
+    cancelled Run), so the CLI can still print it. ``resumable`` is False when
+    running again cannot finish the Run (it was cancelled).
     """
 
     def __init__(
@@ -129,6 +130,7 @@ class LocalRunnerError(Exception):
         exit_code: int = 1,
         details: Optional[Dict[str, Any]] = None,
         result: Optional[LocalRunResult] = None,
+        resumable: bool = True,
     ) -> None:
         super().__init__(message)
         self.message = message
@@ -136,6 +138,7 @@ class LocalRunnerError(Exception):
         self.exit_code = exit_code
         self.details = details
         self.result = result
+        self.resumable = resumable
 
     def to_dict(self) -> Dict[str, Any]:
         """Return ``{"message", "hint"?, "details"?}`` for the CLI's structured error."""
@@ -1006,7 +1009,10 @@ class LocalRunner:
         result = self._result(_field(run, "state"))
         if _cancelled(run):
             raise LocalRunnerError(
-                f"Run {self._run_id} was cancelled.", hint="Start a new Run to evaluate again.", result=result
+                f"Run {self._run_id} was cancelled.",
+                hint="Start a new Run to evaluate again.",
+                result=result,
+                resumable=False,
             )
         return result
 
