@@ -1063,12 +1063,16 @@ def _name_resolution_error() -> requests.exceptions.ConnectionError:
     return requests.exceptions.ConnectionError(urllib3.exceptions.MaxRetryError(None, "/", reason))
 
 
+# urllib3 1.26 has no NameResolutionError; there a DNS failure is a plain NewConnectionError.
+HAS_NAME_RESOLUTION_ERROR = hasattr(urllib3.exceptions, "NameResolutionError")
+
+
 @pytest.mark.parametrize(
     ("error", "kind", "timed_out"),
     [
         (refused_error(), "connect", False),
         (requests.exceptions.ConnectionError(urllib3.exceptions.NewConnectionError(None, "refused")), "connect", False),
-        (_name_resolution_error(), "connect", False),
+        *([(_name_resolution_error(), "connect", False)] if HAS_NAME_RESOLUTION_ERROR else []),
         (requests.exceptions.ConnectTimeout("connect timed out"), "connect", True),
         (requests.exceptions.SSLError("certificate verify failed"), "connect", False),
         (requests.exceptions.ProxyError("proxy refused"), "connect", False),
@@ -1140,12 +1144,11 @@ def test_a_case_that_reaches_the_server_resets_the_consecutive_count(env: Env, t
 @pytest.mark.parametrize(
     "error",
     [
-        refused_error(),
-        _name_resolution_error(),
-        requests.exceptions.ConnectTimeout("connect timed out"),
-        requests.exceptions.SSLError("certificate verify failed"),
+        pytest.param(refused_error(), id="refused"),
+        *([pytest.param(_name_resolution_error(), id="dns")] if HAS_NAME_RESOLUTION_ERROR else []),
+        pytest.param(requests.exceptions.ConnectTimeout("connect timed out"), id="connect-timeout"),
+        pytest.param(requests.exceptions.SSLError("certificate verify failed"), id="tls"),
     ],
-    ids=["refused", "dns", "connect-timeout", "tls"],
 )
 def test_unreachable_case_backs_off_1_2_4_8_16_then_is_left_pending(env: Env, error: Exception) -> None:
     server = env.serve([case("c1"), case("c2")])
