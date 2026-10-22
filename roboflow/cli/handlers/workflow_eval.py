@@ -20,7 +20,7 @@ import os
 import sys
 import threading
 import time
-from typing import Annotated, Any, Callable, Dict, List, Optional
+from typing import Annotated, Any, Callable, Dict, List, Optional, Tuple
 
 import typer
 
@@ -1041,23 +1041,56 @@ def _local_progress_line(progress: Dict[str, Any]) -> str:
         parts.append(f"{progress['alreadyDone']} already done")
     if progress.get("skipped"):
         parts.append(f"{progress['skipped']} skipped")
+    if progress.get("pending"):
+        parts.append(f"{progress['pending']} pending (inference server unreachable)")
     parts.append(f"in flight {progress['inFlight']}")
     latency = progress.get("lastLatencyMs")
     parts.append("last latency " + ("-" if latency is None else f"{latency:.0f} ms"))
     return " · ".join(parts)
 
 
-def _run_locally(args: Any, client: Any, eval_id: str, run_id: str, resume_hint: str, **options: Any) -> Any:
+def _warnings(args: Any) -> Tuple[List[str], Callable[[str], None]]:
+    """Return ``(warnings, warn)``: ``warn`` prints "Warning: ..." to stderr, or with --json collects into ``warnings``.
+
+    With --json the warnings go in a ``"warnings"`` field of the final JSON object,
+    so stdout stays a single JSON document and stderr stays free of text.
+    """
+    collected: List[str] = []
+
+    def warn(message: str) -> None:
+        if args.json:
+            collected.append(message)
+        else:
+            print(f"Warning: {message}", file=sys.stderr)
+
+    return collected, warn
+
+
+def _run_locally(
+    args: Any,
+    client: Any,
+    eval_id: str,
+    run_id: str,
+    resume_hint: str,
+    warn: Callable[[str], None],
+    **options: Any,
+) -> Any:
     """Run a local Run's Cases with :class:`LocalRunner` and return its ``LocalRunResult``.
 
     Progress goes to stderr (throttled, not with --json/--quiet); warnings go to
-    stderr unless --json. SIGINT/SIGTERM stop gracefully while the runner works and
-    the previous handlers are restored afterwards. An interruption is re-raised with
+    ``warn``. SIGINT/SIGTERM stop gracefully while the runner works and the
+    previous handlers are restored afterwards. An interruption, or Cases left
+    pending because the inference server was unreachable, is re-raised with
     ``resume_hint`` (formatted with ``state_dir``).
     """
     import contextlib
 
-    from roboflow.core.workflow_eval_local_runner import LocalRunner, LocalRunnerInterrupted, install_signal_handlers
+    from roboflow.core.workflow_eval_local_runner import (
+        InferenceServerUnreachable,
+        LocalRunner,
+        LocalRunnerInterrupted,
+        install_signal_handlers,
+    )
 
     show_progress = not args.json and not args.quiet
     throttle = _Throttle()
@@ -1065,10 +1098,6 @@ def _run_locally(args: Any, client: Any, eval_id: str, run_id: str, resume_hint:
     def on_progress(progress: Dict[str, Any]) -> None:
         if show_progress and throttle.ready():
             print(_local_progress_line(progress), file=sys.stderr)
-
-    def warn(message: str) -> None:
-        if not args.json:
-            print(f"Warning: {message}", file=sys.stderr)
 
     signals_seen = 0
 
@@ -1088,6 +1117,9 @@ def _run_locally(args: Any, client: Any, eval_id: str, run_id: str, resume_hint:
     except LocalRunnerInterrupted as exc:
         exc.hint = resume_hint.format(state_dir=runner.state_dir)
         raise
+    except InferenceServerUnreachable as exc:
+        exc.hint = "Start the inference server. " + resume_hint.format(state_dir=runner.state_dir)
+        raise
 
 
 def _local_result_text(result: Dict[str, Any]) -> str:
@@ -1103,6 +1135,7 @@ def _local_result_text(result: Dict[str, Any]) -> str:
         "FAILED": "failed",
         "ALREADY DONE": "alreadyDone",
         "SKIPPED": "skipped",
+        "PENDING": "pending",
     }
     rows = [{column: item[key] for column, key in columns.items()} for item in result["executions"]]
     return f"{header}\n\n{format_table(rows, list(columns))}" if rows else header
@@ -1159,7 +1192,9 @@ def start_run(
     inference_url: Annotated[
         Optional[str],
         typer.Option(
-            "--inference-url", help="With --wait, run a local Run's Cases against this inference server, then wait"
+            "--inference-url",
+            help="With --wait, run a local Run's Cases against this inference server, then wait "
+            "(no effect, with a warning, when the Run executes on Roboflow)",
         ),
     ] = None,
     concurrency: Annotated[
@@ -1168,7 +1203,11 @@ def start_run(
     ] = None,
     case_timeout: Annotated[
         Optional[float],
-        typer.Option("--case-timeout", help="With --inference-url: seconds per inference, 0 = no limit (default 300)"),
+        typer.Option(
+            "--case-timeout",
+            help="With --inference-url: seconds per connection attempt and per read of each inference request, "
+            "not a total per Case; 0 = no limit (default 300)",
+        ),
     ] = None,
 ) -> None:
     """Start a grouped Run of one or more Workflows over the Eval's Dataset (may consume credits)."""
@@ -1187,18 +1226,24 @@ def start_run(
     payload = _require(args, _load_object(args, body))
     then = _then_wait(args, eval_id, timeout, interval)
     local_options = _merge({"inference_url": inference_url}, concurrency=concurrency, case_timeout=case_timeout)
+    warnings, warn = _warnings(args)
 
     def call(c: Any) -> Any:
         admission = c.start_run(eval_id, payload, idempotency_key=idempotency_key)
         if not wait:
             return admission
         run_id = _run_id(admission)
+        mode = None
         if inference_url and run_id:
+            mode = _run_field(admission, "executionMode") or _run_field(c.get_run(eval_id, run_id), "executionMode")
+            if mode != "browser":
+                warn(f"--inference-url has no effect: Run {run_id} executes on Roboflow; waiting for it.")
+        if mode == "browser" and run_id:
             resume = (
                 f"Resume with `roboflow workflow-eval run local -e {eval_id} -r {run_id} --inference-url "
                 f"{inference_url}`; the journal is in {{state_dir}}."
             )
-            result = _run_locally(args, c, eval_id, run_id, resume, **local_options)
+            result = _run_locally(args, c, eval_id, run_id, resume, warn, **local_options)
             if not args.json and not args.quiet:
                 done = sum(item.already_done for item in result.executions)
                 submitted = sum(item.submitted for item in result.executions)
@@ -1208,7 +1253,10 @@ def start_run(
                     f"({failed} failed), {done} already done.",
                     file=sys.stderr,
                 )
-        return then(c, admission)
+        final = then(c, admission)
+        if warnings and isinstance(final, dict):
+            final = {**final, "warnings": warnings}
+        return final
 
     _invoke(args, call)
 
@@ -1231,7 +1279,12 @@ def run_local(
     ] = None,
     concurrency: Annotated[int, typer.Option("--concurrency", help="Inferences in flight at once, 1-16")] = 4,
     case_timeout: Annotated[
-        float, typer.Option("--case-timeout", help="Seconds per inference request; 0 = no limit")
+        float,
+        typer.Option(
+            "--case-timeout",
+            help="Seconds per connection attempt and per read of each inference request, not a total per Case; "
+            "0 = no limit",
+        ),
     ] = 300,
     state_dir: Annotated[
         Optional[str],
@@ -1252,6 +1305,7 @@ def run_local(
 
     args = ctx_to_args(ctx)
     _check_local_options(args, concurrency, case_timeout)
+    warnings, warn = _warnings(args)
 
     def call(c: Any) -> Dict[str, Any]:
         result = _run_locally(
@@ -1260,6 +1314,7 @@ def run_local(
             eval_id,
             run_id,
             "Run the same command again to resume; the journal is in {state_dir}.",
+            warn,
             inference_url=inference_url,
             inference_api_key=inference_api_key,
             execution_ids=execution,
@@ -1276,7 +1331,7 @@ def run_local(
                 raise LocalRunnerError(
                     f"Run {run_id} was cancelled.", hint="Start a new Run to evaluate again.", result=result
                 )
-        return result.to_dict()
+        return {**result.to_dict(), "warnings": warnings}
 
     _invoke(args, call, _local_result_text)
 

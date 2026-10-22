@@ -18,6 +18,7 @@ from roboflow.cli import app
 from roboflow.core.workflow_eval_local_runner import (
     PREFLIGHT_HINT,
     ExecutionTally,
+    InferenceServerUnreachable,
     LocalRunnerError,
     LocalRunnerInterrupted,
     LocalRunResult,
@@ -484,9 +485,10 @@ class TestWorkflowEvalRunLocal(unittest.TestCase):
             {
                 "runId": "r1",
                 "state": "completed",
-                "executions": [{"id": "x1", "submitted": 9, "alreadyDone": 2, "skipped": 0, "failed": 1}],
+                "executions": [{"id": "x1", "submitted": 9, "alreadyDone": 2, "skipped": 0, "failed": 1, "pending": 0}],
                 "wallClockSeconds": 12.5,
                 "concurrency": 4,
+                "warnings": [],
             },
         )
         runner = _FakeRunner.instances[0]
@@ -502,6 +504,7 @@ class TestWorkflowEvalRunLocal(unittest.TestCase):
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("Run r1 · completed · 12.5s · concurrency 4", result.stdout)
         self.assertIn("ALREADY DONE", result.stdout)
+        self.assertIn("PENDING", result.stdout)
 
     def test_defaults(self) -> None:
         result = self._run(("--json",))
@@ -614,9 +617,28 @@ class TestWorkflowEvalRunLocal(unittest.TestCase):
                 self.assertNotIn("Execution 1/1", result.stderr)
                 if flag == "--json":
                     self.assertEqual(result.stderr, "")
-                    self.assertEqual(json.loads(result.stdout)["state"], "completed")
+                    summary = json.loads(result.stdout)
+                    self.assertEqual(summary["state"], "completed")
+                    self.assertEqual(summary["warnings"], ["Using the inference server A instead of B"])
                 else:
                     self.assertIn("Warning: Using the inference server A instead of B", result.stderr)
+
+    def test_unreachable_inference_server_exits_1_with_resume_hint(self) -> None:
+        error = InferenceServerUnreachable(
+            "2 Cases were not run because the inference server at http://localhost:9001 was unreachable.",
+            hint="Start the inference server and run the same command again.",
+            result=_result(),
+        )
+        result = self._run(("--json",), behaviour=_raise(error))
+        self.assertEqual(result.exit_code, 1)
+        self.assertEqual(result.stdout, "")
+        payload = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+        self.assertIn("were not run", payload["message"])
+        self.assertEqual(
+            payload["hint"],
+            "Start the inference server. Run the same command again to resume; the journal is in /tmp/rf-state/r1.",
+        )
+        self.assertIn("pending", payload["result"]["executions"][0])
 
     @patch(f"{CLIENT}.get_run")
     def test_non_terminal_state_is_read_once_more(self, mock_get_run) -> None:
@@ -653,7 +675,14 @@ class TestWorkflowEvalRunLocal(unittest.TestCase):
 class TestWorkflowEvalRunStartLocal(unittest.TestCase):
     BODY = json.dumps({"executions": [{"subject": {}, "bindingSet": {}}]})
 
-    def _start(self, *extra: str, behaviour=lambda runner: _result(), json_flag: bool = True):
+    def _start(
+        self,
+        *extra: str,
+        behaviour=lambda runner: _result(),
+        json_flag: bool = True,
+        admission: Any = None,
+        get_run: Any = None,
+    ):
         calls: List[str] = []
 
         def tracked(runner: _FakeRunner) -> Any:
@@ -664,11 +693,14 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
             calls.append("wait")
             return {"id": "r1", "state": "completed"}
 
-        start = MagicMock(return_value={"run": {"id": "r1", "state": "queued"}, "executionMode": "browser"})
+        if admission is None:
+            admission = {"run": {"id": "r1", "state": "queued"}, "executionMode": "browser"}
+        start = MagicMock(return_value=admission)
         with (
             patch(RUNNER, _fake(tracked)),
             patch(f"{CLIENT}.start_run", start),
             patch(f"{CLIENT}.wait_for_run", side_effect=wait) as mock_wait,
+            patch(f"{CLIENT}.get_run", get_run or MagicMock(side_effect=AssertionError("unexpected get_run"))),
         ):
             argv = ["--json"] if json_flag else []
             result = _invoke(*argv, "workflow-eval", "run", "start", "-e", "e1", "--body", self.BODY, *extra)
@@ -716,15 +748,65 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
         self.assertEqual(result.exit_code, 1)
         start.assert_not_called()
 
-    def test_server_run_with_inference_url_exits_1(self) -> None:
-        error = LocalRunnerError(
-            "Run r1 does not run on a local inference server.",
-            hint="This Run executes on Roboflow; use `run get --wait`.",
+    def test_server_run_with_inference_url_warns_and_only_waits(self) -> None:
+        admission = {"run": {"id": "r1", "state": "queued"}, "executionMode": "server"}
+        warning = "--inference-url has no effect: Run r1 executes on Roboflow; waiting for it."
+        for json_flag in (True, False):
+            with self.subTest(json=json_flag):
+                result, calls, _, mock_wait = self._start(
+                    "--wait", "--inference-url", "http://x", admission=admission, json_flag=json_flag
+                )
+                self.assertEqual(result.exit_code, 0, result.output)
+                self.assertEqual(calls, ["wait"])  # no runner: no preflight, no inference
+                self.assertEqual(_FakeRunner.instances, [])
+                final = json.loads(result.stdout)
+                self.assertEqual(final["state"], "completed")
+                if json_flag:
+                    self.assertEqual(final["warnings"], [warning])
+                    self.assertEqual(result.stderr, "")
+                else:
+                    self.assertNotIn("warnings", final)
+                    self.assertIn(f"Warning: {warning}", result.stderr)
+                mock_wait.assert_called_once_with("e1", "r1", timeout=0, interval=5, on_poll=ANY)
+
+    def test_execution_mode_missing_from_admission_is_read_once(self) -> None:
+        get_run = MagicMock(return_value={"id": "r1", "state": "queued", "executionMode": "server"})
+        result, calls, _, _ = self._start(
+            "--wait", "--inference-url", "http://x", admission={"run": {"id": "r1"}}, get_run=get_run
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(calls, ["wait"])
+        get_run.assert_called_once_with("e1", "r1")
+        self.assertEqual(len(json.loads(result.stdout)["warnings"]), 1)
+
+    def test_runner_warnings_go_to_the_final_json(self) -> None:
+        def behaviour(runner: _FakeRunner) -> Any:
+            runner.options["warn"]("Using the inference server http://x instead of http://y")
+            return _result()
+
+        result, calls, _, _ = self._start("--wait", "--inference-url", "http://x", behaviour=behaviour)
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(calls, ["runner", "wait"])
+        self.assertEqual(result.stderr, "")
+        self.assertEqual(
+            json.loads(result.stdout),
+            {"id": "r1", "state": "completed", "warnings": ["Using the inference server http://x instead of http://y"]},
+        )
+
+    def test_without_warnings_the_final_json_has_no_warnings_field(self) -> None:
+        result, _, _, _ = self._start("--wait", "--inference-url", "http://x")
+        self.assertEqual(json.loads(result.stdout), {"id": "r1", "state": "completed"})
+
+    def test_unreachable_inference_server_hints_run_local(self) -> None:
+        error = InferenceServerUnreachable(
+            "1 Case was not run because the inference server at http://x was unreachable."
         )
         result, calls, _, _ = self._start("--wait", "--inference-url", "http://x", behaviour=_raise(error))
         self.assertEqual(result.exit_code, 1)
         self.assertEqual(calls, ["runner"])
-        self.assertIn("run get --wait", json.loads(result.stderr.strip().splitlines()[-1])["error"]["hint"])
+        hint = json.loads(result.stderr.strip().splitlines()[-1])["error"]["hint"]
+        self.assertTrue(hint.startswith("Start the inference server. "))
+        self.assertIn("run local -e e1 -r r1 --inference-url http://x", hint)
 
     def test_interrupt_hints_run_local_to_resume(self) -> None:
         result, calls, _, _ = self._start(

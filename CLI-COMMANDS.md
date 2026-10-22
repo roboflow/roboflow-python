@@ -504,6 +504,10 @@ roboflow workflow-eval run start --eval <eval-id> --body @run.json --wait --infe
 nohup roboflow workflow-eval run local -e <eval-id> -r <run-id> --concurrency 4 > run-local.log 2>&1 &
 # Interrupted (Ctrl-C, exit 130)? Run the same command again: captured outputs are resubmitted from the
 # journal in ~/.cache/roboflow/workflow-evals/<workspace>/<run-id>/ (--state-dir), not re-run.
+# Inference server unreachable? Those Cases are not captured (they stay pending; PENDING in the summary) and
+# the command exits 1, at once after 10 connection failures in a row; start the server and run it again.
+# A read timeout (--case-timeout: per connection attempt and per read, not per Case) or a persistent
+# 408/429/5xx is captured as a retryable failure. With --json, warnings are in the result's "warnings" array.
 roboflow workflow-eval execution overview <execution-id> --eval <eval-id> --run <run-id> --json
 roboflow workflow-eval execution results <execution-id> --eval <eval-id> --run <run-id> --failed-check
 roboflow workflow-eval compare --eval <eval-id> -x <execution-a> -x <execution-b> --json

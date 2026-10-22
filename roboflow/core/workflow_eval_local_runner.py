@@ -14,9 +14,37 @@ Differences from the browser, all deliberate:
   capture submission outside the inference slot.
 * Up to 3 attempts for network errors and HTTP 408/429/5xx from the Inference
   server, before anything is submitted.
+* A connection failure (connection refused or reset, DNS failure, connect
+  timeout, connection dropped mid-response) is infrastructure, not a Case
+  failure: when it persists after the 3 attempts nothing is captured and the
+  Case stays pending on the server, so the next run picks it up. A run that
+  leaves Cases pending ends with :class:`InferenceServerUnreachable` (exit 1);
+  10 consecutive connection failures stop the run at once. A read timeout
+  (inference slower than ``case_timeout``) and HTTP 408/429/5xx that persist
+  are captured as failures with ``retryable: true``.
 * A local journal (``<state-dir>/journal.jsonl`` plus ``captures/<sha256>.json``)
   so that a restarted runner resubmits the exact captured bytes instead of
   running the inference again.
+
+Capture responses and what the runner does:
+
+| Response                                          | Action                                             |
+| ------------------------------------------------- | -------------------------------------------------- |
+| 200                                               | Submitted.                                         |
+| 409 "Different capture already submitted"         | ``done_by_other`` (counted as already done).       |
+| 409 "Capture is being processed" (retryable)      | Wait for the lease, resend the same bytes.         |
+| 409 "Case failure is not retryable"               | ``skipped``.                                       |
+| 409 "Run no longer accepts captures"              | Stop dispatching; the Run is closed.               |
+| 412 "Run attempt changed"                         | Re-read the Run, restart the Execution.            |
+| 409 "No retained capture" (on a ``resume``)       | Re-read the Run, restart the Execution.            |
+| input-cases page with a different attemptCount   | Re-read the Run, restart the Execution.            |
+| 413                                               | Submit a failure capture instead (too large).      |
+| 404                                               | Exit 3.                                            |
+| 400                                               | Exit 1, with the server's error.                   |
+
+A restarted Execution reads its Cases again: Cases the server already has are
+not run again, and journaled captures of the same attempt are resubmitted
+byte for byte, so no Case gets a second, different capture in one attempt.
 
 Usage::
 
@@ -47,6 +75,7 @@ from datetime import datetime
 from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Tuple
 
 import requests
+import urllib3
 from requests.adapters import HTTPAdapter
 
 from roboflow.adapters import workflowevalsapi
@@ -127,15 +156,29 @@ class _Abandoned(LocalRunnerInterrupted):
     """A wait or retry was abandoned because the runner is stopping."""
 
 
+class InferenceServerUnreachable(LocalRunnerError):
+    """The run finished, but some Cases were not run because the inference server was unreachable.
+
+    Nothing was captured for them, so they are still pending on the server and
+    running again (with the inference server up) picks them up. Exit code 1;
+    ``result`` holds the run summary.
+    """
+
+
 @dataclass
 class ExecutionTally:
-    """Per-Execution counts. ``failed`` counts submitted captures whose runtime has an error."""
+    """Per-Execution counts.
+
+    ``failed`` counts submitted captures whose runtime has an error; ``pending``
+    counts Cases left uncaptured because the inference server was unreachable.
+    """
 
     id: str
     submitted: int = 0
     already_done: int = 0
     skipped: int = 0
     failed: int = 0
+    pending: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -144,6 +187,7 @@ class ExecutionTally:
             "alreadyDone": self.already_done,
             "skipped": self.skipped,
             "failed": self.failed,
+            "pending": self.pending,
         }
 
 
@@ -288,6 +332,12 @@ def run_workflow_inference(
     Never raises for transport or HTTP failures; they become an error runtime
     ``{latencyMs, error, timedOut, retryable}``. ``latencyMs`` covers the request
     and the parsing of its body.
+
+    ``connection_failure`` marks connection-level failures: ``requests.ConnectionError``
+    (connection refused or reset, DNS failure, ``ConnectTimeout``) and
+    ``ChunkedEncodingError`` (connection dropped mid-response). The runner does
+    not capture those. A read timeout (``ReadTimeout``, also when it hits while
+    reading the body) is a ``timedOut`` failure, not a connection failure.
     """
     body = build_inference_body(api_key, specification, inputs, workflow_id)
     started = monotonic()
@@ -308,12 +358,20 @@ def run_workflow_inference(
         )
         content = response.content
     except requests.Timeout as exc:
+        # ConnectTimeout is also a ConnectionError: the server was never reached.
         state.update(retryable=True, timedOut=True, connection=isinstance(exc, requests.ConnectionError))
         return failure(TIMEOUT_MESSAGE)
-    except requests.ConnectionError:
+    except requests.ConnectionError as exc:
+        if exc.args and isinstance(exc.args[0], urllib3.exceptions.ReadTimeoutError):
+            # requests reports a read timeout while reading the body as a ConnectionError.
+            state.update(retryable=True, timedOut=True)
+            return failure(TIMEOUT_MESSAGE)
         state.update(retryable=True, connection=True)
         return failure(FETCH_FAILED_MESSAGE)
-    except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ContentDecodingError):
+    except requests.exceptions.ChunkedEncodingError:
+        state.update(retryable=True, connection=True)
+        return failure(FETCH_FAILED_MESSAGE)
+    except requests.exceptions.ContentDecodingError:
         state["retryable"] = True
         return failure(FETCH_FAILED_MESSAGE)
     except requests.RequestException as exc:
@@ -603,7 +661,8 @@ class LocalRunner:
         inference_api_key: API key sent to the Inference server. Defaults to the client's key.
         execution_ids: Only these Executions (default: all, in Run order).
         concurrency: Inferences in flight at once, 1 to 16.
-        case_timeout: Seconds per inference request; 0 means no limit.
+        case_timeout: Seconds allowed to connect and between bytes read for each inference attempt
+            (``requests`` timeout semantics), not a total deadline per Case; 0 means no limit.
         state_dir: Journal directory. Defaults to :func:`default_state_dir`.
         workspace: Workspace for the default ``state_dir``. Defaults to the client's.
         retry: Retry a terminal Run (when the server allows it) before running.
@@ -849,7 +908,16 @@ class LocalRunner:
             if self._run_closed:
                 break
             self._run_execution(index, len(executions), execution)
-        return self._finish(self._call(client.get_run, eval_id, run_id))
+        result = self._finish(self._call(client.get_run, eval_id, run_id))
+        pending = sum(tally.pending for tally in self._tallies)
+        if pending:
+            cases = "1 Case was" if pending == 1 else f"{pending} Cases were"
+            raise InferenceServerUnreachable(
+                f"{cases} not run because the inference server at {self._url} was unreachable.",
+                hint="Start the inference server and run the same command again; captured Cases are not re-run.",
+                result=result,
+            )
+        return result
 
     def _select_executions(self, items: Any) -> List[Dict[str, Any]]:
         executions = [item for item in items or [] if isinstance(item, dict) and item.get("id") is not None]
@@ -928,13 +996,15 @@ class LocalRunner:
             reloads += 1
             if reloads > MAX_RELOADS:
                 raise LocalRunnerError(f"The attempt of Run {self._run_id} kept changing; giving up.", hint=RESUME_HINT)
-            # 412 "Run attempt changed": reload the Run and restart this Execution at the new
-            # attempt. Journal entries of the old attempt no longer match and are ignored.
+            # 412 "Run attempt changed", 409 "No retained capture" on a resume, or a page at
+            # another attempt: reload the Run and restart this Execution at its current attempt.
+            # Every capture of the old pass has been answered (the pass drained), so the new pass
+            # sees them in the checkpoints; journal entries of an old attempt are ignored.
             run = self._call(self._client.get_run, self._eval_id, self._run_id)
             if _field(run, "state") in RUN_TERMINAL_STATES:
                 self._run_closed = True
                 return
-            tally.submitted = tally.already_done = tally.skipped = tally.failed = 0
+            tally.submitted = tally.already_done = tally.skipped = tally.failed = tally.pending = 0
 
     def _run_pass(self, ctx: _Pass) -> bool:
         """Dispatch one pass and drain it. Returns ``True`` when the Execution must restart."""
@@ -1106,7 +1176,9 @@ class LocalRunner:
         data = b""
         try:
             outcome = self._infer(work.ctx, inputs)
-            if outcome is None:
+            if outcome is None or outcome.connection_failure:
+                # Unreachable inference server: infrastructure, not a Case failure. Nothing is
+                # captured or journaled, so the Case stays pending on the server.
                 return
             capture = {
                 "attemptCount": work.attempt,
@@ -1124,6 +1196,8 @@ class LocalRunner:
                 if outcome is not None:
                     self._last_latency_ms = outcome.runtime.get("latencyMs")
                 self._cond.notify_all()
+            if outcome is not None and outcome.connection_failure:
+                self._count(work.ctx, "pending")
         self._submit(work, data, None)
 
     def _submit_input_failure(self, work: _Work, message: str) -> None:
@@ -1140,7 +1214,13 @@ class LocalRunner:
         self._submit(work, data, None)
 
     def _infer(self, ctx: _Pass, inputs: Dict[str, Any]) -> Optional[InferenceOutcome]:
-        """Run the inference with up to 3 attempts; ``None`` means abandoned (nothing to capture)."""
+        """Run the inference with up to 3 attempts; ``None`` means abandoned (nothing to capture).
+
+        Network errors and HTTP 408/429/5xx are retried. Every connection-level
+        failure counts toward the consecutive-connection-failure limit (any HTTP
+        response resets it); the outcome returned for a Case whose last attempt
+        failed to connect has ``connection_failure`` set and is not captured.
+        """
         attempt = 1
         while True:
             outcome = run_workflow_inference(
@@ -1168,7 +1248,7 @@ class LocalRunner:
                         )
                 tripped = self._fatal is not None
             if outcome.connection_failure and tripped:
-                return None
+                return outcome
             if not outcome.error or not outcome.retryable or attempt >= INFERENCE_ATTEMPTS:
                 return outcome
             try:
@@ -1299,7 +1379,7 @@ class LocalRunner:
             return
         with self._cond:
             tally = ctx.tally
-            done = tally.submitted + tally.already_done + tally.skipped
+            done = tally.submitted + tally.already_done + tally.skipped + tally.pending
             progress = {
                 "executionId": ctx.execution_id,
                 "execution": ctx.index,
@@ -1308,6 +1388,7 @@ class LocalRunner:
                 "failed": tally.failed,
                 "alreadyDone": tally.already_done,
                 "skipped": tally.skipped,
+                "pending": tally.pending,
                 "remaining": max(ctx.selected - done, 0) if ctx.selected is not None else None,
                 "inFlight": self._in_flight,
                 "lastLatencyMs": self._last_latency_ms,

@@ -21,13 +21,17 @@ from urllib.parse import parse_qs, unquote, urlparse
 import pytest
 import requests
 import responses
+import urllib3
+from typer.testing import CliRunner
 
+from roboflow.cli import app
 from roboflow.config import API_URL
 from roboflow.core import workflow_eval_local_runner as local
 from roboflow.core.workflow_eval_local_runner import (
     CAPTURE_TOO_LARGE_MESSAGE,
     PREFLIGHT_HINT,
     TIMEOUT_MESSAGE,
+    InferenceServerUnreachable,
     Journal,
     LocalRunner,
     LocalRunnerError,
@@ -148,6 +152,10 @@ class FakeServer:
         self.captures: List[Any] = []
         self.page_requests: List[Any] = []
         self.page_seen: Dict[Any, threading.Event] = {}
+        # Called (without the lock) before the page at this cursor is served.
+        self.before_page: Dict[Any, Callable[[], None]] = {}
+        # Mark a Case completed at the current attempt when its capture is accepted, like the server.
+        self.complete_on_capture = False
         self.retried = 0
         rsps.add_callback(responses.GET, RUN, callback=lambda r: (200, {}, json.dumps(self.run)))
         rsps.add_callback(responses.GET, f"{RUN}/configuration", callback=self._configuration)
@@ -201,6 +209,9 @@ class FakeServer:
         query = parse_qs(urlparse(request.url).query)
         cursor = query.get("cursor", [None])[0]
         limit = int(query.get("limit", ["50"])[0])
+        hook = self.before_page.get(cursor)
+        if hook is not None:
+            hook()
         with self.lock:
             self.page_requests.append((cursor, limit))
             self.version += 1
@@ -235,6 +246,10 @@ class FakeServer:
         if callable(entry):
             entry = entry()
         if entry is None:
+            if self.complete_on_capture:
+                self.checkpoint(
+                    case_id, {"state": "completed", "attemptCount": json.loads(request.body)["attemptCount"]}
+                )
             return 200, {}, json.dumps({"id": case_id, "state": "completed"})
         status, body = entry
         return status, {}, body if isinstance(body, str) else json.dumps(body)
@@ -314,7 +329,9 @@ def test_inference_request_matches_browser_worker_fixture(env: Env) -> None:
 
     result = env.runner(inference_api_key="sample_api_key").run()
 
-    assert result.to_dict()["executions"] == [{"id": X, "submitted": 1, "alreadyDone": 0, "skipped": 0, "failed": 0}]
+    assert result.to_dict()["executions"] == [
+        {"id": X, "submitted": 1, "alreadyDone": 0, "skipped": 0, "failed": 0, "pending": 0}
+    ]
     (request,) = env.inference.requests
     assert request.url == fixture["url"]
     # Byte-for-byte what JSON.stringify produces for the worker's object literal.
@@ -399,7 +416,14 @@ def test_input_failure_is_captured_as_failed_without_inference(env: Env) -> None
     (entry,) = [entry for entry in captured(env) if entry["caseId"] == "c2"]
     assert json.loads(env.stored(entry)) == body and entry["shardIndex"] == 3
     assert ("c2", 200, "submitted") in outcomes(env)
-    assert result.executions[0].to_dict() == {"id": X, "submitted": 3, "alreadyDone": 0, "skipped": 0, "failed": 1}
+    assert result.executions[0].to_dict() == {
+        "id": X,
+        "submitted": 3,
+        "alreadyDone": 0,
+        "skipped": 0,
+        "failed": 1,
+        "pending": 0,
+    }
 
 
 def test_input_failure_message_is_truncated(env: Env) -> None:
@@ -506,7 +530,14 @@ def test_journal_resubmits_stored_bytes_without_running_inference(env: Env) -> N
     assert [cid for cid, _ in server.captures] == ["c2"]
     assert json.loads(server.captures[0][1]) == json.loads(stored)
     assert env.stored(entry) == stored
-    assert result.executions[0].to_dict() == {"id": X, "submitted": 1, "alreadyDone": 1, "skipped": 0, "failed": 0}
+    assert result.executions[0].to_dict() == {
+        "id": X,
+        "submitted": 1,
+        "alreadyDone": 1,
+        "skipped": 0,
+        "failed": 0,
+        "pending": 0,
+    }
     assert outcomes(env) == [("c2", 200, "submitted")]
 
 
@@ -537,7 +568,7 @@ def test_capture_200_is_submitted(env: Env) -> None:
     assert result.to_dict() == {
         "runId": R,
         "state": "running",
-        "executions": [{"id": X, "submitted": 1, "alreadyDone": 0, "skipped": 0, "failed": 0}],
+        "executions": [{"id": X, "submitted": 1, "alreadyDone": 0, "skipped": 0, "failed": 0, "pending": 0}],
         "wallClockSeconds": 0.0,
         "concurrency": 4,
     }
@@ -636,6 +667,51 @@ def test_capture_412_restarts_the_execution_at_the_new_attempt(env: Env) -> None
     assert result.executions[0].submitted == 1
 
 
+def output_captures(server: FakeServer, case_id: str) -> List[Dict[str, Any]]:
+    return [body for body in server.capture_bodies(case_id) if "output" in body]
+
+
+def test_capture_409_no_retained_capture_on_resume_restarts_the_execution(env: Env) -> None:
+    checkpoint = {"state": "running", "attemptCount": 1, "hasCapture": True}
+    server = env.serve([case("c1", checkpoint=checkpoint), case("c2")])
+    server.complete_on_capture = True
+
+    def capture_lost() -> Any:
+        server.checkpoint("c1", {"state": "running", "attemptCount": 1, "hasCapture": False})
+        return 409, err("No retained capture for this Case attempt")
+
+    server.capture_script["c1"] = [capture_lost]
+    result = env.runner(concurrency=1).run()
+
+    resume, capture = server.capture_bodies("c1")
+    assert resume == {"attemptCount": 1, "shardIndex": 0, "resume": True}
+    assert len(output_captures(server, "c1")) == 1 and capture["output"] == [{"case": "c1"}]
+    assert len(output_captures(server, "c2")) == 1  # c2 is not captured again by the restarted pass
+    assert sorted(env.inference.names) == ["c1", "c2"]
+    assert ("c1", 409, "reload") in outcomes(env)
+    tally = result.executions[0]
+    assert tally.submitted + tally.already_done == 2
+
+
+def test_page_at_another_attempt_restarts_the_execution_without_double_captures(env: Env) -> None:
+    server = env.serve([case(f"c{i}") for i in range(1, 5)])
+    server.complete_on_capture = True
+
+    def retried() -> None:
+        with server.lock:
+            server.attempt = 2
+
+    server.before_page["2"] = retried  # the prefetched second page is at attempt 2
+    result = env.runner(concurrency=2).run()
+
+    attempts = [(cid, json.loads(body)["attemptCount"]) for cid, body in server.captures]
+    assert len(attempts) == len(set(attempts))  # no Case captured twice within one attempt
+    assert sorted(attempts) == [("c1", 1), ("c2", 1), ("c3", 2), ("c4", 2)]
+    assert sorted(env.inference.names) == ["c1", "c2", "c3", "c4"]
+    tally = result.executions[0]
+    assert (tally.already_done, tally.submitted) == (2, 2)
+
+
 def test_capture_413_is_replaced_by_a_failure_capture(env: Env) -> None:
     server = env.serve([case("c1")])
     server.capture_script["c1"] = [(413, "request entity too large")]
@@ -682,7 +758,8 @@ def test_capture_400_exits_1_with_the_server_error(env: Env) -> None:
 def test_inference_timeout_is_a_retryable_timed_out_failure(env: Env) -> None:
     server = env.serve([case("c1")])
     env.inference.default = lambda request: requests.exceptions.ReadTimeout("read timed out")
-    env.runner().run()
+    result = env.runner().run()
+    assert result.executions[0].pending == 0 and result.executions[0].failed == 1
     assert len(env.inference.requests) == 3
     assert env.clock.sleeps == [1.0, 2.0]
     (body,) = server.capture_bodies()
@@ -715,9 +792,10 @@ def test_non_retryable_inference_failures_are_not_retried(env: Env, response: An
 def test_inference_503_is_retried_3_times_then_captured_as_retryable(env: Env) -> None:
     server = env.serve([case("c1")])
     env.inference.default = lambda request: (503, {}, "Service Unavailable")
-    env.runner().run()
+    result = env.runner().run()
     assert len(env.inference.requests) == 3
-    (body,) = server.capture_bodies()
+    assert result.executions[0].pending == 0
+    (body,) = server.capture_bodies()  # exactly one capture
     assert body["runtime"]["error"] == "Workflow returned HTTP 503"
     assert body["runtime"]["retryable"] is True
 
@@ -742,6 +820,29 @@ def test_run_workflow_inference_wraps_outputs_and_truncates_errors() -> None:
     assert len(failure.runtime["error"]) == 2000 and failure.retryable
 
 
+@pytest.mark.parametrize(
+    ("error", "connection", "timed_out"),
+    [
+        (requests.exceptions.ConnectionError("refused"), True, False),
+        (requests.exceptions.ConnectTimeout("connect timed out"), True, True),
+        (requests.exceptions.ChunkedEncodingError("dropped"), True, False),
+        (requests.exceptions.ReadTimeout("read timed out"), False, True),
+        # requests reports a timeout while reading the body as a ConnectionError.
+        (requests.exceptions.ConnectionError(urllib3.exceptions.ReadTimeoutError(None, "/", "timed out")), False, True),
+    ],
+)
+def test_run_workflow_inference_classifies_connection_failures(
+    error: Exception, connection: bool, timed_out: bool
+) -> None:
+    with responses.RequestsMock() as rsps:
+        rsps.add(responses.POST, f"{INF}/workflows/run", body=error)
+        outcome = run_workflow_inference(
+            requests.Session(), INF, api_key="k", specification={}, workflow_id="w", inputs={}, timeout=1
+        )
+    assert outcome.connection_failure is connection
+    assert outcome.runtime["timedOut"] is timed_out and outcome.retryable and not outcome.responded
+
+
 # -- 8. connection failures ---------------------------------------------------------------
 
 
@@ -754,10 +855,39 @@ def test_stops_after_10_consecutive_connection_failures(env: Env) -> None:
     assert PREFLIGHT_HINT in (raised.value.hint or "")
     assert len(env.inference.requests) == 10
     assert env.clock.sleeps == [1.0, 2.0] * 3
-    # c1..c3 exhausted their 3 attempts and were captured as retryable failures; c4 was abandoned.
-    assert [entry["caseId"] for entry in captured(env)] == ["c1", "c2", "c3"]
-    assert sorted(outcomes(env)) == [(cid, 200, "submitted") for cid in ("c1", "c2", "c3")]
-    assert all(body["runtime"]["retryable"] is True for body in server.capture_bodies())
+    # Connection failures are not Case failures: nothing is captured, c1..c4 stay pending on the server.
+    assert server.captures == []
+    assert captured(env) == [] and outcomes(env) == []
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        requests.exceptions.ConnectionError("Connection refused"),
+        requests.exceptions.ConnectTimeout("connect timed out"),
+        requests.exceptions.ChunkedEncodingError("Connection broken: IncompleteRead"),
+    ],
+    ids=["refused", "connect-timeout", "dropped-mid-response"],
+)
+def test_unreachable_case_is_left_pending_and_the_run_exits_1(env: Env, error: Exception) -> None:
+    server = env.serve([case("c1"), case("c2")])
+    env.inference.behaviors["c1"] = lambda request: error
+    with pytest.raises(LocalRunnerError) as raised:
+        env.runner(concurrency=1).run()
+
+    assert isinstance(raised.value, InferenceServerUnreachable)
+    assert raised.value.exit_code == 1
+    assert raised.value.message == f"1 Case was not run because the inference server at {INF} was unreachable."
+    assert "run the same command again" in (raised.value.hint or "")
+    assert env.inference.names == ["c1", "c1", "c1", "c2"]
+    assert env.clock.sleeps == [1.0, 2.0]
+    assert [cid for cid, _ in server.captures] == ["c2"]  # no capture POST for c1
+    assert [entry["caseId"] for entry in captured(env)] == ["c2"]
+    assert raised.value.result is not None
+    (tally,) = raised.value.result.executions
+    assert (tally.pending, tally.submitted, tally.failed) == (1, 1, 0)
+    assert tally.to_dict()["pending"] == 1
+    assert env.progress[-1]["pending"] == 1 and env.progress[-1]["remaining"] == 0
 
 
 def test_http_response_resets_the_connection_failure_count(env: Env) -> None:
@@ -927,3 +1057,47 @@ def test_no_threads_are_left_behind(env: Env) -> None:
     before = threading.active_count()
     env.runner(concurrency=3).run()
     assert threading.active_count() == before
+
+
+# -- 12. inference server down, then back (end to end through the CLI) -------------------------
+
+
+def test_inference_down_stops_then_the_same_command_completes_every_case_once(env: Env) -> None:
+    names = [f"c{i}" for i in range(1, 7)]
+    server = env.serve([case(name) for name in names])
+    server.complete_on_capture = True
+    refused = lambda request: requests.exceptions.ConnectionError("Connection refused")  # noqa: E731
+    env.inference.default = refused
+    env.inference.behaviors.update(c1=ok("c1"), c2=ok("c2"))  # the server goes down after c2
+    fake_time = {"clock": env.clock.time, "monotonic": env.clock.time, "sleep": env.clock.sleep}
+    argv = ["--workspace", WS, "--api-key", KEY, "--json", "workflow-eval", "run", "local", "-e", E, "-r", R]
+    argv += ["--concurrency", "1", "--state-dir", env.state_dir]
+
+    def invoke() -> Any:
+        before = threading.active_count()
+        with patch.object(local, "LocalRunner", lambda *args, **kwargs: LocalRunner(*args, **kwargs, **fake_time)):
+            result = CliRunner().invoke(app, argv)
+        assert threading.active_count() == before
+        return result
+
+    first = invoke()
+    assert first.exit_code == 1, first.output
+    error = json.loads(first.stderr.strip().splitlines()[-1])["error"]
+    assert "failed 10 connections in a row" in error["message"] and PREFLIGHT_HINT in error["hint"]
+    assert first.stdout == ""
+    # c3..c5 used their 3 attempts and c6 its first: 10 in a row. Only c1 and c2 were captured.
+    assert env.inference.names == ["c1", "c2"] + ["c3"] * 3 + ["c4"] * 3 + ["c5"] * 3 + ["c6"]
+    assert [cid for cid, _ in server.captures] == ["c1", "c2"]
+    assert [entry["caseId"] for entry in captured(env)] == ["c1", "c2"]  # the journal is kept
+
+    env.inference.requests.clear()
+    env.inference.behaviors.clear()
+    env.inference.default = lambda request: ok(json.loads(request.body)["inputs"]["name"])
+    second = invoke()
+
+    assert second.exit_code == 0, second.output
+    summary = json.loads(second.stdout)
+    assert summary["executions"][0]["alreadyDone"] == 2 and summary["executions"][0]["submitted"] == 4
+    assert summary["executions"][0]["pending"] == 0 and summary["warnings"] == []
+    assert env.inference.names == ["c3", "c4", "c5", "c6"]  # c1 and c2 are not inferred again
+    assert sorted(cid for cid, _ in server.captures) == names  # every Case captured exactly once
