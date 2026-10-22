@@ -38,6 +38,16 @@ class TestSlimImport(unittest.TestCase):
 
         self.assertTrue(issubclass(RoboflowError, Exception))
 
+    def test_import_workflow_eval_local_runner(self):
+        from roboflow.core.workflow_eval_local_runner import LocalRunner
+
+        self.assertTrue(callable(LocalRunner))
+
+    def test_import_workflow_eval_run_local_cli(self):
+        from roboflow.cli.handlers.workflow_eval import run_local
+
+        self.assertTrue(callable(run_local))
+
     def test_import_cli(self):
         from roboflow.cli import app
 

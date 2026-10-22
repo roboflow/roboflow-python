@@ -4,14 +4,24 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import tempfile
 import unittest
-from unittest.mock import ANY, patch
+from typing import Any, Callable, Dict, List
+from unittest.mock import ANY, MagicMock, patch
 
+import responses
 from typer.testing import CliRunner
 
 from roboflow.adapters.workflowevalsapi import WorkflowEvalError
 from roboflow.cli import app
+from roboflow.core.workflow_eval_local_runner import (
+    PREFLIGHT_HINT,
+    ExecutionTally,
+    LocalRunnerError,
+    LocalRunnerInterrupted,
+    LocalRunResult,
+)
 
 runner = CliRunner()
 
@@ -32,7 +42,7 @@ COMMANDS = {
     "case": ["list", "get", "add", "replace", "delete", "import", "import-status", "upload"],
     "binding": ["suggest", "validate"],
     "preparation": ["start", "current", "get", "resume", "cases"],
-    "run": ["list", "get", "start", "cancel", "retry", "replay", "rescore", "delete", "config"],
+    "run": ["list", "get", "start", "local", "cancel", "retry", "replay", "rescore", "delete", "config"],
     "execution": ["list", "get", "config", "input-cases", "capture", "overview", "results", "result"],
     "export": ["start", "status", "download-url"],
     "embedding": ["start", "get", "cancel"],
@@ -416,6 +426,314 @@ class TestWorkflowEvalRunWait(unittest.TestCase):
                 self.assertNotIn("Run r1 ·", result.stderr)
                 if flag == "--json":
                     self.assertEqual(json.loads(result.stdout)["state"], "completed")
+
+
+RUNNER = "roboflow.core.workflow_eval_local_runner.LocalRunner"
+LOCAL = ["workflow-eval", "run", "local", "-e", "e1", "-r", "r1"]
+
+
+def _result(state: str = "completed") -> LocalRunResult:
+    tally = ExecutionTally("x1", submitted=9, already_done=2, skipped=0, failed=1)
+    return LocalRunResult(run_id="r1", state=state, executions=[tally], wall_clock_seconds=12.5, concurrency=4)
+
+
+class _FakeRunner:
+    """Stands in for ``LocalRunner``: ``behaviour(self)`` is what ``run()`` does."""
+
+    instances: List["_FakeRunner"] = []
+    behaviour: Callable[["_FakeRunner"], LocalRunResult] = staticmethod(lambda runner: _result())
+
+    def __init__(self, client: Any, eval_id: str, run_id: str, **options: Any) -> None:
+        self.eval_id, self.run_id, self.options = eval_id, run_id, options
+        self.state_dir = "/tmp/rf-state/r1"
+        self.stop_requests = 0
+        _FakeRunner.instances.append(self)
+
+    def request_stop(self) -> None:
+        self.stop_requests += 1
+
+    def run(self) -> LocalRunResult:
+        return type(self).behaviour(self)
+
+
+def _fake(behaviour: Callable[[_FakeRunner], Any]) -> type:
+    _FakeRunner.instances = []
+    return type("FakeRunner", (_FakeRunner,), {"behaviour": staticmethod(behaviour)})
+
+
+def _raise(exc: Exception) -> Callable[[_FakeRunner], Any]:
+    def behaviour(runner: _FakeRunner) -> Any:
+        raise exc
+
+    return behaviour
+
+
+class TestWorkflowEvalRunLocal(unittest.TestCase):
+    def _run(self, globals_: tuple = (), extra: tuple = (), behaviour=lambda runner: _result()):
+        with patch(RUNNER, _fake(behaviour)):
+            return _invoke(*globals_, *LOCAL, *extra)
+
+    def test_json_output_shape_and_runner_options(self) -> None:
+        result = self._run(
+            ("--json",),
+            ("--inference-url", "http://gpu:9001", "-x", "x1", "-x", "x2", "--concurrency", "8", "--case-timeout", "0"),
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(
+            json.loads(result.stdout),
+            {
+                "runId": "r1",
+                "state": "completed",
+                "executions": [{"id": "x1", "submitted": 9, "alreadyDone": 2, "skipped": 0, "failed": 1}],
+                "wallClockSeconds": 12.5,
+                "concurrency": 4,
+            },
+        )
+        runner = _FakeRunner.instances[0]
+        self.assertEqual((runner.eval_id, runner.run_id), ("e1", "r1"))
+        self.assertEqual(runner.options["inference_url"], "http://gpu:9001")
+        self.assertEqual(runner.options["execution_ids"], ["x1", "x2"])
+        self.assertEqual(runner.options["concurrency"], 8)
+        self.assertEqual(runner.options["case_timeout"], 0)
+        self.assertFalse(runner.options["retry"])
+
+    def test_text_output_is_a_short_table(self) -> None:
+        result = self._run()
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("Run r1 · completed · 12.5s · concurrency 4", result.stdout)
+        self.assertIn("ALREADY DONE", result.stdout)
+
+    def test_defaults(self) -> None:
+        result = self._run(("--json",))
+        self.assertEqual(result.exit_code, 0, result.output)
+        options = _FakeRunner.instances[0].options
+        self.assertEqual((options["concurrency"], options["case_timeout"]), (4, 300))
+        self.assertIsNone(options["inference_url"])
+        self.assertIsNone(options["state_dir"])
+
+    def test_concurrency_out_of_range_is_rejected(self) -> None:
+        for value in ("0", "17"):
+            with self.subTest(concurrency=value):
+                result = self._run(("--json",), ("--concurrency", value))
+                self.assertEqual(result.exit_code, 1)
+                error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+                self.assertIn("--concurrency must be between 1 and 16", error["message"])
+                self.assertEqual(_FakeRunner.instances, [])
+
+    def test_negative_case_timeout_is_rejected(self) -> None:
+        result = self._run((), ("--case-timeout", "-1"))
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn("--case-timeout", result.stderr)
+
+    def test_runner_error_exit_codes(self) -> None:
+        cases = {
+            1: LocalRunnerError("Run r1 was cancelled.", hint="Start a new Run.", result=_result("cancelled")),
+            2: LocalRunnerError("Missing scope", hint="needs workflow-evals:read and run", exit_code=2),
+            3: LocalRunnerError("Run not found", exit_code=3),
+        }
+        for code, exc in cases.items():
+            with self.subTest(exit_code=code):
+                result = self._run(("--json",), behaviour=_raise(exc))
+                self.assertEqual(result.exit_code, code)
+                self.assertEqual(result.stdout, "")
+                error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+                self.assertEqual(error["message"], exc.message)
+                if exc.hint:
+                    self.assertEqual(error["hint"], exc.hint)
+        cancelled = self._run(("--json",), behaviour=_raise(cases[1]))
+        error = json.loads(cancelled.stderr.strip().splitlines()[-1])["error"]
+        self.assertEqual(error["result"]["state"], "cancelled")
+
+    def test_interrupted_exits_130_with_resume_hint(self) -> None:
+        result = self._run(behaviour=_raise(LocalRunnerInterrupted()))
+        self.assertEqual(result.exit_code, 130)
+        self.assertIn("Run the same command again to resume", result.stderr)
+        self.assertIn("/tmp/rf-state/r1", result.stderr)
+
+    def test_signal_handlers_are_installed_and_restored(self) -> None:
+        before = {signum: signal.getsignal(signum) for signum in (signal.SIGINT, signal.SIGTERM)}
+        seen: Dict[str, Any] = {}
+
+        def behaviour(runner: _FakeRunner) -> Any:
+            handler = signal.getsignal(signal.SIGTERM)
+            seen["installed"] = handler is not before[signal.SIGTERM] and callable(handler)
+            handler(signal.SIGINT, None)  # first signal: notice + graceful stop
+            handler(signal.SIGINT, None)  # second: abort
+            seen["stops"] = runner.stop_requests
+            raise LocalRunnerInterrupted
+
+        result = self._run(behaviour=behaviour)
+        self.assertEqual(result.exit_code, 130)
+        self.assertTrue(seen["installed"])
+        self.assertEqual(seen["stops"], 2)
+        self.assertEqual(result.stderr.count("Stopping after in-flight cases"), 1)
+        self.assertEqual({signum: signal.getsignal(signum) for signum in before}, before)
+
+    def test_progress_is_throttled_on_stderr(self) -> None:
+        clock = [0.0]
+
+        def behaviour(runner: _FakeRunner) -> Any:
+            for done in range(25):
+                runner.options["on_progress"](
+                    {
+                        "executionId": "x1",
+                        "execution": 1,
+                        "executions": 2,
+                        "ok": done,
+                        "failed": 1,
+                        "alreadyDone": 0,
+                        "skipped": 0,
+                        "remaining": 30 - done,
+                        "inFlight": 4,
+                        "lastLatencyMs": 1234.4,
+                    }
+                )
+                clock[0] += 1
+            return _result()
+
+        with patch("time.monotonic", side_effect=lambda: clock[0]):
+            result = self._run(behaviour=behaviour)
+        self.assertEqual(result.exit_code, 0, result.output)
+        lines = [line for line in result.stderr.splitlines() if line.startswith("Execution")]
+        self.assertEqual(len(lines), 3)  # t = 0, 10, 20
+        self.assertEqual(
+            lines[0], "Execution 1/2 · cases 0 ok / 1 failed / 30 remaining · in flight 4 · last latency 1234 ms"
+        )
+
+    def test_progress_and_warnings_with_json_and_quiet(self) -> None:
+        def behaviour(runner: _FakeRunner) -> Any:
+            runner.options["warn"]("Using the inference server A instead of B")
+            progress = {"execution": 1, "executions": 1, "ok": 1, "failed": 0, "remaining": 0, "inFlight": 0}
+            runner.options["on_progress"](progress)
+            return _result()
+
+        for flag in ("--json", "--quiet"):
+            with self.subTest(flag=flag):
+                result = self._run((flag,), behaviour=behaviour)
+                self.assertEqual(result.exit_code, 0, result.output)
+                self.assertNotIn("Execution 1/1", result.stderr)
+                if flag == "--json":
+                    self.assertEqual(result.stderr, "")
+                    self.assertEqual(json.loads(result.stdout)["state"], "completed")
+                else:
+                    self.assertIn("Warning: Using the inference server A instead of B", result.stderr)
+
+    @patch(f"{CLIENT}.get_run")
+    def test_non_terminal_state_is_read_once_more(self, mock_get_run) -> None:
+        mock_get_run.return_value = {"id": "r1", "state": "completed"}
+        result = self._run(("--json",), behaviour=lambda runner: _result("running"))
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(json.loads(result.stdout)["state"], "completed")
+        mock_get_run.assert_called_once_with("e1", "r1")
+
+    @patch(f"{CLIENT}.get_run")
+    def test_server_run_is_rejected_with_hint(self, mock_get_run) -> None:
+        mock_get_run.return_value = {"id": "r1", "state": "running", "executionMode": "server"}
+        with tempfile.TemporaryDirectory() as state_dir:
+            result = _invoke("--json", *LOCAL, "--state-dir", state_dir)
+        self.assertEqual(result.exit_code, 1)
+        error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+        self.assertEqual(error["hint"], "This Run executes on Roboflow; use `run get --wait`.")
+
+    @responses.activate
+    @patch(f"{CLIENT}.list_executions", return_value={"items": [{"id": "x1"}]})
+    @patch(f"{CLIENT}.get_run_configuration")
+    @patch(f"{CLIENT}.get_run", return_value={"id": "r1", "state": "running", "executionMode": "browser"})
+    def test_preflight_failure_exits_1_with_hint(self, _get_run, mock_config, _executions) -> None:
+        mock_config.return_value = {"sharedConfiguration": {"inferenceServer": {"url": "http://localhost:9001"}}}
+        # No inference server is registered with ``responses``: the preflight POST fails to connect.
+        with tempfile.TemporaryDirectory() as state_dir:
+            result = _invoke("--json", *LOCAL, "--state-dir", state_dir)
+        self.assertEqual(result.exit_code, 1)
+        error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+        self.assertIn("http://localhost:9001", error["message"])
+        self.assertEqual(error["hint"], PREFLIGHT_HINT)
+
+
+class TestWorkflowEvalRunStartLocal(unittest.TestCase):
+    BODY = json.dumps({"executions": [{"subject": {}, "bindingSet": {}}]})
+
+    def _start(self, *extra: str, behaviour=lambda runner: _result(), json_flag: bool = True):
+        calls: List[str] = []
+
+        def tracked(runner: _FakeRunner) -> Any:
+            calls.append("runner")
+            return behaviour(runner)
+
+        def wait(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+            calls.append("wait")
+            return {"id": "r1", "state": "completed"}
+
+        start = MagicMock(return_value={"run": {"id": "r1", "state": "queued"}, "executionMode": "browser"})
+        with (
+            patch(RUNNER, _fake(tracked)),
+            patch(f"{CLIENT}.start_run", start),
+            patch(f"{CLIENT}.wait_for_run", side_effect=wait) as mock_wait,
+        ):
+            argv = ["--json"] if json_flag else []
+            result = _invoke(*argv, "workflow-eval", "run", "start", "-e", "e1", "--body", self.BODY, *extra)
+        return result, calls, start, mock_wait
+
+    def test_wait_with_inference_url_runs_locally_then_waits(self) -> None:
+        result, calls, start, mock_wait = self._start(
+            "--wait", "--inference-url", "http://localhost:9001", "--concurrency", "2"
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(calls, ["runner", "wait"])
+        self.assertEqual(json.loads(result.stdout), {"id": "r1", "state": "completed"})
+        options = _FakeRunner.instances[0].options
+        self.assertEqual(options["inference_url"], "http://localhost:9001")
+        self.assertEqual(options["concurrency"], 2)
+        self.assertNotIn("case_timeout", options)  # the runner default (300) applies
+        mock_wait.assert_called_once_with("e1", "r1", timeout=0, interval=5, on_poll=ANY)
+
+    def test_wait_without_inference_url_only_waits(self) -> None:
+        result, calls, _, _ = self._start("--wait")
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(calls, ["wait"])
+
+    def test_runner_summary_goes_to_stderr(self) -> None:
+        result, _, _, _ = self._start("--wait", "--inference-url", "http://localhost:9001", json_flag=False)
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("Local run finished in 12.5s: 9 submitted (1 failed), 2 already done.", result.stderr)
+        self.assertEqual(json.loads(result.stdout)["state"], "completed")
+
+    def test_inference_url_without_wait_is_a_usage_error(self) -> None:
+        result, calls, start, _ = self._start("--inference-url", "http://localhost:9001")
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn("--inference-url requires --wait", result.stderr)
+        start.assert_not_called()
+        self.assertEqual(calls, [])
+
+    def test_local_options_require_inference_url(self) -> None:
+        result, _, start, _ = self._start("--wait", "--concurrency", "2")
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn("require --inference-url", result.stderr)
+        start.assert_not_called()
+
+    def test_concurrency_out_of_range_is_rejected(self) -> None:
+        result, _, start, _ = self._start("--wait", "--inference-url", "http://x", "--concurrency", "17")
+        self.assertEqual(result.exit_code, 1)
+        start.assert_not_called()
+
+    def test_server_run_with_inference_url_exits_1(self) -> None:
+        error = LocalRunnerError(
+            "Run r1 does not run on a local inference server.",
+            hint="This Run executes on Roboflow; use `run get --wait`.",
+        )
+        result, calls, _, _ = self._start("--wait", "--inference-url", "http://x", behaviour=_raise(error))
+        self.assertEqual(result.exit_code, 1)
+        self.assertEqual(calls, ["runner"])
+        self.assertIn("run get --wait", json.loads(result.stderr.strip().splitlines()[-1])["error"]["hint"])
+
+    def test_interrupt_hints_run_local_to_resume(self) -> None:
+        result, calls, _, _ = self._start(
+            "--wait", "--inference-url", "http://x", behaviour=_raise(LocalRunnerInterrupted())
+        )
+        self.assertEqual(result.exit_code, 130)
+        self.assertEqual(calls, ["runner"])
+        hint = json.loads(result.stderr.strip().splitlines()[-1])["error"]["hint"]
+        self.assertIn("run local -e e1 -r r1 --inference-url http://x", hint)
 
 
 if __name__ == "__main__":

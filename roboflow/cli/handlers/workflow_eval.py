@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
 import time
 from typing import Annotated, Any, Callable, Dict, List, Optional
 
@@ -100,6 +101,12 @@ def _client(args: Any) -> Any:
 
 
 def _error_hint(exc: Any) -> Optional[str]:
+    from roboflow.core.workflow_eval_local_runner import LocalRunnerError
+
+    if isinstance(exc, LocalRunnerError):
+        # The local runner words its own hints: workflow-evals:read/run scopes on 403,
+        # "start the inference server or pass --inference-url" on preflight, resume steps.
+        return exc.hint
     status, code = exc.status_code, (exc.code or "")
     if code == "FEATURE_DISABLED":
         return "Workflow Evals is not enabled for this workspace."
@@ -132,11 +139,18 @@ def _exit_code(exc: Any) -> int:
 def _fail(args: Any, exc: Exception) -> None:
     from roboflow.adapters.workflowevalsapi import WorkflowEvalError
     from roboflow.cli._output import output_error
+    from roboflow.core.workflow_eval_local_runner import LocalRunnerError
 
     if isinstance(exc, WorkflowEvalError):
         payload = exc.to_dict()
         payload.pop("hint", None)
         output_error(args, json.dumps({"error": payload}), hint=_error_hint(exc), exit_code=_exit_code(exc))
+    elif isinstance(exc, LocalRunnerError):
+        payload = exc.to_dict()
+        payload.pop("hint", None)
+        if exc.result is not None:
+            payload["result"] = exc.result.to_dict()
+        output_error(args, json.dumps({"error": payload}, default=str), hint=_error_hint(exc), exit_code=exc.exit_code)
     else:
         output_error(args, str(exc))
 
@@ -909,6 +923,23 @@ _SERVER_RUN_WAIT_TIMEOUT = 3600.0
 _PROGRESS_EVERY = 10.0
 
 
+class _Throttle:
+    """``ready()`` is true at most once every ``every`` seconds of ``time.monotonic`` (thread-safe)."""
+
+    def __init__(self, every: float = _PROGRESS_EVERY) -> None:
+        self._every = every
+        self._last: Optional[float] = None
+        self._lock = threading.Lock()
+
+    def ready(self) -> bool:
+        with self._lock:
+            now = time.monotonic()
+            if self._last is not None and now - self._last < self._every:
+                return False
+            self._last = now
+            return True
+
+
 def _run_id(admission: Dict[str, Any]) -> Optional[str]:
     run = admission.get("run")
     return run.get("id") if isinstance(run, dict) else admission.get("id")
@@ -951,21 +982,19 @@ def _wait_for_run(
     show_progress = not args.json and not args.quiet
     started = time.monotonic()
     limit = timeout
-    last_progress: Optional[float] = None
+    throttle = _Throttle()
 
     def on_poll(run: Dict[str, Any]) -> None:
-        nonlocal limit, last_progress
+        nonlocal limit
         if limit is None:
             mode = execution_mode or _run_field(run, "executionMode")
             limit = 0 if mode == "browser" else _SERVER_RUN_WAIT_TIMEOUT
         state = _run_field(run, "state")
         if state in RUN_TERMINAL_STATES:
             return
-        now = time.monotonic()
-        if show_progress and (last_progress is None or now - last_progress >= _PROGRESS_EVERY):
+        if show_progress and throttle.ready():
             print(_progress_line(run_id, run), file=sys.stderr)
-            last_progress = now
-        if limit and now - started >= limit:
+        if limit and time.monotonic() - started >= limit:
             raise TimeoutError(f"Run {run_id} is still {state} after {limit:g}s")
 
     return client.wait_for_run(eval_id, run_id, timeout=0, interval=interval, on_poll=on_poll)
@@ -984,6 +1013,99 @@ def _then_wait(
         return _wait_for_run(args, client, eval_id, run_id, timeout, interval, mode)
 
     return wait
+
+
+_STOPPING_NOTICE = "Stopping after in-flight cases; press Ctrl-C again to exit now."
+
+
+def _check_local_options(args: Any, concurrency: Optional[int], case_timeout: Optional[float]) -> None:
+    from roboflow.cli._output import output_error
+    from roboflow.core.workflow_eval_local_runner import MAX_CONCURRENCY
+
+    if concurrency is not None and not 1 <= concurrency <= MAX_CONCURRENCY:
+        output_error(
+            args,
+            f"--concurrency must be between 1 and {MAX_CONCURRENCY} (got {concurrency}).",
+            hint="Use the default 4 (the browser's limit); raise it only if the inference server has spare capacity.",
+        )
+    if case_timeout is not None and case_timeout < 0:
+        output_error(args, f"--case-timeout must be 0 or positive (got {case_timeout:g}).", hint="Pass 0 for no limit.")
+
+
+def _local_progress_line(progress: Dict[str, Any]) -> str:
+    remaining = progress.get("remaining")
+    left = "?" if remaining is None else remaining
+    cases = f"cases {progress['ok']} ok / {progress['failed']} failed / {left} remaining"
+    parts = [f"Execution {progress['execution']}/{progress['executions']}", cases]
+    if progress.get("alreadyDone"):
+        parts.append(f"{progress['alreadyDone']} already done")
+    if progress.get("skipped"):
+        parts.append(f"{progress['skipped']} skipped")
+    parts.append(f"in flight {progress['inFlight']}")
+    latency = progress.get("lastLatencyMs")
+    parts.append("last latency " + ("-" if latency is None else f"{latency:.0f} ms"))
+    return " · ".join(parts)
+
+
+def _run_locally(args: Any, client: Any, eval_id: str, run_id: str, resume_hint: str, **options: Any) -> Any:
+    """Run a local Run's Cases with :class:`LocalRunner` and return its ``LocalRunResult``.
+
+    Progress goes to stderr (throttled, not with --json/--quiet); warnings go to
+    stderr unless --json. SIGINT/SIGTERM stop gracefully while the runner works and
+    the previous handlers are restored afterwards. An interruption is re-raised with
+    ``resume_hint`` (formatted with ``state_dir``).
+    """
+    import contextlib
+
+    from roboflow.core.workflow_eval_local_runner import LocalRunner, LocalRunnerInterrupted, install_signal_handlers
+
+    show_progress = not args.json and not args.quiet
+    throttle = _Throttle()
+
+    def on_progress(progress: Dict[str, Any]) -> None:
+        if show_progress and throttle.ready():
+            print(_local_progress_line(progress), file=sys.stderr)
+
+    def warn(message: str) -> None:
+        if not args.json:
+            print(f"Warning: {message}", file=sys.stderr)
+
+    signals_seen = 0
+
+    def on_signal(signum: int) -> None:
+        nonlocal signals_seen
+        signals_seen += 1
+        if signals_seen == 1 and not args.json:
+            print(_STOPPING_NOTICE, file=sys.stderr)
+
+    runner = LocalRunner(client, eval_id, run_id, on_progress=on_progress, warn=warn, **options)
+    # signal.signal only works on the main thread; elsewhere Ctrl-C reaches the runner as KeyboardInterrupt.
+    main_thread = threading.current_thread() is threading.main_thread()
+    handlers = install_signal_handlers(runner, on_signal=on_signal) if main_thread else contextlib.nullcontext()
+    try:
+        with handlers:
+            return runner.run()
+    except LocalRunnerInterrupted as exc:
+        exc.hint = resume_hint.format(state_dir=runner.state_dir)
+        raise
+
+
+def _local_result_text(result: Dict[str, Any]) -> str:
+    from roboflow.cli._table import format_table
+
+    header = (
+        f"Run {result['runId']} · {result['state']} · {result['wallClockSeconds']:g}s"
+        f" · concurrency {result['concurrency']}"
+    )
+    columns = {
+        "EXECUTION": "id",
+        "SUBMITTED": "submitted",
+        "FAILED": "failed",
+        "ALREADY DONE": "alreadyDone",
+        "SKIPPED": "skipped",
+    }
+    rows = [{column: item[key] for column, key in columns.items()} for item in result["executions"]]
+    return f"{header}\n\n{format_table(rows, list(columns))}" if rows else header
 
 
 @run_app.command("list")
@@ -1034,17 +1156,129 @@ def start_run(
     timeout: _TimeoutOpt = None,
     interval: _IntervalOpt = 5,
     idempotency_key: IdempotencyOpt = None,
+    inference_url: Annotated[
+        Optional[str],
+        typer.Option(
+            "--inference-url", help="With --wait, run a local Run's Cases against this inference server, then wait"
+        ),
+    ] = None,
+    concurrency: Annotated[
+        Optional[int],
+        typer.Option("--concurrency", help="With --inference-url: inferences in flight, 1-16 (default 4)"),
+    ] = None,
+    case_timeout: Annotated[
+        Optional[float],
+        typer.Option("--case-timeout", help="With --inference-url: seconds per inference, 0 = no limit (default 300)"),
+    ] = None,
 ) -> None:
     """Start a grouped Run of one or more Workflows over the Eval's Dataset (may consume credits)."""
+    from roboflow.cli._output import output_error
+
     args = ctx_to_args(ctx)
+    if inference_url and not wait:
+        output_error(
+            args,
+            "--inference-url requires --wait.",
+            hint="Add --wait, or start the Run and then use `roboflow workflow-eval run local`.",
+        )
+    if not inference_url and (concurrency is not None or case_timeout is not None):
+        output_error(args, "--concurrency and --case-timeout require --inference-url.")
+    _check_local_options(args, concurrency, case_timeout)
     payload = _require(args, _load_object(args, body))
     then = _then_wait(args, eval_id, timeout, interval)
+    local_options = _merge({"inference_url": inference_url}, concurrency=concurrency, case_timeout=case_timeout)
 
     def call(c: Any) -> Any:
         admission = c.start_run(eval_id, payload, idempotency_key=idempotency_key)
-        return then(c, admission) if wait else admission
+        if not wait:
+            return admission
+        run_id = _run_id(admission)
+        if inference_url and run_id:
+            resume = (
+                f"Resume with `roboflow workflow-eval run local -e {eval_id} -r {run_id} --inference-url "
+                f"{inference_url}`; the journal is in {{state_dir}}."
+            )
+            result = _run_locally(args, c, eval_id, run_id, resume, **local_options)
+            if not args.json and not args.quiet:
+                done = sum(item.already_done for item in result.executions)
+                submitted = sum(item.submitted for item in result.executions)
+                failed = sum(item.failed for item in result.executions)
+                print(
+                    f"Local run finished in {result.wall_clock_seconds:g}s: {submitted} submitted "
+                    f"({failed} failed), {done} already done.",
+                    file=sys.stderr,
+                )
+        return then(c, admission)
 
     _invoke(args, call)
+
+
+@run_app.command("local")
+def run_local(
+    ctx: typer.Context,
+    eval_id: EvalOpt,
+    run_id: RunOpt,
+    inference_url: Annotated[
+        Optional[str], typer.Option("--inference-url", help="Inference server URL (default: the URL frozen in the Run)")
+    ] = None,
+    inference_api_key: Annotated[
+        Optional[str],
+        typer.Option("--inference-api-key", help="API key sent to the inference server (default: the CLI's key)"),
+    ] = None,
+    execution: Annotated[
+        Optional[List[str]],
+        typer.Option("--execution", "-x", help="Only these Execution ids (repeatable; default: all, in order)"),
+    ] = None,
+    concurrency: Annotated[int, typer.Option("--concurrency", help="Inferences in flight at once, 1-16")] = 4,
+    case_timeout: Annotated[
+        float, typer.Option("--case-timeout", help="Seconds per inference request; 0 = no limit")
+    ] = 300,
+    state_dir: Annotated[
+        Optional[str],
+        typer.Option("--state-dir", help="Journal directory (default: ~/.cache/roboflow/workflow-evals/<ws>/<run>)"),
+    ] = None,
+    retry: Annotated[
+        bool, typer.Option("--retry", help="Retry a failed or partially completed Run (when allowed) first")
+    ] = False,
+) -> None:
+    """Run a local Run's Cases against your inference server, without a browser tab.
+
+    Calls the inference server like the web app's browser run and submits each
+    output for server-side scoring. Interrupt with Ctrl-C and run the same command
+    again to resume: captured outputs are journaled and resubmitted, not re-run.
+    """
+    from roboflow.core.workflow_eval_local_runner import LocalRunnerError
+    from roboflow.core.workflow_evals import RUN_TERMINAL_STATES
+
+    args = ctx_to_args(ctx)
+    _check_local_options(args, concurrency, case_timeout)
+
+    def call(c: Any) -> Dict[str, Any]:
+        result = _run_locally(
+            args,
+            c,
+            eval_id,
+            run_id,
+            "Run the same command again to resume; the journal is in {state_dir}.",
+            inference_url=inference_url,
+            inference_api_key=inference_api_key,
+            execution_ids=execution,
+            concurrency=concurrency,
+            case_timeout=case_timeout,
+            state_dir=state_dir,
+            retry=retry,
+        )
+        if result.state not in RUN_TERMINAL_STATES:
+            # The server finalizes the Run inside the last capture; read it once more in case
+            # that raced the runner's final read (or other Executions are still running).
+            result.state = _run_field(c.get_run(eval_id, run_id), "state")
+            if result.state == "cancelled":
+                raise LocalRunnerError(
+                    f"Run {run_id} was cancelled.", hint="Start a new Run to evaluate again.", result=result
+                )
+        return result.to_dict()
+
+    _invoke(args, call, _local_result_text)
 
 
 @run_app.command("cancel")
