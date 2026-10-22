@@ -12,8 +12,10 @@ import json
 import os
 import re
 import signal
+import socket
 import threading
 from datetime import datetime, timezone
+from http.client import RemoteDisconnected
 from typing import Any, Callable, Dict, List, Optional
 from unittest.mock import patch
 from urllib.parse import parse_qs, unquote, urlparse
@@ -29,6 +31,7 @@ from roboflow.config import API_URL
 from roboflow.core import workflow_eval_local_runner as local
 from roboflow.core.workflow_eval_local_runner import (
     CAPTURE_TOO_LARGE_MESSAGE,
+    FETCH_FAILED_MESSAGE,
     PREFLIGHT_HINT,
     TIMEOUT_MESSAGE,
     InferenceServerUnreachable,
@@ -77,6 +80,27 @@ def case(case_id: str, *, checkpoint: Optional[Dict[str, Any]] = None, **fields:
 
 def ok(name: Optional[str] = None) -> Any:
     return (200, {}, json.dumps({"outputs": [{"case": name}]}))
+
+
+def refused_error() -> requests.exceptions.ConnectionError:
+    # What requests raises when nothing listens on the port: the server was never reached.
+    reason = urllib3.exceptions.NewConnectionError(None, "Failed to establish a new connection: Connection refused")
+    return requests.exceptions.ConnectionError(urllib3.exceptions.MaxRetryError(None, "/workflows/run", reason))
+
+
+def refused(request: Any) -> Any:
+    return refused_error()
+
+
+def reset_error() -> requests.exceptions.ConnectionError:
+    # Connected, then the server dropped the connection.
+    return requests.exceptions.ConnectionError(
+        urllib3.exceptions.ProtocolError("Connection aborted.", ConnectionResetError(104, "Connection reset by peer"))
+    )
+
+
+# Waits of one Case whose inference server cannot be reached at all.
+CONNECT_SLEEPS = [1.0, 2.0, 4.0, 8.0, 16.0]
 
 
 class FakeClock:
@@ -506,6 +530,71 @@ def test_stale_page_is_reread_with_the_same_cursor_before_dispatch(env: Env) -> 
     assert image["value"] == "https://storage.example/art-c2?sig=3"
 
 
+def test_retry_after_a_slow_attempt_rereads_the_page_for_fresh_urls(env: Env) -> None:
+    server = env.serve([case("c1"), case("c2")])
+
+    def slow_503(request: Any) -> Any:
+        env.clock.advance(9 * 60)  # the signed URLs of c2's page are about to expire
+        return 503, {}, "Service Unavailable"
+
+    env.inference.behaviors["c2"] = [slow_503, ok("c2")]
+    result = env.runner(concurrency=1).run()
+
+    first, second = [json.loads(r.body)["inputs"]["image"]["value"] for r in env.inference.requests[1:]]
+    assert first == "https://storage.example/art-c2?sig=2"
+    assert second == "https://storage.example/art-c2?sig=3"
+    # c2's page (cursor "1") is read again before the retry, with the same cursor.
+    assert server.page_requests == [(None, 1), ("1", 1), ("1", 1)]
+    assert server.capture_bodies("c2")[0]["output"] == [{"case": "c2"}]
+    assert result.executions[0].submitted == 2 and result.executions[0].failed == 0
+
+
+def test_retry_within_the_page_max_age_reuses_the_inputs(env: Env) -> None:
+    server = env.serve([case("c1")])
+    env.inference.behaviors["c1"] = [(503, {}, "Service Unavailable"), ok("c1")]
+    env.runner().run()
+
+    assert len(env.inference.requests) == 2
+    assert env.inference.requests[0].body == env.inference.requests[1].body
+    assert server.page_requests == [(None, 4)]
+
+
+def test_case_that_left_the_reread_page_is_abandoned_without_capture(env: Env) -> None:
+    server = env.serve([case("c1")])
+
+    def slow_503(request: Any) -> Any:
+        env.clock.advance(9 * 60)
+        with server.lock:
+            server.items = []
+        return 503, {}, "Service Unavailable"
+
+    env.inference.behaviors["c1"] = slow_503
+    result = env.runner().run()
+
+    assert len(env.inference.requests) == 1
+    assert server.captures == [] and captured(env) == []
+    assert server.page_requests == [(None, 4), (None, 4)]
+    assert result.executions[0].to_dict()["pending"] == 0
+
+
+def test_reread_page_at_another_attempt_restarts_the_execution(env: Env) -> None:
+    server = env.serve([case("c1")])
+
+    def slow_503(request: Any) -> Any:
+        env.clock.advance(9 * 60)
+        with server.lock:
+            server.attempt = 2
+        return 503, {}, "Service Unavailable"
+
+    env.inference.behaviors["c1"] = [slow_503, ok("c1")]
+    result = env.runner().run()
+
+    # The attempt-1 inference is not retried nor captured; the restarted pass runs c1 at attempt 2.
+    assert len(env.inference.requests) == 2
+    assert [body["attemptCount"] for body in server.capture_bodies()] == [2]
+    assert result.executions[0].submitted == 1
+
+
 # -- 5. journal ---------------------------------------------------------------------
 
 
@@ -905,56 +994,96 @@ def test_run_workflow_inference_wraps_outputs_and_truncates_errors() -> None:
     assert len(failure.runtime["error"]) == 2000 and failure.retryable
 
 
+def _name_resolution_error() -> requests.exceptions.ConnectionError:
+    reason = urllib3.exceptions.NameResolutionError("nohost", None, socket.gaierror(-2, "Name or service not known"))
+    return requests.exceptions.ConnectionError(urllib3.exceptions.MaxRetryError(None, "/", reason))
+
+
 @pytest.mark.parametrize(
-    ("error", "connection", "timed_out"),
+    ("error", "kind", "timed_out"),
     [
-        (requests.exceptions.ConnectionError("refused"), True, False),
-        (requests.exceptions.ConnectTimeout("connect timed out"), True, True),
-        (requests.exceptions.ChunkedEncodingError("dropped"), True, False),
-        (requests.exceptions.ReadTimeout("read timed out"), False, True),
+        (refused_error(), "connect", False),
+        (requests.exceptions.ConnectionError(urllib3.exceptions.NewConnectionError(None, "refused")), "connect", False),
+        (_name_resolution_error(), "connect", False),
+        (requests.exceptions.ConnectTimeout("connect timed out"), "connect", True),
+        (requests.exceptions.SSLError("certificate verify failed"), "connect", False),
+        (requests.exceptions.ProxyError("proxy refused"), "connect", False),
+        (reset_error(), "dropped", False),
+        (
+            requests.exceptions.ConnectionError(
+                urllib3.exceptions.ProtocolError("Connection aborted.", RemoteDisconnected("closed"))
+            ),
+            "dropped",
+            False,
+        ),
+        (requests.exceptions.ConnectionError(BrokenPipeError(32, "Broken pipe")), "dropped", False),
+        (requests.exceptions.ChunkedEncodingError("Connection broken: IncompleteRead"), "dropped", False),
+        (requests.exceptions.ReadTimeout("read timed out"), None, True),
         # requests reports a timeout while reading the body as a ConnectionError.
-        (requests.exceptions.ConnectionError(urllib3.exceptions.ReadTimeoutError(None, "/", "timed out")), False, True),
+        (requests.exceptions.ConnectionError(urllib3.exceptions.ReadTimeoutError(None, "/", "timed out")), None, True),
     ],
 )
 def test_run_workflow_inference_classifies_connection_failures(
-    error: Exception, connection: bool, timed_out: bool
+    error: Exception, kind: Optional[str], timed_out: bool
 ) -> None:
     with responses.RequestsMock() as rsps:
         rsps.add(responses.POST, f"{INF}/workflows/run", body=error)
         outcome = run_workflow_inference(
             requests.Session(), INF, api_key="k", specification={}, workflow_id="w", inputs={}, timeout=1
         )
-    assert outcome.connection_failure is connection
+    assert outcome.connection_failure is (kind == "connect")
+    assert outcome.dropped is (kind == "dropped")
     assert outcome.runtime["timedOut"] is timed_out and outcome.retryable and not outcome.responded
 
 
 # -- 8. connection failures ---------------------------------------------------------------
 
 
-def test_stops_after_10_consecutive_connection_failures(env: Env) -> None:
-    server = env.serve([case(f"c{i}") for i in range(1, 6)])
-    env.inference.default = lambda request: requests.exceptions.ConnectionError("Connection refused")
+def test_stops_after_10_consecutive_cases_that_cannot_connect(env: Env) -> None:
+    server = env.serve([case(f"c{i}") for i in range(1, 13)])
+    env.inference.default = refused
     with pytest.raises(LocalRunnerError) as raised:
         env.runner(concurrency=1).run()
+    assert not isinstance(raised.value, InferenceServerUnreachable)
     assert raised.value.exit_code == 1
+    assert raised.value.message == f"The inference server at {INF} failed to connect for 10 Cases in a row."
     assert PREFLIGHT_HINT in (raised.value.hint or "")
-    assert len(env.inference.requests) == 10
-    assert env.clock.sleeps == [1.0, 2.0] * 3
-    # Connection failures are not Case failures: nothing is captured, c1..c4 stay pending on the server.
+    # Each of c1..c10 used its whole connect schedule (6 attempts); c11 was never dispatched.
+    assert env.inference.names == [f"c{i}" for i in range(1, 11) for _ in range(6)]
+    assert env.clock.sleeps == CONNECT_SLEEPS * 10
+    # Connection failures are not Case failures: nothing is captured, the Cases stay pending on the server.
     assert server.captures == []
     assert captured(env) == [] and outcomes(env) == []
+
+
+@pytest.mark.parametrize("tenth", ["ok", "dropped"])
+def test_a_case_that_reaches_the_server_resets_the_consecutive_count(env: Env, tenth: str) -> None:
+    names = [f"c{i}" for i in range(1, 20)]
+    server = env.serve([case(name) for name in names])
+    env.inference.default = refused
+    # c10 reaches the server (an answer, or a connection dropped after it was made) between 9 + 9 Cases.
+    env.inference.behaviors["c10"] = ok("c10") if tenth == "ok" else (lambda request: reset_error())
+    with pytest.raises(InferenceServerUnreachable) as raised:
+        env.runner(concurrency=1).run()
+
+    assert raised.value.message == f"18 Cases were not run because the inference server at {INF} was unreachable."
+    assert [cid for cid, _ in server.captures] == ["c10"]
+    assert raised.value.result is not None
+    (tally,) = raised.value.result.executions
+    assert (tally.pending, tally.submitted, tally.failed) == (18, 1, 0 if tenth == "ok" else 1)
 
 
 @pytest.mark.parametrize(
     "error",
     [
-        requests.exceptions.ConnectionError("Connection refused"),
+        refused_error(),
+        _name_resolution_error(),
         requests.exceptions.ConnectTimeout("connect timed out"),
-        requests.exceptions.ChunkedEncodingError("Connection broken: IncompleteRead"),
+        requests.exceptions.SSLError("certificate verify failed"),
     ],
-    ids=["refused", "connect-timeout", "dropped-mid-response"],
+    ids=["refused", "dns", "connect-timeout", "tls"],
 )
-def test_unreachable_case_is_left_pending_and_the_run_exits_1(env: Env, error: Exception) -> None:
+def test_unreachable_case_backs_off_1_2_4_8_16_then_is_left_pending(env: Env, error: Exception) -> None:
     server = env.serve([case("c1"), case("c2")])
     env.inference.behaviors["c1"] = lambda request: error
     with pytest.raises(LocalRunnerError) as raised:
@@ -964,8 +1093,8 @@ def test_unreachable_case_is_left_pending_and_the_run_exits_1(env: Env, error: E
     assert raised.value.exit_code == 1
     assert raised.value.message == f"1 Case was not run because the inference server at {INF} was unreachable."
     assert "run the same command again" in (raised.value.hint or "")
-    assert env.inference.names == ["c1", "c1", "c1", "c2"]
-    assert env.clock.sleeps == [1.0, 2.0]
+    assert env.inference.names == ["c1"] * 6 + ["c2"]
+    assert env.clock.sleeps == CONNECT_SLEEPS
     assert [cid for cid, _ in server.captures] == ["c2"]  # no capture POST for c1
     assert [entry["caseId"] for entry in captured(env)] == ["c2"]
     assert raised.value.result is not None
@@ -975,9 +1104,74 @@ def test_unreachable_case_is_left_pending_and_the_run_exits_1(env: Env, error: E
     assert env.progress[-1]["pending"] == 1 and env.progress[-1]["remaining"] == 0
 
 
+@pytest.mark.parametrize(
+    "error",
+    [reset_error(), requests.exceptions.ChunkedEncodingError("Connection broken: IncompleteRead")],
+    ids=["reset", "dropped-mid-response"],
+)
+def test_dropped_connection_is_retried_3_times_then_captured_as_retryable(env: Env, error: Exception) -> None:
+    server = env.serve([case("c1"), case("c2")])
+    env.inference.behaviors["c1"] = lambda request: error
+    result = env.runner(concurrency=1).run()
+
+    assert env.inference.names == ["c1"] * 3 + ["c2"]
+    assert env.clock.sleeps == [1.0, 2.0]
+    (body,) = server.capture_bodies("c1")
+    assert body["output"] is None
+    assert set(body["runtime"]) == {"latencyMs", "error", "timedOut", "retryable"}
+    assert body["runtime"]["error"] == FETCH_FAILED_MESSAGE
+    assert body["runtime"]["timedOut"] is False and body["runtime"]["retryable"] is True
+    assert [entry["caseId"] for entry in captured(env)] == ["c1", "c2"]
+    assert ("c1", 200, "submitted") in outcomes(env)
+    assert result.executions[0].to_dict() == {
+        "id": X,
+        "submitted": 2,
+        "alreadyDone": 0,
+        "skipped": 0,
+        "failed": 1,
+        "pending": 0,
+    }
+
+
+def test_connected_and_connect_budgets_are_separate(env: Env) -> None:
+    server = env.serve([case("c1")])
+    unavailable = (503, {}, "Service Unavailable")
+    # Two 503s use 2 of the 3 connected attempts; the refusals in between do not.
+    env.inference.behaviors["c1"] = [unavailable, refused, refused, unavailable, refused, ok("c1")]
+    result = env.runner().run()
+    assert len(env.inference.requests) == 6
+    assert env.clock.sleeps == [1.0, 1.0, 2.0, 2.0, 4.0]
+    assert server.capture_bodies()[0]["output"] == [{"case": "c1"}]
+    assert result.executions[0].failed == 0
+
+
+def test_a_short_outage_does_not_fail_the_run(env: Env) -> None:
+    names = [f"c{i}" for i in range(1, 17)]
+    server = env.serve([case(name) for name in names])
+
+    def down_for_3_seconds(request: Any) -> Any:
+        if env.clock.time() < START + 3:
+            return refused_error()
+        return ok(json.loads(request.body)["inputs"]["name"])
+
+    env.inference.default = down_for_3_seconds
+    result = env.runner(concurrency=4).run()
+
+    assert sorted(cid for cid, _ in server.captures) == sorted(names)
+    assert all(body["output"] is not None for body in server.capture_bodies())
+    assert any(sleep == 1.0 for sleep in env.clock.sleeps)  # the outage was hit and waited out
+    assert result.executions[0].to_dict() == {
+        "id": X,
+        "submitted": 16,
+        "alreadyDone": 0,
+        "skipped": 0,
+        "failed": 0,
+        "pending": 0,
+    }
+
+
 def test_http_response_resets_the_connection_failure_count(env: Env) -> None:
     env.serve([case(f"c{i}") for i in range(1, 6)])
-    refused = lambda request: requests.exceptions.ConnectionError("refused")  # noqa: E731
     for name in ("c1", "c2", "c3", "c4", "c5"):
         env.inference.behaviors[name] = [refused, refused, ok(name)]
     result = env.runner(concurrency=1).run()
@@ -1182,10 +1376,9 @@ def test_no_threads_are_left_behind(env: Env) -> None:
 
 
 def test_inference_down_stops_then_the_same_command_completes_every_case_once(env: Env) -> None:
-    names = [f"c{i}" for i in range(1, 7)]
+    names = [f"c{i}" for i in range(1, 14)]
     server = env.serve([case(name) for name in names])
     server.complete_on_capture = True
-    refused = lambda request: requests.exceptions.ConnectionError("Connection refused")  # noqa: E731
     env.inference.default = refused
     env.inference.behaviors.update(c1=ok("c1"), c2=ok("c2"))  # the server goes down after c2
     fake_time = {"clock": env.clock.time, "monotonic": env.clock.time, "sleep": env.clock.sleep}
@@ -1202,10 +1395,10 @@ def test_inference_down_stops_then_the_same_command_completes_every_case_once(en
     first = invoke()
     assert first.exit_code == 1, first.output
     error = json.loads(first.stderr.strip().splitlines()[-1])["error"]
-    assert "failed 10 connections in a row" in error["message"] and PREFLIGHT_HINT in error["hint"]
+    assert "failed to connect for 10 Cases in a row" in error["message"] and PREFLIGHT_HINT in error["hint"]
     assert first.stdout == ""
-    # c3..c5 used their 3 attempts and c6 its first: 10 in a row. Only c1 and c2 were captured.
-    assert env.inference.names == ["c1", "c2"] + ["c3"] * 3 + ["c4"] * 3 + ["c5"] * 3 + ["c6"]
+    # c3..c12 each used their 6 connect attempts: 10 Cases in a row. Only c1 and c2 were captured.
+    assert env.inference.names == ["c1", "c2"] + [f"c{i}" for i in range(3, 13) for _ in range(6)]
     assert [cid for cid, _ in server.captures] == ["c1", "c2"]
     assert [entry["caseId"] for entry in captured(env)] == ["c1", "c2"]  # the journal is kept
 
@@ -1216,7 +1409,7 @@ def test_inference_down_stops_then_the_same_command_completes_every_case_once(en
 
     assert second.exit_code == 0, second.output
     summary = json.loads(second.stdout)
-    assert summary["executions"][0]["alreadyDone"] == 2 and summary["executions"][0]["submitted"] == 4
+    assert summary["executions"][0]["alreadyDone"] == 2 and summary["executions"][0]["submitted"] == 11
     assert summary["executions"][0]["pending"] == 0 and summary["warnings"] == []
-    assert env.inference.names == ["c3", "c4", "c5", "c6"]  # c1 and c2 are not inferred again
-    assert sorted(cid for cid, _ in server.captures) == names  # every Case captured exactly once
+    assert env.inference.names == names[2:]  # c1 and c2 are not inferred again
+    assert sorted(cid for cid, _ in server.captures) == sorted(names)  # every Case captured exactly once

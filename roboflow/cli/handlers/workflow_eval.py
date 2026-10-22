@@ -1040,6 +1040,31 @@ def _check_local_options(args: Any, concurrency: Optional[int], case_timeout: Op
         output_error(args, f"--case-timeout must be 0 or positive (got {case_timeout:g}).", hint="Pass 0 for no limit.")
 
 
+def _run_local_command(
+    args: Any,
+    run_id: str,
+    eval_id: str,
+    inference_url: Optional[str],
+    concurrency: Optional[int],
+    case_timeout: Optional[float],
+) -> str:
+    """The ``run local`` command that resumes a Run, with the options the user passed (never the API key)."""
+    import shlex
+
+    parts = ["roboflow"]
+    if args.workspace:
+        parts += ["--workspace", shlex.quote(str(args.workspace))]
+    parts += ["workflow-eval", "run", "local", shlex.quote(run_id), "-e", shlex.quote(eval_id)]
+    parts += ["--inference-url", shlex.quote(str(inference_url))]
+    if concurrency is not None:
+        parts += ["--concurrency", str(concurrency)]
+    if case_timeout is not None:
+        # 300.0 -> 300, 2.5 -> 2.5 (repr keeps every digit, unlike :g).
+        seconds = float(case_timeout)
+        parts += ["--case-timeout", str(int(seconds)) if seconds.is_integer() else repr(seconds)]
+    return " ".join(parts)
+
+
 def _local_progress_line(progress: Dict[str, Any]) -> str:
     remaining = progress.get("remaining")
     left = "?" if remaining is None else remaining
@@ -1271,10 +1296,9 @@ def start_run(
             if mode != "browser":
                 warn(f"--inference-url has no effect: Run {run_id} executes on Roboflow; waiting for it.")
         if mode == "browser" and run_id:
-            resume = (
-                f"Resume with `roboflow workflow-eval run local {run_id} -e {eval_id} --inference-url "
-                f"{inference_url}`; the journal is in {{state_dir}}."
-            )
+            command = _run_local_command(args, run_id, eval_id, inference_url, concurrency, case_timeout)
+            # Escape braces: the hint is formatted with ``state_dir`` later.
+            resume = f"Resume with `{command.replace('{', '{{').replace('}', '}}')}`; the journal is in {{state_dir}}."
             result = _run_locally(args, c, eval_id, run_id, resume, warn, created_run=True, **local_options)
             if not args.json and not args.quiet:
                 done = sum(item.already_done for item in result.executions)

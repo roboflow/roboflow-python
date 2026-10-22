@@ -12,16 +12,21 @@ Differences from the browser, all deliberate:
 
 * A sliding window of ``concurrency`` inferences (no per-page lockstep), and
   capture submission outside the inference slot.
-* Up to 3 attempts for network errors and HTTP 408/429/5xx from the Inference
-  server, before anything is submitted. A read timeout is not retried.
-* A connection failure (connection refused or reset, DNS failure, connect
-  timeout, connection dropped mid-response) is infrastructure, not a Case
-  failure: when it persists after the 3 attempts nothing is captured and the
-  Case stays pending on the server, so the next run picks it up. A run that
-  leaves Cases pending ends with :class:`InferenceServerUnreachable` (exit 1);
-  10 consecutive connection failures stop the run at once. A read timeout
-  (inference slower than ``case_timeout``, one attempt as in the browser) and
-  HTTP 408/429/5xx that persist are captured as failures with ``retryable: true``.
+* Up to 3 attempts for HTTP 408/429/5xx from the Inference server and for a
+  connection dropped after it was made (reset, aborted, closed mid-response),
+  before anything is submitted. When they persist, the Case is captured as a
+  failure with ``retryable: true`` (``"Failed to fetch"`` for a dropped
+  connection). A read timeout (inference slower than ``case_timeout``) is not
+  retried, as in the browser, and is captured the same way.
+* A request that could not connect (connection refused, DNS failure, connect
+  timeout, TLS or proxy error) is infrastructure, not a Case failure: it is
+  retried after 1, 2, 4, 8 and 16 s, and if it still cannot connect nothing is
+  captured and the Case stays pending on the server, so the next run picks it
+  up. A run that leaves Cases pending ends with :class:`InferenceServerUnreachable`
+  (exit 1); 10 Cases in a row that give up this way stop the run at once (any
+  attempt that reaches the server resets the count).
+* Before every retry, a Case whose input-cases page is older than 8 minutes
+  re-reads that page, so the retry gets fresh signed media URLs.
 * A local journal (``<state-dir>/journal.jsonl`` plus ``captures/<sha256>.json``)
   so that a restarted runner resubmits the stored capture instead of running
   the inference again.
@@ -94,6 +99,9 @@ CAPTURE_TIMEOUT = 300
 PREFLIGHT_TIMEOUT = 15
 INFERENCE_ATTEMPTS = 3
 INFERENCE_BACKOFF_CAP = 30
+# Waits before each new attempt of a request that could not connect (6 attempts, 31 s).
+CONNECT_BACKOFF = (1, 2, 4, 8, 16)
+# Consecutive Cases that gave up without connecting before the run stops.
 MAX_CONNECTION_FAILURES = 10
 API_BACKOFF_CAP = 60
 API_RETRY_BUDGET = 600
@@ -309,8 +317,11 @@ class InferenceOutcome:
 
     output: Any
     runtime: Dict[str, Any]
+    # The request never reached the server (refused, DNS, connect timeout, TLS, proxy).
     connection_failure: bool = False
     responded: bool = False
+    # Connected, then the connection was dropped (reset, aborted, closed mid-response).
+    dropped: bool = False
 
     @property
     def error(self) -> bool:
@@ -319,6 +330,27 @@ class InferenceOutcome:
     @property
     def retryable(self) -> bool:
         return self.runtime.get("retryable") is True
+
+
+_NEVER_CONNECTED = tuple(
+    cls
+    for cls in (
+        urllib3.exceptions.NewConnectionError,
+        getattr(urllib3.exceptions, "NameResolutionError", None),
+        urllib3.exceptions.ConnectTimeoutError,
+    )
+    if cls is not None
+)
+
+
+def _never_connected(exc: requests.ConnectionError) -> bool:
+    """Whether a ``ConnectionError`` happened before the connection was made."""
+    if isinstance(exc, (requests.exceptions.SSLError, requests.exceptions.ProxyError)):
+        return True
+    cause = exc.args[0] if exc.args else None
+    if isinstance(cause, urllib3.exceptions.MaxRetryError):
+        cause = cause.reason
+    return isinstance(cause, _NEVER_CONNECTED)
 
 
 def run_workflow_inference(
@@ -338,15 +370,19 @@ def run_workflow_inference(
     ``{latencyMs, error, timedOut, retryable}``. ``latencyMs`` covers the request
     and the parsing of its body.
 
-    ``connection_failure`` marks connection-level failures: ``requests.ConnectionError``
-    (connection refused or reset, DNS failure, ``ConnectTimeout``) and
-    ``ChunkedEncodingError`` (connection dropped mid-response). The runner does
-    not capture those. A read timeout (``ReadTimeout``, also when it hits while
-    reading the body) is a ``timedOut`` failure, not a connection failure.
+    ``connection_failure`` marks a request that never reached the server:
+    ``ConnectTimeout``, ``SSLError``, ``ProxyError``, and a ``ConnectionError``
+    caused by urllib3's ``NewConnectionError`` (refused), ``NameResolutionError``
+    (DNS) or ``ConnectTimeoutError``. The runner does not capture those.
+    ``dropped`` marks a connection lost after it was made: any other
+    ``ConnectionError`` (reset, aborted, remote disconnected) and
+    ``ChunkedEncodingError`` (closed mid-response); the runner retries and then
+    captures those like HTTP 5xx. A read timeout (``ReadTimeout``, also when it
+    hits while reading the body) is a ``timedOut`` failure, neither of the two.
     """
     body = build_inference_body(api_key, specification, inputs, workflow_id)
     started = monotonic()
-    state = {"retryable": False, "timedOut": False, "connection": False, "responded": False}
+    state = {"retryable": False, "timedOut": False, "connection": False, "responded": False, "dropped": False}
 
     def failure(message: str) -> InferenceOutcome:
         runtime = {
@@ -355,7 +391,7 @@ def run_workflow_inference(
             "timedOut": state["timedOut"],
             "retryable": state["retryable"],
         }
-        return InferenceOutcome(None, runtime, state["connection"], state["responded"])
+        return InferenceOutcome(None, runtime, state["connection"], state["responded"], state["dropped"])
 
     try:
         response = session.post(
@@ -371,10 +407,13 @@ def run_workflow_inference(
             # requests reports a read timeout while reading the body as a ConnectionError.
             state.update(retryable=True, timedOut=True)
             return failure(TIMEOUT_MESSAGE)
-        state.update(retryable=True, connection=True)
+        if _never_connected(exc):
+            state.update(retryable=True, connection=True)
+        else:
+            state.update(retryable=True, dropped=True)
         return failure(FETCH_FAILED_MESSAGE)
     except requests.exceptions.ChunkedEncodingError:
-        state.update(retryable=True, connection=True)
+        state.update(retryable=True, dropped=True)
         return failure(FETCH_FAILED_MESSAGE)
     except requests.exceptions.ContentDecodingError:
         state["retryable"] = True
@@ -713,6 +752,8 @@ class _Work:
     shard_index: int
     attempt: int
     cursor: Optional[str]
+    # When the page the Case's inputs came from was read; a retry re-reads an older page.
+    fetched_at: float = 0.0
 
 
 class LocalRunner:
@@ -1197,7 +1238,7 @@ class LocalRunner:
                 return False
             if self._clock() - page.fetched_at > PAGE_MAX_AGE:
                 continue
-            work = _Work(ctx, case_id, int(item.get("shardIndex") or 0), page.attempt, page.cursor)
+            work = _Work(ctx, case_id, int(item.get("shardIndex") or 0), page.attempt, page.cursor, page.fetched_at)
             with self._cond:
                 self._outstanding += 1
                 if needs_slot:
@@ -1246,7 +1287,7 @@ class LocalRunner:
         outcome: Optional[InferenceOutcome] = None
         data = b""
         try:
-            outcome = self._infer(work.ctx, inputs)
+            outcome = self._infer(work, inputs)
             if outcome is None or outcome.connection_failure:
                 # Unreachable inference server: infrastructure, not a Case failure. Nothing is
                 # captured or journaled, so the Case stays pending on the server.
@@ -1292,17 +1333,25 @@ class LocalRunner:
         self._journal.record_capture(work.attempt, work.ctx.execution_id, work.case_id, work.shard_index, data)
         self._submit(work, data, None)
 
-    def _infer(self, ctx: _Pass, inputs: Dict[str, Any]) -> Optional[InferenceOutcome]:
-        """Run the inference with up to 3 attempts; ``None`` means abandoned (nothing to capture).
+    def _infer(self, work: _Work, inputs: Dict[str, Any]) -> Optional[InferenceOutcome]:
+        """Run the inference with retries; ``None`` means abandoned (nothing to capture).
 
-        Network errors and HTTP 408/429/5xx are retried; a read timeout (inference
-        slower than ``case_timeout``) is returned at once, like the browser's single
-        attempt. Every connection-level
-        failure counts toward the consecutive-connection-failure limit (any HTTP
-        response resets it); the outcome returned for a Case whose last attempt
-        failed to connect has ``connection_failure`` set and is not captured.
+        Two budgets per Case. An attempt that reached the server and failed with
+        HTTP 408/429/5xx or a dropped connection is retried, up to 3 attempts
+        (backoff 1, 2 s); the last outcome is returned and captured. An attempt
+        that could not connect is retried after 1, 2, 4, 8 and 16 s; when the
+        last one cannot connect either, the outcome (``connection_failure`` set,
+        not captured) is returned and the Case counts once toward the limit of
+        consecutive Cases that could not connect. Any attempt that reaches the
+        server resets that count. A read timeout (inference slower than
+        ``case_timeout``) is returned at once, like the browser's single attempt.
+
+        Before each retry, inputs from a page older than ``PAGE_MAX_AGE`` are
+        rebuilt from a re-read of that page, so the signed URLs are fresh.
         """
-        attempt = 1
+        ctx = work.ctx
+        connected_attempts = 0
+        connect_failures = 0
         while True:
             outcome = run_workflow_inference(
                 self._session,
@@ -1314,31 +1363,60 @@ class LocalRunner:
                 timeout=self._case_timeout,
                 monotonic=self._monotonic,
             )
-            with self._cond:
-                if outcome.responded:
+            if outcome.connection_failure:
+                connect_failures += 1
+                if connect_failures > len(CONNECT_BACKOFF):
+                    self._count_unreachable_case()
+                    return outcome
+                delay = float(CONNECT_BACKOFF[connect_failures - 1])
+            else:
+                with self._cond:
                     self._connection_failures = 0
-                elif outcome.connection_failure:
-                    self._connection_failures += 1
-                    if self._connection_failures >= MAX_CONNECTION_FAILURES:
-                        self._fail(
-                            LocalRunnerError(
-                                f"The inference server at {self._url} failed {MAX_CONNECTION_FAILURES} connections "
-                                "in a row.",
-                                hint=f"{PREFLIGHT_HINT} {RESUME_HINT}",
-                            )
-                        )
-                tripped = self._fatal is not None
-            if outcome.connection_failure and tripped:
-                return outcome
-            if outcome.runtime.get("timedOut") and not outcome.connection_failure:
-                return outcome
-            if not outcome.error or not outcome.retryable or attempt >= INFERENCE_ATTEMPTS:
-                return outcome
+                connected_attempts += 1
+                if outcome.runtime.get("timedOut"):
+                    return outcome
+                if not outcome.error or not outcome.retryable or connected_attempts >= INFERENCE_ATTEMPTS:
+                    return outcome
+                delay = min(2.0 ** (connected_attempts - 1), INFERENCE_BACKOFF_CAP)
             try:
-                self._backoff(min(2.0 ** (attempt - 1), INFERENCE_BACKOFF_CAP))
+                self._backoff(delay)
             except _Abandoned:
                 return None
-            attempt += 1
+            if self._clock() - work.fetched_at > PAGE_MAX_AGE:
+                fresh = self._reread_inputs(work)
+                if fresh is None:
+                    return None
+                inputs = fresh
+
+    def _count_unreachable_case(self) -> None:
+        """Count a Case that gave up without connecting; stop the run after ``MAX_CONNECTION_FAILURES`` in a row."""
+        with self._cond:
+            self._connection_failures += 1
+            if self._connection_failures >= MAX_CONNECTION_FAILURES:
+                self._fail(
+                    LocalRunnerError(
+                        f"The inference server at {self._url} failed to connect for {MAX_CONNECTION_FAILURES} Cases "
+                        "in a row.",
+                        hint=f"{PREFLIGHT_HINT} {RESUME_HINT}",
+                    )
+                )
+
+    def _reread_inputs(self, work: _Work) -> Optional[Dict[str, Any]]:
+        """Re-read the Case's page (same cursor) and rebuild its inputs with fresh signed URLs.
+
+        Returns ``None`` when the Case must be abandoned: it left the page, or the
+        page is at another attempt or closes the Run (both flagged like
+        :meth:`_check_page`, since ``work.attempt`` is the pass's attempt). The
+        dispatcher's page is not touched.
+        """
+        page = self._fetch_page(work.ctx, work.cursor)
+        if not self._check_page(work.ctx, page):
+            return None
+        item = page.items.get(work.case_id)
+        if item is None:
+            return None
+        work.fetched_at = page.fetched_at
+        return case_inputs(item, page.urls)
 
     def _submit(self, work: _Work, data: Optional[bytes], lease: Optional[float]) -> None:
         """Submit a capture (``data``) or a ``resume`` (``data is None``) and act on the answer.

@@ -774,6 +774,7 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
         json_flag: bool = True,
         admission: Any = None,
         get_run: Any = None,
+        workspace: bool = True,
     ):
         calls: List[str] = []
 
@@ -795,7 +796,13 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
             patch(f"{CLIENT}.get_run", get_run or MagicMock(side_effect=AssertionError("unexpected get_run"))),
         ):
             argv = ["--json"] if json_flag else []
-            result = _invoke(*argv, "workflow-eval", "run", "start", "-e", "e1", "--body", self.BODY, *extra)
+            argv += ["workflow-eval", "run", "start", "-e", "e1", "--body", self.BODY, *extra]
+            if workspace:
+                result = _invoke(*argv)
+            else:
+                # No global --workspace: the configured default workspace is used.
+                with patch("roboflow.cli._resolver.resolve_default_workspace", return_value="ws"):
+                    result = runner.invoke(app, ["--api-key", "key", *argv])
         return result, calls, start, mock_wait
 
     def test_wait_with_inference_url_runs_locally_then_waits(self) -> None:
@@ -924,7 +931,7 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
             "Stopped after 10 connection failures in a row to the inference server at http://x.",
             hint=f"{PREFLIGHT_HINT} {RESUME_HINT}",
         )
-        result, _, _, _ = self._start("--wait", "--inference-url", "http://x", behaviour=_raise(error))
+        result, _, _, _ = self._start("--wait", "--inference-url", "http://x", behaviour=_raise(error), workspace=False)
         self.assertEqual(result.exit_code, 1)
         payload = json.loads(result.stderr.strip().splitlines()[-1])["error"]
         self.assertNotIn("run the command again", payload["hint"])
@@ -934,6 +941,29 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
             "the journal is in /tmp/rf-state/r1.",
         )
         self.assertEqual(payload["details"]["runId"], "r1")
+
+    def test_resume_hint_repeats_the_workspace_and_local_options(self) -> None:
+        error = LocalRunnerInterrupted()
+        for case_timeout, shown in (("0", "0"), ("2.5", "2.5"), ("300.0", "300")):
+            with self.subTest(case_timeout=case_timeout):
+                result, _, _, _ = self._start(
+                    "--wait",
+                    "--inference-url",
+                    "http://x",
+                    "--case-timeout",
+                    case_timeout,
+                    "--concurrency",
+                    "8",
+                    behaviour=_raise(error),
+                )
+                self.assertEqual(result.exit_code, 130)
+                hint = json.loads(result.stderr.strip().splitlines()[-1])["error"]["hint"]
+                self.assertIn(
+                    "Resume with `roboflow --workspace ws workflow-eval run local r1 -e e1 --inference-url http://x "
+                    f"--concurrency 8 --case-timeout {shown}`; the journal is in /tmp/rf-state/r1.",
+                    hint,
+                )
+                self.assertNotIn("key", hint)
 
     def test_cancelled_run_has_no_resume_hint(self) -> None:
         error = LocalRunnerError(
