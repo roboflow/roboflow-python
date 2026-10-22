@@ -1096,6 +1096,54 @@ class Project:
             target_batch_id=target_batch_id,
         )
 
+    def move_images_to_batch(
+        self,
+        batch_name: Optional[str] = None,
+        batch_id: Optional[str] = None,
+        image_ids: Optional[List[str]] = None,
+        tag: Optional[str] = None,
+    ) -> Dict:
+        """Move existing images into an annotation batch, from whichever batch holds them.
+
+        Select the images with exactly one of ``image_ids`` or ``tag``, and the target with
+        exactly one of ``batch_name`` (created if no batch has that name) or ``batch_id``.
+
+        Args:
+            batch_name (str): name of the target batch; reused if it exists, created otherwise
+            batch_id (str): ID of an existing target batch
+            image_ids (list[str]): IDs of the images to move
+            tag (str): move every image in the project carrying this tag
+
+        Returns:
+            dict: ``{"batchId", "batchName", "moved", "skipped"}``
+
+        Raises:
+            ValueError: if the exactly-one rules above are broken
+            RoboflowError: if the API rejects the request
+
+        Example:
+            >>> project.move_images_to_batch(batch_name="serial-0042", tag="serial-0042")
+        """
+        if (image_ids is None) == (tag is None):
+            raise ValueError("Pass exactly one of image_ids or tag.")
+        if image_ids is not None and not image_ids:
+            raise ValueError("image_ids cannot be empty.")
+        if tag is not None and not tag.strip():
+            raise ValueError("tag cannot be empty.")
+        if (batch_name is None) == (batch_id is None):
+            raise ValueError("Pass exactly one of batch_name or batch_id.")
+        if not (batch_name or batch_id or "").strip():
+            raise ValueError("batch_name or batch_id cannot be empty.")
+        return rfapi.move_images_to_batch(
+            self.__api_key,
+            self.__workspace,
+            self.__project_name,
+            batch_name=batch_name,
+            batch_id=batch_id,
+            image_ids=list(image_ids) if image_ids is not None else None,
+            tag=tag,
+        )
+
     def delete_annotation_batch(self, batch_id: str, permanent: bool = False) -> Dict:
         """Delete a batch, retaining its images as unassigned unless permanent is true."""
         return rfapi.delete_annotation_batch(

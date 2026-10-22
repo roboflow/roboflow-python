@@ -1147,6 +1147,27 @@ def merge_annotation_batches(api_key, workspace_url, project_url, *, source_batc
     return _annotation_administration_response(response)
 
 
+def move_images_to_batch(
+    api_key, workspace_url, project_url, *, batch_name=None, batch_id=None, image_ids=None, tag=None
+):
+    """POST /{ws}/{proj}/batches/move — move images, by IDs or tag, into a batch named or identified."""
+    payload: Dict[str, Any] = {}
+    if image_ids is not None:
+        payload["imageIds"] = image_ids
+    if tag is not None:
+        payload["tag"] = tag
+    if batch_name is not None:
+        payload["batchName"] = batch_name
+    if batch_id is not None:
+        payload["batchId"] = batch_id
+    response = http.post(
+        f"{API_URL}/{workspace_url}/{project_url}/batches/move",
+        params={"api_key": api_key},
+        json=payload,
+    )
+    return _annotation_administration_response(response)
+
+
 def delete_annotation_batch(api_key, workspace_url, project_url, batch_id, *, permanent=False):
     """Delete a batch, retaining its images as unassigned unless permanent is true."""
     response = http.delete(

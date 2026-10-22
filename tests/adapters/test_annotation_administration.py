@@ -207,6 +207,27 @@ class TestAnnotationJobAdministration(unittest.TestCase):
         rfapi.delete_annotation_job_annotations("key", "ws", "proj", "job-1")
         self.assertTrue(mock_delete.call_args.args[0].endswith("/annotation-jobs/job-1/annotations"))
 
+    @patch("roboflow.util.http.requests.post")
+    def test_move_images_to_batch_contract(self, mock_post):
+        mock_post.return_value = _response({"batchId": "b1", "batchName": "serial-42", "moved": 2, "skipped": 0})
+
+        result = rfapi.move_images_to_batch("key", "ws", "proj", batch_name="serial-42", image_ids=["i1", "i2"])
+        self.assertTrue(mock_post.call_args.args[0].endswith("/ws/proj/batches/move"))
+        self.assertEqual(mock_post.call_args.kwargs["params"], {"api_key": "key"})
+        self.assertEqual(mock_post.call_args.kwargs["json"], {"imageIds": ["i1", "i2"], "batchName": "serial-42"})
+        self.assertEqual(result["moved"], 2)
+
+        rfapi.move_images_to_batch("key", "ws", "proj", batch_id="b1", tag="serial-42")
+        self.assertEqual(mock_post.call_args.kwargs["json"], {"tag": "serial-42", "batchId": "b1"})
+
+    @patch("roboflow.util.http.requests.post")
+    def test_move_images_to_batch_error_raises_with_status(self, mock_post):
+        mock_post.return_value = _response({"error": {"message": "Batch not found"}}, status_code=404)
+        with self.assertRaises(rfapi.RoboflowError) as context:
+            rfapi.move_images_to_batch("key", "ws", "proj", batch_id="missing", tag="t")
+        self.assertEqual(context.exception.status_code, 404)
+        self.assertEqual(str(context.exception), "Batch not found")
+
     @patch("roboflow.util.http.requests.get")
     def test_http_error_preserves_status_code(self, mock_get):
         mock_get.return_value = _response(status_code=403)

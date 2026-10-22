@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Move existing images into an annotation batch, by image IDs or by tag.
+  `Project.move_images_to_batch(batch_name=..., image_ids=[...])` (or
+  `tag=...`, or `batch_id=...` for an existing batch) returns
+  `{batchId, batchName, moved, skipped}`; `batch_name` reuses the batch with
+  that name or creates it. The CLI is `roboflow annotation batch move -p
+  <project> (--batch-name N | --batch-id ID) (--tag T | --image-id ID ...)`,
+  with `--json` and the usual exit codes. Needs the
+  `POST /{workspace}/{project}/batches/move` API.
+
 ## 1.7.1
 
 ### Added

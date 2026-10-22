@@ -122,6 +122,25 @@ def batch_merge(
         )
 
 
+@batch_app.command("move")
+def batch_move(
+    ctx: typer.Context,
+    project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
+    batch_name: Annotated[
+        Optional[str], typer.Option("--batch-name", help="Target batch name; created if no batch has it")
+    ] = None,
+    batch_id: Annotated[Optional[str], typer.Option("--batch-id", help="Target batch ID")] = None,
+    image_ids: Annotated[
+        Optional[list[str]], typer.Option("--image-id", help="Image ID to move; repeat for multiple images")
+    ] = None,
+    tag: Annotated[Optional[str], typer.Option(help="Move every image in the project with this tag")] = None,
+) -> None:
+    """Move existing images, by ID or tag, into an annotation batch."""
+    _batch_move(
+        ctx_to_args(ctx, project=project, batch_name=batch_name, batch_id=batch_id, image_ids=image_ids, tag=tag)
+    )
+
+
 @batch_app.command("delete")
 def batch_delete(
     ctx: typer.Context,
@@ -511,6 +530,45 @@ def _batch_list(args: Any) -> None:
         headers=["NAME", "ID", "STATUS", "IMAGE_COUNT"],
     )
     output(args, batches, text=table)
+
+
+def _batch_move(args: Any) -> None:
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_api_error, output_error
+
+    if bool(args.image_ids) == (args.tag is not None):
+        output_error(args, "Choose the images with exactly one of --image-id or --tag.")
+        return
+    if (args.batch_name is None) == (args.batch_id is None):
+        output_error(
+            args,
+            "Choose the target with exactly one of --batch-name or --batch-id.",
+            hint="--batch-name creates the batch if it does not exist; --batch-id must name an existing batch.",
+        )
+        return
+    context = _resolve_project_context(args)
+    if context is None:
+        return
+    try:
+        data = rfapi.move_images_to_batch(
+            *context,
+            batch_name=args.batch_name,
+            batch_id=args.batch_id,
+            image_ids=args.image_ids or None,
+            tag=args.tag,
+        )
+    except rfapi.RoboflowError as exc:
+        output_api_error(
+            args,
+            exc,
+            not_found_hint="Check the project and --batch-id; 'roboflow annotation batch admin-list' lists batches.",
+        )
+        return
+    text = f"Moved {data.get('moved')} image(s) to batch '{data.get('batchName')}' ({data.get('batchId')})."
+    skipped = data.get("skipped")
+    if skipped:
+        text += f" Skipped {len(skipped) if isinstance(skipped, list) else skipped}."
+    output(args, data, text=text)
 
 
 def _job_list(args: Any) -> None:

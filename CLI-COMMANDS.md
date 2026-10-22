@@ -268,6 +268,10 @@ roboflow annotation batch create -p my-project --source-batch-id <batch-id> \
   --image-id <image-id> --name "Review batch"
 roboflow annotation batch merge -p my-project --source-batch-id <source-id> \
   --target-batch-id <target-id> --yes
+# Regroup existing images into a batch, created by name if missing
+roboflow annotation batch move -p my-project --batch-name serial-0042 --tag serial-0042
+roboflow annotation batch move -p my-project --batch-id <batch-id> \
+  --image-id <image-id> --image-id <image-id>
 
 roboflow annotation job admin-list -p my-project --limit 50
 roboflow annotation job admin-get <job-id> -p my-project
