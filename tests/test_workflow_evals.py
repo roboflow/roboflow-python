@@ -371,6 +371,41 @@ class TestWorkflowEvalsClient(unittest.TestCase):
         self.assertEqual(run["state"], "completed")
         self.assertEqual(len(responses.calls), 2)
 
+    def _poll_hours(self, timeout, polls=4):
+        """Wait on a Run that stays running for ``polls`` polls one hour apart."""
+        clock = [0.0]
+        runs = [{"id": R, "state": "running"}] * polls + [{"id": R, "state": "completed"}]
+        seen = []
+
+        def sleep(seconds):
+            clock[0] += seconds
+
+        with (
+            patch.object(self.client, "get_run", side_effect=runs),
+            patch("roboflow.core.workflow_evals.time.monotonic", side_effect=lambda: clock[0]),
+            patch("roboflow.core.workflow_evals.time.sleep", side_effect=sleep),
+        ):
+            return self.client.wait_for_run(E, R, timeout=timeout, interval=3600, on_poll=seen.append), seen
+
+    def test_wait_for_run_without_limit_keeps_polling_until_terminal(self):
+        for timeout in (0, None):
+            with self.subTest(timeout=timeout):
+                run, seen = self._poll_hours(timeout)
+                self.assertEqual(run["state"], "completed")
+                self.assertEqual([r["state"] for r in seen], ["running"] * 4 + ["completed"])
+
+    def test_wait_for_run_positive_timeout_still_raises(self):
+        with self.assertRaisesRegex(TimeoutError, "still running after 7200s"):
+            self._poll_hours(7200)
+
+    def test_submit_capture_forwards_timeout(self):
+        body = {"attemptCount": 1, "shardIndex": 0, "output": {}, "runtime": {"latencyMs": 5}}
+        with patch("roboflow.core.workflow_evals.api.request", return_value={}) as request:
+            self.client.submit_capture(E, R, X, C, body, timeout=300)
+            self.assertEqual(request.call_args.kwargs["timeout"], 300)
+            self.client.submit_capture(E, R, X, C, body)
+            self.assertNotIn("timeout", request.call_args.kwargs)
+
 
 class TestSseParser(unittest.TestCase):
     def test_multiline_data_and_plain_text(self):
