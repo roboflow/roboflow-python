@@ -496,6 +496,25 @@ roboflow workflow-eval binding suggest --spec <spec-id> --dataset <dataset-id> -
 roboflow workflow-eval run start --eval <eval-id> --body @run.json --wait
 # --wait gives up after 3600 s; Runs on a local inference server wait without limit. --timeout 0 = no limit.
 roboflow workflow-eval run get <run-id> --eval <eval-id> --wait --timeout 0
+
+# Runs on a local inference server (executionMode "browser") run without a browser tab.
+# Start and run one in this process, then wait for the result:
+roboflow workflow-eval run start --eval <eval-id> --body @run.json --wait --inference-url http://localhost:9001
+# Or run an existing local Run in the background (default --concurrency 4, max 16):
+nohup roboflow workflow-eval run local <run-id> -e <eval-id> --concurrency 4 > run-local.log 2>&1 &
+# Interrupted (Ctrl-C, exit 130)? Run the same command again: captured outputs are resubmitted from the
+# journal in ~/.cache/roboflow/workflow-evals/<workspace>/<run-id>/ (--state-dir), not re-run.
+# Inference server unreachable (cannot connect, retried after 1, 2, 4, 8, 16 s)? Those Cases are not captured
+# (they stay pending; PENDING in the summary) and the command exits 1, at once after 10 such Cases in a row;
+# start the server and run it again. A read timeout (--case-timeout: per connection attempt and per read, not
+# per Case), or a 408/429/5xx or dropped connection that persists for 3 attempts, is captured as a retryable
+# failure. Worst case per Case for a server that stops responding: about 34 s of backoff plus 11 x --case-timeout
+# (--case-timeout limits each connect and each read, and a Case makes up to 6 connection attempts and 3 connected
+# ones); a response that keeps sending data is not cut off (no bound with --case-timeout 0). With --json,
+# warnings are in "warnings" on success, or in "error.warnings" on failure.
+# If `run start --wait --inference-url` fails while running the Cases locally, the error has the Run id
+# (error.details.runId) and, unless the Run was cancelled, a `run local` command (with the --workspace,
+# --concurrency and --case-timeout you passed) to resume it; running `run start` again would start another Run.
 roboflow workflow-eval execution overview <execution-id> --eval <eval-id> --run <run-id> --json
 roboflow workflow-eval execution results <execution-id> --eval <eval-id> --run <run-id> --failed-check
 roboflow workflow-eval compare --eval <eval-id> -x <execution-a> -x <execution-b> --json
