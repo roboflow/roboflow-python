@@ -37,7 +37,7 @@ Capture responses and what the runner does:
 | ------------------------------------------------- | -------------------------------------------------- |
 | 200                                               | Submitted.                                         |
 | 409 "Different capture already submitted"         | ``done_by_other`` (counted as already done).       |
-| 409 "Capture is being processed" (retryable)      | Wait for the lease, resend the same capture.       |
+| 409 "Capture is being processed" (retryable)      | Wait (see below), resend the same capture.         |
 | 409 "Case failure is not retryable"               | ``skipped``.                                       |
 | 409 "Run no longer accepts captures"              | Stop dispatching; the Run is closed.               |
 | 412 "Run attempt changed"                         | Re-read the Run, restart the Execution.            |
@@ -46,6 +46,15 @@ Capture responses and what the runner does:
 | 413                                               | Submit a failure capture instead (too large).      |
 | 404                                               | Exit 3.                                            |
 | 400                                               | Exit 1, with the server's error.                   |
+
+A capture larger than 10 MiB as sent (the JSON that ``requests`` encodes) is
+not sent at all: the failure capture of a 413 replaces it.
+
+A Case waits for the lease another runner holds on it (after that 409, or before
+a ``resume`` of a capture the server retained) and re-reads its page every 5 s
+meanwhile: it resends at once when the Case's checkpoint is ``completed`` or
+``failed``, follows a changed ``leaseExpiresAt``, and gives up the Case when the
+page closes the Run, is at another attempt, or no longer has the Case.
 
 A restarted Execution reads its Cases again: Cases the server already has are
 not run again, and journaled captures of the same attempt are resubmitted. The
@@ -108,6 +117,11 @@ API_RETRY_BUDGET = 600
 # Signed media URLs live 10 minutes; re-read a page older than that minus a 2 minute margin.
 PAGE_MAX_AGE = 8 * 60
 PROCESSING_RESENDS = 10
+# A Case waiting for a lease re-reads its page this often (seconds).
+LEASE_POLL_INTERVAL = 5.0
+# The server's JSON body limit: bodyLimit "10mb" (10 MiB) in roboflow/roboflow
+# app/functions/backend/setupExpress.ts:77, enforced by body-parser before any route.
+CAPTURE_LIMIT_BYTES = 10 * 1024 * 1024
 MAX_RELOADS = 5
 ERROR_MAX_LENGTH = 2000
 
@@ -1445,13 +1459,22 @@ class LocalRunner:
         """Submit a capture (``data``) or a ``resume`` (``data is None``) and act on the answer.
 
         Every resend sends the same JSON value (parsed from the same stored bytes).
+        A ``resume`` first waits for the ``lease`` another runner holds on the Case
+        (:meth:`_wait_for_lease`).
         """
         ctx = work.ctx
         resends = 0
         replaced = False
+        if data is not None:
+            body = json.loads(data)
+            # Measured as sent: ``requests`` re-encodes ``json=body`` with its default separators
+            # and ``ensure_ascii``, so the bytes on the wire are not ``data``.
+            if len(json.dumps(body, allow_nan=False).encode()) > CAPTURE_LIMIT_BYTES:
+                data = self._too_large(work, body)
+                replaced = True
+        if lease is not None:
+            self._wait_for_lease(work, lease)
         while True:
-            self._sleep_until(lease)
-            lease = None
             if data is not None:
                 body = json.loads(data)
             else:
@@ -1505,7 +1528,8 @@ class LocalRunner:
                         hint=RESUME_HINT,
                         details=error.to_dict(),
                     )
-                lease = self._lease(work) or self._clock() + min(2.0**resends, API_BACKOFF_CAP)
+                # Without a leaseExpiresAt on the page, back off 2, 4, 8… s.
+                self._wait_for_lease(work, self._clock() + min(2.0**resends, API_BACKOFF_CAP), reread=True)
                 continue
             if status == 412 or (status == 409 and message.startswith("No retained capture")):
                 # The Run attempt changed (or the retained capture is gone): restart the Execution.
@@ -1534,11 +1558,37 @@ class LocalRunner:
         self._journal.record_capture(work.attempt, work.ctx.execution_id, work.case_id, work.shard_index, data)
         return data
 
-    def _lease(self, work: _Work) -> Optional[float]:
-        """Re-read the Case's page (same cursor) for its ``checkpoint.leaseExpiresAt``."""
-        page = self._fetch_page(work.ctx, work.cursor)
-        item = page.items.get(work.case_id) or {}
-        return _parse_timestamp((item.get("checkpoint") or {}).get("leaseExpiresAt"))
+    def _wait_for_lease(self, work: _Work, deadline: float, *, reread: bool = False) -> None:
+        """Wait until ``deadline``, the end of the lease another runner holds on the Case.
+
+        Meanwhile the Case's page (same cursor) is re-read every
+        ``LEASE_POLL_INTERVAL`` seconds, and at once when ``reread``. Its
+        ``leaseExpiresAt`` replaces ``deadline``; a ``completed`` or ``failed``
+        checkpoint ends the wait, and the resend gets the server's answer.
+        Raises :class:`_Abandoned` when dispatching stops, when the page closes
+        the Run or is at another attempt (flagged by :meth:`_check_page`), or
+        when the Case left the page (flagged ``_reload``, as in
+        :meth:`_reread_inputs`).
+        """
+        next_read = self._clock() if reread else self._clock() + LEASE_POLL_INTERVAL
+        while self._clock() < deadline:
+            self._sleep_until(min(deadline, next_read))
+            if self._clock() >= deadline:
+                return
+            if self._dispatch_stopped():
+                raise _Abandoned
+            page = self._fetch_page(work.ctx, work.cursor, abandon=self._dispatch_stopped)
+            if not self._check_page(work.ctx, page):
+                raise _Abandoned
+            item = page.items.get(work.case_id)
+            if item is None:
+                self._flag("_reload")
+                raise _Abandoned
+            checkpoint = item.get("checkpoint") or {}
+            if checkpoint.get("state") in ("completed", "failed"):
+                return
+            deadline = _parse_timestamp(checkpoint.get("leaseExpiresAt")) or deadline
+            next_read = self._clock() + LEASE_POLL_INTERVAL
 
     def _record(self, work: _Work, status: int, outcome: str) -> None:
         assert self._journal is not None

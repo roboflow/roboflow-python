@@ -745,10 +745,31 @@ def test_case_with_retained_capture_waits_for_lease_and_resumes(env: Env) -> Non
     lease = START + 42
     checkpoint = {"state": "running", "attemptCount": 1, "hasCapture": True, "leaseExpiresAt": iso(lease)}
     server = env.serve([case("c1", checkpoint=checkpoint)])
+    reads: List[float] = []
+    server.before_page[None] = lambda: reads.append(env.clock.now - START)
     env.runner().run()
     assert env.inference.requests == []
     assert server.capture_bodies() == [{"attemptCount": 1, "shardIndex": 0, "resume": True}]
-    assert env.clock.now >= lease
+    assert env.clock.now == lease
+    # The Case stays running: its page is re-read every 5 s and the resume waits for the lease.
+    assert reads == [0, 5, 10, 15, 20, 25, 30, 35, 40]
+    assert env.clock.sleeps == [5.0] * 8 + [2.0]
+
+
+def test_retained_capture_resumes_before_the_lease_once_the_case_is_final(env: Env) -> None:
+    lease = START + 600
+    checkpoint = {"state": "running", "attemptCount": 1, "hasCapture": True, "leaseExpiresAt": iso(lease)}
+    server = env.serve([case("c1", checkpoint=checkpoint)])
+
+    def other_runner_finishes() -> None:
+        if env.clock.now >= START + 10:
+            server.checkpoint("c1", {"state": "completed", "attemptCount": 1, "hasCapture": True})
+
+    server.before_page[None] = other_runner_finishes
+    env.runner().run()
+    assert env.inference.requests == []
+    assert server.capture_bodies() == [{"attemptCount": 1, "shardIndex": 0, "resume": True}]
+    assert env.clock.now == START + 10
 
 
 # -- 6. capture responses ---------------------------------------------------------------
@@ -777,26 +798,111 @@ def test_capture_409_different_capture_counts_as_done_by_other(env: Env) -> None
     assert outcomes(env) == [("c1", 409, "done_by_other")]
 
 
-def test_capture_409_processing_waits_for_lease_and_resends_same_bytes(env: Env) -> None:
-    server = env.serve([case("c1")])
-    lease = START + 30
+PROCESSING_MESSAGE = "Capture is being processed or the attempt changed; retry the same payload"
+
+
+def processing_until(server: FakeServer, lease: float) -> Callable[[], Any]:
+    """A capture answer: another runner holds c1 until ``lease``."""
 
     def processing() -> Any:
         server.checkpoint(
             "c1", {"state": "running", "attemptCount": 1, "hasCapture": True, "leaseExpiresAt": iso(lease)}
         )
-        message = "Capture is being processed or the attempt changed; retry the same payload"
-        return 409, err(message, retryable=True)
+        return 409, err(PROCESSING_MESSAGE, retryable=True)
 
-    server.capture_script["c1"] = [processing]
+    return processing
+
+
+def test_capture_409_processing_waits_for_lease_and_resends_same_bytes(env: Env) -> None:
+    server = env.serve([case("c1")])
+    lease = START + 30
+    reads: List[float] = []
+    sent: List[float] = []
+    server.before_page[None] = lambda: reads.append(env.clock.now - START)
+    processing = processing_until(server, lease)
+
+    def answer(response: Any = None) -> Callable[[], Any]:
+        def respond() -> Any:
+            sent.append(env.clock.now - START)
+            return response() if callable(response) else response
+
+        return respond
+
+    server.capture_script["c1"] = [answer(processing), answer()]
     result = env.runner().run()
 
     assert len(server.captures) == 2
     assert server.captures[0][1] == server.captures[1][1]
-    assert server.page_requests == [(None, 4), (None, 4)]  # the lease came from re-reading the same page
-    assert env.clock.now >= lease
+    # The lease comes from re-reading the same page at once; the Case stays running, so the
+    # page is re-read every 5 s and the capture is resent only when the lease ends.
+    assert all(request == (None, 4) for request in server.page_requests)
+    assert reads == [0, 0, 5, 10, 15, 20, 25]
+    assert sent == [0, 30]
     assert len(env.inference.requests) == 1
     assert result.executions[0].submitted == 1
+
+
+def test_capture_409_processing_resends_before_the_lease_once_the_case_is_final(env: Env) -> None:
+    server = env.serve([case("c1")])
+    lease = START + 600
+
+    def other_runner_finishes() -> None:
+        if env.clock.now >= START + 7:
+            server.checkpoint("c1", {"state": "completed", "attemptCount": 1, "hasCapture": False})
+
+    server.before_page[None] = other_runner_finishes
+    server.capture_script["c1"] = [
+        processing_until(server, lease),
+        (409, err("Different capture already submitted for this Case attempt")),
+    ]
+    result = env.runner().run()
+
+    assert len(server.captures) == 2 and server.captures[0][1] == server.captures[1][1]
+    assert env.clock.now == START + 10  # the first re-read after the Case completed
+    assert outcomes(env) == [("c1", 409, "done_by_other")]
+    assert result.executions[0].already_done == 1 and result.executions[0].submitted == 0
+
+
+def test_capture_409_processing_follows_a_lease_that_moves(env: Env) -> None:
+    server = env.serve([case("c1")])
+    sent: List[float] = []
+
+    def lease_extended() -> None:
+        if env.clock.now >= START + 10:
+            lease = iso(START + 50)
+            server.checkpoint(
+                "c1", {"state": "running", "attemptCount": 1, "hasCapture": True, "leaseExpiresAt": lease}
+            )
+
+    def accepted() -> None:
+        sent.append(env.clock.now - START)
+
+    server.before_page[None] = lease_extended
+    server.capture_script["c1"] = [processing_until(server, START + 30), accepted]
+    env.runner().run()
+
+    assert sent == [50]
+    assert env.clock.now == START + 50
+
+
+def test_run_completed_while_waiting_for_a_lease_exits_0_without_waiting(env: Env) -> None:
+    server = env.serve([case("c1")])
+
+    def run_completes() -> None:
+        if env.clock.now > START:
+            server.run["state"] = "completed"
+
+    server.before_page[None] = run_completes
+    server.capture_script["c1"] = [processing_until(server, START + 600)]
+    fake_time = {"clock": env.clock.time, "monotonic": env.clock.time, "sleep": env.clock.sleep}
+    argv = ["--workspace", WS, "--api-key", KEY, "--json", "workflow-eval", "run", "local", R, "-e", E]
+    with patch.object(local, "LocalRunner", lambda *args, **kwargs: LocalRunner(*args, **kwargs, **fake_time)):
+        result = CliRunner().invoke(app, argv + ["--state-dir", env.state_dir])
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["state"] == "completed"
+    assert env.clock.now == START + 5  # the first re-read saw the completed Run
+    assert len(server.captures) == 1
 
 
 def test_capture_409_non_retryable_failure_is_skipped(env: Env) -> None:
@@ -977,6 +1083,54 @@ def test_capture_413_is_replaced_by_a_failure_capture(env: Env) -> None:
     assert len(entries) == 2 and json.loads(env.stored(entries[1])) == second
     assert any(CAPTURE_TOO_LARGE_MESSAGE in warning for warning in env.warnings)
     assert result.executions[0].submitted == 1 and result.executions[0].failed == 1
+
+
+def assert_replaced_without_sending(env: Env, server: FakeServer, result: Any) -> bytes:
+    """The capture was journaled, then replaced by the failure capture, the only one sent."""
+    (body,) = server.capture_bodies()
+    assert body["output"] is None
+    assert {key: body["runtime"][key] for key in ("error", "retryable")} == {
+        "error": CAPTURE_TOO_LARGE_MESSAGE,
+        "retryable": False,
+    }
+    big, failure = captured(env)
+    assert json.loads(env.stored(failure)) == body  # the journal's last capture for c1 wins
+    assert outcomes(env) == [("c1", 200, "submitted")]
+    assert result.executions[0].submitted == 1 and result.executions[0].failed == 1
+    return env.stored(big)
+
+
+def test_capture_over_the_limit_on_the_wire_is_replaced_without_sending_it(env: Env) -> None:
+    server = env.serve([case("c1")])
+    output = [{"mask": "x" * local.CAPTURE_LIMIT_BYTES}]
+    env.inference.default = lambda request: (200, {}, json.dumps({"outputs": output}))
+    result = env.runner().run()
+    big = assert_replaced_without_sending(env, server, result)
+    assert json.loads(big)["output"] == output
+
+
+def test_capture_size_is_measured_as_sent_with_ascii_escapes(env: Env) -> None:
+    server = env.serve([case("c1")])
+    env.inference.default = lambda request: (200, {}, json.dumps({"outputs": [{"label": "ñ" * 1000}]}))
+    with patch.object(local, "CAPTURE_LIMIT_BYTES", 4000):
+        result = env.runner().run()
+    big = assert_replaced_without_sending(env, server, result)
+    # Under the limit as compact UTF-8, over it as requests sends it ("ñ").
+    assert len(big) < 4000 < len(json.dumps(json.loads(big)).encode())
+
+
+def test_capture_at_the_limit_on_the_wire_is_sent_as_is(env: Env) -> None:
+    server = env.serve([case("c1")])
+    output = [{"label": "ñ" * 1000}]
+    env.inference.default = lambda request: (200, {}, json.dumps({"outputs": output}))
+    expected = {"attemptCount": 1, "shardIndex": 0, "output": output, "runtime": {"latencyMs": 0.0}}
+    limit = len(json.dumps(expected).encode())
+    with patch.object(local, "CAPTURE_LIMIT_BYTES", limit):
+        result = env.runner().run()
+    ((_, sent),) = server.captures
+    assert json.loads(sent) == expected and len(sent) == limit
+    assert len(captured(env)) == 1 and env.warnings == []
+    assert result.executions[0].submitted == 1 and result.executions[0].failed == 0
 
 
 def test_capture_404_exits_3(env: Env) -> None:
