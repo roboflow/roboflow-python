@@ -64,6 +64,7 @@ class TestProjectAnnotationAdministration(RoboflowTest):
             {"tag": "t"},
             {"batch_name": "b", "batch_id": "id", "tag": "t"},
             {"batch_name": "", "tag": "t"},
+            {"batch_name": "b", "image_ids": [f"i{i}" for i in range(2001)]},
         ]
         with patch("roboflow.adapters.rfapi.move_images_to_batch") as mock:
             for kwargs in cases:

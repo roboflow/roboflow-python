@@ -133,9 +133,11 @@ def batch_move(
     image_ids: Annotated[
         Optional[list[str]], typer.Option("--image-id", help="Image ID to move; repeat for multiple images")
     ] = None,
-    tag: Annotated[Optional[str], typer.Option(help="Move every image in the project with this tag")] = None,
+    tag: Annotated[
+        Optional[str], typer.Option(help="Move every image in the project with this tag (at most 2000)")
+    ] = None,
 ) -> None:
-    """Move existing images, by ID or tag, into an annotation batch."""
+    """Move existing images, by ID or tag, into an annotation batch (at most 2000 per call)."""
     _batch_move(
         ctx_to_args(ctx, project=project, batch_name=batch_name, batch_id=batch_id, image_ids=image_ids, tag=tag)
     )
@@ -546,6 +548,13 @@ def _batch_move(args: Any) -> None:
             hint="--batch-name creates the batch if it does not exist; --batch-id must name an existing batch.",
         )
         return
+    if args.image_ids and len(args.image_ids) > rfapi.MAX_MOVE_TO_BATCH_IMAGES:
+        output_error(
+            args,
+            f"At most {rfapi.MAX_MOVE_TO_BATCH_IMAGES} images can be moved in one call.",
+            hint="Split the --image-id list across several calls.",
+        )
+        return
     context = _resolve_project_context(args)
     if context is None:
         return
@@ -558,16 +567,21 @@ def _batch_move(args: Any) -> None:
             tag=args.tag,
         )
     except rfapi.RoboflowError as exc:
+        over_tag_cap = args.tag is not None and str(rfapi.MAX_MOVE_TO_BATCH_IMAGES) in str(exc)
         output_api_error(
             args,
             exc,
+            hint=(
+                f"A tag moves at most {rfapi.MAX_MOVE_TO_BATCH_IMAGES} images; move the rest with --image-id lists."
+                if over_tag_cap
+                else None
+            ),
             not_found_hint="Check the project and --batch-id; 'roboflow annotation batch admin-list' lists batches.",
         )
         return
-    text = f"Moved {data.get('moved')} image(s) to batch '{data.get('batchName')}' ({data.get('batchId')})."
-    skipped = data.get("skipped")
-    if skipped:
-        text += f" Skipped {len(skipped) if isinstance(skipped, list) else skipped}."
+    text = f"Moved {data['moved']} image(s) to batch '{data['batchName']}' ({data['batchId']})."
+    if data["skipped"]:
+        text += f" Skipped {data['skipped']} already there or not movable."
     output(args, data, text=text)
 
 

@@ -1107,15 +1107,20 @@ class Project:
 
         Select the images with exactly one of ``image_ids`` or ``tag``, and the target with
         exactly one of ``batch_name`` (created if no batch has that name) or ``batch_id``.
+        One call moves at most 2000 images: a longer ``image_ids`` list is refused here, and a
+        tag carried by more than 2000 images in the project is refused by the API before any
+        image moves. A call that would move nothing (every image already in the target
+        batch) is refused by the API.
 
         Args:
             batch_name (str): name of the target batch; reused if it exists, created otherwise
             batch_id (str): ID of an existing target batch
-            image_ids (list[str]): IDs of the images to move
-            tag (str): move every image in the project carrying this tag
+            image_ids (list[str]): IDs of the images to move, at most 2000
+            tag (str): move every image in the project carrying this tag, at most 2000
 
         Returns:
-            dict: ``{"batchId", "batchName", "moved", "skipped"}``
+            dict: ``{"batchId", "batchName", "moved", "skipped"}``; ``moved`` and ``skipped``
+            are counts, ``skipped`` being selected images left where they were
 
         Raises:
             ValueError: if the exactly-one rules above are broken
@@ -1128,6 +1133,8 @@ class Project:
             raise ValueError("Pass exactly one of image_ids or tag.")
         if image_ids is not None and not image_ids:
             raise ValueError("image_ids cannot be empty.")
+        if image_ids is not None and len(image_ids) > rfapi.MAX_MOVE_TO_BATCH_IMAGES:
+            raise ValueError(f"At most {rfapi.MAX_MOVE_TO_BATCH_IMAGES} image_ids can be moved in one call.")
         if tag is not None and not tag.strip():
             raise ValueError("tag cannot be empty.")
         if (batch_name is None) == (batch_id is None):

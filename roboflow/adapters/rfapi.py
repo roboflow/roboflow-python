@@ -1147,10 +1147,14 @@ def merge_annotation_batches(api_key, workspace_url, project_url, *, source_batc
     return _annotation_administration_response(response)
 
 
+# Per-call cap on images moved into a batch, for imageIds and for the images a tag resolves to.
+MAX_MOVE_TO_BATCH_IMAGES = 2000
+
+
 def move_images_to_batch(
     api_key, workspace_url, project_url, *, batch_name=None, batch_id=None, image_ids=None, tag=None
 ):
-    """POST /{ws}/{proj}/batches/move — move images, by IDs or tag, into a batch named or identified."""
+    """POST /{ws}/{proj}/annotation-batches/move — move images, by IDs or tag, into a batch named or identified."""
     payload: Dict[str, Any] = {}
     if image_ids is not None:
         payload["imageIds"] = image_ids
@@ -1161,7 +1165,7 @@ def move_images_to_batch(
     if batch_id is not None:
         payload["batchId"] = batch_id
     response = http.post(
-        f"{API_URL}/{workspace_url}/{project_url}/batches/move",
+        f"{API_URL}/{workspace_url}/{project_url}/annotation-batches/move",
         params={"api_key": api_key},
         json=payload,
     )

@@ -212,7 +212,7 @@ class TestAnnotationJobAdministration(unittest.TestCase):
         mock_post.return_value = _response({"batchId": "b1", "batchName": "serial-42", "moved": 2, "skipped": 0})
 
         result = rfapi.move_images_to_batch("key", "ws", "proj", batch_name="serial-42", image_ids=["i1", "i2"])
-        self.assertTrue(mock_post.call_args.args[0].endswith("/ws/proj/batches/move"))
+        self.assertTrue(mock_post.call_args.args[0].endswith("/ws/proj/annotation-batches/move"))
         self.assertEqual(mock_post.call_args.kwargs["params"], {"api_key": "key"})
         self.assertEqual(mock_post.call_args.kwargs["json"], {"imageIds": ["i1", "i2"], "batchName": "serial-42"})
         self.assertEqual(result["moved"], 2)
