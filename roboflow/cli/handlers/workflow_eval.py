@@ -1264,8 +1264,9 @@ def start_run(
             "--case-timeout",
             help="With --inference-url: seconds per connection attempt and per read of each inference request, "
             "not a total per Case; 0 = no limit (default 300). Worst case per Case for a server that stops "
-            "responding: about 34 s of backoff plus 9 x --case-timeout (6 connection attempts and 3 connected "
-            "attempts); a response that keeps sending data is not cut off (no bound with --case-timeout 0).",
+            "responding: about 34 s of backoff plus 11 x --case-timeout (--case-timeout limits each connect and "
+            "each read, and a Case makes up to 6 connection attempts and 3 connected ones); a response that keeps "
+            "sending data is not cut off (no bound with --case-timeout 0).",
         ),
     ] = None,
 ) -> None:
@@ -1342,8 +1343,9 @@ def run_local(
             "--case-timeout",
             help="Seconds per connection attempt and per read of each inference request, not a total per Case; "
             "0 = no limit. Worst case per Case for a server that stops responding: about 34 s of backoff plus "
-            "9 x --case-timeout (6 connection attempts and 3 connected attempts); a response that keeps sending "
-            "data is not cut off (no bound with --case-timeout 0).",
+            "11 x --case-timeout (--case-timeout limits each connect and each read, and a Case makes up to 6 "
+            "connection attempts and 3 connected ones); a response that keeps sending data is not cut off (no "
+            "bound with --case-timeout 0).",
         ),
     ] = 300,
     state_dir: Annotated[
