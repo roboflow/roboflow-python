@@ -2592,3 +2592,36 @@ def revoke_api_key(api_key: str, workspace_url: str, key_id: str) -> dict:
     if not response.ok:
         raise RoboflowError(response.text, status_code=response.status_code)
     return response.json()
+
+
+def roll_api_key(
+    api_key: str,
+    workspace_url: str,
+    key_id: str,
+    rotation_due_at: Optional[str] = None,
+    owners: Optional[List[str]] = None,
+) -> dict:
+    """POST /{workspace}/api-keys/{keyId}/roll — revoke a key and mint its replacement.
+
+    The replacement keeps the old key's name, scopes, folders, metadata, protection
+    and disabled state, and its secret ``key`` value is returned only here (shown
+    once). ``rotation_due_at`` (ISO date or date-time, UTC, in the future) and
+    ``owners`` set the replacement's rotation schedule; omitted, the old key's
+    schedule carries over. Both require the Advanced API Keys plan feature.
+    Rolling a protected or already rolled key returns 409; a credential that holds
+    less access than the target key gets 403.
+    """
+    encoded = quote(key_id, safe="")
+    body: Dict[str, Any] = {}
+    if rotation_due_at is not None:
+        body["rotationDueAt"] = rotation_due_at
+    if owners is not None:
+        body["owners"] = owners
+    response = http.post(
+        f"{API_URL}/{workspace_url}/api-keys/{encoded}/roll",
+        params={"api_key": api_key},
+        json=body or None,
+    )
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()

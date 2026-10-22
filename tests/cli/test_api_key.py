@@ -78,6 +78,11 @@ class TestApiKeyRegistration(unittest.TestCase):
         result = runner.invoke(app, ["api-key", "revoke", "--help"])
         self.assertEqual(result.exit_code, 0, result.output)
 
+    def test_roll_help(self) -> None:
+        result = runner.invoke(app, ["api-key", "roll", "--help"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("--rotation-due-at", _strip_ansi(result.output))
+
 
 # ---------------------------------------------------------------------------
 # list
@@ -649,6 +654,160 @@ class TestRevokeApiKey(unittest.TestCase):
         printed = mock_print.call_args[0][0]
         data = json.loads(printed)
         self.assertEqual(data["status"], "revoked")
+
+
+# ---------------------------------------------------------------------------
+# roll
+# ---------------------------------------------------------------------------
+
+
+def _roll_args(**overrides):  # noqa: ANN001, ANN202
+    base = dict(
+        json=False, workspace=None, api_key=None, quiet=False, key_id="k1", rotation_due_at=None, owner=None, yes=True
+    )
+    base.update(overrides)
+    return Namespace(**base)
+
+
+_ROLLED = {
+    "keyId": "k2",
+    "key": "NEWSECRET",
+    "name": "My Key",
+    "scopes": None,
+    "folderIds": [],
+    "protected": False,
+    "disabled": False,
+    "rotationDueAt": None,
+    "owners": [],
+    "revokedKeyId": "k1",
+}
+
+
+class TestRollApiKey(unittest.TestCase):
+    @patch("roboflow.adapters.rfapi.roll_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_roll_with_yes_prints_secret_once(self, _mock_key, _mock_ws, mock_roll) -> None:
+        mock_roll.return_value = dict(_ROLLED)
+        from roboflow.cli.handlers.api_key import _roll_key
+
+        with patch("builtins.print") as mock_print:
+            _roll_key(_roll_args())
+        mock_roll.assert_called_once_with("fake-key", "test-ws", "k1", rotation_due_at=None, owners=None)
+        printed = mock_print.call_args[0][0]
+        self.assertIn("NEWSECRET", printed)
+        self.assertIn("k2", printed)
+        self.assertIn("revoked k1", printed)
+
+    @patch("roboflow.adapters.rfapi.roll_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_roll_forwards_schedule(self, _mock_key, _mock_ws, mock_roll) -> None:
+        mock_roll.return_value = dict(_ROLLED)
+        from roboflow.cli.handlers.api_key import _roll_key
+
+        with patch("builtins.print"):
+            _roll_key(_roll_args(rotation_due_at="2027-10-22", owner=["u1", "u2"]))
+        mock_roll.assert_called_once_with(
+            "fake-key", "test-ws", "k1", rotation_due_at="2027-10-22", owners=["u1", "u2"]
+        )
+
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_roll_without_yes_no_tty_exits(self, _mock_key, _mock_ws) -> None:
+        from roboflow.cli.handlers.api_key import _roll_key
+
+        with patch("sys.stdin.isatty", return_value=False):
+            with self.assertRaises(SystemExit) as ctx:
+                _roll_key(_roll_args(yes=False))
+        self.assertEqual(ctx.exception.code, 1)
+
+    @patch("roboflow.adapters.rfapi.roll_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_roll_json(self, _mock_key, _mock_ws, mock_roll) -> None:
+        mock_roll.return_value = dict(_ROLLED)
+        from roboflow.cli.handlers.api_key import _roll_key
+
+        with patch("builtins.print") as mock_print:
+            _roll_key(_roll_args(json=True))
+        data = json.loads(mock_print.call_args[0][0])
+        self.assertEqual(data["key"], "NEWSECRET")
+        self.assertEqual(data["revokedKeyId"], "k1")
+
+    @patch("roboflow.adapters.rfapi.roll_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_roll_protected_409_exits_1(self, _mock_key, _mock_ws, mock_roll) -> None:
+        from roboflow.adapters.rfapi import RoboflowError
+        from roboflow.cli.handlers.api_key import _roll_key
+
+        mock_roll.side_effect = RoboflowError("Cannot roll a protected API key", status_code=409)
+        with patch("sys.stderr"):
+            with self.assertRaises(SystemExit) as ctx:
+                _roll_key(_roll_args())
+        self.assertEqual(ctx.exception.code, 1)
+
+    @patch("roboflow.adapters.rfapi.roll_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_roll_missing_exits_3(self, _mock_key, _mock_ws, mock_roll) -> None:
+        from roboflow.adapters.rfapi import RoboflowError
+        from roboflow.cli.handlers.api_key import _roll_key
+
+        mock_roll.side_effect = RoboflowError("not found", status_code=404)
+        with patch("sys.stderr") as mock_stderr:
+            with self.assertRaises(SystemExit) as ctx:
+                _roll_key(_roll_args(key_id="missing"))
+        self.assertEqual(ctx.exception.code, 3)
+        written = "".join(str(call.args[0]) for call in mock_stderr.write.call_args_list)
+        self.assertIn("Rolled and revoked keys are not listed", written)
+
+
+class TestRollApiKeyAdapter(unittest.TestCase):
+    def _ok_response(self, payload=None):  # noqa: ANN001, ANN202
+        from unittest.mock import MagicMock
+
+        resp = MagicMock()
+        resp.ok = True
+        resp.status_code = 200
+        resp.json.return_value = payload or dict(_ROLLED)
+        return resp
+
+    @patch("roboflow.util.http.requests.post")
+    def test_roll_posts_to_roll_path_without_body(self, mock_post) -> None:
+        from roboflow.adapters.rfapi import roll_api_key
+
+        mock_post.return_value = self._ok_response()
+        result = roll_api_key("fake-key", "test-ws", "k 1")
+        url = mock_post.call_args.args[0]
+        self.assertTrue(url.endswith("/test-ws/api-keys/k%201/roll"), url)
+        self.assertEqual(mock_post.call_args.kwargs["params"], {"api_key": "fake-key"})
+        self.assertIsNone(mock_post.call_args.kwargs["json"])
+        self.assertEqual(result["key"], "NEWSECRET")
+
+    @patch("roboflow.util.http.requests.post")
+    def test_roll_forwards_replacement_schedule(self, mock_post) -> None:
+        from roboflow.adapters.rfapi import roll_api_key
+
+        mock_post.return_value = self._ok_response()
+        roll_api_key("fake-key", "test-ws", "k1", rotation_due_at="2027-10-22", owners=["u1"])
+        self.assertEqual(mock_post.call_args.kwargs["json"], {"rotationDueAt": "2027-10-22", "owners": ["u1"]})
+
+    @patch("roboflow.util.http.requests.post")
+    def test_roll_attaches_status_code(self, mock_post) -> None:
+        from unittest.mock import MagicMock
+
+        from roboflow.adapters.rfapi import RoboflowError, roll_api_key
+
+        resp = MagicMock()
+        resp.ok = False
+        resp.status_code = 409
+        resp.text = "already rolled"
+        mock_post.return_value = resp
+        with self.assertRaises(RoboflowError) as ctx:
+            roll_api_key("fake-key", "test-ws", "k1")
+        self.assertEqual(ctx.exception.status_code, 409)
 
 
 # ---------------------------------------------------------------------------

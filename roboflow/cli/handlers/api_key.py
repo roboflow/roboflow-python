@@ -210,6 +210,39 @@ def revoke_key(
     _revoke_key(args)
 
 
+@api_key_app.command("roll")
+def roll_key(
+    ctx: typer.Context,
+    key_id: Annotated[str, typer.Argument(help="Key ID (keyId) to roll")],
+    rotation_due_at: Annotated[
+        Optional[str],
+        typer.Option(
+            "--rotation-due-at",
+            help="Rotation due date for the replacement (ISO date, UTC). Omit to carry the old key's date over.",
+        ),
+    ] = None,
+    owner: Annotated[
+        Optional[List[str]],
+        typer.Option(
+            "--owner", help="Member ID reminded before the due date (repeatable). Omit to keep the old key's owners."
+        ),
+    ] = None,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation prompt")] = False,
+) -> None:
+    """Roll an API key: revoke it and create its replacement in one step.
+
+    The replacement keeps the old key's name, scopes, folders, metadata and
+    protection. Everything using the old key stops working until it gets the
+    new value. The new secret is printed ONCE — save it immediately:
+
+        roboflow --json api-key roll KEY_ID --yes | jq -r .key
+
+    Protected keys cannot be rolled — unprotect them in the dashboard first.
+    """
+    args = ctx_to_args(ctx, key_id=key_id, rotation_due_at=rotation_due_at, owner=owner, yes=yes)
+    _roll_key(args)
+
+
 # ---------------------------------------------------------------------------
 # Business logic
 # ---------------------------------------------------------------------------
@@ -587,3 +620,72 @@ def _revoke_key(args) -> None:  # noqa: ANN001
         return
 
     output(args, result, text=f"Revoked API key '{args.key_id}'.")
+
+
+def _roll_key(args) -> None:  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import confirm_destructive, output, output_api_error, output_error
+
+    resolved = _resolve_ws_and_key(args)
+    if not resolved:
+        return
+    ws, api_key = resolved
+
+    if not confirm_destructive(args, f"Roll API key '{args.key_id}'? The current key stops working immediately."):
+        return
+
+    try:
+        result = rfapi.roll_api_key(
+            api_key,
+            ws,
+            args.key_id,
+            rotation_due_at=getattr(args, "rotation_due_at", None),
+            owners=getattr(args, "owner", None) or None,
+        )
+    except rfapi.RoboflowError as exc:
+        status = getattr(exc, "status_code", None)
+        if status == 409:
+            output_error(
+                args,
+                str(exc),
+                hint=(
+                    "The key is protected, is already being rolled, or is disabled while backing a "
+                    "Dedicated Deployment. Unprotect it at app.roboflow.com/settings/api, or retry once "
+                    "the other roll finishes."
+                ),
+                exit_code=1,
+            )
+        elif status == 403:
+            output_api_error(
+                args,
+                exc,
+                hint=(
+                    "Rolling needs the 'api-key:create' and 'api-key:revoke' scopes, and the calling key "
+                    "must hold at least the target key's scopes and folders. --rotation-due-at and --owner "
+                    "require the Advanced API Keys plan feature."
+                ),
+            )
+        else:
+            output_api_error(
+                args,
+                exc,
+                not_found_hint=(
+                    f"No active API key with ID '{args.key_id}' in this workspace. "
+                    "Rolled and revoked keys are not listed."
+                ),
+            )
+        return
+
+    secret = result.get("key", "")
+    new_key_id = result.get("keyId", "")
+    name = result.get("name") or args.key_id
+
+    lines = [
+        f"Rolled API key '{name}': revoked {args.key_id}, replacement keyId: {new_key_id}",
+        "",
+        "WARNING: This is the only time the new secret key will be shown.",
+        "Save it somewhere secure now and update everything that used the old key.",
+        "",
+        f"  Key: {secret}",
+    ]
+    output(args, result, text="\n".join(lines))
