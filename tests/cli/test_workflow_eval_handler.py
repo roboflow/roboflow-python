@@ -15,6 +15,7 @@ from typer.testing import CliRunner
 
 from roboflow.adapters.workflowevalsapi import WorkflowEvalError
 from roboflow.cli import app
+from roboflow.cli.handlers import workflow_eval
 from roboflow.core.workflow_eval_local_runner import (
     PREFLIGHT_HINT,
     RESUME_HINT,
@@ -719,6 +720,18 @@ class TestWorkflowEvalRunLocal(unittest.TestCase):
         error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
         self.assertEqual(error["message"], "Boom")
         self.assertEqual(error["warnings"], ["Using the inference server A instead of B"])
+
+    def test_other_errors_are_not_wrapped(self) -> None:
+        # Unlike `run start --inference-url`, `run local` did not create the Run: no runId to keep.
+        error = PermissionError(13, "Permission denied", "/tmp/rf-state/r1")
+        fail = MagicMock(wraps=workflow_eval._fail)
+        with patch.object(workflow_eval, "_fail", fail):
+            result = self._run(("--json",), behaviour=_raise(error))
+        self.assertEqual(result.exit_code, 1)
+        self.assertIs(fail.call_args.args[1], error)
+        payload = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+        self.assertIn("Permission denied", payload["message"])
+        self.assertNotIn("details", payload)
 
     @patch(f"{CLIENT}.get_run")
     def test_server_run_is_rejected_with_hint(self, mock_get_run) -> None:
