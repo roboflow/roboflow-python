@@ -595,6 +595,70 @@ def test_reread_page_at_another_attempt_restarts_the_execution(env: Env) -> None
     assert result.executions[0].submitted == 1
 
 
+def test_stop_requested_during_the_reread_abandons_the_retry(env: Env) -> None:
+    server = env.serve([case("c1")])
+    runner = env.runner()
+    page_calls: List[int] = []
+
+    def slow_503(request: Any) -> Any:
+        env.clock.advance(9 * 60)
+        return 503, {}, "Service Unavailable"
+
+    def stop_during_reread() -> None:
+        page_calls.append(1)
+        if len(page_calls) == 2:
+            runner.request_stop()  # the re-read itself still returns a valid page
+
+    env.inference.behaviors["c1"] = [slow_503, ok("c1")]
+    server.before_page[None] = stop_during_reread
+    with pytest.raises(LocalRunnerInterrupted) as raised:
+        runner.run()
+
+    assert raised.value.exit_code == 130
+    assert len(env.inference.requests) == 1  # no inference after the stop
+    assert server.page_requests == [(None, 4), (None, 4)]
+    assert server.captures == [] and captured(env) == []
+
+
+def test_reload_while_the_reread_is_in_backoff_abandons_the_case(env: Env) -> None:
+    server = env.serve([case("c1"), case("c2")])
+    runner = env.runner(concurrency=2)
+    rereading = threading.Event()
+    page_calls: List[int] = []
+
+    def slow_503(request: Any) -> Any:
+        env.clock.advance(9 * 60)
+        return 503, {}, "Service Unavailable"
+
+    def after_reread_started(request: Any) -> Any:
+        assert rereading.wait(5)
+        return ok("c1")
+
+    def attempt_changed() -> Any:
+        server.attempt = 2
+        return 412, {"error": {"code": "PRECONDITION_FAILED", "message": "Run attempt changed"}}
+
+    def flaky_reread() -> None:
+        page_calls.append(1)
+        if len(page_calls) == 2:
+            rereading.set()
+            # Fails only after the 412, so its backoff is abandoned because of the reload.
+            with runner._cond:
+                assert runner._cond.wait_for(lambda: runner._reload, timeout=5)
+            raise requests.exceptions.ConnectionError("reset")
+
+    env.inference.behaviors.update(c1=[after_reread_started, ok("c1")], c2=[slow_503, ok("c2")])
+    server.capture_script["c1"] = [attempt_changed]
+    server.before_page[None] = flaky_reread
+    result = runner.run()
+
+    # The failed re-read is not retried: the next page read is the restarted pass.
+    assert server.page_requests == [(None, 2), (None, 2)]
+    assert [body["attemptCount"] for body in server.capture_bodies("c2")] == [2]
+    assert [body["attemptCount"] for body in server.capture_bodies("c1")] == [1, 2]
+    assert result.executions[0].submitted == 2
+
+
 # -- 5. journal ---------------------------------------------------------------------
 
 

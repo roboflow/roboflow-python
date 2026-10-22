@@ -1384,7 +1384,8 @@ class LocalRunner:
                 return None
             if self._clock() - work.fetched_at > PAGE_MAX_AGE:
                 fresh = self._reread_inputs(work)
-                if fresh is None:
+                # A stop or a fatal error during the re-read abandons the Case too.
+                if fresh is None or self._halting():
                     return None
                 inputs = fresh
 
@@ -1406,10 +1407,14 @@ class LocalRunner:
 
         Returns ``None`` when the Case must be abandoned: it left the page, or the
         page is at another attempt or closes the Run (both flagged like
-        :meth:`_check_page`, since ``work.attempt`` is the pass's attempt). The
-        dispatcher's page is not touched.
+        :meth:`_check_page`, since ``work.attempt`` is the pass's attempt), or
+        dispatching stopped while the re-read was retrying. The dispatcher's
+        page is not touched.
         """
-        page = self._fetch_page(work.ctx, work.cursor)
+        try:
+            page = self._fetch_page(work.ctx, work.cursor, abandon=self._dispatch_stopped)
+        except _Abandoned:
+            return None
         if not self._check_page(work.ctx, page):
             return None
         item = page.items.get(work.case_id)
