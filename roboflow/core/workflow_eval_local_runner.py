@@ -627,6 +627,39 @@ def _transient(exc: BaseException) -> bool:
     return isinstance(exc, requests.RequestException)
 
 
+def retry_api(
+    fn: Callable[[], Any],
+    *,
+    clock: Optional[Callable[[], float]] = None,
+    sleep: Optional[Callable[[float], Any]] = None,
+) -> Any:
+    """Call ``fn()``, retrying Roboflow API timeouts, network errors, 408, 429 and 5xx.
+
+    Backoff 1, 2, 4… up to 60 s; raises :class:`LocalRunnerError` (exit 1) after
+    10 minutes of consecutive failures. Other errors propagate unchanged.
+    ``clock`` and ``sleep`` default to ``time.time`` and ``time.sleep``.
+    """
+    clock = clock or time.time
+    sleep = sleep or time.sleep
+    first_failure: Optional[float] = None
+    delay = 1.0
+    while True:
+        try:
+            return fn()
+        except (WorkflowEvalError, requests.RequestException) as exc:
+            if not _transient(exc):
+                raise
+            now = clock()
+            first_failure = now if first_failure is None else first_failure
+            if now - first_failure + delay > API_RETRY_BUDGET:
+                raise LocalRunnerError(
+                    f"The Roboflow API kept failing for {API_RETRY_BUDGET // 60} minutes: {exc}",
+                    hint=f"Check your network connection. {RESUME_HINT}",
+                ) from exc
+            sleep(delay)
+            delay = min(delay * 2, API_BACKOFF_CAP)
+
+
 @dataclass
 class _Pass:
     """One pass over an Execution's Cases at one Run attempt."""
@@ -859,23 +892,9 @@ class LocalRunner:
         consecutive failures. Other errors propagate unchanged. Retries stop with
         :class:`_Abandoned` when the runner halts or ``abandon()`` is true.
         """
-        first_failure: Optional[float] = None
-        delay = 1.0
-        while True:
-            try:
-                return fn(*args, **kwargs)
-            except (WorkflowEvalError, requests.RequestException) as exc:
-                if not _transient(exc):
-                    raise
-                now = self._clock()
-                first_failure = now if first_failure is None else first_failure
-                if now - first_failure + delay > API_RETRY_BUDGET:
-                    raise LocalRunnerError(
-                        f"The Roboflow API kept failing for {API_RETRY_BUDGET // 60} minutes: {exc}",
-                        hint=f"Check your network connection. {RESUME_HINT}",
-                    ) from exc
-                self._backoff(delay, abandon)
-                delay = min(delay * 2, API_BACKOFF_CAP)
+        return retry_api(
+            lambda: fn(*args, **kwargs), clock=self._clock, sleep=lambda seconds: self._backoff(seconds, abandon)
+        )
 
     def _call(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """:meth:`_api`, mapping API errors to :class:`LocalRunnerError` exit codes."""

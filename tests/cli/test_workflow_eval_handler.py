@@ -7,7 +7,7 @@ import os
 import signal
 import tempfile
 import unittest
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Tuple
 from unittest.mock import ANY, MagicMock, patch
 
 import responses
@@ -663,15 +663,39 @@ class TestWorkflowEvalRunLocal(unittest.TestCase):
         error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
         self.assertEqual(error["message"], "Run r1 was cancelled.")
 
+    def _run_with_fake_clock(self) -> Tuple[Any, List[float]]:
+        clock = [1000.0]
+        sleeps: List[float] = []
+
+        def sleep(seconds: float) -> None:
+            sleeps.append(seconds)
+            clock[0] += seconds
+
+        with patch("time.time", side_effect=lambda: clock[0]), patch("time.sleep", side_effect=sleep):
+            result = self._run(("--json",), behaviour=lambda runner: _result("running"))
+        return result, sleeps
+
     @patch(f"{CLIENT}.get_run")
-    def test_transient_error_on_the_final_read_keeps_the_last_known_state(self, mock_get_run) -> None:
-        mock_get_run.side_effect = WorkflowEvalError("Service Unavailable", status_code=503)
-        result = self._run(("--json",), behaviour=lambda runner: _result("running"))
+    def test_transient_error_on_the_final_read_is_retried(self, mock_get_run) -> None:
+        unavailable = WorkflowEvalError("Service Unavailable", status_code=503)
+        mock_get_run.side_effect = [unavailable, {"id": "r1", "state": "completed"}]
+        result, sleeps = self._run_with_fake_clock()
         self.assertEqual(result.exit_code, 0, result.output)
         summary = json.loads(result.stdout)
-        self.assertEqual(summary["state"], "running")
-        self.assertEqual(len(summary["warnings"]), 1)
-        self.assertIn("Could not re-read Run r1", summary["warnings"][0])
+        self.assertEqual(summary["state"], "completed")
+        self.assertEqual(summary["warnings"], [])
+        self.assertEqual(sleeps, [1.0])
+
+    @patch(f"{CLIENT}.get_run")
+    def test_final_read_failing_past_the_retry_budget_exits_1(self, mock_get_run) -> None:
+        mock_get_run.side_effect = WorkflowEvalError("Service Unavailable", status_code=503)
+        result, sleeps = self._run_with_fake_clock()
+        self.assertEqual(result.exit_code, 1)
+        self.assertEqual(result.stdout, "")
+        error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+        self.assertIn("kept failing for 10 minutes", error["message"])
+        self.assertEqual(max(sleeps), 60)
+        self.assertLessEqual(sum(sleeps), 600)
 
     def test_warnings_go_to_the_json_error(self) -> None:
         def behaviour(runner: _FakeRunner) -> Any:

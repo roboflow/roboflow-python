@@ -1318,10 +1318,7 @@ def run_local(
     output for server-side scoring. Interrupt with Ctrl-C and run the same command
     again to resume: captured outputs are journaled and resubmitted, not re-run.
     """
-    import requests
-
-    from roboflow.adapters.workflowevalsapi import WorkflowEvalError
-    from roboflow.core.workflow_eval_local_runner import LocalRunnerError, _cancelled, _transient
+    from roboflow.core.workflow_eval_local_runner import LocalRunnerError, _cancelled, retry_api
     from roboflow.core.workflow_evals import RUN_TERMINAL_STATES
 
     args = ctx_to_args(ctx)
@@ -1347,19 +1344,12 @@ def run_local(
         if result.state not in RUN_TERMINAL_STATES:
             # The server finalizes the Run inside the last capture; read it once more in case
             # that raced the runner's final read (or other Executions are still running).
-            try:
-                run = c.get_run(eval_id, run_id)
-            except (WorkflowEvalError, requests.RequestException) as exc:
-                if not _transient(exc):
-                    raise
-                # The work is done; a transient failure here only costs the fresher state.
-                warn(f"Could not re-read Run {run_id} ({exc}); showing its last known state.")
-            else:
-                result.state = _run_field(run, "state")
-                if _cancelled(run):
-                    raise LocalRunnerError(
-                        f"Run {run_id} was cancelled.", hint="Start a new Run to evaluate again.", result=result
-                    )
+            run = retry_api(lambda: c.get_run(eval_id, run_id))
+            result.state = _run_field(run, "state")
+            if _cancelled(run):
+                raise LocalRunnerError(
+                    f"Run {run_id} was cancelled.", hint="Start a new Run to evaluate again.", result=result
+                )
         return {**result.to_dict(), "warnings": warnings}
 
     _invoke(args, call, _local_result_text, warnings=warnings)
