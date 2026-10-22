@@ -549,6 +549,18 @@ def test_journal_entries_of_another_attempt_are_ignored(env: Env) -> None:
     assert server.capture_bodies()[0]["attemptCount"] == 1
 
 
+def test_journal_torn_last_line_does_not_swallow_the_next_record(env: Env) -> None:
+    os.makedirs(env.state_dir)
+    with open(os.path.join(env.state_dir, "journal.jsonl"), "w", encoding="utf-8") as handle:
+        handle.write('{"t":"captured"')
+    journal = Journal(env.state_dir)
+    journal.record_capture(1, X, "c1", 0, b'{"attemptCount":1}')
+    journal.close()
+    reopened = Journal(env.state_dir)
+    reopened.close()
+    assert reopened.captured(1, X, "c1") == b'{"attemptCount":1}'
+
+
 def test_case_with_retained_capture_waits_for_lease_and_resumes(env: Env) -> None:
     lease = START + 42
     checkpoint = {"state": "running", "attemptCount": 1, "hasCapture": True, "leaseExpiresAt": iso(lease)}
@@ -948,6 +960,40 @@ def test_second_stop_request_aborts_without_waiting(env: Env) -> None:
         release.set()
         for thread in runner._threads:
             thread.join(5)
+
+
+@pytest.mark.skipif(not hasattr(signal, "pthread_kill"), reason="needs pthread_kill")
+def test_second_signal_interrupts_a_blocking_api_call_on_the_main_thread(env: Env) -> None:
+    env.serve([case("c1")])
+    runner = env.runner()
+    entered, release = threading.Event(), threading.Event()
+
+    def blocking_get_run(*args: Any, **kwargs: Any) -> Any:
+        entered.set()
+        release.wait(2)
+        return {"id": R, "state": "completed", "executionMode": "browser"}
+
+    def send_two_signals() -> None:
+        assert entered.wait(5)
+        main = threading.main_thread().ident
+        signal.pthread_kill(main, signal.SIGINT)
+        while not runner._stop_requested:
+            release.wait(0.01)
+        signal.pthread_kill(main, signal.SIGINT)
+
+    sender = threading.Thread(target=send_two_signals)
+    try:
+        with patch.object(WorkflowEvals, "get_run", blocking_get_run), install_signal_handlers(runner):
+            sender.start()
+            with pytest.raises(LocalRunnerInterrupted) as raised:
+                runner.run()
+        assert not release.is_set()  # interrupted inside get_run, not after it returned
+        assert raised.value.exit_code == 130
+        assert raised.value.result is not None
+    finally:
+        release.set()
+        sender.join(5)
+    assert runner._threads == []
 
 
 def test_install_signal_handlers_routes_to_request_stop_and_restores(env: Env) -> None:

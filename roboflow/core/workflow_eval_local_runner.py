@@ -474,6 +474,19 @@ class Journal:
         self._captured: Dict[Tuple[int, str, str], Dict[str, Any]] = {}
         self._load()
         self._handle: Optional[Any] = open(self.path, "a", encoding="utf-8")  # noqa: SIM115
+        if self._torn_tail():
+            # Terminate the torn line so the next record is not glued to it (and lost on reload).
+            self._handle.write("\n")
+            self._handle.flush()
+            os.fsync(self._handle.fileno())
+
+    def _torn_tail(self) -> bool:
+        with open(self.path, "rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            if handle.tell() == 0:
+                return False
+            handle.seek(-1, os.SEEK_END)
+            return handle.read(1) != b"\n"
 
     def _load(self) -> None:
         if not os.path.exists(self.path):
@@ -764,6 +777,11 @@ class LocalRunner:
     def state_dir(self) -> str:
         return self._state_dir
 
+    @property
+    def aborting(self) -> bool:
+        """``True`` once :meth:`request_stop` was called twice."""
+        return self._abort
+
     def _halting(self) -> bool:
         return self._stop_requested or self._abort or self._fatal is not None
 
@@ -861,7 +879,11 @@ class LocalRunner:
         """
         self._started = self._monotonic()
         try:
-            return self._run()
+            result = self._run()
+            if self._abort:
+                # An abort never reports success, even if the work happened to finish.
+                raise LocalRunnerInterrupted
+            return result
         except KeyboardInterrupt:
             with self._cond:
                 self._stop_requested = self._abort = True
@@ -1409,7 +1431,9 @@ def install_signal_handlers(
 ) -> Iterator[None]:
     """Route SIGINT/SIGTERM to ``runner.request_stop()`` and restore the previous handlers afterwards.
 
-    Must be used from the main thread. The first signal stops gracefully, the second aborts.
+    Must be used from the main thread. The first signal stops gracefully, the second aborts:
+    it raises :class:`LocalRunnerInterrupted` from the handler, so a blocking API call on the
+    main thread is interrupted at once (:meth:`LocalRunner.run` attaches the result).
     ``on_signal`` receives each signal number first (for example to tell the user what happens next).
     """
     previous: Dict[int, Any] = {}
@@ -1418,6 +1442,8 @@ def install_signal_handlers(
         if on_signal is not None:
             on_signal(signum)
         runner.request_stop()
+        if runner.aborting:
+            raise LocalRunnerInterrupted
 
     for signum in signals:
         previous[signum] = signal.signal(signum, handler)

@@ -453,6 +453,10 @@ class _FakeRunner:
     def request_stop(self) -> None:
         self.stop_requests += 1
 
+    @property
+    def aborting(self) -> bool:
+        return self.stop_requests > 1
+
     def run(self) -> LocalRunResult:
         return type(self).behaviour(self)
 
@@ -561,14 +565,17 @@ class TestWorkflowEvalRunLocal(unittest.TestCase):
             handler = signal.getsignal(signal.SIGTERM)
             seen["installed"] = handler is not before[signal.SIGTERM] and callable(handler)
             handler(signal.SIGINT, None)  # first signal: notice + graceful stop
-            handler(signal.SIGINT, None)  # second: abort
             seen["stops"] = runner.stop_requests
-            raise LocalRunnerInterrupted
+            handler(signal.SIGINT, None)  # second: abort, raised from the handler
+            seen["returned"] = True
 
         result = self._run(behaviour=behaviour)
         self.assertEqual(result.exit_code, 130)
         self.assertTrue(seen["installed"])
-        self.assertEqual(seen["stops"], 2)
+        self.assertEqual(seen["stops"], 1)
+        self.assertNotIn("returned", seen)
+        self.assertEqual(_FakeRunner.instances[0].stop_requests, 2)
+        self.assertIn("/tmp/rf-state/r1", result.stderr)  # resume hint
         self.assertEqual(result.stderr.count("Stopping after in-flight cases"), 1)
         self.assertEqual({signum: signal.getsignal(signum) for signum in before}, before)
 
