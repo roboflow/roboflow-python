@@ -1,37 +1,54 @@
 {
-  "_source": "roboflow app/src/scripts/react/components/Workflows/Evals/results/localInference.worker.ts:29-43 (fetch to `${url}/workflows/run` with JSON.stringify of this body)",
-  "url": "http://localhost:9001/workflows/run",
-  "headers": {
-    "Content-Type": "application/json",
-    "ngrok-skip-browser-warning": "true"
-  },
-  "body": {
-    "api_key": "sample_api_key",
-    "specification": {
-      "version": "1.0",
-      "inputs": [
-        {"type": "WorkflowImage", "name": "image"},
-        {"type": "WorkflowParameter", "name": "confidence", "default_value": 0.5}
-      ],
-      "steps": [
-        {
-          "type": "roboflow_core/roboflow_object_detection_model@v2",
-          "name": "model",
-          "images": "$inputs.image",
-          "model_id": "coco/3",
-          "confidence": "$inputs.confidence"
-        }
-      ],
-      "outputs": [{"type": "JsonField", "name": "predictions", "selector": "$steps.model.predictions"}]
+    "_source": "roboflow app/src/scripts/react/components/Workflows/Evals/results/localInference.worker.ts:29-43 (fetch to `${url}/workflows/run` with JSON.stringify of this body)",
+    "url": "http://localhost:9001/workflows/run",
+    "headers": {
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true"
     },
-    "inputs": {
-      "image": {"artifactId": "art_1", "type": "url", "value": "https://storage.example/art_1?sig=1"},
-      "confidence": 0.4,
-      "label": "ñandú"
-    },
-    "workflow_id": "wf_1",
-    "is_preview": true,
-    "disable_sinks": true,
-    "debug": false
-  }
+    "body": {
+        "api_key": "sample_api_key",
+        "specification": {
+            "version": "1.0",
+            "inputs": [
+                {
+                    "type": "WorkflowImage",
+                    "name": "image"
+                },
+                {
+                    "type": "WorkflowParameter",
+                    "name": "confidence",
+                    "default_value": 0.5
+                }
+            ],
+            "steps": [
+                {
+                    "type": "roboflow_core/roboflow_object_detection_model@v2",
+                    "name": "model",
+                    "images": "$inputs.image",
+                    "model_id": "coco/3",
+                    "confidence": "$inputs.confidence"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "JsonField",
+                    "name": "predictions",
+                    "selector": "$steps.model.predictions"
+                }
+            ]
+        },
+        "inputs": {
+            "image": {
+                "artifactId": "art_1",
+                "type": "url",
+                "value": "https://storage.example/art_1?sig=1"
+            },
+            "confidence": 0.4,
+            "label": "\u00f1and\u00fa"
+        },
+        "workflow_id": "wf_1",
+        "is_preview": true,
+        "disable_sinks": true,
+        "debug": false
+    }
 }
