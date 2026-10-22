@@ -370,12 +370,15 @@ def run_workflow_inference(
     ``{latencyMs, error, timedOut, retryable}``. ``latencyMs`` covers the request
     and the parsing of its body.
 
-    ``connection_failure`` marks a request that never reached the server:
-    ``ConnectTimeout``, ``SSLError``, ``ProxyError``, and a ``ConnectionError``
-    caused by urllib3's ``NewConnectionError`` (refused), ``NameResolutionError``
-    (DNS) or ``ConnectTimeoutError``. The runner does not capture those.
-    ``dropped`` marks a connection lost after it was made: any other
-    ``ConnectionError`` (reset, aborted, remote disconnected) and
+    The response is streamed so that sending the request and reading its body
+    fail separately. ``connection_failure`` marks a request that never reached
+    the server: while sending, ``ConnectTimeout``, ``SSLError``, ``ProxyError``,
+    and a ``ConnectionError`` caused by urllib3's ``NewConnectionError``
+    (refused), ``NameResolutionError`` (DNS) or ``ConnectTimeoutError``. The
+    runner does not capture those. ``dropped`` marks a connection lost after it
+    was made: any other ``ConnectionError`` (reset, aborted, remote
+    disconnected), any ``ConnectionError`` while reading the body (``SSLError``
+    and ``ProxyError`` included, e.g. TLS dropped mid-read) and
     ``ChunkedEncodingError`` (closed mid-response); the runner retries and then
     captures those like HTTP 5xx. A read timeout (``ReadTimeout``, also when it
     hits while reading the body) is a ``timedOut`` failure, neither of the two.
@@ -393,33 +396,46 @@ def run_workflow_inference(
         }
         return InferenceOutcome(None, runtime, state["connection"], state["responded"], state["dropped"])
 
+    def transport_failure(exc: requests.RequestException, *, sending: bool) -> InferenceOutcome:
+        if isinstance(exc, requests.Timeout):
+            # ConnectTimeout is also a ConnectionError: the server was never reached.
+            state.update(
+                retryable=True, timedOut=True, connection=sending and isinstance(exc, requests.ConnectionError)
+            )
+            return failure(TIMEOUT_MESSAGE)
+        if isinstance(exc, requests.ConnectionError):
+            if exc.args and isinstance(exc.args[0], urllib3.exceptions.ReadTimeoutError):
+                # requests reports a read timeout while reading the body as a ConnectionError.
+                state.update(retryable=True, timedOut=True)
+                return failure(TIMEOUT_MESSAGE)
+            if sending and _never_connected(exc):
+                state.update(retryable=True, connection=True)
+            else:
+                state.update(retryable=True, dropped=True)
+            return failure(FETCH_FAILED_MESSAGE)
+        if isinstance(exc, requests.exceptions.ChunkedEncodingError):
+            state.update(retryable=True, dropped=True)
+            return failure(FETCH_FAILED_MESSAGE)
+        if isinstance(exc, requests.exceptions.ContentDecodingError):
+            state["retryable"] = True
+            return failure(FETCH_FAILED_MESSAGE)
+        return failure(str(exc) or "Local workflow request failed")
+
     try:
         response = session.post(
-            f"{url.rstrip('/')}/workflows/run", data=body, headers=dict(INFERENCE_HEADERS), timeout=timeout
+            f"{url.rstrip('/')}/workflows/run",
+            data=body,
+            headers=dict(INFERENCE_HEADERS),
+            timeout=timeout,
+            stream=True,
         )
-        content = response.content
-    except requests.Timeout as exc:
-        # ConnectTimeout is also a ConnectionError: the server was never reached.
-        state.update(retryable=True, timedOut=True, connection=isinstance(exc, requests.ConnectionError))
-        return failure(TIMEOUT_MESSAGE)
-    except requests.ConnectionError as exc:
-        if exc.args and isinstance(exc.args[0], urllib3.exceptions.ReadTimeoutError):
-            # requests reports a read timeout while reading the body as a ConnectionError.
-            state.update(retryable=True, timedOut=True)
-            return failure(TIMEOUT_MESSAGE)
-        if _never_connected(exc):
-            state.update(retryable=True, connection=True)
-        else:
-            state.update(retryable=True, dropped=True)
-        return failure(FETCH_FAILED_MESSAGE)
-    except requests.exceptions.ChunkedEncodingError:
-        state.update(retryable=True, dropped=True)
-        return failure(FETCH_FAILED_MESSAGE)
-    except requests.exceptions.ContentDecodingError:
-        state["retryable"] = True
-        return failure(FETCH_FAILED_MESSAGE)
     except requests.RequestException as exc:
-        return failure(str(exc) or "Local workflow request failed")
+        return transport_failure(exc, sending=True)
+    with contextlib.closing(response):
+        try:
+            content = response.content
+        except requests.RequestException as exc:
+            return transport_failure(exc, sending=False)
     state["responded"] = True
     parsed = _parse_json(content)
     record = parsed if isinstance(parsed, dict) else None
@@ -1405,11 +1421,12 @@ class LocalRunner:
     def _reread_inputs(self, work: _Work) -> Optional[Dict[str, Any]]:
         """Re-read the Case's page (same cursor) and rebuild its inputs with fresh signed URLs.
 
-        Returns ``None`` when the Case must be abandoned: it left the page, or the
-        page is at another attempt or closes the Run (both flagged like
-        :meth:`_check_page`, since ``work.attempt`` is the pass's attempt), or
-        dispatching stopped while the re-read was retrying. The dispatcher's
-        page is not touched.
+        Returns ``None`` when the Case must be abandoned: it left the page
+        (flagged ``_reload`` so the Execution restarts and finds the Case
+        wherever it is now), the page is at another attempt or closes the Run
+        (both flagged like :meth:`_check_page`, since ``work.attempt`` is the
+        pass's attempt), or dispatching stopped while the re-read was retrying.
+        The dispatcher's page is not touched.
         """
         try:
             page = self._fetch_page(work.ctx, work.cursor, abandon=self._dispatch_stopped)
@@ -1419,6 +1436,7 @@ class LocalRunner:
             return None
         item = page.items.get(work.case_id)
         if item is None:
+            self._flag("_reload")
             return None
         work.fetched_at = page.fetched_at
         return case_inputs(item, page.urls)

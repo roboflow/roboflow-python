@@ -8,11 +8,13 @@ here sleeps for real.
 from __future__ import annotations
 
 import copy
+import io
 import json
 import os
 import re
 import signal
 import socket
+import ssl
 import threading
 from datetime import datetime, timezone
 from http.client import RemoteDisconnected
@@ -97,6 +99,27 @@ def reset_error() -> requests.exceptions.ConnectionError:
     return requests.exceptions.ConnectionError(
         urllib3.exceptions.ProtocolError("Connection aborted.", ConnectionResetError(104, "Connection reset by peer"))
     )
+
+
+class BrokenBody(io.BufferedReader):
+    """A response body whose socket fails on the first read, after the status line arrived."""
+
+    def __init__(self, error: BaseException) -> None:
+        super().__init__(io.BytesIO(b"{}"))  # type: ignore[arg-type]
+        self.error = error
+
+    def read(self, *args: Any) -> bytes:
+        raise self.error
+
+    read1 = read
+
+    def readinto(self, *args: Any) -> int:
+        raise self.error
+
+
+def tls_dropped(request: Any) -> Any:
+    # Connected and answered, then TLS failed mid-body (e.g. behind ngrok); requests raises SSLError.
+    return 200, {}, BrokenBody(ssl.SSLError("TLS connection dropped"))
 
 
 # Waits of one Case whose inference server cannot be reached at all.
@@ -559,22 +582,26 @@ def test_retry_within_the_page_max_age_reuses_the_inputs(env: Env) -> None:
     assert server.page_requests == [(None, 4)]
 
 
-def test_case_that_left_the_reread_page_is_abandoned_without_capture(env: Env) -> None:
+def test_case_that_left_the_reread_page_restarts_the_execution(env: Env) -> None:
     server = env.serve([case("c1")])
 
-    def slow_503(request: Any) -> Any:
+    def slow_503_and_move(request: Any) -> Any:
         env.clock.advance(9 * 60)
         with server.lock:
-            server.items = []
+            server.items = [case("c0"), case("c1")]  # c1 moves to the second page
         return 503, {}, "Service Unavailable"
 
-    env.inference.behaviors["c1"] = slow_503
-    result = env.runner().run()
+    env.inference.behaviors["c1"] = [slow_503_and_move, ok("c1")]
+    result = env.runner(concurrency=1).run()
 
-    assert len(env.inference.requests) == 1
-    assert server.captures == [] and captured(env) == []
-    assert server.page_requests == [(None, 4), (None, 4)]
+    # The re-read page no longer has c1: the attempt is abandoned uncaptured and the
+    # Execution restarts from the first page, where the new pass finds c1 on page "1".
+    assert server.page_requests == [(None, 1), (None, 1), (None, 1), ("1", 1)]
+    assert env.inference.names == ["c1", "c0", "c1"]
+    assert sorted(cid for cid, _ in server.captures) == ["c0", "c1"]
+    assert server.capture_bodies("c1")[0]["output"] == [{"case": "c1"}]
     assert result.executions[0].to_dict()["pending"] == 0
+    assert result.executions[0].submitted == 2 and result.executions[0].failed == 0
 
 
 def test_reread_page_at_another_attempt_restarts_the_execution(env: Env) -> None:
@@ -1104,6 +1131,73 @@ def test_run_workflow_inference_classifies_connection_failures(
     assert outcome.runtime["timedOut"] is timed_out and outcome.retryable and not outcome.responded
 
 
+def test_tls_dropped_while_reading_the_body_is_a_dropped_connection() -> None:
+    with responses.RequestsMock() as rsps:
+        rsps.add_callback(responses.POST, f"{INF}/workflows/run", callback=tls_dropped)
+        outcome = run_workflow_inference(
+            requests.Session(), INF, api_key="k", specification={}, workflow_id="w", inputs={}, timeout=1
+        )
+    assert outcome.dropped and not outcome.connection_failure
+    assert outcome.runtime["error"] == FETCH_FAILED_MESSAGE
+    assert outcome.runtime["timedOut"] is False and outcome.retryable and not outcome.responded
+
+
+class _StreamedResponse:
+    def __init__(self, error: Exception) -> None:
+        self.error = error
+        self.closed = False
+
+    @property
+    def content(self) -> bytes:
+        raise self.error
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class _StreamingSession:
+    def __init__(self, response: _StreamedResponse) -> None:
+        self.response = response
+        self.kwargs: Dict[str, Any] = {}
+
+    def post(self, url: str, **kwargs: Any) -> _StreamedResponse:
+        self.kwargs = kwargs
+        return self.response
+
+
+@pytest.mark.parametrize(
+    ("error", "kind", "timed_out"),
+    [
+        # While reading the body the connection was made: these are drops, not connection failures.
+        (requests.exceptions.SSLError("EOF occurred in violation of protocol"), "dropped", False),
+        (requests.exceptions.ProxyError("proxy closed the tunnel"), "dropped", False),
+        (reset_error(), "dropped", False),
+        (requests.exceptions.ChunkedEncodingError("Connection broken: IncompleteRead"), "dropped", False),
+        (requests.exceptions.ConnectionError(urllib3.exceptions.ReadTimeoutError(None, "/", "timed out")), None, True),
+        (requests.exceptions.ReadTimeout("read timed out"), None, True),
+        (requests.exceptions.ContentDecodingError("bad gzip"), None, False),
+    ],
+)
+def test_run_workflow_inference_classifies_failures_while_reading_the_body(
+    error: Exception, kind: Optional[str], timed_out: bool
+) -> None:
+    response = _StreamedResponse(error)
+    session = _StreamingSession(response)
+    outcome = run_workflow_inference(
+        session,  # type: ignore[arg-type]
+        INF,
+        api_key="k",
+        specification={},
+        workflow_id="w",
+        inputs={},
+        timeout=1,
+    )
+    assert session.kwargs["stream"] is True and response.closed
+    assert outcome.connection_failure is False
+    assert outcome.dropped is (kind == "dropped")
+    assert outcome.runtime["timedOut"] is timed_out and outcome.retryable and not outcome.responded
+
+
 # -- 8. connection failures ---------------------------------------------------------------
 
 
@@ -1173,12 +1267,12 @@ def test_unreachable_case_backs_off_1_2_4_8_16_then_is_left_pending(env: Env, er
 
 @pytest.mark.parametrize(
     "error",
-    [reset_error(), requests.exceptions.ChunkedEncodingError("Connection broken: IncompleteRead")],
-    ids=["reset", "dropped-mid-response"],
+    [reset_error(), requests.exceptions.ChunkedEncodingError("Connection broken: IncompleteRead"), None],
+    ids=["reset", "dropped-mid-response", "tls-dropped-mid-body"],
 )
-def test_dropped_connection_is_retried_3_times_then_captured_as_retryable(env: Env, error: Exception) -> None:
+def test_dropped_connection_is_retried_3_times_then_captured_as_retryable(env: Env, error: Optional[Exception]) -> None:
     server = env.serve([case("c1"), case("c2")])
-    env.inference.behaviors["c1"] = lambda request: error
+    env.inference.behaviors["c1"] = tls_dropped if error is None else (lambda request: error)
     result = env.runner(concurrency=1).run()
 
     assert env.inference.names == ["c1"] * 3 + ["c2"]

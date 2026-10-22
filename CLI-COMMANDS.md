@@ -508,7 +508,8 @@ nohup roboflow workflow-eval run local <run-id> -e <eval-id> --concurrency 4 > r
 # (they stay pending; PENDING in the summary) and the command exits 1, at once after 10 such Cases in a row;
 # start the server and run it again. A read timeout (--case-timeout: per connection attempt and per read, not
 # per Case), or a 408/429/5xx or dropped connection that persists for 3 attempts, is captured as a retryable
-# failure. With --json, warnings are in "warnings" on success, or in "error.warnings" on failure. If
+# failure. Worst case per Case: about 31 s of connect backoff plus 3 attempts x --case-timeout (no bound with
+# --case-timeout 0). With --json, warnings are in "warnings" on success, or in "error.warnings" on failure. If
 # `run start --wait --inference-url` fails while running the Cases locally, the error has the Run id
 # (error.details.runId) and, unless the Run was cancelled, a `run local` command (with the --workspace,
 # --concurrency and --case-timeout you passed) to resume it; running `run start` again would start another Run.
