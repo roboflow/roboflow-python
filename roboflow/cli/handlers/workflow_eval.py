@@ -136,7 +136,7 @@ def _exit_code(exc: Any) -> int:
     return 1
 
 
-def _fail(args: Any, exc: Exception) -> None:
+def _fail(args: Any, exc: Exception, warnings: Optional[List[str]] = None) -> None:
     from roboflow.adapters.workflowevalsapi import WorkflowEvalError
     from roboflow.cli._output import output_error
     from roboflow.core.workflow_eval_local_runner import LocalRunnerError
@@ -144,12 +144,16 @@ def _fail(args: Any, exc: Exception) -> None:
     if isinstance(exc, WorkflowEvalError):
         payload = exc.to_dict()
         payload.pop("hint", None)
+        if warnings:
+            payload["warnings"] = warnings
         output_error(args, json.dumps({"error": payload}), hint=_error_hint(exc), exit_code=_exit_code(exc))
     elif isinstance(exc, LocalRunnerError):
         payload = exc.to_dict()
         payload.pop("hint", None)
         if exc.result is not None:
             payload["result"] = exc.result.to_dict()
+        if warnings:
+            payload["warnings"] = warnings
         output_error(args, json.dumps({"error": payload}, default=str), hint=_error_hint(exc), exit_code=exc.exit_code)
     else:
         output_error(args, str(exc))
@@ -161,10 +165,12 @@ def _invoke(
     text: Optional[Callable[[Any], Optional[str]]] = None,
     *,
     interactive: bool = False,
+    warnings: Optional[List[str]] = None,
 ) -> None:
     """Resolve the client, run *call*, and print the result (or a structured error).
 
     ``interactive`` keeps stdout attached so confirmation prompts stay visible.
+    ``warnings`` (collected with --json) go in the JSON error when *call* fails.
     """
     import contextlib
 
@@ -177,7 +183,7 @@ def _invoke(
         with contextlib.nullcontext() if interactive else suppress_sdk_output(args):
             result = call(client)
     except Exception as exc:  # noqa: BLE001 — every failure becomes a structured CLI error
-        _fail(args, exc)
+        _fail(args, exc, warnings)
         return
     output(args, result, text=text(result) if text and not getattr(args, "json", False) else None)
 
@@ -1073,6 +1079,8 @@ def _run_locally(
     run_id: str,
     resume_hint: str,
     warn: Callable[[str], None],
+    *,
+    created_run: bool = False,
     **options: Any,
 ) -> Any:
     """Run a local Run's Cases with :class:`LocalRunner` and return its ``LocalRunResult``.
@@ -1081,13 +1089,17 @@ def _run_locally(
     ``warn``. SIGINT/SIGTERM stop gracefully while the runner works and the
     previous handlers are restored afterwards. An interruption, or Cases left
     pending because the inference server was unreachable, is re-raised with
-    ``resume_hint`` (formatted with ``state_dir``).
+    ``resume_hint`` (formatted with ``state_dir``). With ``created_run`` (``run
+    start`` just created the Run, so running that command again would start
+    another one), every other :class:`LocalRunnerError` gets ``resume_hint``
+    appended to its own hint, and every one gets ``runId`` in its ``details``.
     """
     import contextlib
 
     from roboflow.core.workflow_eval_local_runner import (
         InferenceServerUnreachable,
         LocalRunner,
+        LocalRunnerError,
         LocalRunnerInterrupted,
         install_signal_handlers,
     )
@@ -1108,17 +1120,23 @@ def _run_locally(
             print(_STOPPING_NOTICE, file=sys.stderr)
 
     runner = LocalRunner(client, eval_id, run_id, on_progress=on_progress, warn=warn, **options)
-    # signal.signal only works on the main thread; elsewhere Ctrl-C reaches the runner as KeyboardInterrupt.
+    # signal.signal only works on the main thread. Off it no handlers are installed, and Python
+    # delivers KeyboardInterrupt only to the main thread, so Ctrl-C does not reach the runner.
     main_thread = threading.current_thread() is threading.main_thread()
     handlers = install_signal_handlers(runner, on_signal=on_signal) if main_thread else contextlib.nullcontext()
     try:
         with handlers:
             return runner.run()
-    except LocalRunnerInterrupted as exc:
-        exc.hint = resume_hint.format(state_dir=runner.state_dir)
-        raise
-    except InferenceServerUnreachable as exc:
-        exc.hint = "Start the inference server. " + resume_hint.format(state_dir=runner.state_dir)
+    except LocalRunnerError as exc:
+        resume = resume_hint.format(state_dir=runner.state_dir)
+        if isinstance(exc, LocalRunnerInterrupted):
+            exc.hint = resume
+        elif isinstance(exc, InferenceServerUnreachable):
+            exc.hint = "Start the inference server. " + resume
+        elif created_run:
+            exc.hint = f"{exc.hint} {resume}" if exc.hint else resume
+        if created_run:
+            exc.details = {**(exc.details or {}), "runId": run_id}
         raise
 
 
@@ -1243,7 +1261,7 @@ def start_run(
                 f"Resume with `roboflow workflow-eval run local -e {eval_id} -r {run_id} --inference-url "
                 f"{inference_url}`; the journal is in {{state_dir}}."
             )
-            result = _run_locally(args, c, eval_id, run_id, resume, warn, **local_options)
+            result = _run_locally(args, c, eval_id, run_id, resume, warn, created_run=True, **local_options)
             if not args.json and not args.quiet:
                 done = sum(item.already_done for item in result.executions)
                 submitted = sum(item.submitted for item in result.executions)
@@ -1258,7 +1276,7 @@ def start_run(
             final = {**final, "warnings": warnings}
         return final
 
-    _invoke(args, call)
+    _invoke(args, call, warnings=warnings)
 
 
 @run_app.command("local")
@@ -1300,7 +1318,10 @@ def run_local(
     output for server-side scoring. Interrupt with Ctrl-C and run the same command
     again to resume: captured outputs are journaled and resubmitted, not re-run.
     """
-    from roboflow.core.workflow_eval_local_runner import LocalRunnerError
+    import requests
+
+    from roboflow.adapters.workflowevalsapi import WorkflowEvalError
+    from roboflow.core.workflow_eval_local_runner import LocalRunnerError, _cancelled, _transient
     from roboflow.core.workflow_evals import RUN_TERMINAL_STATES
 
     args = ctx_to_args(ctx)
@@ -1326,14 +1347,22 @@ def run_local(
         if result.state not in RUN_TERMINAL_STATES:
             # The server finalizes the Run inside the last capture; read it once more in case
             # that raced the runner's final read (or other Executions are still running).
-            result.state = _run_field(c.get_run(eval_id, run_id), "state")
-            if result.state == "cancelled":
-                raise LocalRunnerError(
-                    f"Run {run_id} was cancelled.", hint="Start a new Run to evaluate again.", result=result
-                )
+            try:
+                run = c.get_run(eval_id, run_id)
+            except (WorkflowEvalError, requests.RequestException) as exc:
+                if not _transient(exc):
+                    raise
+                # The work is done; a transient failure here only costs the fresher state.
+                warn(f"Could not re-read Run {run_id} ({exc}); showing its last known state.")
+            else:
+                result.state = _run_field(run, "state")
+                if _cancelled(run):
+                    raise LocalRunnerError(
+                        f"Run {run_id} was cancelled.", hint="Start a new Run to evaluate again.", result=result
+                    )
         return {**result.to_dict(), "warnings": warnings}
 
-    _invoke(args, call, _local_result_text)
+    _invoke(args, call, _local_result_text, warnings=warnings)
 
 
 @run_app.command("cancel")

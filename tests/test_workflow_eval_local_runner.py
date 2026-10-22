@@ -661,6 +661,21 @@ def test_capture_409_run_closed_stops_dispatch_and_cancelled_exits_1(env: Env) -
     assert ("c1", 409, "run_closed") in outcomes(env)
 
 
+def test_run_closed_while_cancellation_is_finalizing_exits_1(env: Env) -> None:
+    server = env.serve([case("c1")])
+
+    def cancel() -> Any:
+        # The server keeps the Run running while it skips the remaining Cases.
+        server.run["cancellationRequestedAt"] = iso(START)
+        return 409, err("Run no longer accepts captures")
+
+    server.capture_script["c1"] = [cancel]
+    with pytest.raises(LocalRunnerError, match="was cancelled") as raised:
+        env.runner().run()
+    assert raised.value.exit_code == 1 and not isinstance(raised.value, LocalRunnerInterrupted)
+    assert ("c1", 409, "run_closed") in outcomes(env)
+
+
 def test_capture_412_restarts_the_execution_at_the_new_attempt(env: Env) -> None:
     server = env.serve([case("c1")])
 
@@ -677,6 +692,47 @@ def test_capture_412_restarts_the_execution_at_the_new_attempt(env: Env) -> None
     assert [body["attemptCount"] for body in server.capture_bodies()] == [1, 2]
     assert [entry["attempt"] for entry in captured(env)] == [1, 2]
     assert result.executions[0].submitted == 1
+
+
+def test_412_while_the_next_page_prefetch_is_in_backoff_restarts_the_execution(env: Env) -> None:
+    server = env.serve([case("c1"), case("c2")])
+    runner = env.runner(concurrency=1)
+    waiting_for_page = threading.Event()
+    original_prefetch = runner._prefetch
+
+    def prefetch(ctx: Any, cursor: str) -> Any:
+        result = original_prefetch(ctx, cursor)
+
+        def wait() -> Any:
+            waiting_for_page.set()
+            return result()
+
+        return wait
+
+    runner._prefetch = prefetch  # type: ignore[method-assign]
+
+    def attempt_changed() -> Any:
+        assert waiting_for_page.wait(5)  # the dispatcher is waiting for the prefetched page
+        server.attempt = 2
+        return 412, {"error": {"code": "PRECONDITION_FAILED", "message": "Run attempt changed"}}
+
+    page_calls: List[int] = []
+
+    def flaky_page() -> None:
+        page_calls.append(1)
+        if len(page_calls) == 1:
+            # Fails only after the 412, so its backoff is abandoned because of the reload.
+            with runner._cond:
+                assert runner._cond.wait_for(lambda: runner._reload, timeout=5)
+            raise requests.exceptions.ConnectionError("reset")
+
+    server.capture_script["c1"] = [attempt_changed]
+    server.before_page["1"] = flaky_page
+    result = runner.run()
+
+    assert [body["attemptCount"] for body in server.capture_bodies("c1")] == [1, 2]
+    assert [body["attemptCount"] for body in server.capture_bodies("c2")] == [2]
+    assert result.executions[0].submitted == 2
 
 
 def output_captures(server: FakeServer, case_id: str) -> List[Dict[str, Any]]:
@@ -767,13 +823,13 @@ def test_capture_400_exits_1_with_the_server_error(env: Env) -> None:
 # -- 7. inference errors ----------------------------------------------------------------
 
 
-def test_inference_timeout_is_a_retryable_timed_out_failure(env: Env) -> None:
+def test_inference_timeout_is_a_retryable_timed_out_failure_without_retries(env: Env) -> None:
     server = env.serve([case("c1")])
     env.inference.default = lambda request: requests.exceptions.ReadTimeout("read timed out")
     result = env.runner().run()
     assert result.executions[0].pending == 0 and result.executions[0].failed == 1
-    assert len(env.inference.requests) == 3
-    assert env.clock.sleeps == [1.0, 2.0]
+    assert len(env.inference.requests) == 1  # one attempt, like the browser
+    assert env.clock.sleeps == []
     (body,) = server.capture_bodies()
     assert body["output"] is None
     assert body["runtime"]["error"] == TIMEOUT_MESSAGE
@@ -818,6 +874,22 @@ def test_inference_retry_succeeds_after_a_429(env: Env) -> None:
     env.runner().run()
     assert len(env.inference.requests) == 2
     assert server.capture_bodies()[0]["output"] == [{"case": "c1"}]
+
+
+@pytest.mark.parametrize("outputs", ['[{"v":1e400}]', '[{"v":"\\ud800"}]'], ids=["non-finite-number", "lone-surrogate"])
+def test_unserializable_output_is_captured_as_a_non_retryable_failure(env: Env, outputs: str) -> None:
+    server = env.serve([case("c1")])
+    env.inference.default = lambda request: (200, {}, '{"outputs":' + outputs + "}")
+    result = env.runner().run()
+    (body,) = server.capture_bodies()
+    assert body["output"] is None
+    runtime = body["runtime"]
+    assert runtime["error"].startswith("Workflow output could not be serialized: ")
+    assert runtime["timedOut"] is False and runtime["retryable"] is False and "latencyMs" in runtime
+    (entry,) = captured(env)
+    assert json.loads(env.stored(entry)) == body
+    assert any("could not be serialized" in warning for warning in env.warnings)
+    assert result.executions[0].submitted == 1 and result.executions[0].failed == 1
 
 
 def test_run_workflow_inference_wraps_outputs_and_truncates_errors() -> None:

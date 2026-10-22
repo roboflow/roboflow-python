@@ -656,6 +656,35 @@ class TestWorkflowEvalRunLocal(unittest.TestCase):
         mock_get_run.assert_called_once_with("e1", "r1")
 
     @patch(f"{CLIENT}.get_run")
+    def test_run_still_finalizing_its_cancellation_exits_1(self, mock_get_run) -> None:
+        mock_get_run.return_value = {"run": {"id": "r1", "state": "running", "cancellationRequestedAt": "2026-10-22"}}
+        result = self._run(("--json",), behaviour=lambda runner: _result("running"))
+        self.assertEqual(result.exit_code, 1)
+        error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+        self.assertEqual(error["message"], "Run r1 was cancelled.")
+
+    @patch(f"{CLIENT}.get_run")
+    def test_transient_error_on_the_final_read_keeps_the_last_known_state(self, mock_get_run) -> None:
+        mock_get_run.side_effect = WorkflowEvalError("Service Unavailable", status_code=503)
+        result = self._run(("--json",), behaviour=lambda runner: _result("running"))
+        self.assertEqual(result.exit_code, 0, result.output)
+        summary = json.loads(result.stdout)
+        self.assertEqual(summary["state"], "running")
+        self.assertEqual(len(summary["warnings"]), 1)
+        self.assertIn("Could not re-read Run r1", summary["warnings"][0])
+
+    def test_warnings_go_to_the_json_error(self) -> None:
+        def behaviour(runner: _FakeRunner) -> Any:
+            runner.options["warn"]("Using the inference server A instead of B")
+            raise LocalRunnerError("Boom", hint="Fix it.")
+
+        result = self._run(("--json",), behaviour=behaviour)
+        self.assertEqual(result.exit_code, 1)
+        error = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+        self.assertEqual(error["message"], "Boom")
+        self.assertEqual(error["warnings"], ["Using the inference server A instead of B"])
+
+    @patch(f"{CLIENT}.get_run")
     def test_server_run_is_rejected_with_hint(self, mock_get_run) -> None:
         mock_get_run.return_value = {"id": "r1", "state": "running", "executionMode": "server"}
         with tempfile.TemporaryDirectory() as state_dir:
@@ -814,6 +843,16 @@ class TestWorkflowEvalRunStartLocal(unittest.TestCase):
         hint = json.loads(result.stderr.strip().splitlines()[-1])["error"]["hint"]
         self.assertTrue(hint.startswith("Start the inference server. "))
         self.assertIn("run local -e e1 -r r1 --inference-url http://x", hint)
+
+    def test_any_runner_error_hints_run_local_and_carries_the_run_id(self) -> None:
+        error = LocalRunnerError("Could not reach the inference server at http://x.", hint=PREFLIGHT_HINT)
+        result, calls, _, _ = self._start("--wait", "--inference-url", "http://x", behaviour=_raise(error))
+        self.assertEqual(result.exit_code, 1)
+        self.assertEqual(calls, ["runner"])
+        payload = json.loads(result.stderr.strip().splitlines()[-1])["error"]
+        self.assertTrue(payload["hint"].startswith(PREFLIGHT_HINT + " "))
+        self.assertIn("run local -e e1 -r r1 --inference-url http://x", payload["hint"])
+        self.assertEqual(payload["details"]["runId"], "r1")
 
     def test_interrupt_hints_run_local_to_resume(self) -> None:
         result, calls, _, _ = self._start(

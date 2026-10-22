@@ -13,18 +13,18 @@ Differences from the browser, all deliberate:
 * A sliding window of ``concurrency`` inferences (no per-page lockstep), and
   capture submission outside the inference slot.
 * Up to 3 attempts for network errors and HTTP 408/429/5xx from the Inference
-  server, before anything is submitted.
+  server, before anything is submitted. A read timeout is not retried.
 * A connection failure (connection refused or reset, DNS failure, connect
   timeout, connection dropped mid-response) is infrastructure, not a Case
   failure: when it persists after the 3 attempts nothing is captured and the
   Case stays pending on the server, so the next run picks it up. A run that
   leaves Cases pending ends with :class:`InferenceServerUnreachable` (exit 1);
   10 consecutive connection failures stop the run at once. A read timeout
-  (inference slower than ``case_timeout``) and HTTP 408/429/5xx that persist
-  are captured as failures with ``retryable: true``.
+  (inference slower than ``case_timeout``, one attempt as in the browser) and
+  HTTP 408/429/5xx that persist are captured as failures with ``retryable: true``.
 * A local journal (``<state-dir>/journal.jsonl`` plus ``captures/<sha256>.json``)
-  so that a restarted runner resubmits the exact captured bytes instead of
-  running the inference again.
+  so that a restarted runner resubmits the stored capture instead of running
+  the inference again.
 
 Capture responses and what the runner does:
 
@@ -32,7 +32,7 @@ Capture responses and what the runner does:
 | ------------------------------------------------- | -------------------------------------------------- |
 | 200                                               | Submitted.                                         |
 | 409 "Different capture already submitted"         | ``done_by_other`` (counted as already done).       |
-| 409 "Capture is being processed" (retryable)      | Wait for the lease, resend the same bytes.         |
+| 409 "Capture is being processed" (retryable)      | Wait for the lease, resend the same capture.       |
 | 409 "Case failure is not retryable"               | ``skipped``.                                       |
 | 409 "Run no longer accepts captures"              | Stop dispatching; the Run is closed.               |
 | 412 "Run attempt changed"                         | Re-read the Run, restart the Execution.            |
@@ -43,8 +43,10 @@ Capture responses and what the runner does:
 | 400                                               | Exit 1, with the server's error.                   |
 
 A restarted Execution reads its Cases again: Cases the server already has are
-not run again, and journaled captures of the same attempt are resubmitted
-byte for byte, so no Case gets a second, different capture in one attempt.
+not run again, and journaled captures of the same attempt are resubmitted. The
+stored bytes are parsed and re-encoded by ``requests``, so the bytes on the wire
+may differ, but the JSON value (what the server fingerprints) is identical, so
+no Case gets a second, different capture in one attempt.
 
 Usage::
 
@@ -457,7 +459,7 @@ def _write_atomic(path: str, data: bytes) -> None:
 
 
 class Journal:
-    """Append-only record of captures, so a restarted run resubmits bytes instead of re-running inference.
+    """Append-only record of captures, so a restarted run resubmits them instead of re-running inference.
 
     ``journal.jsonl`` holds ``{"t": "captured", attempt, executionId, caseId,
     shardIndex, sha256, path}`` and ``{"t": "submitted", attempt, executionId,
@@ -576,6 +578,18 @@ def _field(resource: Any, key: str) -> Any:
     return value
 
 
+def _cancelled(run: Any) -> bool:
+    """``True`` for a cancelled Run, including one still finalizing its cancellation.
+
+    Cancelling keeps the Run ``running`` (with ``cancellationRequestedAt`` set)
+    while the server marks the remaining Cases skipped, then finalizes it.
+    """
+    state = _field(run, "state")
+    return state == "cancelled" or (
+        state not in RUN_TERMINAL_STATES and _field(run, "cancellationRequestedAt") is not None
+    )
+
+
 def _parse_timestamp(value: Any) -> Optional[float]:
     if not isinstance(value, str) or not value:
         return None
@@ -625,6 +639,8 @@ class _Pass:
     selected: Optional[int]
     tally: ExecutionTally
     attempt: int = 0
+    # Set once the pass stops dispatching, so its leftover prefetch stops retrying.
+    ended: bool = False
 
 
 @dataclass
@@ -761,7 +777,8 @@ class LocalRunner:
         """Stop gracefully; a second call aborts at once.
 
         First call: no new inference is dispatched, in-flight inferences finish
-        and are journaled, already queued captures are submitted, then
+        and are journaled, already queued captures are submitted, retries
+        waiting in a backoff (inference or Roboflow API) are abandoned, then
         :meth:`run` raises :class:`LocalRunnerInterrupted`. Second call:
         :meth:`run` raises immediately without waiting for in-flight requests.
         Safe to call from a signal handler or another thread.
@@ -967,9 +984,8 @@ class LocalRunner:
         )
 
     def _finish(self, run: Dict[str, Any]) -> LocalRunResult:
-        state = _field(run, "state")
-        result = self._result(state)
-        if state == "cancelled":
+        result = self._result(_field(run, "state"))
+        if _cancelled(run):
             raise LocalRunnerError(
                 f"Run {self._run_id} was cancelled.", hint="Start a new Run to evaluate again.", result=result
             )
@@ -1039,6 +1055,7 @@ class LocalRunner:
                 self._fail(exc)
             raise
         finally:
+            ctx.ended = True
             self._wait(lambda: self._outstanding == 0)
         self._raise_if_halted()
         return self._reload and not self._run_closed
@@ -1082,8 +1099,9 @@ class LocalRunner:
 
         def fetch() -> None:
             try:
-                # Nobody waits for this page once dispatching stops.
-                box["page"] = self._fetch_page(ctx, cursor, abandon=self._dispatch_stopped)
+                # Nobody waits for this page once dispatching stops, nor once its pass ends
+                # (the next pass resets ``_reload``).
+                box["page"] = self._fetch_page(ctx, cursor, abandon=lambda: ctx.ended or self._dispatch_stopped())
             except BaseException as exc:
                 box["error"] = exc
             finally:
@@ -1112,7 +1130,13 @@ class LocalRunner:
                     return
             if upcoming is None or self._dispatch_stopped():
                 return
-            page = upcoming()
+            try:
+                page = upcoming()
+            except _Abandoned:
+                if self._halting():
+                    raise
+                # The prefetch gave up because of a 412 or a closed Run: end the pass.
+                return
 
     def _refresh(self, ctx: _Pass, page: _Page) -> bool:
         """Re-read ``page`` (same cursor) if its signed URLs are about to expire."""
@@ -1208,7 +1232,15 @@ class LocalRunner:
                 "output": outcome.output,
                 "runtime": outcome.runtime,
             }
-            data = _dumps(capture)
+            try:
+                data = _dumps(capture)
+            except ValueError as exc:
+                # A lone surrogate or a non-finite number (1e400) has no JSON encoding.
+                message = _truncate(f"Workflow output could not be serialized: {exc}")
+                self._warn(f"Case {work.case_id}: {message}; submitting it as a failed Case.")
+                runtime = {"latencyMs": outcome.runtime.get("latencyMs"), "error": message}
+                capture.update(output=None, runtime={**runtime, "timedOut": False, "retryable": False})
+                data = _dumps(capture)
             assert self._journal is not None
             self._journal.record_capture(work.attempt, work.ctx.execution_id, work.case_id, work.shard_index, data)
         finally:
@@ -1238,7 +1270,9 @@ class LocalRunner:
     def _infer(self, ctx: _Pass, inputs: Dict[str, Any]) -> Optional[InferenceOutcome]:
         """Run the inference with up to 3 attempts; ``None`` means abandoned (nothing to capture).
 
-        Network errors and HTTP 408/429/5xx are retried. Every connection-level
+        Network errors and HTTP 408/429/5xx are retried; a read timeout (inference
+        slower than ``case_timeout``) is returned at once, like the browser's single
+        attempt. Every connection-level
         failure counts toward the consecutive-connection-failure limit (any HTTP
         response resets it); the outcome returned for a Case whose last attempt
         failed to connect has ``connection_failure`` set and is not captured.
@@ -1271,6 +1305,8 @@ class LocalRunner:
                 tripped = self._fatal is not None
             if outcome.connection_failure and tripped:
                 return outcome
+            if outcome.runtime.get("timedOut") and not outcome.connection_failure:
+                return outcome
             if not outcome.error or not outcome.retryable or attempt >= INFERENCE_ATTEMPTS:
                 return outcome
             try:
@@ -1282,7 +1318,7 @@ class LocalRunner:
     def _submit(self, work: _Work, data: Optional[bytes], lease: Optional[float]) -> None:
         """Submit a capture (``data``) or a ``resume`` (``data is None``) and act on the answer.
 
-        Every resend uses the same stored bytes.
+        Every resend sends the same JSON value (parsed from the same stored bytes).
         """
         ctx = work.ctx
         resends = 0
