@@ -39,6 +39,39 @@ class TestProjectAnnotationAdministration(RoboflowTest):
                 self.assertEqual(getattr(self.project, method)(*args, **kwargs), {"ok": True})
                 mock.assert_called_once()
 
+    def test_move_images_to_batch_sends_one_selection_and_one_target(self):
+        response = {"batchId": "b1", "batchName": "serial-42", "moved": 2, "skipped": 0}
+        with patch("roboflow.adapters.rfapi.move_images_to_batch", return_value=response) as mock:
+            self.assertEqual(
+                self.project.move_images_to_batch(batch_name="serial-42", image_ids=["i1", "i2"]), response
+            )
+            self.assertEqual(
+                mock.call_args.kwargs,
+                {"batch_name": "serial-42", "batch_id": None, "image_ids": ["i1", "i2"], "tag": None},
+            )
+            self.project.move_images_to_batch(batch_id="b1", tag="serial-42")
+            self.assertEqual(
+                mock.call_args.kwargs,
+                {"batch_name": None, "batch_id": "b1", "image_ids": None, "tag": "serial-42"},
+            )
+
+    def test_move_images_to_batch_rejects_ambiguous_arguments_before_calling_api(self):
+        cases = [
+            {"batch_name": "b"},
+            {"batch_name": "b", "image_ids": ["i1"], "tag": "t"},
+            {"batch_name": "b", "image_ids": []},
+            {"batch_name": "b", "tag": " "},
+            {"tag": "t"},
+            {"batch_name": "b", "batch_id": "id", "tag": "t"},
+            {"batch_name": "", "tag": "t"},
+            {"batch_name": "b", "image_ids": [f"i{i}" for i in range(1001)]},
+        ]
+        with patch("roboflow.adapters.rfapi.move_images_to_batch") as mock:
+            for kwargs in cases:
+                with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
+                    self.project.move_images_to_batch(**kwargs)
+            mock.assert_not_called()
+
     def test_job_wrappers_delegate_to_rfapi(self):
         cases = [
             ("get_annotation_jobs", (), {}, "list_annotation_jobs"),

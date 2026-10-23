@@ -39,7 +39,7 @@ class TestAnnotationParserRegistration(unittest.TestCase):
 
     def test_full_annotation_administration_surface(self):
         commands = {
-            "batch": ["admin-list", "admin-get", "images", "create", "merge", "delete"],
+            "batch": ["admin-list", "admin-get", "images", "create", "merge", "move", "delete"],
             "job": [
                 "admin-list",
                 "admin-get",
@@ -516,6 +516,94 @@ class TestAnnotationAdministrationCommands(unittest.TestCase):
         )
         self.assertEqual(result.exit_code, 0, result.output)
         mock_api.assert_called_once_with("key", "ws", "proj", "job-1")
+
+
+class TestBatchMove(unittest.TestCase):
+    """annotation batch move"""
+
+    _MOVE = "roboflow.adapters.rfapi.move_images_to_batch"
+    _RESULT = {"batchId": "b1", "batchName": "serial-42", "moved": 3, "skipped": 1}
+
+    @patch(_MOVE, return_value=_RESULT)
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_move_by_tag_into_named_batch(self, _resolve, mock_api):
+        result = runner.invoke(
+            app, ["annotation", "batch", "move", "-p", "ws/proj", "--batch-name", "serial-42", "--tag", "serial-42"]
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn(
+            "Moved 3 image(s) to batch 'serial-42' (b1). Skipped 1 already there or not movable.", result.output
+        )
+        mock_api.assert_called_once_with(
+            "key", "ws", "proj", batch_name="serial-42", batch_id=None, image_ids=None, tag="serial-42"
+        )
+
+    @patch(_MOVE, return_value=_RESULT)
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_move_by_ids_into_batch_id_json(self, _resolve, mock_api):
+        result = runner.invoke(
+            app,
+            ["--json", "annotation", "batch", "move", "-p", "ws/proj", "--batch-id", "b1"]
+            + ["--image-id", "i1", "--image-id", "i2"],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(json.loads(result.output), self._RESULT)
+        mock_api.assert_called_once_with(
+            "key", "ws", "proj", batch_name=None, batch_id="b1", image_ids=["i1", "i2"], tag=None
+        )
+
+    @patch(_MOVE)
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_ambiguous_flags_exit_1_without_calling_api(self, _resolve, mock_api):
+        cases = [
+            ["--batch-name", "b"],
+            ["--batch-name", "b", "--tag", "t", "--image-id", "i1"],
+            ["--tag", "t"],
+            ["--batch-name", "b", "--batch-id", "b1", "--tag", "t"],
+        ]
+        for flags in cases:
+            with self.subTest(flags=flags):
+                result = runner.invoke(app, ["--json", "annotation", "batch", "move", "-p", "ws/proj"] + flags)
+                self.assertEqual(result.exit_code, 1, result.output)
+                self.assertIn("exactly one", json.loads(result.output)["error"]["message"])
+        mock_api.assert_not_called()
+
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_api_errors_follow_exit_code_contract(self, _resolve):
+        from roboflow.adapters.rfapi import RoboflowError
+
+        for status, code in [(401, 2), (404, 3), (400, 1)]:
+            with self.subTest(status=status), patch(self._MOVE, side_effect=RoboflowError("nope", status_code=status)):
+                result = runner.invoke(
+                    app, ["--json", "annotation", "batch", "move", "-p", "ws/proj", "--batch-id", "b1", "--tag", "t"]
+                )
+                self.assertEqual(result.exit_code, code, result.output)
+                self.assertEqual(json.loads(result.output)["error"]["message"], "nope")
+
+    @patch(_MOVE)
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_more_than_1000_image_ids_exit_1_without_calling_api(self, _resolve, mock_api):
+        ids = [arg for i in range(1001) for arg in ("--image-id", f"i{i}")]
+        result = runner.invoke(
+            app, ["--json", "annotation", "batch", "move", "-p", "ws/proj", "--batch-id", "b1"] + ids
+        )
+        self.assertEqual(result.exit_code, 1, result.output)
+        self.assertIn("At most 1000", json.loads(result.output)["error"]["message"])
+        mock_api.assert_not_called()
+
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_tag_over_cap_error_names_the_way_out(self, _resolve):
+        from roboflow.adapters.rfapi import RoboflowError
+
+        message = 'Tag "big" matches more than 1000 images in this project; move them by imageIds in smaller selections'
+        with patch(self._MOVE, side_effect=RoboflowError(message, status_code=400)):
+            result = runner.invoke(
+                app, ["--json", "annotation", "batch", "move", "-p", "ws/proj", "--batch-name", "b", "--tag", "big"]
+            )
+        self.assertEqual(result.exit_code, 1, result.output)
+        error = json.loads(result.output)["error"]
+        self.assertEqual(error["message"], message)
+        self.assertIn("--image-id", error["hint"])
 
 
 if __name__ == "__main__":
