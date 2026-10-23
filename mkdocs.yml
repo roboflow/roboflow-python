@@ -58,6 +58,9 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: ['.']
+      check_paths: true
   - attr_list
   - md_in_html
   - pymdownx.tabbed:
