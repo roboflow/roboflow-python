@@ -16,6 +16,35 @@ All notable changes to this project will be documented in this file.
   (--tag T | --image-id ID ...)`, with `--json` and the usual exit codes.
   Needs the `POST /{workspace}/{project}/annotation-batches/move` API.
 
+## 1.7.2
+
+### Fixed
+
+- `upload_dataset(..., annotation_overwrite=True)` and
+  `roboflow image upload ./dir --annotation-overwrite` now replace annotations
+  on duplicate images outside the zip flow too, and `roboflow upload` accepts
+  `--annotation-overwrite`. A duplicate whose annotations the API kept now logs
+  `annotations = kept existing` instead of a misleading warning
+  ([#552](https://github.com/roboflow/roboflow-python/pull/552)).
+- `Project.search` raises `RoboflowError` with the API's message and status
+  code instead of `KeyError: 'results'`
+  ([#556](https://github.com/roboflow/roboflow-python/pull/556)).
+- `Prediction.save()` no longer crashes on object-detection, keypoint,
+  classification and semantic-segmentation predictions, or on hosted
+  `https://` images ([#560](https://github.com/roboflow/roboflow-python/pull/560)).
+- Failed annotation saves during upload are retried
+  ([#558](https://github.com/roboflow/roboflow-python/pull/558)).
+
+### Changed
+
+- Image uploads and annotation saves reuse connections (one session per
+  worker thread) instead of a new TCP + TLS handshake per request
+  ([#558](https://github.com/roboflow/roboflow-python/pull/558)).
+- Every SDK and CLI request sends `User-Agent: roboflow-python/<version>`
+  ([#559](https://github.com/roboflow/roboflow-python/pull/559)).
+- Auto-label docstring examples use `gemini-3-8-flash-boxes`
+  ([#557](https://github.com/roboflow/roboflow-python/pull/557)).
+
 ## 1.7.1
 
 ### Added
