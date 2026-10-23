@@ -494,6 +494,8 @@ roboflow workflow-eval create --name "Answer accuracy" --spec <spec-id> --datase
 # Bind a Workflow, run it, and read results.
 roboflow workflow-eval binding suggest --spec <spec-id> --dataset <dataset-id> --workflow <workflow-id> --json
 roboflow workflow-eval run start --eval <eval-id> --body @run.json --wait
+# --wait gives up after 3600 s; Runs on a local inference server wait without limit. --timeout 0 = no limit.
+roboflow workflow-eval run get <run-id> --eval <eval-id> --wait --timeout 0
 roboflow workflow-eval execution overview <execution-id> --eval <eval-id> --run <run-id> --json
 roboflow workflow-eval execution results <execution-id> --eval <eval-id> --run <run-id> --failed-check
 roboflow workflow-eval compare --eval <eval-id> -x <execution-a> -x <execution-b> --json
