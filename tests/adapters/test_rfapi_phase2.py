@@ -908,5 +908,36 @@ class TestBatchUpdateImageMetadata(unittest.TestCase):
             batch_update_image_metadata("key", "ws", [{"imageId": "img-1"}])
 
 
+class TestUploadZipToSignedUrl(unittest.TestCase):
+    def _put(self, mock_put, **kwargs):
+        import os
+        import tempfile
+
+        from roboflow.adapters.rfapi import upload_zip_to_signed_url
+
+        mock_put.return_value = MagicMock(ok=True, status_code=201)
+        # A closed file in a temp dir: Windows cannot reopen a NamedTemporaryFile still held open.
+        with tempfile.TemporaryDirectory() as tmp:
+            zip_path = os.path.join(tmp, "z.zip")
+            with open(zip_path, "wb") as fh:
+                fh.write(b"zip")
+            upload_zip_to_signed_url("https://acct.blob.core.windows.net/rf-upload/z.zip?sig=x", zip_path, **kwargs)
+        headers = dict(mock_put.call_args.kwargs["headers"])
+        headers.pop("User-Agent", None)  # the shared http helper adds it to every request
+        return headers
+
+    @patch("roboflow.util.http.requests.put")
+    def test_sends_the_required_headers(self, mock_put):
+        headers = self._put(mock_put, required_headers={"x-ms-blob-type": "BlockBlob", "If-None-Match": "*"})
+        self.assertEqual(
+            headers,
+            {"Content-Type": "application/zip", "x-ms-blob-type": "BlockBlob", "If-None-Match": "*"},
+        )
+
+    @patch("roboflow.util.http.requests.put")
+    def test_without_required_headers_sends_only_the_content_type(self, mock_put):
+        self.assertEqual(self._put(mock_put), {"Content-Type": "application/zip"})
+
+
 if __name__ == "__main__":
     unittest.main()
