@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 1.7.3
 
 ### Added
 
@@ -10,10 +10,12 @@ All notable changes to this project will be documented in this file.
   in one step, printing the new secret once. `--rotation-due-at` and `--owner`
   (repeatable) set the replacement's rotation schedule; omitted, the old key's
   schedule carries over. A protected key returns exit code 1 with a hint, like
-  `revoke`; a key that was already rolled or revoked is not found (exit code 3).
+  `revoke`; a key that was already rolled or revoked is not found (exit code 3)
+  ([#566](https://github.com/roboflow/roboflow-python/pull/566)).
 - `roboflow api-key create` and `update` accept `--rotation-due-at` and `--owner`
   (repeatable) to set a key's rotation schedule; `update` also takes
-  `--clear-rotation-due-at` and `--clear-owners`.
+  `--clear-rotation-due-at` and `--clear-owners`
+  ([#566](https://github.com/roboflow/roboflow-python/pull/566)).
 
 ## 1.7.2
 
