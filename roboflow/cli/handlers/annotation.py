@@ -134,10 +134,10 @@ def batch_move(
         Optional[list[str]], typer.Option("--image-id", help="Image ID to move; repeat for multiple images")
     ] = None,
     tag: Annotated[
-        Optional[str], typer.Option(help="Move every image in the project with this tag (at most 2000)")
+        Optional[str], typer.Option(help="Move every image in the project with this tag (at most 1000)")
     ] = None,
 ) -> None:
-    """Move existing images, by ID or tag, into an annotation batch (at most 2000 per call)."""
+    """Move existing images, by ID or tag, into an annotation batch (at most 1000 per call)."""
     _batch_move(
         ctx_to_args(ctx, project=project, batch_name=batch_name, batch_id=batch_id, image_ids=image_ids, tag=tag)
     )

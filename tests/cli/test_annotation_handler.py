@@ -582,20 +582,20 @@ class TestBatchMove(unittest.TestCase):
 
     @patch(_MOVE)
     @patch(_RESOLVE, return_value=("key", "ws", "proj"))
-    def test_more_than_2000_image_ids_exit_1_without_calling_api(self, _resolve, mock_api):
-        ids = [arg for i in range(2001) for arg in ("--image-id", f"i{i}")]
+    def test_more_than_1000_image_ids_exit_1_without_calling_api(self, _resolve, mock_api):
+        ids = [arg for i in range(1001) for arg in ("--image-id", f"i{i}")]
         result = runner.invoke(
             app, ["--json", "annotation", "batch", "move", "-p", "ws/proj", "--batch-id", "b1"] + ids
         )
         self.assertEqual(result.exit_code, 1, result.output)
-        self.assertIn("At most 2000", json.loads(result.output)["error"]["message"])
+        self.assertIn("At most 1000", json.loads(result.output)["error"]["message"])
         mock_api.assert_not_called()
 
     @patch(_RESOLVE, return_value=("key", "ws", "proj"))
     def test_tag_over_cap_error_names_the_way_out(self, _resolve):
         from roboflow.adapters.rfapi import RoboflowError
 
-        message = 'Tag "big" matches more than 2000 images in this project; move them by imageIds in smaller selections'
+        message = 'Tag "big" matches more than 1000 images in this project; move them by imageIds in smaller selections'
         with patch(self._MOVE, side_effect=RoboflowError(message, status_code=400)):
             result = runner.invoke(
                 app, ["--json", "annotation", "batch", "move", "-p", "ws/proj", "--batch-name", "b", "--tag", "big"]

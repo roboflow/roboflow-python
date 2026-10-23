@@ -1148,7 +1148,7 @@ def merge_annotation_batches(api_key, workspace_url, project_url, *, source_batc
 
 
 # Per-call cap on images moved into a batch, for imageIds and for the images a tag resolves to.
-MAX_MOVE_TO_BATCH_IMAGES = 2000
+MAX_MOVE_TO_BATCH_IMAGES = 1000
 
 
 def move_images_to_batch(
