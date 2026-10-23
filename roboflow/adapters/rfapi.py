@@ -2473,6 +2473,19 @@ class _FullAccess:
 FULL_ACCESS = _FullAccess()
 
 
+class _ClearValue:
+    """Sentinel for "send JSON ``null``" on fields where ``None`` means "leave unchanged".
+
+    ``update_api_key(..., rotation_due_at=CLEAR)`` clears the key's rotation due date.
+    """
+
+    def __repr__(self) -> str:
+        return "CLEAR"
+
+
+CLEAR = _ClearValue()
+
+
 def list_api_keys(
     api_key: str,
     workspace_url: str,
@@ -2516,6 +2529,8 @@ def create_api_key(
     folder_ids: Optional[List[str]] = None,
     custom_metadata: Optional[Dict] = None,
     protected: bool = False,
+    rotation_due_at: Optional[str] = None,
+    owners: Optional[List[str]] = None,
 ) -> dict:
     """POST /{workspace}/api-keys — create a new API key.
 
@@ -2524,8 +2539,11 @@ def create_api_key(
     own scopes, so a full-access credential creates a full-access key. Pass a list
     to scope the key (``role:<name>`` presets are accepted), ``[]`` for a key with
     no abilities, or ``FULL_ACCESS`` to send an explicit ``null`` (unscoped/full
-    access). ``scopes``, ``folder_ids``, and ``custom_metadata`` require the
-    Advanced API Keys plan feature — the backend returns 403 if unavailable.
+    access). ``rotation_due_at`` (ISO date or date-time, UTC, in the future) and
+    ``owners`` (member ids reminded before it; ``[]`` means everyone who can roll
+    the key) set the rotation schedule. ``scopes``, ``folder_ids``,
+    ``custom_metadata``, ``rotation_due_at`` and ``owners`` require the Advanced
+    API Keys plan feature — the backend returns 403 if unavailable.
     """
     body: Dict[str, Any] = {}
     if name is not None:
@@ -2541,6 +2559,10 @@ def create_api_key(
         body["customMetadata"] = custom_metadata
     if protected:
         body["protected"] = True
+    if rotation_due_at is not None:
+        body["rotationDueAt"] = rotation_due_at
+    if owners is not None:
+        body["owners"] = owners
     response = http.post(f"{API_URL}/{workspace_url}/api-keys", params={"api_key": api_key}, json=body)
     if not response.ok:
         raise RoboflowError(response.text, status_code=response.status_code)
@@ -2551,21 +2573,24 @@ def update_api_key(api_key: str, workspace_url: str, key_id: str, **fields: Any)
     """PATCH /{workspace}/api-keys/{keyId} — update an existing API key.
 
     Pass only the fields you want to change as keyword arguments:
-    ``name``, ``scopes``, ``custom_metadata``, ``protected``, ``disabled``.
+    ``name``, ``scopes``, ``custom_metadata``, ``protected``, ``disabled``,
+    ``rotation_due_at``, ``owners``.
     ``None`` values are omitted (left unchanged). To send explicit values,
     pass ``scopes=[]`` (no abilities), ``scopes=FULL_ACCESS`` (unscoped/full
-    access, serialized as ``null``), or ``custom_metadata={}`` (clear metadata).
+    access, serialized as ``null``), ``custom_metadata={}`` (clear metadata),
+    ``rotation_due_at=CLEAR`` (clear the due date, serialized as ``null``) or
+    ``owners=[]`` (remind everyone who can roll the key).
     The API cannot unprotect a key (``protected=False`` → 403).
     Disabling a protected key returns 409.
     """
     encoded = quote(key_id, safe="")
     # Canonical wire field is camelCase `customMetadata` (consistent with `folderIds`); callers may
     # pass the Pythonic `custom_metadata` kwarg, which is normalized here.
-    wire_aliases = {"custom_metadata": "customMetadata"}
+    wire_aliases = {"custom_metadata": "customMetadata", "rotation_due_at": "rotationDueAt"}
     body: Dict[str, Any] = {}
     for k, v in fields.items():
         wire_key = wire_aliases.get(k, k)
-        if v is FULL_ACCESS:
+        if v is FULL_ACCESS or v is CLEAR:
             body[wire_key] = None
         elif v is not None:
             body[wire_key] = v
@@ -2588,6 +2613,39 @@ def revoke_api_key(api_key: str, workspace_url: str, key_id: str) -> dict:
     response = http.delete(
         f"{API_URL}/{workspace_url}/api-keys/{encoded}",
         params={"api_key": api_key},
+    )
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def roll_api_key(
+    api_key: str,
+    workspace_url: str,
+    key_id: str,
+    rotation_due_at: Optional[str] = None,
+    owners: Optional[List[str]] = None,
+) -> dict:
+    """POST /{workspace}/api-keys/{keyId}/roll — revoke a key and mint its replacement.
+
+    The replacement keeps the old key's name, scopes, folders, metadata, protection
+    and disabled state, and its secret ``key`` value is returned only here (shown
+    once). ``rotation_due_at`` (ISO date or date-time, UTC, in the future) and
+    ``owners`` set the replacement's rotation schedule; omitted, the old key's
+    schedule carries over. Both require the Advanced API Keys plan feature.
+    Rolling a protected or already rolled key returns 409; a credential that holds
+    less access than the target key gets 403.
+    """
+    encoded = quote(key_id, safe="")
+    body: Dict[str, Any] = {}
+    if rotation_due_at is not None:
+        body["rotationDueAt"] = rotation_due_at
+    if owners is not None:
+        body["owners"] = owners
+    response = http.post(
+        f"{API_URL}/{workspace_url}/api-keys/{encoded}/roll",
+        params={"api_key": api_key},
+        json=body or None,
     )
     if not response.ok:
         raise RoboflowError(response.text, status_code=response.status_code)

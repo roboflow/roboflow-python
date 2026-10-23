@@ -82,6 +82,17 @@ def create_key(
         bool,
         typer.Option("--protected", help="Mark key as protected (cannot be revoked/disabled via CLI)"),
     ] = False,
+    rotation_due_at: Annotated[
+        Optional[str],
+        typer.Option(
+            "--rotation-due-at",
+            help="Rotation due date (ISO date, UTC, in the future). Owners get one reminder email before it.",
+        ),
+    ] = None,
+    owner: Annotated[
+        Optional[List[str]],
+        typer.Option("--owner", help="Member ID reminded before the due date (repeatable). Omit to default to you."),
+    ] = None,
 ) -> None:
     """Create a new API key.
 
@@ -93,6 +104,9 @@ def create_key(
     Scope selection is three-way: omit all scope flags to inherit the calling
     key's scopes, pass --scope (repeatable) to scope the key, --no-scopes for a
     key with no abilities, or --full-access for an unscoped/full-access key.
+
+    --rotation-due-at sets the date the key should be rotated by; --owner
+    (repeatable) picks who gets the reminder email. Both require Advanced API Keys.
     """
     args = ctx_to_args(
         ctx,
@@ -103,6 +117,8 @@ def create_key(
         folder=folder,
         metadata=metadata,
         protected=protected,
+        rotation_due_at=rotation_due_at,
+        owner=owner,
     )
     _create_key(args)
 
@@ -144,13 +160,38 @@ def update_key(
             help="Clear all custom metadata (sends {}). Mutually exclusive with --metadata.",
         ),
     ] = False,
+    rotation_due_at: Annotated[
+        Optional[str],
+        typer.Option("--rotation-due-at", help="New rotation due date (ISO date, UTC, in the future)."),
+    ] = None,
+    clear_rotation_due_at: Annotated[
+        bool,
+        typer.Option(
+            "--clear-rotation-due-at",
+            help="Remove the rotation due date (sends null). Mutually exclusive with --rotation-due-at.",
+        ),
+    ] = False,
+    owner: Annotated[
+        Optional[List[str]],
+        typer.Option("--owner", help="Member ID reminded before the due date (repeatable). Replaces the owners."),
+    ] = None,
+    clear_owners: Annotated[
+        bool,
+        typer.Option(
+            "--clear-owners",
+            help="Remind everyone who can roll the key (sends []). Mutually exclusive with --owner.",
+        ),
+    ] = False,
 ) -> None:
-    """Update an API key's display name, scopes, or metadata.
+    """Update an API key's display name, scopes, metadata or rotation schedule.
 
     Scopes are three-way: --scope (repeatable) replaces scopes, --no-scopes
     replaces them with an empty list (no abilities), and --full-access makes the
     key unscoped/full access. Metadata: --metadata sets custom KEY=VALUE pairs,
-    --clear-metadata removes all custom metadata.
+    --clear-metadata removes all custom metadata. Rotation: --rotation-due-at
+    sets the date, --clear-rotation-due-at removes it; --owner (repeatable)
+    replaces the reminded members, --clear-owners reminds everyone who can roll
+    the key. Rotation fields require Advanced API Keys.
     """
     args = ctx_to_args(
         ctx,
@@ -161,6 +202,10 @@ def update_key(
         full_access=full_access,
         metadata=metadata,
         clear_metadata=clear_metadata,
+        rotation_due_at=rotation_due_at,
+        clear_rotation_due_at=clear_rotation_due_at,
+        owner=owner,
+        clear_owners=clear_owners,
     )
     _update_key(args)
 
@@ -208,6 +253,39 @@ def revoke_key(
     """
     args = ctx_to_args(ctx, key_id=key_id, yes=yes)
     _revoke_key(args)
+
+
+@api_key_app.command("roll")
+def roll_key(
+    ctx: typer.Context,
+    key_id: Annotated[str, typer.Argument(help="Key ID (keyId) to roll")],
+    rotation_due_at: Annotated[
+        Optional[str],
+        typer.Option(
+            "--rotation-due-at",
+            help="Rotation due date for the replacement (ISO date, UTC). Omit to carry the old key's date over.",
+        ),
+    ] = None,
+    owner: Annotated[
+        Optional[List[str]],
+        typer.Option(
+            "--owner", help="Member ID reminded before the due date (repeatable). Omit to keep the old key's owners."
+        ),
+    ] = None,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation prompt")] = False,
+) -> None:
+    """Roll an API key: revoke it and create its replacement in one step.
+
+    The replacement keeps the old key's name, scopes, folders, metadata and
+    protection. Everything using the old key stops working until it gets the
+    new value. The new secret is printed ONCE — save it immediately:
+
+        roboflow --json api-key roll KEY_ID --yes | jq -r .key
+
+    Protected keys cannot be rolled — unprotect them in the dashboard first.
+    """
+    args = ctx_to_args(ctx, key_id=key_id, rotation_due_at=rotation_due_at, owner=owner, yes=yes)
+    _roll_key(args)
 
 
 # ---------------------------------------------------------------------------
@@ -307,6 +385,49 @@ def _resolve_metadata(args):  # noqa: ANN001
     if parsed is not None:
         return parsed
     return _UNSET
+
+
+def _resolve_rotation(args) -> dict:  # noqa: ANN001
+    """Resolve the rotation flags into ``update_api_key`` keyword arguments.
+
+    ``--rotation-due-at`` sets the date and ``--clear-rotation-due-at`` sends
+    ``CLEAR`` (JSON null); ``--owner`` replaces the owners and ``--clear-owners``
+    sends ``[]``. Flags not given are left out (unchanged). Exits 1 when a set and
+    a clear flag for the same field are both supplied.
+    """
+    from roboflow.adapters.rfapi import CLEAR
+    from roboflow.cli._output import output_error
+
+    rotation_due_at = getattr(args, "rotation_due_at", None)
+    clear_due = getattr(args, "clear_rotation_due_at", False)
+    owners = getattr(args, "owner", None)
+    clear_owners = getattr(args, "clear_owners", False)
+
+    if rotation_due_at is not None and clear_due:
+        output_error(
+            args,
+            "Only one of --rotation-due-at or --clear-rotation-due-at may be used.",
+            hint="Use --rotation-due-at DATE to set the date, or --clear-rotation-due-at to remove it.",
+            exit_code=1,
+        )
+    if owners and clear_owners:
+        output_error(
+            args,
+            "Only one of --owner or --clear-owners may be used.",
+            hint="Use --owner MEMBER_ID to pick the reminded members, or --clear-owners to remind everyone.",
+            exit_code=1,
+        )
+
+    fields: dict = {}
+    if clear_due:
+        fields["rotation_due_at"] = CLEAR
+    elif rotation_due_at is not None:
+        fields["rotation_due_at"] = rotation_due_at
+    if clear_owners:
+        fields["owners"] = []
+    elif owners:
+        fields["owners"] = list(owners)
+    return fields
 
 
 def _list_keys(args) -> None:  # noqa: ANN001
@@ -413,6 +534,7 @@ def _create_key(args) -> None:  # noqa: ANN001
     scopes = _resolve_scopes(args)
     folder_ids = getattr(args, "folder", None) or None
     metadata = _resolve_metadata(args)
+    rotation = _resolve_rotation(args)
 
     try:
         result = rfapi.create_api_key(
@@ -423,6 +545,7 @@ def _create_key(args) -> None:  # noqa: ANN001
             folder_ids=folder_ids,
             custom_metadata=None if metadata is _UNSET else metadata,
             protected=getattr(args, "protected", False),
+            **rotation,
         )
     except rfapi.RoboflowError as exc:
         status = getattr(exc, "status_code", None)
@@ -442,7 +565,7 @@ def _create_key(args) -> None:  # noqa: ANN001
             output_api_error(
                 args,
                 exc,
-                hint="Scopes, folders, and metadata require the Advanced API Keys plan feature.",
+                hint="Scopes, folders, metadata and the rotation schedule require the Advanced API Keys plan feature.",
             )
         return
 
@@ -478,6 +601,7 @@ def _update_key(args) -> None:  # noqa: ANN001
     metadata = _resolve_metadata(args)
     if metadata is not _UNSET:
         fields["custom_metadata"] = metadata
+    fields.update(_resolve_rotation(args))
 
     try:
         result = rfapi.update_api_key(api_key, ws, args.key_id, **fields)
@@ -587,3 +711,72 @@ def _revoke_key(args) -> None:  # noqa: ANN001
         return
 
     output(args, result, text=f"Revoked API key '{args.key_id}'.")
+
+
+def _roll_key(args) -> None:  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import confirm_destructive, output, output_api_error, output_error
+
+    resolved = _resolve_ws_and_key(args)
+    if not resolved:
+        return
+    ws, api_key = resolved
+
+    if not confirm_destructive(args, f"Roll API key '{args.key_id}'? The current key stops working immediately."):
+        return
+
+    try:
+        result = rfapi.roll_api_key(
+            api_key,
+            ws,
+            args.key_id,
+            rotation_due_at=getattr(args, "rotation_due_at", None),
+            owners=getattr(args, "owner", None) or None,
+        )
+    except rfapi.RoboflowError as exc:
+        status = getattr(exc, "status_code", None)
+        if status == 409:
+            output_error(
+                args,
+                str(exc),
+                hint=(
+                    "The key is protected, is already being rolled, or is disabled while backing a "
+                    "Dedicated Deployment. Unprotect it at app.roboflow.com/settings/api, or retry once "
+                    "the other roll finishes."
+                ),
+                exit_code=1,
+            )
+        elif status == 403:
+            output_api_error(
+                args,
+                exc,
+                hint=(
+                    "Rolling needs the 'api-key:create' and 'api-key:revoke' scopes, and the calling key "
+                    "must hold at least the target key's scopes and folders. --rotation-due-at and --owner "
+                    "require the Advanced API Keys plan feature."
+                ),
+            )
+        else:
+            output_api_error(
+                args,
+                exc,
+                not_found_hint=(
+                    f"No active API key with ID '{args.key_id}' in this workspace. "
+                    "Rolled and revoked keys are not listed."
+                ),
+            )
+        return
+
+    secret = result.get("key", "")
+    new_key_id = result.get("keyId", "")
+    name = result.get("name") or args.key_id
+
+    lines = [
+        f"Rolled API key '{name}': revoked {args.key_id}, replacement keyId: {new_key_id}",
+        "",
+        "WARNING: This is the only time the new secret key will be shown.",
+        "Save it somewhere secure now and update everything that used the old key.",
+        "",
+        f"  Key: {secret}",
+    ]
+    output(args, result, text="\n".join(lines))
