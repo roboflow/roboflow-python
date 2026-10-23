@@ -78,6 +78,15 @@ class TestApiKeyRegistration(unittest.TestCase):
         result = runner.invoke(app, ["api-key", "revoke", "--help"])
         self.assertEqual(result.exit_code, 0, result.output)
 
+    def test_create_and_update_help_list_rotation_flags(self) -> None:
+        create_help = _strip_ansi(runner.invoke(app, ["api-key", "create", "--help"]).output)
+        update_help = _strip_ansi(runner.invoke(app, ["api-key", "update", "--help"]).output)
+        for flag in ("--rotation-due-at", "--owner"):
+            self.assertIn(flag, create_help)
+            self.assertIn(flag, update_help)
+        self.assertIn("--clear-rotation-due-at", update_help)
+        self.assertIn("--clear-owners", update_help)
+
     def test_roll_help(self) -> None:
         result = runner.invoke(app, ["api-key", "roll", "--help"])
         self.assertEqual(result.exit_code, 0, result.output)
@@ -654,6 +663,104 @@ class TestRevokeApiKey(unittest.TestCase):
         printed = mock_print.call_args[0][0]
         data = json.loads(printed)
         self.assertEqual(data["status"], "revoked")
+
+
+# ---------------------------------------------------------------------------
+# rotation schedule on create / update
+# ---------------------------------------------------------------------------
+
+
+class TestRotationScheduleFlags(unittest.TestCase):
+    def _create_args(self, **overrides):  # noqa: ANN001, ANN202
+        base = dict(
+            json=False, workspace=None, api_key=None, quiet=False, name="K", scope=None, folder=None, metadata=None
+        )
+        base.update(overrides)
+        return Namespace(**base)
+
+    def _update_args(self, **overrides):  # noqa: ANN001, ANN202
+        base = dict(
+            json=False, workspace=None, api_key=None, quiet=False, key_id="k1", name=None, scope=None, metadata=None
+        )
+        base.update(overrides)
+        return Namespace(**base)
+
+    @patch("roboflow.adapters.rfapi.create_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_create_forwards_schedule(self, _mock_key, _mock_ws, mock_create) -> None:
+        mock_create.return_value = {"keyId": "k1", "key": "SECRET"}
+        from roboflow.cli.handlers.api_key import _create_key
+
+        with patch("builtins.print"):
+            _create_key(self._create_args(rotation_due_at="2027-10-23", owner=["u1", "u2"]))
+        self.assertEqual(mock_create.call_args.kwargs["rotation_due_at"], "2027-10-23")
+        self.assertEqual(mock_create.call_args.kwargs["owners"], ["u1", "u2"])
+
+    @patch("roboflow.adapters.rfapi.update_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_update_forwards_schedule(self, _mock_key, _mock_ws, mock_update) -> None:
+        mock_update.return_value = {"apiKey": {"keyId": "k1"}}
+        from roboflow.cli.handlers.api_key import _update_key
+
+        with patch("builtins.print"):
+            _update_key(self._update_args(rotation_due_at="2027-10-23", owner=["u1"]))
+        mock_update.assert_called_once_with("fake-key", "test-ws", "k1", rotation_due_at="2027-10-23", owners=["u1"])
+
+    @patch("roboflow.adapters.rfapi.update_api_key")
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_update_clear_flags_send_null_and_empty_list(self, _mock_key, _mock_ws, mock_update) -> None:
+        mock_update.return_value = {"apiKey": {"keyId": "k1"}}
+        from roboflow.adapters.rfapi import CLEAR
+        from roboflow.cli.handlers.api_key import _update_key
+
+        with patch("builtins.print"):
+            _update_key(self._update_args(clear_rotation_due_at=True, clear_owners=True))
+        mock_update.assert_called_once_with("fake-key", "test-ws", "k1", rotation_due_at=CLEAR, owners=[])
+
+    @patch("roboflow.cli._resolver.resolve_default_workspace", return_value="test-ws")
+    @patch("roboflow.config.load_roboflow_api_key", return_value="fake-key")
+    def test_update_set_and_clear_conflicts_exit_1(self, _mock_key, _mock_ws) -> None:
+        from roboflow.cli.handlers.api_key import _update_key
+
+        for overrides in (
+            dict(rotation_due_at="2027-10-23", clear_rotation_due_at=True),
+            dict(owner=["u1"], clear_owners=True),
+        ):
+            with patch("sys.stderr"):
+                with self.assertRaises(SystemExit) as ctx:
+                    _update_key(self._update_args(**overrides))
+            self.assertEqual(ctx.exception.code, 1)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_create_serializes_schedule(self, mock_post) -> None:
+        from unittest.mock import MagicMock
+
+        from roboflow.adapters.rfapi import create_api_key
+
+        resp = MagicMock()
+        resp.ok = True
+        resp.json.return_value = {"keyId": "k1", "key": "SECRET"}
+        mock_post.return_value = resp
+        create_api_key("fake-key", "test-ws", name="K", rotation_due_at="2027-10-23", owners=[])
+        body = mock_post.call_args.kwargs["json"]
+        self.assertEqual(body["rotationDueAt"], "2027-10-23")
+        self.assertEqual(body["owners"], [])
+
+    @patch("roboflow.util.http.requests.patch")
+    def test_update_clear_serializes_null_due_date(self, mock_patch) -> None:
+        from unittest.mock import MagicMock
+
+        from roboflow.adapters.rfapi import CLEAR, update_api_key
+
+        resp = MagicMock()
+        resp.ok = True
+        resp.json.return_value = {"apiKey": {"keyId": "k1"}}
+        mock_patch.return_value = resp
+        update_api_key("fake-key", "test-ws", "k1", rotation_due_at=CLEAR, owners=[])
+        self.assertEqual(mock_patch.call_args.kwargs["json"], {"rotationDueAt": None, "owners": []})
 
 
 # ---------------------------------------------------------------------------
