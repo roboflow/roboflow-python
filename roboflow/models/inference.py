@@ -228,7 +228,10 @@ class InferenceModel:
 
             signed_url = response.json()["signed_url"]
 
-            signed_url_expires = signed_url.split("&X-Goog-Expires")[1].split("&")[0].strip("=")
+            try:
+                signed_url_expires = signed_url.split("&X-Goog-Expires")[1].split("&")[0].strip("=")
+            except IndexError as e:
+                raise ValueError(f"Could not parse expiry from signed URL: {signed_url}") from e
 
             # make a POST request to the signed URL
             headers = {"Content-Type": "application/octet-stream"}
