@@ -43,6 +43,7 @@ To use the Roboflow Python package, you first need to authenticate with your Rob
 
 ```python
 import roboflow
+
 roboflow.login()
 ```
 
@@ -113,10 +114,10 @@ workspace = rf.workspace()
 
 # Export images matching a search query
 workspace.search_export(
-    query="class:person",       # search query (e.g. "tag:review", "class:dog", "*")
-    format="coco",              # annotation format: coco, yolov8, yolov5, voc, etc.
-    dataset="my-project",       # optional: limit to a specific project
-    location="./my-export",     # optional: output directory
+    query="class:person",  # search query (e.g. "tag:review", "class:dog", "*")
+    format="coco",  # annotation format: coco, yolov8, yolov5, voc, etc.
+    dataset="my-project",  # optional: limit to a specific project
+    location="./my-export",  # optional: output directory
 )
 ```
 
