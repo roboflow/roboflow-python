@@ -794,9 +794,23 @@ class PackageOwlV2Test(unittest.TestCase):
         with self.assertRaisesRegex(ModelPackagingError, "unique"):
             package_custom_weights("owlv2-custom", str(self.source), "owlv2.pth")
 
-    def test_rejects_missing_processor(self):
-        (self.source / "processor_config.json").unlink()
-        with self.assertRaisesRegex(MissingFileError, "processor"):
+    def test_packages_only_weights_and_class_names(self):
+        for path in self.source.iterdir():
+            if path.name not in {"owlv2.pth", "class_names.txt"}:
+                path.unlink()
+        bundle = package_custom_weights("owlv2-custom", str(self.source), "owlv2.pth")
+        self.addCleanup(bundle.cleanup)
+        with zipfile.ZipFile(bundle.archive_path) as archive:
+            self.assertEqual(set(archive.namelist()), {"weights.pt", "class_names.txt"})
+
+    def test_rejects_invalid_model_configuration_override(self):
+        (self.source / "config.json").write_text('{"model_type": "owlvit"}')
+        with self.assertRaisesRegex(ModelPackagingError, "config.json must describe an OWLv2 model"):
+            package_custom_weights("owlv2-custom", str(self.source), "owlv2.pth")
+
+    def test_rejects_missing_class_names(self):
+        (self.source / "class_names.txt").unlink()
+        with self.assertRaisesRegex(MissingFileError, "class_names.txt"):
             package_custom_weights("owlv2-custom", str(self.source), "owlv2.pth")
 
 

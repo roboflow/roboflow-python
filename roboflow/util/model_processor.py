@@ -1131,7 +1131,7 @@ def _process_rfdetr(
 
 
 def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Path, str, list[str]]:
-    required = {"config.json", "class_names.txt"}
+    required = {"class_names.txt"}
     tokenizer_files = {
         "tokenizer_config.json",
         "tokenizer.json",
@@ -1141,6 +1141,7 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
         "added_tokens.json",
     }
     optional = tokenizer_files | {
+        "config.json",
         "preprocessor_config.json",
         "processor_config.json",
         "owlv2_prompts.json",
@@ -1149,8 +1150,7 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
     missing = sorted(name for name in required if not files[name].is_file())
     if missing:
         raise MissingFileError(
-            f"Missing OWLv2 upload files: {', '.join(missing)}. "
-            "Export the original model configuration and processor, and provide class_names.txt."
+            f"Missing OWLv2 upload files: {', '.join(missing)}. Provide class_names.txt with one output label per line."
         )
     if any(files[name].is_file() for name in tokenizer_files) and (
         not files["tokenizer_config.json"].is_file()
@@ -1162,12 +1162,8 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
             "Provide a complete tokenizer override: tokenizer_config.json and either tokenizer.json "
             "or both vocab.json and merges.txt. Omit all tokenizer files to use the standard OWLv2 tokenizer."
         )
-    if not any(files[name].is_file() for name in ("preprocessor_config.json", "processor_config.json")):
-        raise MissingFileError(
-            "Provide preprocessor_config.json or processor_config.json from the original OWLv2 processor."
-        )
     try:
-        config = json.loads(files["config.json"].read_text())
+        config = json.loads(files["config.json"].read_text()) if files["config.json"].is_file() else None
         class_names = files["class_names.txt"].read_text().splitlines()
         prompts = (
             json.loads(files["owlv2_prompts.json"].read_text())
@@ -1176,7 +1172,7 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
         )
     except (ValueError, UnicodeError) as error:
         raise ModelPackagingError(f"Invalid OWLv2 metadata: {error}") from error
-    if not isinstance(config, dict) or config.get("model_type") != "owlv2":
+    if files["config.json"].is_file() and (not isinstance(config, dict) or config.get("model_type") != "owlv2"):
         raise ModelPackagingError("config.json must describe an OWLv2 model (model_type='owlv2').")
     if (
         not class_names
