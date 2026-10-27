@@ -1131,13 +1131,16 @@ def _process_rfdetr(
 
 
 def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Path, str, list[str]]:
-    required = {"config.json", "tokenizer_config.json", "class_names.txt"}
-    optional = {
+    required = {"config.json", "class_names.txt"}
+    tokenizer_files = {
+        "tokenizer_config.json",
         "tokenizer.json",
         "vocab.json",
         "merges.txt",
         "special_tokens_map.json",
         "added_tokens.json",
+    }
+    optional = tokenizer_files | {
         "preprocessor_config.json",
         "processor_config.json",
         "owlv2_prompts.json",
@@ -1149,11 +1152,15 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
             f"Missing OWLv2 upload files: {', '.join(missing)}. "
             "Export the original model configuration and processor, and provide class_names.txt."
         )
-    if not files["tokenizer.json"].is_file() and not all(
-        files[name].is_file() for name in ("vocab.json", "merges.txt")
+    if any(files[name].is_file() for name in tokenizer_files) and (
+        not files["tokenizer_config.json"].is_file()
+        or not (
+            files["tokenizer.json"].is_file() or all(files[name].is_file() for name in ("vocab.json", "merges.txt"))
+        )
     ):
         raise MissingFileError(
-            "Provide tokenizer.json or both vocab.json and merges.txt from the original OWLv2 processor."
+            "Provide a complete tokenizer override: tokenizer_config.json and either tokenizer.json "
+            "or both vocab.json and merges.txt. Omit all tokenizer files to use the standard OWLv2 tokenizer."
         )
     if not any(files[name].is_file() for name in ("preprocessor_config.json", "processor_config.json")):
         raise MissingFileError(

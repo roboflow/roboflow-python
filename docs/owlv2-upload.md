@@ -12,12 +12,20 @@ Save these files beside the checkpoint:
 | --- | --- |
 | `owlv2.pth` | The complete `Owlv2ForObjectDetection.state_dict()`, including the text encoder and detection heads |
 | `config.json` | The original model configuration, saved with `model.config.save_pretrained(folder)` |
-| Processor and tokenizer files | The original processor, saved with `processor.save_pretrained(folder)` |
+| Image processor files | The original image preprocessing configuration |
+| Tokenizer files | Optional complete override of the standard OWLv2 tokenizer |
 | `class_names.txt` | Unique output labels, one per line |
 | `owlv2_prompts.json` | Optional JSON array of text prompts, in label order |
 
-The processor files must include `tokenizer_config.json` and either `tokenizer.json` or both `vocab.json` and `merges.txt`.
 Include either `processor_config.json` or `preprocessor_config.json` for image processing.
+If you omit all tokenizer files, the exporter uses a bundled copy of the standard OWLv2 tokenizer.
+The copy comes from `google/owlv2-base-patch16-ensemble` at revision `cfd3195ba4ea9592eec887ded089f4c08eff231d`.
+Export jobs use this copy offline and save it in the resulting model package.
+
+If you changed tokenization during training, include `tokenizer_config.json` and either `tokenizer.json` or both `vocab.json` and `merges.txt`.
+Include any additional tokenizer files that your original processor saved, such as `added_tokens.json` and `special_tokens_map.json`.
+Partial tokenizer overrides produce an error. The exporter does not mix uploaded tokenizer files with the default.
+You can save the complete original processor with `processor.save_pretrained(folder)` to supply an override.
 
 If you omit `owlv2_prompts.json`, the model uses each label as its text prompt.
 For example, labels `dent` and `scratch` can use prompts `["a dent in a metal panel", "a scratch in a metal panel"]`.
