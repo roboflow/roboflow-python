@@ -749,7 +749,7 @@ class PackageOwlV2Test(unittest.TestCase):
         self.addCleanup(bundle.cleanup)
         with zipfile.ZipFile(bundle.archive_path) as archive:
             self.assertEqual(archive.read("weights.pt"), b"checkpoint")
-            self.assertEqual(archive.read("class_names.txt"), b"dent\nscratch\n")
+            self.assertEqual(archive.read("class_names.txt").decode().splitlines(), ["dent", "scratch"])
             self.assertIn("processor_config.json", archive.namelist())
         self.assertFalse((self.source / "weights.pt").exists())
 
