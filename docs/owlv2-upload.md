@@ -22,9 +22,12 @@ Include either `processor_config.json` or `preprocessor_config.json` for image p
 If you omit `owlv2_prompts.json`, the model uses each label as its text prompt.
 For example, labels `dent` and `scratch` can use prompts `["a dent in a metal panel", "a scratch in a metal panel"]`.
 The class IDs follow the order in `class_names.txt`.
+The weights do not impose a fixed class count.
+Choose the labels that the model must detect, rather than a count inferred from the checkpoint.
 
 The checkpoint alone does not identify the original preprocessing or text prompts.
 Obtain those values from the training or inference code.
+For an unchanged base model and processor, reuse the configuration and processor files from that original model.
 The exporter rejects partial checkpoints and adapter-only weights.
 The SDK packages files without loading the checkpoint.
 
