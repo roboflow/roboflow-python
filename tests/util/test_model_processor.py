@@ -728,6 +728,47 @@ class PackageCustomWeightsTest(unittest.TestCase):
                 bundle.cleanup()
 
 
+class PackageOwlV2Test(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.source = Path(self.directory.name)
+        for name, contents in {
+            "config.json": '{"model_type": "owlv2"}',
+            "processor_config.json": "{}",
+            "tokenizer_config.json": "{}",
+            "tokenizer.json": "{}",
+            "class_names.txt": "dent\nscratch\n",
+            "owlv2.pth": "checkpoint",
+        }.items():
+            (self.source / name).write_text(contents)
+
+    def test_packages_raw_weights_without_loading_them(self):
+        with mock.patch.object(model_processor, "import_module", side_effect=AssertionError("No model load")):
+            bundle = package_custom_weights("owlv2-custom", str(self.source), "owlv2.pth")
+        self.addCleanup(bundle.cleanup)
+        with zipfile.ZipFile(bundle.archive_path) as archive:
+            self.assertEqual(archive.read("weights.pt"), b"checkpoint")
+            self.assertEqual(archive.read("class_names.txt"), b"dent\nscratch\n")
+            self.assertIn("processor_config.json", archive.namelist())
+        self.assertFalse((self.source / "weights.pt").exists())
+
+    def test_rejects_prompt_count_mismatch(self):
+        (self.source / "owlv2_prompts.json").write_text('["a dent"]')
+        with self.assertRaisesRegex(ModelPackagingError, "one nonblank text prompt"):
+            package_custom_weights("owlv2-custom", str(self.source), "owlv2.pth")
+
+    def test_rejects_duplicate_labels(self):
+        (self.source / "class_names.txt").write_text("dent\ndent\n")
+        with self.assertRaisesRegex(ModelPackagingError, "unique"):
+            package_custom_weights("owlv2-custom", str(self.source), "owlv2.pth")
+
+    def test_rejects_missing_processor(self):
+        (self.source / "processor_config.json").unlink()
+        with self.assertRaisesRegex(MissingFileError, "processor"):
+            package_custom_weights("owlv2-custom", str(self.source), "owlv2.pth")
+
+
 class ProcessHuggingfaceTest(unittest.TestCase):
     """Packaging for HuggingFace-backed models (paligemma / florence-2)."""
 

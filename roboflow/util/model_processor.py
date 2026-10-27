@@ -68,6 +68,7 @@ SUPPORTED_MODELS = (
     "paligemma2",
     "florence-2",
     "rfdetr",
+    "owlv2-custom",
 )
 
 SUPPORTED_HUGGINGFACE_TYPES = (
@@ -462,7 +463,11 @@ def _process_model(
             f"It must start with a supported family: {', '.join(SUPPORTED_MODELS)}."
         )
 
-    if model_type.startswith(("paligemma", "paligemma2", "florence-2")):
+    if model_type == "owlv2-custom":
+        return _process_owlv2(model_path, filename, build_dir)
+    elif model_type.startswith("owlv2-custom"):
+        raise UnsupportedModelError("Use model_type='owlv2-custom' for OWLv2 checkpoints.")
+    elif model_type.startswith(("paligemma", "paligemma2", "florence-2")):
         return _process_huggingface(model_type, model_path, build_dir)
     if model_type.startswith("yolonas"):
         return _process_yolonas(model_type, model_path, filename, build_dir)
@@ -1123,6 +1128,76 @@ def _process_rfdetr(
         ],
     )
     return archive_path, model_type, warnings
+
+
+def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Path, str, list[str]]:
+    required = {"config.json", "tokenizer_config.json", "class_names.txt"}
+    optional = {
+        "tokenizer.json",
+        "vocab.json",
+        "merges.txt",
+        "special_tokens_map.json",
+        "added_tokens.json",
+        "preprocessor_config.json",
+        "processor_config.json",
+        "owlv2_prompts.json",
+    }
+    files = {name: _resolve_within_source(model_path, name) for name in required | optional}
+    missing = sorted(name for name in required if not files[name].is_file())
+    if missing:
+        raise MissingFileError(
+            f"Missing OWLv2 upload files: {', '.join(missing)}. "
+            "Export the original model configuration and processor, and provide class_names.txt."
+        )
+    if not files["tokenizer.json"].is_file() and not all(
+        files[name].is_file() for name in ("vocab.json", "merges.txt")
+    ):
+        raise MissingFileError(
+            "Provide tokenizer.json or both vocab.json and merges.txt from the original OWLv2 processor."
+        )
+    if not any(files[name].is_file() for name in ("preprocessor_config.json", "processor_config.json")):
+        raise MissingFileError(
+            "Provide preprocessor_config.json or processor_config.json from the original OWLv2 processor."
+        )
+    try:
+        config = json.loads(files["config.json"].read_text())
+        class_names = files["class_names.txt"].read_text().splitlines()
+        prompts = (
+            json.loads(files["owlv2_prompts.json"].read_text())
+            if files["owlv2_prompts.json"].is_file()
+            else class_names
+        )
+    except (ValueError, UnicodeError) as error:
+        raise ModelPackagingError(f"Invalid OWLv2 metadata: {error}") from error
+    if not isinstance(config, dict) or config.get("model_type") != "owlv2":
+        raise ModelPackagingError("config.json must describe an OWLv2 model (model_type='owlv2').")
+    if (
+        not class_names
+        or any(not name.strip() or name != name.strip() for name in class_names)
+        or len(set(class_names)) != len(class_names)
+    ):
+        raise ModelPackagingError(
+            "class_names.txt must contain unique, nonblank labels, one per line, without surrounding spaces."
+        )
+    if (
+        not isinstance(prompts, list)
+        or len(prompts) != len(class_names)
+        or any(not isinstance(prompt, str) or not prompt.strip() for prompt in prompts)
+    ):
+        raise ModelPackagingError(
+            "owlv2_prompts.json must contain one nonblank text prompt per class, in class_names.txt order."
+        )
+    weights = _resolve_within_source(model_path, filename)
+    if not weights.is_file():
+        raise MissingFileError(
+            f"OWLv2 weights file '{weights}' was not found. Set filename to the checkpoint's relative path."
+        )
+    archive_path = build_dir / "roboflow_deploy.zip"
+    _write_zip(
+        archive_path,
+        [(weights, "weights.pt", True)] + [(path, name, name in required) for name, path in sorted(files.items())],
+    )
+    return archive_path, "owlv2-custom", []
 
 
 def _process_huggingface(
