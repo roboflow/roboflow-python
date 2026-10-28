@@ -1429,9 +1429,10 @@ class Project:
             >>> project.autolabel_job(job["jobId"])["status"]
         """
         if preserve_existing_annotations is not None:
+            replacement = "preserve" if preserve_existing_annotations else "replace"
             warnings.warn(
                 "preserve_existing_annotations is deprecated and will be removed in a future release; "
-                'use existing_annotations="preserve" instead.',
+                f'use existing_annotations="{replacement}" instead.',
                 DeprecationWarning,
                 stacklevel=2,
             )

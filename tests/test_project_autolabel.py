@@ -42,10 +42,17 @@ class TestProjectAutolabel(RoboflowTest):
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     def test_deprecated_preserve_existing_annotations_still_preserves(self, mock_start):
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(DeprecationWarning, 'existing_annotations="preserve"'):
             self.project.autolabel("batch-1", "sam3-rle", preserve_existing_annotations=True)
 
         self.assertEqual(mock_start.call_args.kwargs["existing_annotations"], "preserve")
+
+    @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
+    def test_deprecated_preserve_false_points_to_replace(self, mock_start):
+        with self.assertWarnsRegex(DeprecationWarning, 'existing_annotations="replace"'):
+            self.project.autolabel("batch-1", "sam3-rle", preserve_existing_annotations=False)
+
+        self.assertIsNone(mock_start.call_args.kwargs["existing_annotations"])
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     def test_existing_annotations_wins_over_the_deprecated_flag(self, mock_start):

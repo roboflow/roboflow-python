@@ -226,13 +226,16 @@ class TestAutolabelStart(unittest.TestCase):
     @patch("roboflow.util.http.requests.post")
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
     def test_unknown_existing_annotations_mode_is_an_error(self, _resolve, mock_post):
-        result = runner.invoke(
-            app,
-            ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "sam3-rle"]
-            + ["--existing-annotations", "keep"],
-        )
-        self.assertNotEqual(result.exit_code, 0)
-        self.assertIn("existing_annotations must be", result.output)
+        # An empty value (ex: an unset $MODE in a script) must fail too, not fall back to replace.
+        for mode in ("keep", ""):
+            with self.subTest(mode=mode):
+                result = runner.invoke(
+                    app,
+                    ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "sam3-rle"]
+                    + ["--existing-annotations", mode],
+                )
+                self.assertNotEqual(result.exit_code, 0)
+                self.assertIn("existing_annotations must be", result.output)
         mock_post.assert_not_called()
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})

@@ -143,7 +143,11 @@ def start(
             run_nms=False if no_nms else None,
             reviewer_email=reviewer,
             model_options=wire_options,
-            existing_annotations=existing_annotations or ("preserve" if preserve_existing else None),
+            existing_annotations=(
+                existing_annotations
+                if existing_annotations is not None
+                else ("preserve" if preserve_existing else None)
+            ),
         )
 
     _project_command(args, start_job)
