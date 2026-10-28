@@ -120,6 +120,14 @@ def start(
         bool,
         typer.Option("--preserve-existing", hidden=True, help="Same as --existing-annotations preserve"),
     ] = False,
+    keypoint_confidence: Annotated[
+        Optional[float],
+        typer.Option(
+            "--keypoint-confidence",
+            help="Keypoint projects: lowest confidence (0-1) a predicted keypoint needs to be saved as visible "
+            "(server default: 0.6)",
+        ),
+    ] = None,
 ) -> None:
     """Start a hosted auto-label job over a batch of images."""
     args = ctx_to_args(ctx, project=project)
@@ -148,6 +156,7 @@ def start(
                 if existing_annotations is not None
                 else ("preserve" if preserve_existing else None)
             ),
+            keypoint_confidence_threshold=keypoint_confidence,
         )
 
     _project_command(args, start_job)

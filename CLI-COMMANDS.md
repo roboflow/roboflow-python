@@ -320,6 +320,8 @@ roboflow autolabel start -p my-project --batch-id <batch-id> -m gpt-6-astra-boxe
   --ontology '{"a cat": "cat", "a dog": "dog"}' --confidence 0.5 --reviewer b@co.com
 roboflow autolabel start -p my-project --batch-id <batch-id> -m my-project/3 --model-type roboflow
 roboflow autolabel start -p my-project --batch-id <batch-id> -m sam3-rle --existing-annotations merge
+roboflow autolabel start -p my-keypoints --batch-id <batch-id> -m my-keypoints/2 --model-type roboflow \
+  --keypoint-confidence 0.7
 roboflow autolabel job <job-id>
 roboflow autolabel job <job-id> -p other-workspace/my-project
 ```
@@ -338,9 +340,11 @@ what the job does with annotations already on the batch images: `replace` (the
 default) removes them, `preserve` keeps them and adds every prediction next to
 them, and `merge` keeps them and skips a prediction that overlaps an existing
 annotation of the same class (IoU of at least 0.5), so objects that are already
-labeled aren't duplicated. `job` looks the id up in your default workspace, so when
-the job was started with a `workspace/project` shorthand pass the same `-p` to
-`job`.
+labeled aren't duplicated. Keypoint-detection projects are labeled with a trained
+keypoint model; `--keypoint-confidence` sets the lowest confidence a keypoint
+needs to be saved as visible (server default 0.6). `job` looks the id up in
+your default workspace, so when the job was started with a `workspace/project`
+shorthand pass the same `-p` to `job`.
 
 The same operations are available in Python:
 

@@ -1375,6 +1375,7 @@ class Project:
         model_options: Optional[Dict] = None,
         preserve_existing_annotations: Optional[bool] = None,
         existing_annotations: Optional[str] = None,
+        keypoint_confidence_threshold: Optional[float] = None,
     ) -> Dict:
         """Start a hosted auto-label job over a batch of images.
 
@@ -1418,6 +1419,13 @@ class Project:
                 so objects that are already labeled aren't duplicated. Use
                 ``"preserve"`` or ``"merge"`` when the batch contains images
                 that were already labeled or reviewed.
+            keypoint_confidence_threshold: Keypoint-detection projects only,
+                labeled with a trained keypoint model
+                (``model_type="roboflow"``). The lowest confidence, from 0 to
+                1, a predicted keypoint needs to be saved as visible; points
+                below it are saved as not visible. The server default is 0.6.
+                ``confidence`` / ``confidence_thresholds`` still decide which
+                instances are kept.
 
         Returns:
             Dict: ``{jobId, annotationJobId, message}``. Poll progress with
@@ -1453,6 +1461,7 @@ class Project:
             reviewer_email=reviewer_email,
             model_options=model_options,
             existing_annotations=existing_annotations,
+            keypoint_confidence_threshold=keypoint_confidence_threshold,
         )
 
     def autolabel_job(self, job_id: str) -> Dict:

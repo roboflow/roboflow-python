@@ -6,19 +6,27 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `Project.autolabel(..., keypoint_confidence_threshold=0.75)` and
+  `roboflow autolabel start --keypoint-confidence 0.75` set the lowest confidence
+  a predicted keypoint needs to be saved as visible when a keypoint-detection
+  project is labeled with a trained keypoint model. Points below it are saved as
+  not visible; omitted, the server default (0.6) applies
+  ([#571](https://github.com/roboflow/roboflow-python/pull/571)).
 - `Project.autolabel(..., existing_annotations=...)` and
   `roboflow autolabel start --existing-annotations ...` choose what a job does
   with annotations already on the batch images: `"replace"` (the default)
   removes them, `"preserve"` keeps them and adds every prediction, and
   `"merge"` keeps them and adds only the predictions that don't overlap an
   existing annotation of the same class (IoU of at least 0.5), so objects that
-  are already labeled aren't duplicated.
+  are already labeled aren't duplicated
+  ([#570](https://github.com/roboflow/roboflow-python/pull/570)).
 
 ### Deprecated
 
 - `Project.autolabel(..., preserve_existing_annotations=True)` still works but
   warns; use `existing_annotations="preserve"`. `--preserve-existing` is now a
-  hidden alias of `--existing-annotations preserve`.
+  hidden alias of `--existing-annotations preserve`
+  ([#570](https://github.com/roboflow/roboflow-python/pull/570)).
 
 ## 1.7.3
 

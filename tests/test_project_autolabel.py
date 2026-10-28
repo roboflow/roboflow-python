@@ -32,6 +32,7 @@ class TestProjectAutolabel(RoboflowTest):
             reviewer_email="reviewer@example.com",
             model_options=None,
             existing_annotations=None,
+            keypoint_confidence_threshold=None,
         )
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
@@ -62,6 +63,15 @@ class TestProjectAutolabel(RoboflowTest):
             )
 
         self.assertEqual(mock_start.call_args.kwargs["existing_annotations"], "merge")
+
+    @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
+    def test_autolabel_forwards_keypoint_confidence_threshold(self, mock_start):
+        self.project.autolabel(
+            "batch-1", "court-keypoints/2", model_type="roboflow", keypoint_confidence_threshold=0.75
+        )
+
+        self.assertEqual(mock_start.call_args.kwargs["model_type"], "custom_roboflow")
+        self.assertEqual(mock_start.call_args.kwargs["keypoint_confidence_threshold"], 0.75)
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     def test_autolabel_roboflow_model_is_sent_as_custom_roboflow(self, mock_start):

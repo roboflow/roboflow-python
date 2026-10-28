@@ -1543,6 +1543,7 @@ def start_autolabel_job(
     reviewer_email=None,
     model_options=None,
     existing_annotations=None,
+    keypoint_confidence_threshold=None,
 ):
     """Start a hosted auto-label job over a batch.
 
@@ -1556,7 +1557,10 @@ def start_autolabel_job(
     ``confidence_thresholds`` is omitted and defaults ``num_images_to_label``
     to the whole batch. ``existing_annotations`` is ``"replace"`` (the server
     default), ``"preserve"`` or ``"merge"``; see ``Project.autolabel``.
-    Returns ``{jobId, annotationJobId, message}``.
+    ``keypoint_confidence_threshold`` (0-1, keypoint-detection projects only)
+    is the lowest confidence a predicted keypoint needs to be saved as
+    visible; the server default is 0.6. Returns
+    ``{jobId, annotationJobId, message}``.
 
     Raises:
         ValueError: ``existing_annotations`` is not one of those modes.
@@ -1570,6 +1574,7 @@ def start_autolabel_job(
         "runNMS": run_nms,
         "reviewerEmail": reviewer_email,
         "modelOptions": model_options,
+        "keypointConfidenceThreshold": keypoint_confidence_threshold,
     }
     payload.update({key: value for key, value in optional.items() if value is not None})
     payload.update(existing_annotations_flags(existing_annotations))

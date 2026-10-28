@@ -199,6 +199,7 @@ class TestAutolabelStart(unittest.TestCase):
             reviewer_email="r@example.com",
             model_options={"outputFormat": "polygon"},
             existing_annotations=None,
+            keypoint_confidence_threshold=None,
         )
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
@@ -237,6 +238,17 @@ class TestAutolabelStart(unittest.TestCase):
                 self.assertNotEqual(result.exit_code, 0)
                 self.assertIn("existing_annotations must be", result.output)
         mock_post.assert_not_called()
+
+    @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_keypoint_confidence_flag(self, _resolve, mock_api):
+        result = runner.invoke(
+            app,
+            ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "court-keypoints/2"]
+            + ["--model-type", "roboflow", "--keypoint-confidence", "0.75"],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(mock_api.call_args.kwargs["keypoint_confidence_threshold"], 0.75)
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
