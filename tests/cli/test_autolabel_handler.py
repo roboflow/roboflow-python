@@ -199,6 +199,7 @@ class TestAutolabelStart(unittest.TestCase):
             reviewer_email="r@example.com",
             model_options={"outputFormat": "polygon"},
             preserve_existing_annotations=None,
+            merge_existing_annotations=None,
         )
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
@@ -211,6 +212,17 @@ class TestAutolabelStart(unittest.TestCase):
         )
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIs(mock_api.call_args.kwargs["preserve_existing_annotations"], True)
+
+    @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_merge_existing_flag(self, _resolve, mock_api):
+        result = runner.invoke(
+            app,
+            ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "sam3-rle", "--merge-existing"],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIs(mock_api.call_args.kwargs["merge_existing_annotations"], True)
+        self.assertIsNone(mock_api.call_args.kwargs["preserve_existing_annotations"])
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))

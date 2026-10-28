@@ -115,6 +115,14 @@ def start(
             "(by default the job replaces them)",
         ),
     ] = False,
+    merge_existing: Annotated[
+        bool,
+        typer.Option(
+            "--merge-existing",
+            help="Keep annotations already on the batch images and only add predictions that don't "
+            "overlap an existing annotation of the same class",
+        ),
+    ] = False,
 ) -> None:
     """Start a hosted auto-label job over a batch of images."""
     args = ctx_to_args(ctx, project=project)
@@ -139,6 +147,7 @@ def start(
             reviewer_email=reviewer,
             model_options=wire_options,
             preserve_existing_annotations=True if preserve_existing else None,
+            merge_existing_annotations=True if merge_existing else None,
         )
 
     _project_command(args, start_job)

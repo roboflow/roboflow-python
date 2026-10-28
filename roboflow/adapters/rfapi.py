@@ -1542,6 +1542,7 @@ def start_autolabel_job(
     reviewer_email=None,
     model_options=None,
     preserve_existing_annotations=None,
+    merge_existing_annotations=None,
 ):
     """Start a hosted auto-label job over a batch.
 
@@ -1555,7 +1556,10 @@ def start_autolabel_job(
     ``confidence_thresholds`` is omitted and defaults ``num_images_to_label``
     to the whole batch. ``preserve_existing_annotations`` keeps annotations
     already on the images and only adds new ones; the server default (False)
-    replaces them. Returns ``{jobId, annotationJobId, message}``.
+    replaces them. ``merge_existing_annotations`` also keeps them but skips a
+    prediction that overlaps an existing annotation of the same class (IoU
+    >= 0.5); it wins over ``preserve_existing_annotations``. Returns
+    ``{jobId, annotationJobId, message}``.
     """
     payload = {"batchId": batch_id, "modelType": model_type}
     optional = {
@@ -1567,6 +1571,7 @@ def start_autolabel_job(
         "reviewerEmail": reviewer_email,
         "modelOptions": model_options,
         "preserveExistingAnnotations": preserve_existing_annotations,
+        "mergeExistingAnnotations": merge_existing_annotations,
     }
     payload.update({key: value for key, value in optional.items() if value is not None})
     response = http.post(

@@ -82,6 +82,7 @@ class TestAutolabelAdapters(unittest.TestCase):
             reviewer_email="reviewer@example.com",
             model_options={"modelId": "proj/3"},
             preserve_existing_annotations=True,
+            merge_existing_annotations=True,
         )
         self.assertEqual(
             mock_post.call_args.kwargs["json"],
@@ -96,6 +97,7 @@ class TestAutolabelAdapters(unittest.TestCase):
                 "reviewerEmail": "reviewer@example.com",
                 "modelOptions": {"modelId": "proj/3"},
                 "preserveExistingAnnotations": True,
+                "mergeExistingAnnotations": True,
             },
         )
 
