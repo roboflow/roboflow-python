@@ -10,7 +10,8 @@ All notable changes to this project will be documented in this file.
   `roboflow autolabel start --keypoint-confidence 0.75` set the lowest confidence
   a predicted keypoint needs to be saved as visible when a keypoint-detection
   project is labeled with a trained keypoint model. Points below it are saved as
-  not visible; omitted, the server default (0.6) applies.
+  not visible; omitted, the server default (0.6) applies
+  ([#571](https://github.com/roboflow/roboflow-python/pull/571)).
 
 ## 1.7.3
 
