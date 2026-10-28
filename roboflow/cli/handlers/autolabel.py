@@ -115,6 +115,14 @@ def start(
             "(by default the job replaces them)",
         ),
     ] = False,
+    keypoint_confidence: Annotated[
+        Optional[float],
+        typer.Option(
+            "--keypoint-confidence",
+            help="Keypoint projects: lowest confidence (0-1) a predicted keypoint needs to be saved as visible "
+            "(server default: 0.6)",
+        ),
+    ] = None,
 ) -> None:
     """Start a hosted auto-label job over a batch of images."""
     args = ctx_to_args(ctx, project=project)
@@ -139,6 +147,7 @@ def start(
             reviewer_email=reviewer,
             model_options=wire_options,
             preserve_existing_annotations=True if preserve_existing else None,
+            keypoint_confidence_threshold=keypoint_confidence,
         )
 
     _project_command(args, start_job)

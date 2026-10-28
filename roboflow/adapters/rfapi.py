@@ -1542,6 +1542,7 @@ def start_autolabel_job(
     reviewer_email=None,
     model_options=None,
     preserve_existing_annotations=None,
+    keypoint_confidence_threshold=None,
 ):
     """Start a hosted auto-label job over a batch.
 
@@ -1555,7 +1556,10 @@ def start_autolabel_job(
     ``confidence_thresholds`` is omitted and defaults ``num_images_to_label``
     to the whole batch. ``preserve_existing_annotations`` keeps annotations
     already on the images and only adds new ones; the server default (False)
-    replaces them. Returns ``{jobId, annotationJobId, message}``.
+    replaces them. ``keypoint_confidence_threshold`` (0-1, keypoint-detection
+    projects only) is the lowest confidence a predicted keypoint needs to be
+    saved as visible; the server default is 0.6. Returns
+    ``{jobId, annotationJobId, message}``.
     """
     payload = {"batchId": batch_id, "modelType": model_type}
     optional = {
@@ -1567,6 +1571,7 @@ def start_autolabel_job(
         "reviewerEmail": reviewer_email,
         "modelOptions": model_options,
         "preserveExistingAnnotations": preserve_existing_annotations,
+        "keypointConfidenceThreshold": keypoint_confidence_threshold,
     }
     payload.update({key: value for key, value in optional.items() if value is not None})
     response = http.post(
