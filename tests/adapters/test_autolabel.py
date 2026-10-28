@@ -82,6 +82,7 @@ class TestAutolabelAdapters(unittest.TestCase):
             reviewer_email="reviewer@example.com",
             model_options={"modelId": "proj/3"},
             preserve_existing_annotations=True,
+            keypoint_confidence_threshold=0.7,
         )
         self.assertEqual(
             mock_post.call_args.kwargs["json"],
@@ -96,6 +97,7 @@ class TestAutolabelAdapters(unittest.TestCase):
                 "reviewerEmail": "reviewer@example.com",
                 "modelOptions": {"modelId": "proj/3"},
                 "preserveExistingAnnotations": True,
+                "keypointConfidenceThreshold": 0.7,
             },
         )
 

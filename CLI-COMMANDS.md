@@ -320,6 +320,8 @@ roboflow autolabel start -p my-project --batch-id <batch-id> -m gpt-6-astra-boxe
   --ontology '{"a cat": "cat", "a dog": "dog"}' --confidence 0.5 --reviewer b@co.com
 roboflow autolabel start -p my-project --batch-id <batch-id> -m my-project/3 --model-type roboflow
 roboflow autolabel start -p my-project --batch-id <batch-id> -m sam3-rle --preserve-existing
+roboflow autolabel start -p my-keypoints --batch-id <batch-id> -m my-keypoints/2 --model-type roboflow \
+  --keypoint-confidence 0.7
 roboflow autolabel job <job-id>
 roboflow autolabel job <job-id> -p other-workspace/my-project
 ```
@@ -335,9 +337,11 @@ prompts share one output class. JSON options also accept a curl-style file
 reference (`--ontology @ontology.json`).
 `--image` accepts an HTTPS URL or a local file. By default a job replaces the
 annotations already on the batch images; `--preserve-existing` keeps them and
-only adds new ones. `job` looks the id up in your default workspace, so when
-the job was started with a `workspace/project` shorthand pass the same `-p` to
-`job`.
+only adds new ones. Keypoint-detection projects are labeled with a trained
+keypoint model; `--keypoint-confidence` sets the lowest confidence a keypoint
+needs to be saved as visible (server default 0.6). `job` looks the id up in
+your default workspace, so when the job was started with a `workspace/project`
+shorthand pass the same `-p` to `job`.
 
 The same operations are available in Python:
 
