@@ -12,6 +12,7 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
 from roboflow.util import http
+from roboflow.util.autolabel_utils import existing_annotations_flags
 from roboflow.util.search_utils import normalize_media_types
 
 
@@ -1541,8 +1542,7 @@ def start_autolabel_job(
     run_nms=None,
     reviewer_email=None,
     model_options=None,
-    preserve_existing_annotations=None,
-    merge_existing_annotations=None,
+    existing_annotations=None,
 ):
     """Start a hosted auto-label job over a batch.
 
@@ -1554,12 +1554,12 @@ def start_autolabel_job(
     The backend fans
     ``default_confidence`` out across the ontology when
     ``confidence_thresholds`` is omitted and defaults ``num_images_to_label``
-    to the whole batch. ``preserve_existing_annotations`` keeps annotations
-    already on the images and only adds new ones; the server default (False)
-    replaces them. ``merge_existing_annotations`` also keeps them but skips a
-    prediction that overlaps an existing annotation of the same class (IoU
-    >= 0.5); it wins over ``preserve_existing_annotations``. Returns
-    ``{jobId, annotationJobId, message}``.
+    to the whole batch. ``existing_annotations`` is ``"replace"`` (the server
+    default), ``"preserve"`` or ``"merge"``; see ``Project.autolabel``.
+    Returns ``{jobId, annotationJobId, message}``.
+
+    Raises:
+        ValueError: ``existing_annotations`` is not one of those modes.
     """
     payload = {"batchId": batch_id, "modelType": model_type}
     optional = {
@@ -1570,10 +1570,9 @@ def start_autolabel_job(
         "runNMS": run_nms,
         "reviewerEmail": reviewer_email,
         "modelOptions": model_options,
-        "preserveExistingAnnotations": preserve_existing_annotations,
-        "mergeExistingAnnotations": merge_existing_annotations,
     }
     payload.update({key: value for key, value in optional.items() if value is not None})
+    payload.update(existing_annotations_flags(existing_annotations))
     response = http.post(
         f"{API_URL}/{workspace_url}/{project_url}/autolabel",
         params={"api_key": api_key},

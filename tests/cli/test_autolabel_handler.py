@@ -198,31 +198,42 @@ class TestAutolabelStart(unittest.TestCase):
             run_nms=False,
             reviewer_email="r@example.com",
             model_options={"outputFormat": "polygon"},
-            preserve_existing_annotations=None,
-            merge_existing_annotations=None,
+            existing_annotations=None,
         )
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
-    def test_preserve_existing_flag(self, _resolve, mock_api):
-        # The server default replaces annotations already on the batch images.
+    def test_legacy_preserve_existing_flag(self, _resolve, mock_api):
+        # Hidden alias of --existing-annotations preserve, kept for scripts written against 1.7.
         result = runner.invoke(
             app,
             ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "sam3-rle", "--preserve-existing"],
         )
         self.assertEqual(result.exit_code, 0, result.output)
-        self.assertIs(mock_api.call_args.kwargs["preserve_existing_annotations"], True)
+        self.assertEqual(mock_api.call_args.kwargs["existing_annotations"], "preserve")
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
-    def test_merge_existing_flag(self, _resolve, mock_api):
+    def test_existing_annotations_option(self, _resolve, mock_api):
         result = runner.invoke(
             app,
-            ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "sam3-rle", "--merge-existing"],
+            ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "sam3-rle"]
+            + ["--existing-annotations", "merge"],
         )
         self.assertEqual(result.exit_code, 0, result.output)
-        self.assertIs(mock_api.call_args.kwargs["merge_existing_annotations"], True)
-        self.assertIsNone(mock_api.call_args.kwargs["preserve_existing_annotations"])
+        self.assertEqual(mock_api.call_args.kwargs["existing_annotations"], "merge")
+
+    @patch("roboflow.util.http.requests.post")
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_unknown_existing_annotations_mode_is_an_error(self, _resolve, mock_post):
+        result = runner.invoke(
+            app,
+            ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "sam3-rle"]
+            + ["--existing-annotations", "keep"],
+        )
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn("existing_annotations must be", result.output)
+        mock_post.assert_not_called()
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))

@@ -6,12 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- `Project.autolabel(..., merge_existing_annotations=True)` and
-  `roboflow autolabel start --merge-existing` keep the annotations already on the
-  batch images and add only the predictions that don't overlap an existing
-  annotation of the same class (IoU of at least 0.5), so objects that are already
-  labeled aren't duplicated. It wins over `preserve_existing_annotations`, which
-  adds every prediction.
+- `Project.autolabel(..., existing_annotations=...)` and
+  `roboflow autolabel start --existing-annotations ...` choose what a job does
+  with annotations already on the batch images: `"replace"` (the default)
+  removes them, `"preserve"` keeps them and adds every prediction, and
+  `"merge"` keeps them and adds only the predictions that don't overlap an
+  existing annotation of the same class (IoU of at least 0.5), so objects that
+  are already labeled aren't duplicated.
+
+### Deprecated
+
+- `Project.autolabel(..., preserve_existing_annotations=True)` still works but
+  warns; use `existing_annotations="preserve"`. `--preserve-existing` is now a
+  hidden alias of `--existing-annotations preserve`.
 
 ## 1.7.3
 

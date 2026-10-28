@@ -31,21 +31,30 @@ class TestProjectAutolabel(RoboflowTest):
             run_nms=None,
             reviewer_email="reviewer@example.com",
             model_options=None,
-            preserve_existing_annotations=None,
-            merge_existing_annotations=None,
+            existing_annotations=None,
         )
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
-    def test_autolabel_forwards_preserve_existing_annotations(self, mock_start):
-        self.project.autolabel("batch-1", "sam3-rle", preserve_existing_annotations=True)
+    def test_autolabel_forwards_existing_annotations(self, mock_start):
+        self.project.autolabel("batch-1", "sam3-rle", existing_annotations="merge")
 
-        self.assertIs(mock_start.call_args.kwargs["preserve_existing_annotations"], True)
+        self.assertEqual(mock_start.call_args.kwargs["existing_annotations"], "merge")
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
-    def test_autolabel_forwards_merge_existing_annotations(self, mock_start):
-        self.project.autolabel("batch-1", "sam3-rle", merge_existing_annotations=True)
+    def test_deprecated_preserve_existing_annotations_still_preserves(self, mock_start):
+        with self.assertWarns(DeprecationWarning):
+            self.project.autolabel("batch-1", "sam3-rle", preserve_existing_annotations=True)
 
-        self.assertIs(mock_start.call_args.kwargs["merge_existing_annotations"], True)
+        self.assertEqual(mock_start.call_args.kwargs["existing_annotations"], "preserve")
+
+    @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
+    def test_existing_annotations_wins_over_the_deprecated_flag(self, mock_start):
+        with self.assertWarns(DeprecationWarning):
+            self.project.autolabel(
+                "batch-1", "sam3-rle", preserve_existing_annotations=True, existing_annotations="merge"
+            )
+
+        self.assertEqual(mock_start.call_args.kwargs["existing_annotations"], "merge")
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     def test_autolabel_roboflow_model_is_sent_as_custom_roboflow(self, mock_start):

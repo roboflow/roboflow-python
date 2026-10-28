@@ -319,8 +319,7 @@ roboflow autolabel preview -p my-project -m sam3-rle --image https://example.com
 roboflow autolabel start -p my-project --batch-id <batch-id> -m gpt-6-astra-boxes \
   --ontology '{"a cat": "cat", "a dog": "dog"}' --confidence 0.5 --reviewer b@co.com
 roboflow autolabel start -p my-project --batch-id <batch-id> -m my-project/3 --model-type roboflow
-roboflow autolabel start -p my-project --batch-id <batch-id> -m sam3-rle --preserve-existing
-roboflow autolabel start -p my-project --batch-id <batch-id> -m sam3-rle --merge-existing
+roboflow autolabel start -p my-project --batch-id <batch-id> -m sam3-rle --existing-annotations merge
 roboflow autolabel job <job-id>
 roboflow autolabel job <job-id> -p other-workspace/my-project
 ```
@@ -334,11 +333,12 @@ repeated `--class` flags or as `--ontology` JSON. The ontology is keyed by
 matches either prompt as class `cat`. That direction is what lets several
 prompts share one output class. JSON options also accept a curl-style file
 reference (`--ontology @ontology.json`).
-`--image` accepts an HTTPS URL or a local file. By default a job replaces the
-annotations already on the batch images; `--preserve-existing` keeps them and
-adds every prediction next to them, and `--merge-existing` keeps them and skips
-a prediction that overlaps an existing annotation of the same class (IoU of at
-least 0.5), so objects that are already labeled aren't duplicated. `job` looks the id up in your default workspace, so when
+`--image` accepts an HTTPS URL or a local file. `--existing-annotations` says
+what the job does with annotations already on the batch images: `replace` (the
+default) removes them, `preserve` keeps them and adds every prediction next to
+them, and `merge` keeps them and skips a prediction that overlaps an existing
+annotation of the same class (IoU of at least 0.5), so objects that are already
+labeled aren't duplicated. `job` looks the id up in your default workspace, so when
 the job was started with a `workspace/project` shorthand pass the same `-p` to
 `job`.
 
