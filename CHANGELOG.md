@@ -21,7 +21,8 @@ All notable changes to this project will be documented in this file.
   `TrainedModel`, `VideoInferenceModel`, `CLIPModel`, `GazeModel`,
   `rfapi.get_video_job_status`, the `roboflow video infer` and `roboflow video status`
   commands and the hidden `run_video_inference_api` alias. To run a model on stored
-  videos, use [Batch Processing](https://docs.roboflow.com/deployment/roboflow-cloud/batch-processing).
+  videos, use [Batch Processing](https://docs.roboflow.com/deployment/roboflow-cloud/batch-processing)
+  ([#574](https://github.com/roboflow/roboflow-python/pull/574)).
 
 ## 1.7.3
 
