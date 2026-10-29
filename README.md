@@ -149,7 +149,7 @@ workspace = rf.workspace()
 project = workspace.create_project(
     project_name="Flower detector",
     project_type="object-detection", # Or "classification", "instance-segmentation", "semantic-segmentation"
-    project_license="MIT", # "private" for private projects, only available for paid customers
+    project_license="MIT", # Use "private" for private projects, including on the Free Tier
     annotation="flowers" # If you plan to annotate lillys, sunflowers, etc.
 )
 
