@@ -68,7 +68,7 @@ SUPPORTED_MODELS = (
     "paligemma2",
     "florence-2",
     "rfdetr",
-    "owlv2-custom",
+    "owlv2",
 )
 
 SUPPORTED_HUGGINGFACE_TYPES = (
@@ -463,10 +463,10 @@ def _process_model(
             f"It must start with a supported family: {', '.join(SUPPORTED_MODELS)}."
         )
 
-    if model_type == "owlv2-custom":
+    if model_type == "owlv2":
         return _process_owlv2(model_path, filename, build_dir)
-    elif model_type.startswith("owlv2-custom"):
-        raise UnsupportedModelError("Use model_type='owlv2-custom' for OWLv2 checkpoints.")
+    elif model_type.startswith("owlv2"):
+        raise UnsupportedModelError("Use model_type='owlv2' for OWLv2 checkpoints.")
     elif model_type.startswith(("paligemma", "paligemma2", "florence-2")):
         return _process_huggingface(model_type, model_path, build_dir)
     if model_type.startswith("yolonas"):
@@ -1200,7 +1200,7 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
         archive_path,
         [(weights, "weights.pt", True)] + [(path, name, name in required) for name, path in sorted(files.items())],
     )
-    return archive_path, "owlv2-custom", []
+    return archive_path, "owlv2", []
 
 
 def _process_huggingface(

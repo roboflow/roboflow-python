@@ -1,6 +1,6 @@
 # Upload a custom OWLv2 model
 
-Use `model_type="owlv2-custom"` to upload fine-tuned OWLv2 weights for Auto Label and Workflows.
+Use `model_type="owlv2"` to upload fine-tuned OWLv2 weights for Auto Label and Workflows.
 For a standard OWLv2 model, the upload folder needs only two files:
 
 ```text
@@ -30,7 +30,7 @@ from roboflow import Roboflow
 
 workspace = Roboflow().workspace("your-workspace")
 workspace.deploy_model(
-    model_type="owlv2-custom",
+    model_type="owlv2",
     model_path="/absolute/path/to/weights-upload",
     filename="owlv2.pth",
     project_ids=["your-project"],
@@ -41,6 +41,7 @@ workspace.deploy_model(
 After upload processing finishes, select the uploaded model under custom models in Auto Label.
 In Workflows, select its model ID in an Object Detection Model block.
 The saved prompts stay fixed for each model package.
+Inference reuses the existing OWLv2 implementation. Roboflow Instant embedding uploads keep their separate format and route.
 
 ## Custom model or preprocessing
 
