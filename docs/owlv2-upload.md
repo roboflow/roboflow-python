@@ -67,5 +67,3 @@ The exporter strictly matches the weights to the selected model configuration an
 If the weights do not match the default architecture, supply the original `config.json`.
 Weight shapes cannot identify custom resizing or normalization. Omitted image preprocessing files mean standard preprocessing.
 The SDK packages files without loading the checkpoint.
-
-This feature requires the corresponding platform, rflm exporter, and inference runtime releases.
