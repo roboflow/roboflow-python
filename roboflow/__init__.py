@@ -17,11 +17,8 @@ from roboflow.util.general import write_line
 
 try:
     from roboflow.core.project import Project
-    from roboflow.models import CLIPModel, GazeModel  # noqa: F401
 except ImportError:
     Project = None  # type: ignore[assignment,misc]
-    CLIPModel = None  # type: ignore[assignment,misc]
-    GazeModel = None  # type: ignore[assignment,misc]
 
 
 def check_key(api_key, model, notebook, num_retries=0):

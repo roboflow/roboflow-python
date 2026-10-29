@@ -13,6 +13,16 @@ All notable changes to this project will be documented in this file.
   not visible; omitted, the server default (0.6) applies
   ([#571](https://github.com/roboflow/roboflow-python/pull/571)).
 
+### Removed
+
+- The Hosted Video Inference API helpers. The service behind them stopped working on
+  2026-07-29 and its endpoints now return 410 Gone. Removed: `predict_video`,
+  `poll_for_video_results` and `poll_until_video_results` on `InferenceModel` and
+  `TrainedModel`, `VideoInferenceModel`, `CLIPModel`, `GazeModel`,
+  `rfapi.get_video_job_status`, the `roboflow video infer` and `roboflow video status`
+  commands and the hidden `run_video_inference_api` alias. To run a model on stored
+  videos, use [Batch Processing](https://docs.roboflow.com/deployment/roboflow-cloud/batch-processing).
+
 ## 1.7.3
 
 ### Added

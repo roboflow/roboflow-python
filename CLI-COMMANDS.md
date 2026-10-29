@@ -542,9 +542,7 @@ roboflow video upload -p my-ar-project -f clip.mov --json
 # { "videoId": "aBcD1234", "status": "uploaded", "resolvedBatch": { ... } }
 ```
 
-Pass `--no-wait` to return as soon as the bytes are stored, then poll separately.
-`video upload-status` reports ingestion state — it is distinct from `video status`, which
-checks a legacy video *inference* job.
+Pass `--no-wait` to return as soon as the bytes are stored, then poll with `video upload-status`.
 
 ```bash
 # 2. Poll ingestion yourself.
@@ -576,16 +574,6 @@ identical re-submit succeeds).
 Exit codes follow the CLI contract: `0` success, `1` error, `2` auth, `3` not found. A
 `failed` ingestion state and a `--wait` timeout both exit nonzero; the timeout message names
 the video ID so you can re-check it with `video upload-status`.
-
-### Video inference
-
-Separate from native upload: this submits a legacy asynchronous inference job for a trained
-model version.
-
-```bash
-roboflow video infer -p my-project -v 3 -f video.mp4 --fps 10
-roboflow video status <job-id>
-```
 
 ### Shell completion
 
@@ -676,7 +664,7 @@ Version numbers are always numeric — that's how `x/y` is disambiguated between
 | `asynctasks` | Inspect async background tasks (e.g. project forks) |
 | `trash` | List items in Trash |
 | `universe` | Search Roboflow Universe |
-| `video` | Native video upload/status/annotation, and video inference |
+| `video` | Native video upload, upload status and annotation |
 | `batch` | Batch processing jobs *(coming soon)* |
 | `completion` | Install or generate shell completion scripts (bash, zsh, fish) |
 
