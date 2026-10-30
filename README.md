@@ -223,6 +223,8 @@ Within the project object, you can retrieve metadata about the project, list ver
 
 Within the version object, you can download the dataset version in any model format, train the version on Roboflow, and deploy your own external model to Roboflow.
 
+For custom OWLv2 checkpoints and Auto Label, see [Upload a custom OWLv2 model](docs/owlv2-upload.md).
+
 ## 🏆 Contributing
 
 We would love your input on how we can improve the Roboflow Python package! Please see our [contributing guide](https://github.com/roboflow/roboflow-python/blob/main/CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
