@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Removed
+
+- Custom model weight uploads no longer support YOLOv5, YOLOv7, YOLOv9, or
+  YOLOv10. Existing models remain available for inference, and YOLO dataset
+  formats remain supported ([#572](https://github.com/roboflow/roboflow-python/pull/572)).
+
 ## 1.7.3
 
 ### Added
