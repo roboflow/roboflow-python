@@ -505,16 +505,18 @@ class WorkflowEvals:
         eval_id: str,
         run_id: str,
         *,
-        timeout: float = 3600,
+        timeout: Optional[float] = 3600,
         interval: float = 5,
         on_poll: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Dict[str, Any]:
         """Poll a Run until it reaches a terminal state and return it.
 
         Stopping the wait never cancels the Run. Raises ``TimeoutError`` when
-        ``timeout`` seconds elapse first.
+        ``timeout`` seconds elapse first; ``None`` or ``0`` waits without a limit
+        (Runs on a local inference server can take hours). ``on_poll`` receives
+        every polled Run.
         """
-        deadline = time.monotonic() + timeout
+        deadline = time.monotonic() + timeout if timeout else None
         while True:
             run = self.get_run(eval_id, run_id)
             if on_poll:
@@ -522,7 +524,7 @@ class WorkflowEvals:
             state = run.get("state") or (run.get("run") or {}).get("state")
             if state in RUN_TERMINAL_STATES:
                 return run
-            if time.monotonic() >= deadline:
+            if deadline is not None and time.monotonic() >= deadline:
                 raise TimeoutError(f"Run {run_id} is still {state} after {timeout:g}s")
             time.sleep(interval)
 
@@ -554,15 +556,27 @@ class WorkflowEvals:
         )
 
     def submit_capture(
-        self, eval_id: str, run_id: str, execution_id: str, case_id: str, body: Dict[str, Any]
+        self,
+        eval_id: str,
+        run_id: str,
+        execution_id: str,
+        case_id: str,
+        body: Dict[str, Any],
+        *,
+        timeout: Optional[float] = None,
     ) -> Dict[str, Any]:
         """Submit one locally captured Workflow output for server-side scoring.
 
-        ``body`` is ``{attemptCount, shardIndex, output, runtime?}`` or
-        ``{attemptCount, shardIndex, resume: true}``.
+        ``body`` is ``{attemptCount, shardIndex, output, runtime}`` where ``runtime``
+        is required and shaped ``{latencyMs?, error?, timedOut?, retryable?}``, or
+        ``{attemptCount, shardIndex, resume: true}``. Scoring runs inside this
+        request, so ``timeout`` (seconds) overrides the adapter's default HTTP timeout.
         """
         return self._call(
-            "POST", f"{self._execution_path(eval_id, run_id, execution_id)}/cases/{_seg(case_id)}/capture", body=body
+            "POST",
+            f"{self._execution_path(eval_id, run_id, execution_id)}/cases/{_seg(case_id)}/capture",
+            body=body,
+            **({"timeout": timeout} if timeout is not None else {}),
         )
 
     def get_results_overview(
