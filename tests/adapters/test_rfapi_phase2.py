@@ -780,26 +780,6 @@ class TestGetLabelingStats(unittest.TestCase):
             get_labeling_stats("key", "ws")
 
 
-class TestGetVideoJobStatus(unittest.TestCase):
-    @patch("roboflow.util.http.requests.get")
-    def test_success(self, mock_get):
-        from roboflow.adapters.rfapi import get_video_job_status
-
-        mock_get.return_value = MagicMock(status_code=200, json=lambda: {"status": "completed", "progress": 1.0})
-        result = get_video_job_status("key", "job-123")
-        self.assertEqual(result["status"], "completed")
-        call_kwargs = mock_get.call_args[1]
-        self.assertEqual(call_kwargs["params"]["job_id"], "job-123")
-
-    @patch("roboflow.util.http.requests.get")
-    def test_error(self, mock_get):
-        from roboflow.adapters.rfapi import RoboflowError, get_video_job_status
-
-        mock_get.return_value = MagicMock(status_code=404, text="Not found")
-        with self.assertRaises(RoboflowError):
-            get_video_job_status("key", "job-123")
-
-
 class TestSearchUniverse(unittest.TestCase):
     @patch("roboflow.util.http.requests.get")
     def test_success(self, mock_get):

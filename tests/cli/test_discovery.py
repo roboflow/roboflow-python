@@ -118,7 +118,6 @@ class TestAliases(unittest.TestCase):
         output = _strip_ansi(result.output)
         self.assertNotIn("upload_model", output)
         self.assertNotIn("get_workspace_info", output)
-        self.assertNotIn("run_video_inference_api", output)
 
     def test_hidden_alias_still_works(self) -> None:
         result = runner.invoke(app, ["upload_model", "--help"])

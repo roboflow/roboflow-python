@@ -190,17 +190,3 @@ def register_hidden_aliases(app: typer.Typer) -> None:
         print("project", proj)  # noqa: T201
         ver = proj.version(args.version_number)
         print("version", ver)  # noqa: T201
-
-    @app.command("run_video_inference_api", hidden=True)
-    def run_video_inference_api_alias(
-        ctx: typer.Context,
-        project: Annotated[Optional[str], typer.Option("-p", help="Project ID")] = None,
-        version_number: Annotated[Optional[int], typer.Option("-v", help="Version")] = None,
-        video_file: Annotated[Optional[str], typer.Option("-f", help="Video file")] = None,
-        fps: Annotated[int, typer.Option("-fps", help="FPS")] = 5,
-    ) -> None:
-        """Run video inference (hidden legacy alias)."""
-        from roboflow.cli.handlers.video import _video_infer
-
-        args = ctx_to_args(ctx, project=project, version_number=version_number, video_file=video_file, fps=fps)
-        _video_infer(args)

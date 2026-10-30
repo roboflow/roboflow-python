@@ -93,7 +93,6 @@ class TestCompletionScriptGeneration(unittest.TestCase):
             "search-export",
             "upload_model",
             "get_workspace_info",
-            "run_video_inference_api",
             "help",
         }
         leaked = hidden_examples & visible
