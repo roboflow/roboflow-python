@@ -81,7 +81,8 @@ class TestAutolabelAdapters(unittest.TestCase):
             run_nms=False,
             reviewer_email="reviewer@example.com",
             model_options={"modelId": "proj/3"},
-            preserve_existing_annotations=True,
+            existing_annotations="merge",
+            keypoint_confidence_threshold=0.7,
         )
         self.assertEqual(
             mock_post.call_args.kwargs["json"],
@@ -96,8 +97,18 @@ class TestAutolabelAdapters(unittest.TestCase):
                 "reviewerEmail": "reviewer@example.com",
                 "modelOptions": {"modelId": "proj/3"},
                 "preserveExistingAnnotations": True,
+                "mergeExistingAnnotations": True,
+                "keypointConfidenceThreshold": 0.7,
             },
         )
+
+    @patch("roboflow.util.http.requests.post")
+    def test_unknown_existing_annotations_mode_is_rejected_before_the_request(self, mock_post):
+        with self.assertRaises(ValueError):
+            rfapi.start_autolabel_job(
+                "key", "ws", "proj", batch_id="batch-1", model_type="sam3-rle", existing_annotations="keep"
+            )
+        mock_post.assert_not_called()
 
     @patch("roboflow.util.http.requests.post")
     def test_errors_raise_roboflow_error_with_status(self, mock_post):
