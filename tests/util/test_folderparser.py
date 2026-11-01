@@ -3,6 +3,7 @@ import os
 import tempfile
 import unittest
 from os.path import abspath, dirname
+from pathlib import Path
 
 from roboflow.util import folderparser
 
@@ -204,6 +205,90 @@ class TestFolderParser(unittest.TestCase):
             self.assertEqual(len(ann_data["images"]), 1, "Should have one image reference")
             self.assertEqual(len(ann_data["annotations"]), 1, "Should have one annotation")
             self.assertEqual(ann_data["annotations"][0]["bbox"], [10, 20, 100, 200])
+
+
+class TestCocoImageMatching(unittest.TestCase):
+    def _parse(self, image_paths, documents):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for path in image_paths:
+                image = root / path
+                image.parent.mkdir(parents=True, exist_ok=True)
+                image.touch()
+            for path, references in documents.items():
+                annotation = root / path
+                annotation.parent.mkdir(parents=True, exist_ok=True)
+                data = {
+                    "info": {},
+                    "licenses": [],
+                    "categories": [{"id": category, "name": str(category)} for _, category in references],
+                    "images": [
+                        {"id": i, "file_name": name, "width": 4, "height": 3} for i, (name, _) in enumerate(references)
+                    ],
+                    "annotations": [
+                        {
+                            "id": i,
+                            "image_id": i,
+                            "category_id": category,
+                            "segmentation": {"size": [3, 4], "counts": [0, 3, 3, 3, 3]},
+                        }
+                        for i, (_, category) in enumerate(references)
+                    ],
+                }
+                annotation.write_text(json.dumps(data), encoding="utf-8")
+            parsed = folderparser.parsefolder(directory)
+            return {image["file"]: json.loads(image["annotationfile"]["rawText"]) for image in parsed["images"]}
+
+    def test_split_annotations_match_their_own_images(self):
+        result = self._parse(
+            ["train/same.jpg", "valid/same.jpg"],
+            {
+                "train/_annotations.coco.json": [("same.jpg", 11)],
+                "valid/_annotations.coco.json": [("same.jpg", 22)],
+            },
+        )
+        self.assertEqual(result["/train/same.jpg"]["annotations"][0]["category_id"], 11)
+        self.assertEqual(result["/valid/same.jpg"]["annotations"][0]["category_id"], 22)
+        self.assertEqual(
+            result["/valid/same.jpg"]["annotations"][0]["segmentation"],
+            {"size": [3, 4], "counts": [0, 3, 3, 3, 3]},
+        )
+
+    def test_one_coco_file_can_reference_duplicate_basenames(self):
+        result = self._parse(
+            ["train/same.jpg", "valid/same.jpg"],
+            {"_annotations.coco.json": [("train/same.jpg", 11), ("valid/same.jpg", 22)]},
+        )
+        self.assertEqual(result["/train/same.jpg"]["annotations"][0]["category_id"], 11)
+        self.assertEqual(result["/valid/same.jpg"]["annotations"][0]["category_id"], 22)
+
+    def test_nested_coco_paths_are_normalized(self):
+        for name in ("images/same.jpg", "images\\same.jpg", "./images/same.jpg", "train/images/same.jpg"):
+            with self.subTest(name=name):
+                result = self._parse(["train/images/same.jpg"], {"train/_annotations.coco.json": [(name, 11)]})
+                self.assertEqual(result["/train/images/same.jpg"]["images"][0]["file_name"], name)
+
+    def test_unique_basename_and_stem_fallbacks_still_work(self):
+        for name in ("old/path/same.jpg", "C:\\old\\path\\same.jpg", "old/path/same.png"):
+            with self.subTest(name=name):
+                result = self._parse(["same.jpg"], {"_annotations.coco.json": [(name, 11)]})
+                self.assertEqual(result["/same.jpg"]["annotations"][0]["category_id"], 11)
+
+    def test_ambiguous_image_fallback_raises(self):
+        with self.assertRaisesRegex(ValueError, "[Aa]mbiguous.*same"):
+            self._parse(
+                ["train/same.jpg", "valid/same.jpg"],
+                {"_annotations.coco.json": [("old/same.jpg", 11)]},
+            )
+
+    def test_competing_coco_references_raise(self):
+        cases = [
+            {"first.coco.json": [("same.jpg", 11)], "second.coco.json": [("same.jpg", 22)]},
+            {"_annotations.coco.json": [("old/same.jpg", 11), ("other/same.jpg", 22)]},
+        ]
+        for documents in cases:
+            with self.subTest(documents=documents), self.assertRaisesRegex(ValueError, "[Aa]mbiguous.*same"):
+                self._parse(["same.jpg"], documents)
 
 
 def _assertJsonMatchesFile(actual, filename):

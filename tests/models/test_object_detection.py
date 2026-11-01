@@ -1,7 +1,11 @@
+import base64
+import io
+import os
+import tempfile
 import unittest
 
 import responses
-from PIL import UnidentifiedImageError
+from PIL import Image, UnidentifiedImageError
 from requests.exceptions import HTTPError
 
 from roboflow.config import OBJECT_DETECTION_URL
@@ -97,6 +101,38 @@ class TestObjectDetection(unittest.TestCase):
         self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, self._default_params)
         self.assertIsNotNone(request.body)
+
+    @responses.activate
+    def test_predict_scales_boxes_only_when_the_sent_image_is_resized(self):
+        prediction = {"x": 100.5, "y": 50.25, "width": 40.5, "height": 20.25, "class": "helmet", "confidence": 0.9}
+        unchanged = (100.5, 50.25, 40.5, 20.25)
+        cases = [
+            ((200, 100), True, (200, 100), unchanged),
+            ((640, 640), True, (640, 640), unchanged),
+            ((1280, 640), True, (640, 640), (201, 50, 81, 20)),
+            ((640, 1280), True, (640, 640), (100, 100, 40, 40)),
+            ((1280, 320), True, (640, 640), (201, 25, 81, 10)),
+            ((1280, 1280), True, (640, 640), (201, 100, 81, 40)),
+            ((1280, 1280), False, (1280, 1280), unchanged),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "input.png")
+            for size, resize, sent_size, expected in cases:
+                with self.subTest(size=size, resize=resize):
+                    Image.new("RGB", size).save(path)
+                    preprocessing = (
+                        {"resize": {"format": "Stretch to", "width": "640", "height": "640"}} if resize else {}
+                    )
+                    model = ObjectDetectionModel(self.api_key, self.version_id, preprocessing=preprocessing)
+                    responses.add(responses.POST, self.api_url, json={"predictions": [prediction]})
+
+                    result = model.predict(path).json()
+
+                    sent = Image.open(io.BytesIO(base64.b64decode(responses.calls[-1].request.body)))
+                    self.assertEqual(sent.size, sent_size)
+                    box = result["predictions"][0]
+                    self.assertEqual(tuple(box[key] for key in ("x", "y", "width", "height")), expected)
+                    self.assertEqual(result["image"], {"width": str(size[0]), "height": str(size[1])})
 
     def test_predict_with_local_wrong_image_request(self):
         image_path = "tests/images/not_an_image.txt"
