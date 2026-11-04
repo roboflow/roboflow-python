@@ -1973,19 +1973,6 @@ def get_labeling_stats(api_key, workspace_url, *, start_date=None, end_date=None
 
 
 # ---------------------------------------------------------------------------
-# Phase 2: Video inference status
-# ---------------------------------------------------------------------------
-
-
-def get_video_job_status(api_key, job_id):
-    """GET /videoinfer?jobId={id} — check video inference job status."""
-    response = http.get(f"{API_URL}/videoinfer", params={"api_key": api_key, "job_id": job_id})
-    if response.status_code != 200:
-        raise RoboflowError(response.text)
-    return response.json()
-
-
-# ---------------------------------------------------------------------------
 # Batch Processing (Asset Library orchestration)
 # ---------------------------------------------------------------------------
 

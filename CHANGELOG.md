@@ -34,6 +34,17 @@ All notable changes to this project will be documented in this file.
   YOLOv10. Existing models remain available for inference, and YOLO dataset
   formats remain supported ([#572](https://github.com/roboflow/roboflow-python/pull/572)).
 
+### Removed
+
+- The Hosted Video Inference API helpers. The service behind them stopped working on
+  2026-07-29 and its endpoints now return 410 Gone. Removed: `predict_video`,
+  `poll_for_video_results` and `poll_until_video_results` on `InferenceModel` and
+  `TrainedModel`, `VideoInferenceModel`, `CLIPModel`, `GazeModel`,
+  `rfapi.get_video_job_status`, the `roboflow video infer` and `roboflow video status`
+  commands and the hidden `run_video_inference_api` alias. To run a model on stored
+  videos, use [Batch Processing](https://docs.roboflow.com/deployment/roboflow-cloud/batch-processing)
+  ([#574](https://github.com/roboflow/roboflow-python/pull/574)).
+
 ## 1.7.3
 
 ### Added
