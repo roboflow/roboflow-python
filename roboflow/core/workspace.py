@@ -592,7 +592,7 @@ class Workspace:
                     annotation_overwrite=annotation_overwrite,
                 )
                 print(f"Uploading zip to Roboflow (task_id={init['taskId']})...")
-                rfapi.upload_zip_to_signed_url(init["signedUrl"], zip_path)
+                rfapi.upload_zip_to_signed_url(init["signedUrl"], zip_path, init.get("requiredHeaders") or {})
 
                 if not wait:
                     print(f"Zip uploaded; not waiting for processing. task_id={init['taskId']}")
