@@ -125,6 +125,33 @@ class TestObjectDetection(unittest.TestCase):
         self.assertIsNone(request.body)
 
     @responses.activate
+    def test_predict_preserves_class_filter_query_values(self):
+        class_filters = ["fish&chips", "c++", "part#1", "class%2Bname", "cat,dog", "helmet"]
+        for classes in class_filters:
+            for use_constructor in (False, True):
+                with self.subTest(classes=classes, use_constructor=use_constructor):
+                    responses.reset()
+                    responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
+                    instance = ObjectDetectionModel(
+                        self.api_key,
+                        self.version_id,
+                        version=self.version,
+                        classes=classes if use_constructor else None,
+                    )
+
+                    instance.predict(
+                        "https://example.com/image.jpg",
+                        hosted=True,
+                        classes=None if use_constructor else classes,
+                    )
+
+                    request = responses.calls[0].request
+                    self.assertDictEqual(
+                        request.params,
+                        {**self._default_params, "classes": classes, "image": "https://example.com/image.jpg"},
+                    )
+
+    @responses.activate
     def test_predict_with_confidence_request(self):
         confidence = "100"
         image_path = "tests/images/rabbit.JPG"
