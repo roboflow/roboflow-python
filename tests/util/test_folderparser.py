@@ -205,6 +205,16 @@ class TestFolderParser(unittest.TestCase):
             self.assertEqual(len(ann_data["annotations"]), 1, "Should have one annotation")
             self.assertEqual(ann_data["annotations"][0]["bbox"], [10, 20, 100, 200])
 
+    def test_lists_webp_images_with_their_labels(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.makedirs(os.path.join(tmpdir, "train"))
+            for name in ("a.webp", "a.txt", "b.jpg", "b.txt"):
+                with open(os.path.join(tmpdir, "train", name), "w") as f:
+                    f.write("0 0.5 0.5 0.5 0.5\n")
+            parsed = folderparser.parsefolder(tmpdir)
+        labels = {image["file"]: image["annotationfile"]["file"] for image in parsed["images"]}
+        self.assertEqual(labels, {"/train/a.webp": "/train/a.txt", "/train/b.jpg": "/train/b.txt"})
+
 
 def _assertJsonMatchesFile(actual, filename):
     with open(filename) as file:
