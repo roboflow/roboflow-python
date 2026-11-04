@@ -230,7 +230,7 @@ def _parse_url(url: str) -> tuple:
 
 def _download(args):  # noqa: ANN001
     import roboflow
-    from roboflow.cli._output import output, output_error, suppress_sdk_output
+    from roboflow.cli._output import output, output_error, sdk_output_to_stderr, suppress_sdk_output
 
     w, p, v = _parse_url(args.url_or_id)
 
@@ -257,7 +257,8 @@ def _download(args):  # noqa: ANN001
         else:
             version_obj = project.version(int(v))
 
-        version_obj.download(args.format, location=args.location, overwrite=True)
+        with sdk_output_to_stderr(args):
+            version_obj.download(args.format, location=args.location, overwrite=True)
     except SystemExit:
         raise
     except Exception as exc:
