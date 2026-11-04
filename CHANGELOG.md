@@ -34,6 +34,12 @@ All notable changes to this project will be documented in this file.
   YOLOv10. Existing models remain available for inference, and YOLO dataset
   formats remain supported ([#572](https://github.com/roboflow/roboflow-python/pull/572)).
 
+### Fixed
+
+- Directory uploads with `upload_dataset` now include `.webp` images and their
+  labels. They used to be skipped without a message
+  ([#577](https://github.com/roboflow/roboflow-python/pull/577)).
+
 ## 1.7.3
 
 ### Added
