@@ -31,6 +31,10 @@ class RoboflowError(Exception):
         self.status_code = status_code
 
 
+class AuthenticationError(RoboflowError, RuntimeError):
+    """API authentication failure, compatible with existing RuntimeError handlers."""
+
+
 class ImageUploadError(RoboflowError):
     def __init__(self, message, status_code=None):
         self.message = message
@@ -49,7 +53,7 @@ def get_workspace(api_key, workspace_url):
     url = f"{API_URL}/{workspace_url}?api_key={api_key}"
     response = http.get(url)
     if response.status_code != 200:
-        raise RoboflowError(response.text)
+        raise RoboflowError(response.text, status_code=response.status_code)
     result = response.json()
     return result
 
@@ -1055,7 +1059,7 @@ def init_zip_upload(
         body["batchName"] = batch_name
     response = http.post(url, params={"api_key": api_key}, json=body)
     if response.status_code not in (200, 201):
-        raise RoboflowError(response.text)
+        raise RoboflowError(response.text, status_code=response.status_code)
     return response.json()
 
 
@@ -1069,7 +1073,10 @@ def upload_zip_to_signed_url(signed_url, zip_path) -> None:
             timeout=(60, 3600),
         )
     if not response.ok:
-        raise RoboflowError(f"Zip upload to signed URL failed ({response.status_code}): {response.text}")
+        raise RoboflowError(
+            f"Zip upload to signed URL failed ({response.status_code}): {response.text}",
+            status_code=response.status_code,
+        )
 
 
 def get_zip_upload_status(api_key, workspace_url, task_id) -> dict:
@@ -1077,7 +1084,7 @@ def get_zip_upload_status(api_key, workspace_url, task_id) -> dict:
     url = f"{API_URL}/{workspace_url}/upload/zip/{task_id}"
     response = http.get(url, params={"api_key": api_key})
     if response.status_code != 200:
-        raise RoboflowError(response.text)
+        raise RoboflowError(response.text, status_code=response.status_code)
     return response.json()
 
 

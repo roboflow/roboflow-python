@@ -1,6 +1,9 @@
+import io
 import json
 import os
+import tempfile
 import unittest
+import zipfile
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -65,11 +68,167 @@ class TestDownload(unittest.TestCase):
     def test_download_returns_dataset(self, *_):
         responses.add(responses.GET, self.api_url, json={"export": {"link": None}})
         mock_generating_url_response(self.generating_url)
-        dataset = self.version.download("coco", location="/my-spot")
-        self.assertEqual(dataset.name, self.version.name)
-        self.assertEqual(dataset.version, self.version.version)
-        self.assertEqual(dataset.model_format, "coco")
-        self.assertEqual(dataset.location, os.path.abspath("/my-spot"))
+        with tempfile.TemporaryDirectory() as location:
+            dataset = self.version.download("coco", location=location)
+            self.assertEqual(dataset.name, self.version.name)
+            self.assertEqual(dataset.version, self.version.version)
+            self.assertEqual(dataset.model_format, "coco")
+            self.assertEqual(dataset.location, os.path.abspath(location))
+
+
+class TestDownloadCache(unittest.TestCase):
+    def setUp(self):
+        self.version = get_version(exports=["coco", "voc"])
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.location = self.directory.name
+        self.marker = os.path.join(self.location, ".roboflow-download.json")
+        self.zip_url = "https://download.test/dataset.zip"
+        for target, kwargs in (
+            ("roboflow.core.version.Version._Version__wait_if_generating", {}),
+            ("roboflow.adapters.rfapi.get_version_export", {"return_value": {"export": {"link": self.zip_url}}}),
+        ):
+            mock = patch(target, **kwargs)
+            mock.start()
+            self.addCleanup(mock.stop)
+        archive = io.BytesIO()
+        with zipfile.ZipFile(archive, "w") as zf:
+            zf.writestr("train/image.jpg", b"image bytes")
+        self.archive = archive.getvalue()
+
+    def _serve_zip(self, body=None, status=200):
+        """Serve a dataset archive without contacting Roboflow."""
+        body = self.archive if body is None else body
+        responses.get(self.zip_url, body=body, status=status, headers={"Content-Length": str(len(body))})
+
+    @responses.activate
+    def test_unrecognized_directory_requires_explicit_overwrite(self):
+        image_path = os.path.join(self.location, "train", "image.jpg")
+        os.makedirs(os.path.dirname(image_path))
+        with open(image_path, "wb") as f:
+            f.write(b"user data")
+        self._serve_zip()
+        with self.assertRaisesRegex(FileExistsError, "overwrite=True"):
+            self.version.download("coco", self.location)
+        with open(image_path, "rb") as f:
+            self.assertEqual(f.read(), b"user data")
+        self.assertEqual(len(responses.calls), 0)
+        self.version.download("coco", self.location, overwrite=True)
+        with open(image_path, "rb") as f:
+            self.assertEqual(f.read(), b"image bytes")
+
+    @responses.activate
+    def test_existing_directory_is_downloaded_then_reused(self):
+        self._serve_zip()
+        for _ in range(2):
+            self.version.download("coco", self.location)
+        self.assertEqual(len(responses.calls), 1)
+        with open(os.path.join(self.location, "train", "image.jpg"), "rb") as f:
+            self.assertEqual(f.read(), b"image bytes")
+
+    @responses.activate
+    def test_failed_download_and_extraction_are_retried(self):
+        for status, body in ((403, b"Forbidden"), (200, b"broken zip")):
+            with self.subTest(status=status):
+                responses.reset()
+                self._serve_zip(body, status)
+                with self.assertRaises((requests.HTTPError, zipfile.BadZipFile)):
+                    self.version.download("coco", self.location, overwrite=True)
+                with open(self.marker) as f:
+                    self.assertFalse(json.load(f)["complete"])
+                self._serve_zip()
+                self.version.download("coco", self.location)
+                self.assertEqual(len(responses.calls), 2)
+
+    @responses.activate
+    def test_failed_postprocessing_invalidates_previous_cache(self):
+        self._serve_zip()
+        self.version.download("coco", self.location)
+        with patch.object(self.version, "_Version__reformat_yaml", side_effect=ValueError("Invalid YAML")):
+            with self.assertRaisesRegex(ValueError, "Invalid YAML"):
+                self.version.download("coco", self.location, overwrite=True)
+        with open(self.marker) as f:
+            self.assertFalse(json.load(f)["complete"])
+        self.version.download("coco", self.location)
+        self.assertEqual(len(responses.calls), 3)
+
+    @responses.activate
+    def test_other_formats_versions_and_invalid_metadata_are_not_reused(self):
+        self._serve_zip()
+        self.version.download("coco", self.location)
+        with self.assertRaises(FileExistsError):
+            self.version.download("voc", self.location)
+        self.version.download("voc", self.location, overwrite=True)
+        self.version.version = "2"
+        with self.assertRaises(FileExistsError):
+            self.version.download("voc", self.location)
+        self.version.download("voc", self.location, overwrite=True)
+        self.version.id = "other-workspace/other-project/2"
+        with self.assertRaises(FileExistsError):
+            self.version.download("voc", self.location)
+        self.version.download("voc", self.location, overwrite=True)
+        with open(self.marker, "w") as f:
+            f.write("{")
+        with self.assertRaises(FileExistsError):
+            self.version.download("voc", self.location)
+        self.version.download("voc", self.location, overwrite=True)
+        self.assertEqual(len(responses.calls), 5)
+
+    @responses.activate
+    def test_region_switch_does_not_reuse_dataset(self):
+        self._serve_zip()
+        self.version.download("coco", self.location)
+        with patch("roboflow.core.version.API_URL", "https://api.other-region.test"):
+            with self.assertRaises(FileExistsError):
+                self.version.download("coco", self.location)
+            self.assertEqual(len(responses.calls), 1)
+            self.version.download("coco", self.location, overwrite=True)
+        self.assertEqual(len(responses.calls), 2)
+
+
+class TestTrainResult(unittest.TestCase):
+    def setUp(self):
+        self.version = get_version(exports=["yolov5pytorch"])
+        for target in (
+            "roboflow.core.version.Version._Version__wait_if_generating",
+            "roboflow.adapters.rfapi.start_version_training",
+            "roboflow.core.version.time.sleep",
+        ):
+            mock = patch(target)
+            mock.start()
+            self.addCleanup(mock.stop)
+
+    @patch("roboflow.adapters.rfapi.get_version")
+    def test_failure_never_returns_a_model(self, get_version):
+        for existing_model in (None, MagicMock()):
+            for training in ({"status": "failed"}, {"status": "failed", "results": {"old": "result"}}):
+                with self.subTest(existing_model=existing_model, training=training):
+                    self.version.model = existing_model
+                    get_version.return_value = {"version": {"train": training}}
+                    with self.assertRaisesRegex(RuntimeError, "Training failed for test-workspace/test-project/1"):
+                        self.version.train(model_type="yolov8n")
+                    self.assertIs(self.version._model, existing_model)
+
+    @patch("roboflow.adapters.rfapi.get_version")
+    def test_failure_after_polling_raises(self, get_version):
+        get_version.side_effect = [
+            {"version": {"train": {"status": "running"}}},
+            {"version": {"train": {"status": "failed"}}},
+        ]
+        with self.assertRaisesRegex(RuntimeError, "Training failed"):
+            self.version.train(model_type="yolov8n")
+        self.assertIsNone(self.version._model)
+        self.assertEqual(get_version.call_count, 2)
+
+    @patch("roboflow.adapters.rfapi.get_version")
+    def test_completed_training_returns_model(self, get_version):
+        get_version.side_effect = [
+            {"version": {"train": {"status": "running"}}},
+            {"version": {"train": {"results": {"mAP": 0.9}}}},
+        ]
+        model = self.version.train(model_type="yolov8n")
+        self.assertIsInstance(model, ObjectDetectionModel)
+        self.assertIs(model, self.version._model)
 
 
 class TestExport(unittest.TestCase):

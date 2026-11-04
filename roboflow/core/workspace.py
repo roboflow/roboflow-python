@@ -11,12 +11,12 @@ import zipfile
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Union
 
 from requests.exceptions import HTTPError
-from tqdm import tqdm
 
 from roboflow.adapters import rfapi, vision_events_api
 from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
 from roboflow.config import API_URL, APP_URL, DEMO_KEYS
 from roboflow.util import http
+from roboflow.util.general import save_response_content
 
 if TYPE_CHECKING:
     from roboflow.core.device import Device
@@ -521,6 +521,7 @@ class Workspace:
         wait: bool = True,
         poll_interval: float = 5.0,
         poll_timeout: float = 3600.0,
+        return_summary: bool = False,
     ) -> Optional[dict]:
         """
         Upload a dataset to Roboflow.
@@ -547,9 +548,15 @@ class Workspace:
             wait (bool, optional): zip flow only — poll for processing completion. Defaults to True.
             poll_interval (float, optional): zip flow only — seconds between status polls.
             poll_timeout (float, optional): zip flow only — total seconds to wait before timing out.
+            return_summary (bool, optional): return uploaded and duplicate counts for per-image uploads.
 
         Returns:
-            dict | None: zip flow returns the final/pending status dict; per-image flow returns None.
+            dict | None: zip flow returns the final/pending status dict. Per-image flow returns
+                None unless return_summary=True, which returns uploaded and duplicate counts.
+
+        Raises:
+            RoboflowError: if any image or annotation fails, after all images have been attempted,
+                or if zip processing fails.
         """  # noqa: E501 // docs
         if dataset_format != "NOT_USED":
             print("Warning: parameter 'dataset_format' is deprecated and will be removed in a future release")
@@ -709,21 +716,36 @@ class Workspace:
                 image_id = image["id"]
                 annotation, annotation_time = _save_annotation(image_id, imagedesc)
                 _log_img_upload(image_path, image, annotation, image_upload_time, image_retry_attempts, annotation_time)
+                return ("duplicates" if image.get("duplicate") else "uploaded"), None
             except ImageUploadError as e:
                 retry_attempts = f" (with {e.retries} retries)" if e.retries > 0 else ""
                 print(f"[ERR]{retry_attempts} {image_path} ({e.message})")
+                return None, f"{image_path}: {e}"
             except AnnotationSaveError as e:
                 upload_time_str = f"[{image_upload_time:.1f}s]"
                 retry_attempts = f" (with {image_retry_attempts} retries)" if image_retry_attempts > 0 else ""
                 image_msg = f"[UPLOADED]{retry_attempts} {image_path} ({image_id}) {upload_time_str}"
                 annotation_msg = f"annotations = ERR: {e.message}"
                 print(f"{image_msg} / {annotation_msg}")
+                return None, f"{image_path}: annotations: {e}"
             except Exception as e:
                 print(f"[ERR] {image_path} ({e})")
+                return None, f"{image_path}: {e}"
 
+        counts = {"uploaded": 0, "duplicates": 0}
+        failures = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-            list(executor.map(_upload, images))
-
+            for status, error in executor.map(_upload, images):
+                if error is not None:
+                    failures.append(error)
+                else:
+                    counts[status] += 1
+        if failures:
+            raise RoboflowError(
+                f"Dataset upload failed for {len(failures)} of {len(images)} images:\n" + "\n".join(failures)
+            )
+        if return_summary:
+            return counts
         return None
 
     def _get_or_create_project(self, project_id, license: str = "MIT", type: str = "object-detection"):
@@ -906,6 +928,8 @@ class Workspace:
         project_ids: list[str],
         model_name: str,
         filename: str = "weights/best.pt",
+        *,
+        interactive: bool = True,
     ):
         """Uploads provided weights file to Roboflow.
         Args:
@@ -913,9 +937,11 @@ class Workspace:
             model_path (str): File path to the model weights to be uploaded.
             project_ids (list[str]): List of project IDs to deploy the model to.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
+            interactive (bool): Ask before overriding packaging mismatches. If False, raise instead.
         """
 
         from roboflow.util.model_processor import (
+            package_custom_weights,
             package_custom_weights_interactive,
             validate_model_type_for_project,
         )
@@ -930,7 +956,8 @@ class Workspace:
             if project_id not in projects_by_id:
                 raise ValueError(f"Project {project_id} is not accessible in this workspace")
 
-        bundle = package_custom_weights_interactive(model_type, model_path, filename, build_dir=model_path)
+        package = package_custom_weights_interactive if interactive else package_custom_weights
+        bundle = package(model_type, model_path, filename, build_dir=model_path)
 
         for project_id in project_ids:
             validate_model_type_for_project(bundle.model_type, projects_by_id[project_id].get("type", ""), project_id)
@@ -949,34 +976,18 @@ class Workspace:
         res = http.post(
             f"{API_URL}/{self.url}/models/prepareUpload?api_key={self.__api_key}&modelType={model_type}&modelName={model_name}&projectIds={','.join(project_ids)}&nocache=true"
         )
-        try:
-            res.raise_for_status()
-        except Exception as e:
-            error_message = str(e)
-            status_code = str(res.status_code)
-
-            print("\n\033[91m❌ ERROR\033[0m: Failed to get model deployment URL")
-            print("\033[93mDetails\033[0m:", error_message)
-            print("\033[93mStatus\033[0m:", status_code)
-            print(f"\033[93mResponse\033[0m:\n{res.text}\n")
-            return
+        res.raise_for_status()
 
         # Upload the model to the signed URL
-        res = http.put(
-            res.json()["url"],
-            data=open(os.path.join(model_path, model_file_name), "rb"),
-        )
-        try:
+        with open(os.path.join(model_path, model_file_name), "rb") as model_file:
+            res = http.put(res.json()["url"], data=model_file)
             res.raise_for_status()
 
-            for project_id in project_ids:
-                print(
-                    f"View the status of your deployment for project {project_id} at:"
-                    f" {APP_URL}/{self.url}/{project_id}/models"
-                )
-
-        except Exception as e:
-            print(f"An error occured when uploading the model: {e}")
+        for project_id in project_ids:
+            print(
+                f"View the status of your deployment for project {project_id} at:"
+                f" {APP_URL}/{self.url}/{project_id}/models"
+            )
 
     def search(
         self,
@@ -1204,26 +1215,12 @@ class Workspace:
             os.makedirs(location)
 
         zip_path = os.path.join(location, "roboflow.zip")
-        response = session.get(download_url, stream=True)
-        try:
-            response.raise_for_status()
-        except HTTPError as e:
-            raise RoboflowError(f"Failed to download search export: {e}")
-
-        total_length = response.headers.get("content-length")
-        try:
-            total_kib = int(total_length) // 1024 + 1 if total_length is not None else None
-        except (TypeError, ValueError):
-            total_kib = None
-        with open(zip_path, "wb") as f:
-            for chunk in tqdm(
-                response.iter_content(chunk_size=1024),
-                desc=f"Downloading search export to {location}",
-                total=total_kib,
-            ):
-                if chunk:
-                    f.write(chunk)
-                    f.flush()
+        with session.get(download_url, stream=True) as response:
+            try:
+                response.raise_for_status()
+            except HTTPError as e:
+                raise RoboflowError(f"Failed to download search export: {e}")
+            save_response_content(response, zip_path, desc=f"Downloading search export to {location}")
 
         if extract_zip:
             _extract_zip(location, desc=f"Extracting search export to {location}")
@@ -1822,7 +1819,9 @@ def _poll_zip_status(
         if progress is not None and progress != last_progress:
             print(f"  zip-upload progress: {progress}")
             last_progress = progress
-        if state in {"completed", "failed"}:
+        if state == "failed":
+            raise RoboflowError(f"Zip upload failed (task_id={task_id}): {status.get('error') or status}")
+        if state == "completed":
             return status
         if time.monotonic() >= deadline:
             raise RoboflowError(

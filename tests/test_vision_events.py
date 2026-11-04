@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import responses
 
@@ -16,6 +17,45 @@ _BASE = f"{API_URL}/vision-events"
 class TestVisionEvents(unittest.TestCase):
     API_KEY = "test_key"
     WORKSPACE = "test-ws"
+
+    @responses.activate
+    def test_existing_workspace_uses_refreshed_region_and_environment(self):
+        from roboflow import config
+
+        ws = self._make_workspace()
+        cases = (
+            ("us", "prod", None, "https://api.roboflow.com"),
+            ("eu", "prod", None, "https://api.roboflow.eu"),
+            ("us", "staging", None, "https://api.roboflow.one"),
+            ("eu", "staging", None, "https://api.roboflow-eu.one"),
+            ("eu", "prod", "https://api.test", "https://api.test"),
+            ("us", "prod", None, "https://api.roboflow.com"),
+        )
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                for region, environment, override, expected in cases:
+                    with self.subTest(region=region, environment=environment, override=override):
+                        responses.reset()
+                        with patch.dict(
+                            os.environ,
+                            {
+                                "ROBOFLOW_REGION": region,
+                                "ROBOFLOW_ENVIRONMENT": environment,
+                                "ROBOFLOW_CONFIG_DIR": os.path.join(directory, "config.json"),
+                            },
+                        ):
+                            os.environ.pop("API_URL", None)
+                            if override:
+                                os.environ["API_URL"] = override
+                            config.refresh_region_urls()
+                            responses.post(f"{expected}/vision-events", json={"eventId": "event"}, status=201)
+                            responses.get(f"{expected}/vision-events/use-cases", json={"useCases": []})
+                            ws.write_vision_event({"eventId": "event"})
+                            ws.list_vision_event_use_cases()
+                            for call in responses.calls:
+                                self.assertEqual(call.request.headers["Authorization"], f"Bearer {self.API_KEY}")
+        finally:
+            config.refresh_region_urls()
 
     def _make_workspace(self):
         from roboflow.core.workspace import Workspace
