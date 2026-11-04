@@ -34,6 +34,18 @@ All notable changes to this project will be documented in this file.
   YOLOv10. Existing models remain available for inference, and YOLO dataset
   formats remain supported ([#572](https://github.com/roboflow/roboflow-python/pull/572)).
 
+### Fixed
+
+- Directory uploads with `upload_dataset` now take each image's split from the
+  topmost directory whose whole name is a split (`test/`, `validation/`,
+  `train_set/`), so a class folder or filename inside it can't override it:
+  `test/train/1.jpg` goes to test, not train. Without such a directory, a split
+  name only counts at the start of a word, so `latest/` and `invalid/` no longer
+  match, while `my_test/`, `myTest/` and `valid_001.jpg` still do. Run-together
+  names like `mytest/` now go to train, and an unrecognised outer folder loses to
+  an exact name inside it, so `train_v2/test/` goes to test
+  ([#576](https://github.com/roboflow/roboflow-python/pull/576)).
+
 ## 1.7.3
 
 ### Added
