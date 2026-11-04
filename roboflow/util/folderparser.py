@@ -10,6 +10,16 @@ from .image_utils import load_labelmap
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".avif", ".heic"}
 ANNOTATION_EXTENSIONS = {".txt", ".json", ".xml", ".csv", ".jsonl"}
 LABELMAPS_EXTENSIONS = {".labels", ".yaml", ".yml"}
+SPLIT_NAMES = ("valid", "train", "test")
+# A directory that is a split as a whole: test/, validation/, train_set/. Not my_test/ or test_dataset/.
+SPLIT_DIR = re.compile(
+    r"(?:(?P<valid>valid(?:ation)?)|(?P<train>train(?:ing)?)|(?P<test>test(?:ing)?))(?:[-_ ]?(?:set|data|images))?",
+    re.IGNORECASE,
+)
+# A split name at the start of a word, where a change of case also starts one: my_test, myTest, VOCtest, not latest.
+SPLIT_WORDS = {
+    name: re.compile(rf"(?:(?<![A-Za-z])|(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[a-z]))(?i:{name})") for name in SPLIT_NAMES
+}
 
 
 def _patch_sep(filename):
@@ -381,15 +391,18 @@ def _load_labelmaps(folder, labelmaps):
 
 def _decide_split(images):
     for i in images:
-        fullkey = i["fullkey"]
-        if "valid" in fullkey:
-            i["split"] = "valid"
-        elif "train" in fullkey:
-            i["split"] = "train"
-        elif "test" in fullkey:
-            i["split"] = "test"
-        else:
-            i["split"] = "train"
+        i["split"] = _split_for_path(i["dirname"], i["file"])
+
+
+def _split_for_path(dirname, file):
+    # A split directory wins, topmost first, so class folders and filenames can't override it.
+    for segment in dirname.split("/"):
+        match = SPLIT_DIR.fullmatch(segment)
+        if match:
+            return match.lastgroup
+    # Otherwise keep the old valid, train, test order, for names like valid_001.jpg and my_test_set/.
+    stem = os.path.splitext(file)[0]
+    return next((name for name in SPLIT_NAMES if SPLIT_WORDS[name].search(stem)), "train")
 
 
 def _infer_classification_labels_from_folders(images):

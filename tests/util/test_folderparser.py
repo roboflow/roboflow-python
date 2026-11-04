@@ -205,6 +205,143 @@ class TestFolderParser(unittest.TestCase):
             self.assertEqual(len(ann_data["annotations"]), 1, "Should have one annotation")
             self.assertEqual(ann_data["annotations"][0]["bbox"], [10, 20, 100, 200])
 
+    def test_split_directory_wins_over_later_path_text(self):
+        # A class folder or filename that contains a split name must not override the split directory.
+        self.assertEqual(
+            _splits_for(
+                [
+                    "test/train/1.jpg",
+                    "test/bus/1.jpg",
+                    "test/valid/1.jpg",
+                    "train/invalid_ticket.jpg",
+                    "train/valid/1.jpg",
+                    "test/images/train_001.jpg",
+                ]
+            ),
+            {
+                "/test/train/1.jpg": "test",
+                "/test/bus/1.jpg": "test",
+                "/test/valid/1.jpg": "test",
+                "/train/invalid_ticket.jpg": "train",
+                "/train/valid/1.jpg": "train",
+                "/test/images/train_001.jpg": "test",
+            },
+        )
+
+    def test_inner_split_name_does_not_override_outer_split_directory(self):
+        # The motivating case again, with a split folder that isn't literally train, valid or test.
+        self.assertEqual(
+            _splits_for(
+                [
+                    "validation/train/1.jpg",
+                    "VALIDATION_SET/Train/1.jpg",
+                    "validation/test/1.jpg",
+                    "valid_set/train/1.jpg",
+                    "training/test/1.jpg",
+                    "training_set/valid/1.jpg",
+                    "train_data/test/1.jpg",
+                    "test_set/train/1.jpg",
+                ]
+            ),
+            {
+                "/validation/train/1.jpg": "valid",
+                "/VALIDATION_SET/Train/1.jpg": "valid",
+                "/validation/test/1.jpg": "valid",
+                "/valid_set/train/1.jpg": "valid",
+                "/training/test/1.jpg": "train",
+                "/training_set/valid/1.jpg": "train",
+                "/train_data/test/1.jpg": "train",
+                "/test_set/train/1.jpg": "test",
+            },
+        )
+
+    def test_wrapper_folder_with_a_split_word_does_not_flatten_the_splits(self):
+        # A project folder such as test-project-1/ holds the real splits, so it must not take them over.
+        self.assertEqual(
+            _splits_for(
+                [
+                    "test-project-1/train/1.jpg",
+                    "test-project-1/valid/1.jpg",
+                    "test_dataset/train/1.jpg",
+                    "my_test_set/train/1.jpg",
+                    "train_test_split/test/1.jpg",
+                    "train_test_split/valid/1.jpg",
+                ]
+            ),
+            {
+                "/test-project-1/train/1.jpg": "train",
+                "/test-project-1/valid/1.jpg": "valid",
+                "/test_dataset/train/1.jpg": "train",
+                "/my_test_set/train/1.jpg": "train",
+                "/train_test_split/test/1.jpg": "test",
+                "/train_test_split/valid/1.jpg": "valid",
+            },
+        )
+
+    def test_split_recognises_a_case_change_as_a_word_start(self):
+        self.assertEqual(
+            _splits_for(
+                [
+                    "myTest/1.jpg",
+                    "imagesValid/1.jpg",
+                    "VOCtest_06-Nov-2007/JPEGImages/1.jpg",
+                    "LATEST/1.jpg",
+                    "Contest/1.jpg",
+                    "INVALID/1.jpg",
+                ]
+            ),
+            {
+                "/myTest/1.jpg": "test",
+                "/imagesValid/1.jpg": "valid",
+                "/VOCtest_06-Nov-2007/JPEGImages/1.jpg": "test",
+                "/LATEST/1.jpg": "train",
+                "/Contest/1.jpg": "train",
+                "/INVALID/1.jpg": "train",
+            },
+        )
+
+    def test_split_directory_match_ignores_case(self):
+        self.assertEqual(_splits_for(["TEST/train/1.jpg"]), {"/TEST/train/1.jpg": "test"})
+
+    def test_split_ignores_split_names_inside_other_words(self):
+        self.assertEqual(
+            _splits_for(["unsplit/latest.jpg", "invalid/1.jpg", "contest/1.jpg"]),
+            {"/unsplit/latest.jpg": "train", "/invalid/1.jpg": "train", "/contest/1.jpg": "train"},
+        )
+
+    def test_split_falls_back_to_names_without_a_split_directory(self):
+        self.assertEqual(
+            _splits_for(
+                [
+                    "train_001.jpg",
+                    "valid_001.jpg",
+                    "test_001.jpg",
+                    "validation/a.jpg",
+                    "training/a.jpg",
+                    "my_test_set/a.jpg",
+                    "other/a.jpg",
+                ]
+            ),
+            {
+                "/train_001.jpg": "train",
+                "/valid_001.jpg": "valid",
+                "/test_001.jpg": "test",
+                "/validation/a.jpg": "valid",
+                "/training/a.jpg": "train",
+                "/my_test_set/a.jpg": "test",
+                "/other/a.jpg": "train",
+            },
+        )
+
+
+def _splits_for(relpaths):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        for relpath in relpaths:
+            path = os.path.join(tmpdir, relpath)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            open(path, "wb").close()
+        return {i["file"]: i["split"] for i in folderparser.parsefolder(tmpdir)["images"]}
+
 
 def _assertJsonMatchesFile(actual, filename):
     with open(filename) as file:
