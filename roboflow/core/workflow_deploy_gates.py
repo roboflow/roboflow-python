@@ -56,8 +56,8 @@ class _Unset:
         return "UNSET"
 
 
+# Default of ``expected_updated_at``: leave the stale-write check out.
 UNSET: Any = _Unset()
-"""Default of ``expected_updated_at``: leave the stale-write check out."""
 
 
 def _thresholds(check_thresholds: ThresholdsArg) -> List[Dict[str, Any]]:
