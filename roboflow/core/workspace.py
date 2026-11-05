@@ -21,6 +21,7 @@ from roboflow.util import http
 if TYPE_CHECKING:
     from roboflow.core.device import Device
     from roboflow.core.model_eval import ModelEval
+    from roboflow.core.workflow_deploy_gates import WorkflowDeployGates
     from roboflow.core.workflow_evals import WorkflowEvals
 
 
@@ -1716,6 +1717,25 @@ class Workspace:
         from roboflow.core.workflow_evals import WorkflowEvals
 
         return WorkflowEvals(self.__api_key, self.url)
+
+    def workflow_deploy_gates(self) -> "WorkflowDeployGates":
+        """Return a client for this workspace's workflow deploy gates.
+
+        A workflow with a deploy gate publishes only a saved version that passed
+        it, so ``updateWorkflow`` refuses to publish its config. Save a version,
+        run its gates and deploy it instead.
+
+        Example:
+            >>> gates = rf.workspace().workflow_deploy_gates()
+            >>> workflow_id = rf.workspace().get_workflow("my-workflow")["workflow"]["id"]
+            >>> version_id = gates.save_version(workflow_id, definition)["version"]["id"]
+            >>> gates.run(workflow_id, version_id)
+            >>> if gates.wait_for_version(workflow_id, version_id)["publishable"]:
+            ...     gates.deploy(workflow_id, version_id)
+        """
+        from roboflow.core.workflow_deploy_gates import WorkflowDeployGates
+
+        return WorkflowDeployGates(self.__api_key, self.url)
 
     def trash(self) -> dict:
         """

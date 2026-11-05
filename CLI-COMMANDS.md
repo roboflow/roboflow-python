@@ -393,6 +393,31 @@ roboflow workflow version list my-workflow
 roboflow workflow fork other-ws/their-workflow
 ```
 
+### Publish a workflow with deploy gates
+
+A workflow with a deploy gate publishes only a saved version that passed it, so
+`workflow update` is refused there. Save a version, run its checks, then deploy it:
+
+```bash
+roboflow workflow version save my-workflow --definition updated.json   # prints the version id
+roboflow workflow deploy-gates run my-workflow <version-id> --wait     # exits 1 unless publishable
+roboflow workflow deploy my-workflow <version-id>
+
+# Gate a workflow on a Workflow Eval, with per-check minimum pass rates.
+roboflow workflow deploy-gates eval set my-workflow --eval <eval-id> --threshold code-reading=0.98
+roboflow workflow deploy-gates eval get my-workflow
+roboflow workflow deploy-gates list
+
+# Gate a workflow on manual approval: one approval from anyone named approves a version.
+roboflow workflow deploy-gates approval set my-workflow --user <user-id> --role admin
+roboflow workflow deploy-gates approval status my-workflow <version-id>
+```
+
+On an Auto-Publish workflow a version that passes publishes itself, so `deploy` is only needed on
+a Protected one. Approvers approve or reject in the Roboflow app; the CLI only reads approvals, and
+`run --wait` also waits for one. Setting or removing the approval rules needs a person, so an API
+key is refused there.
+
 ### Fork a Universe project (async)
 
 ```bash

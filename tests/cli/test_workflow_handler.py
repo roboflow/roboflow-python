@@ -7,9 +7,11 @@ import unittest
 from argparse import Namespace
 from unittest.mock import patch
 
+import responses
 from typer.testing import CliRunner
 
 from roboflow.cli import app
+from roboflow.config import API_URL
 
 runner = CliRunner()
 
@@ -74,6 +76,22 @@ class TestWorkflowRegistration(unittest.TestCase):
     def test_workflow_deploy_exists(self) -> None:
         result = runner.invoke(app, ["workflow", "deploy", "--help"])
         self.assertEqual(result.exit_code, 0)
+
+    def test_deploy_gate_commands_exist(self) -> None:
+        for argv in (
+            ["version", "save"],
+            ["deploy-gates", "list"],
+            ["deploy-gates", "run"],
+            ["deploy-gates", "status"],
+            *(
+                ["deploy-gates", "eval", c]
+                for c in ("get", "set", "update", "new-check-thresholds", "remove", "checks")
+            ),
+            *(["deploy-gates", "approval", c] for c in ("get", "set", "remove", "list", "status")),
+        ):
+            with self.subTest(command=" ".join(argv)):
+                result = runner.invoke(app, ["workflow", *argv, "--help"])
+                self.assertEqual(result.exit_code, 0, result.output)
 
 
 class TestWorkflowList(unittest.TestCase):
@@ -375,12 +393,155 @@ class TestWorkflowStubs(unittest.TestCase):
         with self.assertRaises(SystemExit):
             _stub_run(args)
 
-    def test_deploy_stub(self):
-        from roboflow.cli.handlers.workflow import _stub_deploy
 
-        args = _make_args()
-        with self.assertRaises(SystemExit):
-            _stub_deploy(args)
+GATES = f"{API_URL}/workspaces/test-ws/workflows/wf-123"
+WORKFLOW = {"workflow": {"id": "wf-123", "name": "My WF", "url": "my-wf", "config": "{}"}}
+
+
+def _gates_cli(*argv: str):
+    return runner.invoke(app, ["--workspace", "test-ws", "--api-key", "test-key", *argv])
+
+
+def _last_json(output: str):
+    return json.loads(output.strip().splitlines()[-1])
+
+
+class TestWorkflowDeployGatesCli(unittest.TestCase):
+    def setUp(self) -> None:
+        responses.start()
+        self.addCleanup(responses.stop)
+        self.addCleanup(responses.reset)
+        responses.add(responses.GET, f"{API_URL}/test-ws/workflows/my-wf", json=WORKFLOW, status=200)
+
+    def test_update_on_a_gated_workflow_names_the_commands_that_publish(self) -> None:
+        refusal = {
+            "error": {
+                "message": "This workflow has deploy gates, so updateWorkflow cannot publish its config.",
+                "status": 409,
+                "code": "deploy_check_required",
+                "details": {"gateTypes": ["workflow_eval"], "nextSteps": [{"action": "save_version"}]},
+            }
+        }
+        responses.add(responses.POST, f"{API_URL}/test-ws/updateWorkflow", json=refusal, status=409)
+        result = _gates_cli("--json", "workflow", "update", "my-wf")
+        self.assertEqual(result.exit_code, 1)
+        error = _last_json(result.output)["error"]
+        self.assertEqual(error["code"], "deploy_check_required")
+        self.assertEqual(error["details"]["nextSteps"], [{"action": "save_version"}])
+        self.assertIn("roboflow workflow version save my-wf", error["hint"])
+
+    def test_version_save_resolves_the_slug_and_does_not_publish(self) -> None:
+        saved = {"workflowId": "wf-123", "version": {"id": "v1", "name": "v1"}, "replayed": False}
+        responses.add(responses.POST, f"{GATES}/versions", json=saved, status=201)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump({"version": "1.0", "inputs": [], "steps": [], "outputs": []}, f)
+        self.addCleanup(os.unlink, f.name)
+        result = _gates_cli("workflow", "version", "save", "my-wf", "--definition", f.name)
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("not published", result.output)
+        self.assertIn("roboflow workflow deploy-gates run my-wf v1 --wait", result.output)
+        self.assertEqual(len(responses.calls), 2)
+        self.assertTrue(responses.calls[1].request.headers["Idempotency-Key"])
+
+    def test_run_wait_exits_1_unless_the_version_is_publishable(self) -> None:
+        for final, publishable, exit_code in (("failed", False, 1), ("passed", True, 0)):
+            with self.subTest(final=final):
+                responses.reset()
+                responses.add(responses.GET, f"{API_URL}/test-ws/workflows/my-wf", json=WORKFLOW, status=200)
+                pending = {"versionId": "v1", "gates": [{"type": "workflow_eval", "status": "pending"}]}
+                responses.add(responses.POST, f"{GATES}/versions/v1/deploy-gates/run", json=pending, status=202)
+                decided = {
+                    "versionId": "v1",
+                    "gates": [{"type": "workflow_eval", "status": final, "reason": None}],
+                    "publishable": publishable,
+                }
+                responses.add(responses.GET, f"{GATES}/versions/v1/deploy-gates", json=decided, status=200)
+                result = _gates_cli("workflow", "deploy-gates", "run", "my-wf", "v1", "--wait", "--interval", "0")
+                self.assertEqual(result.exit_code, exit_code, result.output)
+                self.assertIn(final, result.output)
+
+    def test_eval_set_sends_thresholds_and_the_null_stale_write_guard(self) -> None:
+        responses.add(responses.PUT, f"{GATES}/deploy-gates/workflow-eval", json={"gate": None}, status=200)
+        result = _gates_cli(
+            "workflow",
+            "deploy-gates",
+            "eval",
+            "set",
+            "my-wf",
+            "--eval",
+            "e1",
+            "--threshold",
+            "code-reading=0.98",
+            "--expected-updated-at",
+            "null",
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(
+            json.loads(responses.calls[1].request.body),
+            {
+                "evalId": "e1",
+                "checkThresholds": [{"checkId": "code-reading", "minimumPassRate": 0.98}],
+                "expectedUpdatedAt": None,
+            },
+        )
+
+    def test_invalid_threshold_fails_before_any_request(self) -> None:
+        result = _gates_cli("workflow", "deploy-gates", "eval", "update", "my-wf", "--threshold", "0.98")
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn("CHECK_ID=RATE", result.output)
+        self.assertEqual(len(responses.calls), 0)
+
+    def test_refused_deploy_points_at_what_passes_the_refusing_gate(self) -> None:
+        run = "roboflow workflow deploy-gates run my-wf v1 --wait"
+        approval = "roboflow workflow deploy-gates approval status my-wf v1"
+        for gate_type, shown, hidden in (("workflow_eval", run, approval), ("manual_approval", approval, run)):
+            with self.subTest(gate_type=gate_type):
+                responses.reset()
+                responses.add(responses.GET, f"{API_URL}/test-ws/workflows/my-wf", json=WORKFLOW, status=200)
+                refusal = {
+                    "error": {
+                        "code": "deploy_check_not_passed",
+                        "category": "conflict",
+                        "retryable": False,
+                        "requestId": "r",
+                        "message": "The version has not passed its deploy gates",
+                        "details": {"gateType": gate_type, "nextSteps": []},
+                    }
+                }
+                responses.add(responses.POST, f"{GATES}/versions/v1/deploy", json=refusal, status=409)
+                result = _gates_cli("workflow", "deploy", "my-wf", "v1")
+                self.assertEqual(result.exit_code, 1)
+                self.assertIn(shown, result.output)
+                self.assertNotIn(hidden, result.output)
+
+    def test_approval_set_sends_users_then_roles(self) -> None:
+        responses.add(responses.PUT, f"{GATES}/deploy-gates/manual-approval", json={"gate": None}, status=200)
+        result = _gates_cli(
+            "workflow",
+            "deploy-gates",
+            "approval",
+            "set",
+            "my-wf",
+            "--role",
+            "admin",
+            "--user",
+            "u1",
+            "--no-self-approval",
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(
+            json.loads(responses.calls[1].request.body),
+            {
+                "rules": [{"kind": "user", "userId": "u1"}, {"kind": "role", "role": "admin"}],
+                "allowSelfApproval": False,
+            },
+        )
+
+    def test_approval_set_without_approvers_fails_before_any_request(self) -> None:
+        result = _gates_cli("workflow", "deploy-gates", "approval", "set", "my-wf")
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn("--user", result.output)
+        self.assertEqual(len(responses.calls), 0)
 
 
 class TestWorkflowNoWorkspace(unittest.TestCase):
