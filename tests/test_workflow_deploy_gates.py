@@ -16,6 +16,7 @@ KEY = "test_key"
 BASE = f"{API_URL}/workspaces/{WS}/workflows"
 WF, V = "wf-1", "ver-1"
 GATE = f"/{WF}/deploy-gates/workflow-eval"
+APPROVAL = f"/{WF}/deploy-gates/manual-approval"
 
 # (client method, args, kwargs, HTTP method, path relative to BASE, sends Idempotency-Key)
 # One row per route in the server's publicDeployGatesRegistry.ts.
@@ -33,6 +34,11 @@ ROUTES = [
     ("set_eval_gate_new_check_thresholds", (WF, {"c1": 0.9}), {}, "POST", f"{GATE}/new-check-thresholds", False),
     ("remove_eval_gate", (WF,), {}, "DELETE", GATE, False),
     ("get_eval_checks", (WF,), {}, "GET", f"{GATE}/checks", False),
+    ("get_approval_gate", (WF,), {}, "GET", APPROVAL, False),
+    ("set_approval_gate", (WF,), {"user_ids": ["u1"]}, "PUT", APPROVAL, False),
+    ("remove_approval_gate", (WF,), {}, "DELETE", APPROVAL, False),
+    ("list_approvals", (WF,), {}, "GET", f"{APPROVAL}/approvals", False),
+    ("get_version_approval", (WF, V), {}, "GET", f"/{WF}/versions/{V}/deploy-gates/manual-approval", False),
 ]
 
 NOT_PASSED = {
@@ -77,7 +83,7 @@ class TestWorkflowDeployGatesRoutes(unittest.TestCase):
         self.client = WorkflowDeployGates(KEY, WS)
 
     def test_covers_every_public_route(self):
-        self.assertEqual(len({(row[3], row[4]) for row in ROUTES}), 13)
+        self.assertEqual(len({(row[3], row[4]) for row in ROUTES}), 18)
 
     @responses.activate
     def test_each_method_calls_its_route(self):
@@ -132,6 +138,26 @@ class TestWorkflowDeployGatesClient(unittest.TestCase):
             with self.subTest(kwargs=kwargs):
                 responses.calls.reset()
                 self.client.set_eval_gate(WF, "e1", **kwargs)
+                self.assertEqual(json.loads(responses.calls[0].request.body), expected)
+
+    @responses.activate
+    def test_set_approval_gate_sends_rules_and_only_the_options_given(self):
+        responses.add(responses.PUT, f"{BASE}{APPROVAL}", json={}, status=200)
+        cases = [
+            ({"user_ids": ["u1"]}, {"rules": [{"kind": "user", "userId": "u1"}]}),
+            (
+                {"user_ids": ["u1"], "roles": ["admin"], "allow_self_approval": False, "expected_revision": 3},
+                {
+                    "rules": [{"kind": "user", "userId": "u1"}, {"kind": "role", "role": "admin"}],
+                    "allowSelfApproval": False,
+                    "expectedRevision": 3,
+                },
+            ),
+        ]
+        for kwargs, expected in cases:
+            with self.subTest(kwargs=kwargs):
+                responses.calls.reset()
+                self.client.set_approval_gate(WF, **kwargs)
                 self.assertEqual(json.loads(responses.calls[0].request.body), expected)
 
     @responses.activate

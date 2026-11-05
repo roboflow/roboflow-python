@@ -36,6 +36,10 @@ DEPLOY_GATE_ERROR_CODES = frozenset(
         "deploy_gate_invalid_eval",
         "deploy_gate_feature_unavailable",
         "deploy_gate_permission_required",
+        "deploy_gate_invalid_rules",
+        "deploy_approval_rules_user_required",
+        "deploy_approval_not_allowed",
+        "deploy_approval_invalid_reviewers",
     }
 )
 
@@ -58,7 +62,7 @@ class WorkflowDeployGateError(WorkflowEvalError):
 
     @property
     def gate_types(self) -> List[str]:
-        """The gate types behind the refusal, e.g. ``["workflow_eval"]``."""
+        """The gate types behind the refusal, e.g. ``["workflow_eval", "manual_approval"]``."""
         gate_types = self.details.get("gateTypes")
         if isinstance(gate_types, list):
             return gate_types

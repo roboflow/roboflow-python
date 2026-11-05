@@ -1,10 +1,15 @@
 """Workflow deploy gates: wraps the public ``/workspaces/{workspace}/workflows`` gate API.
 
 A deploy gate is a condition a saved Workflow version must meet before it
-publishes. Today the only type is ``workflow_eval``: a fresh Run of the version
-on one Workflow Eval must reach every check's minimum pass rate. While a
-workflow has a gate, ``updateWorkflow`` no longer publishes its config; a
-version publishes only through :meth:`WorkflowDeployGates.deploy`, once it
+publishes. A workflow has at most one gate of each type:
+
+* ``workflow_eval``: a fresh Run of the version on one Workflow Eval must reach
+  every check's minimum pass rate.
+* ``manual_approval``: one of the members or roles the rules name approves the
+  version in the Roboflow app. This API reads approvals but cannot decide.
+
+While a workflow has a gate, ``updateWorkflow`` no longer publishes its config;
+a version publishes only through :meth:`WorkflowDeployGates.deploy`, once it
 passed every gate. Get a client from
 :meth:`roboflow.core.workspace.Workspace.workflow_deploy_gates`::
 
@@ -36,7 +41,9 @@ Scopes: reads need ``workflow:read``, writes ``workflow:update``. :meth:`run`
 also needs ``workflow-evals:run`` and ``model:infer``, and
 :meth:`set_eval_gate_new_check_thresholds` also ``workflow-evals:write``. A
 check's Eval Run results come back only with ``workflow-evals:read``.
-Folder-scoped keys are refused.
+Folder-scoped keys are refused. Only a person changes who approves:
+:meth:`set_approval_gate` and :meth:`remove_approval_gate` refuse a plain API
+key with ``403 deploy_approval_rules_user_required``.
 """
 
 from __future__ import annotations
@@ -91,6 +98,10 @@ class WorkflowDeployGates:
     def _eval_gate_path(cls, workflow_id: str) -> str:
         return f"{cls._workflow_path(workflow_id)}/deploy-gates/workflow-eval"
 
+    @classmethod
+    def _approval_gate_path(cls, workflow_id: str) -> str:
+        return f"{cls._workflow_path(workflow_id)}/deploy-gates/manual-approval"
+
     # -- discovery ----------------------------------------------------------
 
     def openapi(self) -> Dict[str, Any]:
@@ -98,7 +109,11 @@ class WorkflowDeployGates:
         return self._call("GET", "/deploy-gates/openapi.json")
 
     def list(self, *, gate_type: Optional[str] = None, eval_id: Optional[str] = None) -> Dict[str, Any]:
-        """List the workspace's deploy gates, optionally of one type or backed by one Eval."""
+        """List the workspace's Eval deploy gates, optionally only those backed by one Eval.
+
+        The server lists ``workflow_eval`` gates only, so ``gate_type`` accepts
+        that value alone.
+        """
         return self._call("GET", "/deploy-gates", params={"type": gate_type, "evalId": eval_id})
 
     def list_for_workflow(self, workflow_id: str) -> Dict[str, Any]:
@@ -148,7 +163,8 @@ class WorkflowDeployGates:
         even a failed one, and never starts another Run. A new key reuses a
         pending or passed check and starts a new one on a failed, errored,
         cancelled or outdated check. A Workflow Eval gate runs the Eval on the
-        server, which may consume credits.
+        server, which may consume credits. A manual approval gate starts
+        nothing: the version waits for an approver.
         """
         return self._call(
             "POST",
@@ -169,9 +185,10 @@ class WorkflowDeployGates:
         """Poll :meth:`get_version` until no gate is ``pending`` and return the verdicts.
 
         Check ``publishable`` on the result: a gate can end ``failed``, or
-        ``not_started`` when nothing was started. Stopping the wait never
-        cancels a check. Raises ``TimeoutError`` when ``timeout`` seconds elapse
-        first.
+        ``not_started`` when nothing was started. A manual approval gate stays
+        ``pending`` until someone approves or rejects the version in the app, so
+        this also waits for that. Stopping the wait never cancels a check.
+        Raises ``TimeoutError`` when ``timeout`` seconds elapse first.
         """
         deadline = time.monotonic() + timeout
         while True:
@@ -261,3 +278,68 @@ class WorkflowDeployGates:
         With ``version_id`` the server answers 404 until a check was started.
         """
         return self._call("GET", f"{self._eval_gate_path(workflow_id)}/checks", params={"versionId": version_id})
+
+    # -- manual_approval gate -----------------------------------------------
+
+    def get_approval_gate(self, workflow_id: str) -> Dict[str, Any]:
+        """Return the approval rules with the members and roles they name: ``{gate, users, roles}``.
+
+        ``gate`` is ``{revision, rules, allowSelfApproval, updatedAt, updatedBy}``,
+        or null without a manual approval gate.
+        """
+        return self._call("GET", self._approval_gate_path(workflow_id))
+
+    def set_approval_gate(
+        self,
+        workflow_id: str,
+        *,
+        user_ids: Iterable[str] = (),
+        roles: Iterable[str] = (),
+        allow_self_approval: Optional[bool] = None,
+        expected_revision: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Gate the workflow on approvals and set who may approve its versions.
+
+        One approval from any member in ``user_ids``, or from any member whose
+        current role id is in ``roles``, approves a version; one rejection
+        rejects it. Between them, 1 to 10 rules. An approver needs the Manage
+        Workflows permission. The version's author cannot approve it unless
+        ``allow_self_approval`` is true (the server default is false).
+
+        ``expected_revision`` is the gate's ``revision`` as you read it: the
+        write is refused with ``409 CONFLICT`` if the gate changed since. Leave
+        it out to replace whatever is stored. Changing the rules makes earlier
+        decisions stop counting. Refused for a plain API key
+        (``403 deploy_approval_rules_user_required``).
+        """
+        rules = [{"kind": "user", "userId": uid} for uid in user_ids]
+        rules += [{"kind": "role", "role": role} for role in roles]
+        body: Dict[str, Any] = {"rules": rules}
+        if allow_self_approval is not None:
+            body["allowSelfApproval"] = allow_self_approval
+        if expected_revision is not None:
+            body["expectedRevision"] = expected_revision
+        return self._call("PUT", self._approval_gate_path(workflow_id), body=body)
+
+    def remove_approval_gate(self, workflow_id: str) -> Dict[str, Any]:
+        """Remove the manual approval gate and return the gate status after the removal.
+
+        Refused for a plain API key (``403 deploy_approval_rules_user_required``).
+        """
+        return self._call("DELETE", self._approval_gate_path(workflow_id))
+
+    def list_approvals(self, workflow_id: str) -> Dict[str, Any]:
+        """Return ``{"items": [...]}``, one approval status per version with a decision or review request.
+
+        Newest first; empty without a manual approval gate.
+        """
+        return self._call("GET", f"{self._approval_gate_path(workflow_id)}/approvals")
+
+    def get_version_approval(self, workflow_id: str, version_id: str) -> Dict[str, Any]:
+        """Return the version's approval status: who approved or rejected it, who may still approve.
+
+        ``status`` is ``approved``, ``pending`` or ``rejected``; ``missing``
+        names who is still needed; ``decisions`` (newest first) say whether each
+        one still counts. 404 on a workflow without a manual approval gate.
+        """
+        return self._call("GET", f"{self._version_path(workflow_id, version_id)}/deploy-gates/manual-approval")

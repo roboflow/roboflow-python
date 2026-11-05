@@ -59,3 +59,18 @@ gates.set_eval_gate(workflow_id, "EVAL_ID", check_thresholds={"code-reading": 0.
 ```
 
 Checks left out need every applicable Case to pass.
+
+A manual approval gate waits for one approval from a member or role its rules name. Approvers
+decide in the Roboflow app, so `run` starts nothing for it and `wait_for_version` waits for the
+approval:
+
+```python
+gates.set_approval_gate(workflow_id, user_ids=["USER_ID"], roles=["admin"])
+approval = gates.get_version_approval(workflow_id, version_id)
+print(approval["status"], approval["missing"])
+```
+
+Approvers need the Manage Workflows permission, and the version's author cannot approve it unless
+`allow_self_approval=True`. Changing the rules makes earlier decisions stop counting. Only a person
+changes the rules: `set_approval_gate` and `remove_approval_gate` refuse a plain API key with
+`deploy_approval_rules_user_required`.

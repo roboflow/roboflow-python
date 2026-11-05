@@ -87,6 +87,7 @@ class TestWorkflowRegistration(unittest.TestCase):
                 ["deploy-gates", "eval", c]
                 for c in ("get", "set", "update", "new-check-thresholds", "remove", "checks")
             ),
+            *(["deploy-gates", "approval", c] for c in ("get", "set", "remove", "list", "status")),
         ):
             with self.subTest(command=" ".join(argv)):
                 result = runner.invoke(app, ["workflow", *argv, "--help"])
@@ -490,21 +491,57 @@ class TestWorkflowDeployGatesCli(unittest.TestCase):
         self.assertIn("CHECK_ID=RATE", result.output)
         self.assertEqual(len(responses.calls), 0)
 
-    def test_refused_deploy_points_at_the_checks(self) -> None:
-        refusal = {
-            "error": {
-                "code": "deploy_check_not_passed",
-                "category": "conflict",
-                "retryable": False,
-                "requestId": "r",
-                "message": "The version has not passed its deploy gates",
-                "details": {"gateType": "workflow_eval", "nextSteps": []},
-            }
-        }
-        responses.add(responses.POST, f"{GATES}/versions/v1/deploy", json=refusal, status=409)
-        result = _gates_cli("workflow", "deploy", "my-wf", "v1")
+    def test_refused_deploy_points_at_what_passes_the_refusing_gate(self) -> None:
+        run = "roboflow workflow deploy-gates run my-wf v1 --wait"
+        approval = "roboflow workflow deploy-gates approval status my-wf v1"
+        for gate_type, shown, hidden in (("workflow_eval", run, approval), ("manual_approval", approval, run)):
+            with self.subTest(gate_type=gate_type):
+                responses.reset()
+                responses.add(responses.GET, f"{API_URL}/test-ws/workflows/my-wf", json=WORKFLOW, status=200)
+                refusal = {
+                    "error": {
+                        "code": "deploy_check_not_passed",
+                        "category": "conflict",
+                        "retryable": False,
+                        "requestId": "r",
+                        "message": "The version has not passed its deploy gates",
+                        "details": {"gateType": gate_type, "nextSteps": []},
+                    }
+                }
+                responses.add(responses.POST, f"{GATES}/versions/v1/deploy", json=refusal, status=409)
+                result = _gates_cli("workflow", "deploy", "my-wf", "v1")
+                self.assertEqual(result.exit_code, 1)
+                self.assertIn(shown, result.output)
+                self.assertNotIn(hidden, result.output)
+
+    def test_approval_set_sends_users_then_roles(self) -> None:
+        responses.add(responses.PUT, f"{GATES}/deploy-gates/manual-approval", json={"gate": None}, status=200)
+        result = _gates_cli(
+            "workflow",
+            "deploy-gates",
+            "approval",
+            "set",
+            "my-wf",
+            "--role",
+            "admin",
+            "--user",
+            "u1",
+            "--no-self-approval",
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(
+            json.loads(responses.calls[1].request.body),
+            {
+                "rules": [{"kind": "user", "userId": "u1"}, {"kind": "role", "role": "admin"}],
+                "allowSelfApproval": False,
+            },
+        )
+
+    def test_approval_set_without_approvers_fails_before_any_request(self) -> None:
+        result = _gates_cli("workflow", "deploy-gates", "approval", "set", "my-wf")
         self.assertEqual(result.exit_code, 1)
-        self.assertIn("roboflow workflow deploy-gates run my-wf v1 --wait", result.output)
+        self.assertIn("--user", result.output)
+        self.assertEqual(len(responses.calls), 0)
 
 
 class TestWorkflowNoWorkspace(unittest.TestCase):

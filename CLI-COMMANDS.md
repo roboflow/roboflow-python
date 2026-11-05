@@ -407,10 +407,16 @@ roboflow workflow deploy my-workflow <version-id>
 roboflow workflow deploy-gates eval set my-workflow --eval <eval-id> --threshold code-reading=0.98
 roboflow workflow deploy-gates eval get my-workflow
 roboflow workflow deploy-gates list
+
+# Gate a workflow on manual approval: one approval from anyone named approves a version.
+roboflow workflow deploy-gates approval set my-workflow --user <user-id> --role admin
+roboflow workflow deploy-gates approval status my-workflow <version-id>
 ```
 
 On an Auto-Publish workflow a version that passes publishes itself, so `deploy` is only needed on
-a Protected one.
+a Protected one. Approvers approve or reject in the Roboflow app; the CLI only reads approvals, and
+`run --wait` also waits for one. Setting or removing the approval rules needs a person, so an API
+key is refused there.
 
 ### Fork a Universe project (async)
 

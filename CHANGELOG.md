@@ -12,11 +12,15 @@ All notable changes to this project will be documented in this file.
   verdicts, and `deploy` publishes a version once it passed every gate. The
   Workflow Eval gate is managed with `get_eval_gate`, `set_eval_gate`,
   `update_eval_gate`, `set_eval_gate_new_check_thresholds`, `remove_eval_gate`
-  and `get_eval_checks`. Errors raise `WorkflowDeployGateError`, whose
-  `next_steps` lists what publishes the workflow
+  and `get_eval_checks`. The manual approval gate is managed with
+  `get_approval_gate`, `set_approval_gate` and `remove_approval_gate`, and
+  `list_approvals` and `get_version_approval` read who approved a version.
+  Approvers decide in the Roboflow app. Errors raise `WorkflowDeployGateError`,
+  whose `next_steps` lists what publishes the workflow
   ([#579](https://github.com/roboflow/roboflow-python/pull/579)).
 - `roboflow workflow version save`, `roboflow workflow deploy-gates list|run|status`,
-  `roboflow workflow deploy-gates eval get|set|update|new-check-thresholds|remove|checks`
+  `roboflow workflow deploy-gates eval get|set|update|new-check-thresholds|remove|checks`,
+  `roboflow workflow deploy-gates approval get|set|remove|list|status`
   and `roboflow workflow deploy`, which replaces the hidden stub. `run --wait` and
   `status --wait` exit with code 1 when the version is not publishable
   ([#579](https://github.com/roboflow/roboflow-python/pull/579)).

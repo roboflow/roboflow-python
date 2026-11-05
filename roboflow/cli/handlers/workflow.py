@@ -31,6 +31,13 @@ workflow_app.add_typer(_deploy_gates_app, name="deploy-gates")
 _eval_gate_app = typer.Typer(cls=SortedGroup, help="Gate a workflow on a Workflow Eval", no_args_is_help=True)
 _deploy_gates_app.add_typer(_eval_gate_app, name="eval")
 
+_approval_gate_app = typer.Typer(
+    cls=SortedGroup,
+    help="Gate a workflow on manual approval (approvers decide in the Roboflow app)",
+    no_args_is_help=True,
+)
+_deploy_gates_app.add_typer(_approval_gate_app, name="approval")
+
 WorkflowArg = Annotated[
     str, typer.Argument(help="Workflow URL or ID (resolved with a GET, which needs the workflow:read scope)")
 ]
@@ -162,9 +169,12 @@ def deploy_workflow(ctx: typer.Context, workflow_url: WorkflowArg, workflow_vers
 def list_deploy_gates(
     ctx: typer.Context,
     workflow_url: Annotated[
-        Optional[str], typer.Argument(help="Workflow URL or ID; omit to list the whole workspace's gates")
+        Optional[str], typer.Argument(help="Workflow URL or ID; omit to list the workspace's Eval gates")
     ] = None,
-    gate_type: Annotated[Optional[str], typer.Option("--type", help="Only gates of this type")] = None,
+    gate_type: Annotated[
+        Optional[str],
+        typer.Option("--type", help="Only gates of this type (the workspace list has workflow_eval only)"),
+    ] = None,
     eval_id: Annotated[Optional[str], typer.Option("--eval", help="Only gates backed by this Eval")] = None,
 ) -> None:
     """List deploy gates, of one workflow or of the whole workspace."""
@@ -182,7 +192,7 @@ def run_deploy_gates(
     interval: IntervalOpt = 5,
     idempotency_key: IdempotencyOpt = None,
 ) -> None:
-    """Start every deploy gate on a version (an Eval gate runs the Eval, which may consume credits)."""
+    """Start every deploy gate on a version. An Eval gate runs the Eval (may consume credits); approval waits."""
     args = ctx_to_args(
         ctx,
         workflow_url=workflow_url,
@@ -299,6 +309,88 @@ def list_eval_gate_checks(
     """Show the Eval deploy checks of every version, or of one."""
     args = ctx_to_args(ctx, workflow_url=workflow_url)
     _gate_call(args, lambda gates, wf: gates.get_eval_checks(wf, version_id=version_id), _eval_checks_text)
+
+
+@_approval_gate_app.command("get")
+def get_approval_gate(ctx: typer.Context, workflow_url: WorkflowArg) -> None:
+    """Show who may approve the workflow's versions."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url)
+    _gate_call(args, lambda gates, wf: gates.get_approval_gate(wf), _approval_gate_text)
+
+
+@_approval_gate_app.command("set")
+def set_approval_gate(
+    ctx: typer.Context,
+    workflow_url: WorkflowArg,
+    user: Annotated[
+        Optional[List[str]], typer.Option("--user", help="Member user ID who may approve (repeatable)")
+    ] = None,
+    role: Annotated[
+        Optional[List[str]], typer.Option("--role", help="Role ID whose members may approve (repeatable)")
+    ] = None,
+    allow_self_approval: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--self-approval/--no-self-approval",
+            help="Whether a version's author may approve it (server default: no)",
+        ),
+    ] = None,
+    expected_revision: Annotated[
+        Optional[int],
+        typer.Option("--expected-revision", help="The gate's revision as you read it; refuses the write if it changed"),
+    ] = None,
+) -> None:
+    """Set who may approve the workflow's versions; one approval is enough. A plain API key is refused."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url)
+    if not user and not role:
+        from roboflow.cli._output import output_error
+
+        output_error(args, "Name at least one approver.", hint="Pass --user USER_ID or --role ROLE_ID (repeatable).")
+        return
+    _gate_call(
+        args,
+        lambda gates, wf: gates.set_approval_gate(
+            wf,
+            user_ids=user or (),
+            roles=role or (),
+            allow_self_approval=allow_self_approval,
+            expected_revision=expected_revision,
+        ),
+        _approval_gate_text,
+    )
+
+
+@_approval_gate_app.command("remove")
+def remove_approval_gate(
+    ctx: typer.Context,
+    workflow_url: WorkflowArg,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation prompt.")] = False,
+) -> None:
+    """Remove the manual approval gate, so versions publish without approval."""
+    from roboflow.cli._output import confirm_destructive
+
+    args = ctx_to_args(ctx, workflow_url=workflow_url, yes=yes)
+    if not confirm_destructive(args, f"Remove the manual approval deploy gate from '{workflow_url}'?"):
+        return
+    _gate_call(
+        args,
+        lambda gates, wf: gates.remove_approval_gate(wf),
+        lambda _status: f"Removed the manual approval deploy gate from {workflow_url}.",
+    )
+
+
+@_approval_gate_app.command("list")
+def list_approvals(ctx: typer.Context, workflow_url: WorkflowArg) -> None:
+    """Show the approval status of every version someone decided on or was asked to review."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url)
+    _gate_call(args, lambda gates, wf: gates.list_approvals(wf), _approvals_text)
+
+
+@_approval_gate_app.command("status")
+def version_approval_status(ctx: typer.Context, workflow_url: WorkflowArg, workflow_version: VersionArg) -> None:
+    """Show who approved or rejected a version, and who may still approve it."""
+    args = ctx_to_args(ctx, workflow_url=workflow_url, version_id=workflow_version)
+    _gate_call(args, lambda gates, wf: gates.get_version_approval(wf, workflow_version), _version_approval_text)
 
 
 @workflow_app.command("delete")
@@ -753,25 +845,51 @@ def _resolve_workflow_id(args, api_key: str, workspace_url: str) -> Optional[str
     return str(workflow_id)
 
 
+def _gate_steps(workflow: str, version: str, gate_types: List[str]) -> List[str]:
+    """The CLI steps that pass the refusing gates; no gate types means the Eval gate's."""
+    run = f"roboflow workflow deploy-gates run {workflow} {version} --wait"
+    approved = (
+        "an approver approves it in the Roboflow app "
+        f"(roboflow workflow deploy-gates approval status {workflow} {version} shows who may)"
+    )
+    if "manual_approval" not in gate_types:
+        return [run]
+    if "workflow_eval" not in gate_types:
+        return [f"wait until {approved}"]
+    return [f"{run}, which also waits until {approved}"]
+
+
 def _gate_hint(args, exc) -> Optional[str]:  # noqa: ANN001
     workflow = getattr(args, "workflow_url", None) or "<workflow>"
     version = getattr(args, "version_id", None) or "<version-id>"
     definition = getattr(args, "definition", None) or "<file.json>"
+    gate_types = getattr(exc, "gate_types", [])
+    publish_steps = [
+        f"roboflow workflow version save {workflow} --definition {definition}",
+        *_gate_steps(workflow, "<version-id>", gate_types),
+        f"roboflow workflow deploy {workflow} <version-id>",
+    ]
+    pass_steps = _gate_steps(workflow, version, gate_types)
     hints = {
         "deploy_check_required": (
             "This workflow has deploy gates, so it publishes only a saved version that passed them. Run: "
-            f"roboflow workflow version save {workflow} --definition {definition}, then "
-            f"roboflow workflow deploy-gates run {workflow} <version-id> --wait, then "
-            f"roboflow workflow deploy {workflow} <version-id>."
+            + ", then ".join(publish_steps)
+            + "."
         ),
-        "deploy_check_not_passed": (
-            f"Run the version's deploy checks first: roboflow workflow deploy-gates run {workflow} {version} --wait."
-        ),
+        "deploy_check_not_passed": "Pass the version's deploy gates first: " + ", then ".join(pass_steps) + ".",
         "deploy_gate_feature_unavailable": "Deploy gates need a plan with workflow version history.",
         "deploy_gate_permission_required": "Changing deploy gates needs the Manage Workflow Deploy Gates permission.",
         "deploy_gate_invalid_eval": "The Eval cannot gate this workflow; see error.details.reason.",
         "deploy_check_local_inference_not_allowed": "Deploy checks run on the server. Set the Eval to run there.",
         "deploy_check_unavailable": "Deploy checks cannot start right now. Try again later.",
+        "deploy_gate_invalid_rules": (
+            "The approval rules cannot be set; see error.details.reason. Approvers must be workspace members "
+            "whose role grants Manage Workflows."
+        ),
+        "deploy_approval_rules_user_required": (
+            "Only a person can change who approves, and an API key is not one. Set the approval rules in the "
+            "Roboflow app, or with a credential that acts for a user."
+        ),
     }
     if exc.code in hints:
         return hints[exc.code]
@@ -962,16 +1080,90 @@ def _workflow_gates_text(data: Dict[str, Any]) -> str:
     rows = []
     for item in data.get("items") or []:
         status = item.get("status") or {}
-        evaluation = status.get("eval") or {}
-        rows.append(
-            {
-                "type": item.get("type", ""),
-                "eval": evaluation.get("name") or (status.get("gate") or {}).get("evalId", ""),
-            }
-        )
+        if item.get("type") == "manual_approval":
+            details = "approvers: " + ", ".join(row["approver"] for row in _approver_rows(status))
+        else:
+            details = "eval: " + (
+                (status.get("eval") or {}).get("name") or (status.get("gate") or {}).get("evalId", "")
+            )
+        rows.append({"type": item.get("type", ""), "details": details})
     if not rows:
         return "The workflow has no deploy gates."
-    return format_table(rows, columns=["type", "eval"], headers=["GATE", "EVAL"])
+    return format_table(rows, columns=["type", "details"], headers=["GATE", "DETAILS"])
+
+
+def _approver_rows(status: Dict[str, Any]) -> List[Dict[str, str]]:
+    """One row per approval rule, naming the member or role as the app shows it."""
+    users = {u.get("uid"): u for u in status.get("users") or []}
+    roles = {r.get("id"): r for r in status.get("roles") or []}
+    rows = []
+    for rule in (status.get("gate") or {}).get("rules") or []:
+        if rule.get("kind") == "user":
+            uid = rule.get("userId", "")
+            member = users.get(uid) or {}
+            rows.append({"kind": "user", "approver": member.get("email") or member.get("name") or uid, "id": uid})
+        else:
+            role_id = rule.get("role", "")
+            rows.append({"kind": "role", "approver": (roles.get(role_id) or {}).get("name") or role_id, "id": role_id})
+    return rows
+
+
+def _approval_gate_text(status: Dict[str, Any]) -> str:
+    from roboflow.cli._table import format_table
+
+    gate = status.get("gate")
+    if not gate:
+        return "No manual approval gate."
+    self_approval = "allowed" if gate.get("allowSelfApproval") else "not allowed"
+    lines = [
+        f"Revision: {gate.get('revision', '')} (updated {gate.get('updatedAt', '')})",
+        f"Self-approval: {self_approval}",
+        "One approval from anyone below approves a version; one rejection rejects it.",
+        "",
+        format_table(_approver_rows(status), columns=["kind", "approver", "id"], headers=["RULE", "APPROVER", "ID"]),
+    ]
+    return "\n".join(lines)
+
+
+def _version_approval_text(approval: Dict[str, Any]) -> str:
+    from roboflow.cli._table import format_table
+
+    lines = [f"Version {approval.get('versionId', '')}: {approval.get('status', '')}"]
+    if approval.get("reason"):
+        lines.append(str(approval["reason"]))
+    decisions = approval.get("decisions") or []
+    if decisions:
+        rows = [
+            {
+                "approver": (d.get("approver") or {}).get("email") or (d.get("approver") or {}).get("uid", ""),
+                "decision": d.get("decision", ""),
+                "counted": "yes" if d.get("counted") else f"no ({d.get('staleReason') or 'not eligible'})",
+                "decided": d.get("decidedAt", ""),
+                "comment": d.get("comment") or "",
+            }
+            for d in decisions
+        ]
+        lines += [
+            "",
+            format_table(
+                rows,
+                columns=["approver", "decision", "counted", "decided", "comment"],
+                headers=["APPROVER", "DECISION", "COUNTED", "DECIDED", "COMMENT"],
+            ),
+        ]
+    return "\n".join(lines)
+
+
+def _approvals_text(data: Dict[str, Any]) -> str:
+    from roboflow.cli._table import format_table
+
+    rows = [
+        {"version": a.get("versionId", ""), "status": a.get("status", ""), "reason": a.get("reason") or ""}
+        for a in data.get("items") or []
+    ]
+    if not rows:
+        return "No version has an approval decision or review request."
+    return format_table(rows, columns=["version", "status", "reason"], headers=["VERSION", "STATUS", "REASON"])
 
 
 def _save_workflow_version(args) -> None:  # noqa: ANN001
