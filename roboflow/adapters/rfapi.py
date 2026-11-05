@@ -1756,7 +1756,7 @@ def get_workflow(api_key, workspace_url, workflow_url):
         params={"api_key": api_key},
     )
     if response.status_code != 200:
-        raise RoboflowError(response.text)
+        raise RoboflowError(response.text, status_code=response.status_code)
     return response.json()
 
 
@@ -1813,6 +1813,14 @@ def update_workflow(api_key, workspace_url, *, workflow_id, workflow_name, workf
             definitions (``{"version", "inputs", "steps", "outputs"}``) are
             auto-wrapped in ``{"specification": ...}`` to match the backend's
             stored shape; see ``_normalize_workflow_config``.
+
+    Raises:
+        WorkflowDeployGateError: the workflow has deploy gates, so its config
+            cannot publish this way (``409 deploy_check_required``). Nothing was
+            saved. ``exc.next_steps`` lists the requests that publish it: save a
+            version, run its deploy checks and deploy it once they pass (see
+            ``Workspace.workflow_deploy_gates``). It is a ``RoboflowError``.
+        RoboflowError: any other failure, with ``status_code`` set.
     """
     config = _normalize_workflow_config(config)
     payload: Dict[str, str] = {
@@ -1827,7 +1835,12 @@ def update_workflow(api_key, workspace_url, *, workflow_id, workflow_name, workf
         json=payload,
     )
     if response.status_code != 200:
-        raise RoboflowError(response.text)
+        from roboflow.adapters.workflowdeploygatesapi import deploy_gate_refusal
+
+        refusal = deploy_gate_refusal(response)
+        if refusal is not None:
+            raise refusal
+        raise RoboflowError(response.text, status_code=response.status_code)
     return response.json()
 
 

@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `Workspace.workflow_deploy_gates()` returns a client for workflow deploy gates.
+  `save_version` saves a config as a version without publishing it, `run` starts
+  the version's deploy checks, `get_version` and `wait_for_version` read the
+  verdicts, and `deploy` publishes a version once it passed every gate. The
+  Workflow Eval gate is managed with `get_eval_gate`, `set_eval_gate`,
+  `update_eval_gate`, `set_eval_gate_new_check_thresholds`, `remove_eval_gate`
+  and `get_eval_checks`. Errors raise `WorkflowDeployGateError`, whose
+  `next_steps` lists what publishes the workflow.
+- `roboflow workflow version save`, `roboflow workflow deploy-gates list|run|status`,
+  `roboflow workflow deploy-gates eval get|set|update|new-check-thresholds|remove|checks`
+  and `roboflow workflow deploy`, which replaces the hidden stub. `run --wait` and
+  `status --wait` exit with code 1 when the version is not publishable.
 - `Project.autolabel(..., keypoint_confidence_threshold=0.75)` and
   `roboflow autolabel start --keypoint-confidence 0.75` set the lowest confidence
   a predicted keypoint needs to be saved as visible when a keypoint-detection
@@ -20,6 +32,15 @@ All notable changes to this project will be documented in this file.
   existing annotation of the same class (IoU of at least 0.5), so objects that
   are already labeled aren't duplicated
   ([#570](https://github.com/roboflow/roboflow-python/pull/570)).
+
+### Changed
+
+- `rfapi.update_workflow` and `roboflow workflow update` on a workflow with deploy
+  gates raise `WorkflowDeployGateError` (a `RoboflowError`) with the server's
+  `code`, `gate_types` and `next_steps`, instead of a `RoboflowError` holding the
+  raw JSON. The server saves nothing in that case: save a version, run its
+  deploy checks and deploy it. Other `update_workflow` and `get_workflow` errors
+  now carry `status_code`.
 
 ### Deprecated
 

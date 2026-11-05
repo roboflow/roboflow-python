@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Type
 from urllib.parse import quote
 
 from roboflow.adapters.rfapi import RoboflowError
@@ -78,8 +78,10 @@ class WorkflowEvalError(RoboflowError):
         return payload
 
 
-def error_from_response(response: requests.Response) -> WorkflowEvalError:
-    """Translate a non-2xx response into a :class:`WorkflowEvalError`."""
+def error_from_response(
+    response: requests.Response, error_class: Type[WorkflowEvalError] = WorkflowEvalError
+) -> WorkflowEvalError:
+    """Translate a non-2xx response into a :class:`WorkflowEvalError` (or ``error_class``)."""
     body: Any = None
     try:
         body = response.json()
@@ -87,7 +89,7 @@ def error_from_response(response: requests.Response) -> WorkflowEvalError:
         pass
     error = body.get("error") if isinstance(body, dict) else None
     if isinstance(error, dict):
-        return WorkflowEvalError(
+        return error_class(
             str(error.get("message") or error.get("code") or response.reason or "Request failed"),
             status_code=response.status_code,
             code=error.get("code"),
@@ -101,9 +103,9 @@ def error_from_response(response: requests.Response) -> WorkflowEvalError:
         )
     if isinstance(error, str):
         message = body.get("message") or error
-        return WorkflowEvalError(str(message), status_code=response.status_code, code=error, body=body)
+        return error_class(str(message), status_code=response.status_code, code=error, body=body)
     text = (response.text or "").strip() or response.reason or "Request failed"
-    return WorkflowEvalError(text, status_code=response.status_code, body=body)
+    return error_class(text, status_code=response.status_code, body=body)
 
 
 def new_idempotency_key() -> str:
