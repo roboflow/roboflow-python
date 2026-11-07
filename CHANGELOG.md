@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Support Typer's vendored Click implementation for CLI usage errors, aborts,
+  completion failures and argument ordering. Remove the Typer upper bound from
+  both full and slim requirements; test the legacy and latest Typer layouts.
+
 ### Added
 
 - `Project.autolabel(..., keypoint_confidence_threshold=0.75)` and
