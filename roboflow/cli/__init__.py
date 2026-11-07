@@ -10,7 +10,6 @@ import json
 import os
 from typing import Annotated, Any, Optional
 
-import click
 import typer
 
 import roboflow
@@ -417,15 +416,16 @@ def main() -> None:
             # Exit code 2 = Click usage error (missing arg, bad option)
             # Other codes = our output_error already printed JSON
             raise
-        except click.exceptions.UsageError as exc:
-            # Click/typer validation error — emit JSON on stderr
+        except typer.TyperException as exc:
+            # Use Typer's public exception API, including its usage-error exit code.
             import json as _json
 
-            # format_message() keeps the option name that str() drops for bad values.
-            payload = {"error": {"message": exc.format_message(), "hint": "Run with --help for usage information."}}
+            payload = {"error": {"message": exc.format_message()}}
+            if exc.exit_code == 2:
+                payload["error"]["hint"] = "Run with --help for usage information."
             print(_json.dumps(payload), file=sys.stderr)
-            sys.exit(2)
-        except click.exceptions.Abort:
+            sys.exit(exc.exit_code)
+        except typer.Abort:
             sys.exit(1)
         except Exception as exc:
             import json as _json

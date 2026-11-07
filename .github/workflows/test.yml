@@ -39,6 +39,20 @@ jobs:
       - name: 🧪 Run tests
         run: "python -m unittest"
 
+  test-typer-compat:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        typer: ["typer==0.27.2", "typer"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: pip install --upgrade ".[dev]" "${{ matrix.typer }}"
+      - run: make check_code_quality
+      - run: python -m unittest discover -s tests/cli -t .
+
   test-slim:
     runs-on: ubuntu-latest
     steps:
@@ -58,4 +72,6 @@ jobs:
           pip install -e . --no-deps
           pip install responses
       - name: 🧪 Run slim-compatible tests
-        run: "python -m unittest tests.test_slim_compat tests.test_vision_events"
+        run: >-
+          python -m unittest tests.test_slim_compat tests.test_vision_events
+          tests.cli.test_typer_integration tests.cli.test_completion_handler

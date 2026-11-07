@@ -12,7 +12,6 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import click
 from typer.testing import CliRunner
 
 from roboflow.cli import app
@@ -78,7 +77,7 @@ class TestCompletionScriptGeneration(unittest.TestCase):
         from roboflow.cli import app as rf_app
 
         click_app = typer.main.get_command(rf_app)
-        ctx = click.Context(click_app, info_name="roboflow")
+        ctx = click_app.make_context("roboflow", [], resilient_parsing=True)
         visible = {
             name
             for name in click_app.list_commands(ctx)
