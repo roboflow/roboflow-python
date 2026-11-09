@@ -12,6 +12,7 @@ weights-upload/
 A training checkpoint that wraps the weights under another key is not accepted.
 To use image-only requests in Auto Label or the Workflows Object Detection Model block, add `class_names.txt` beside the checkpoint.
 It contains unique, nonblank output labels, one per line. Class IDs follow this order. By default, these labels are also the text queries.
+If you upload without `class_names.txt`, use `workspace.deploy_model`. An upload to a dataset version requires the labels file.
 
 The exporter assumes the standard `google/owlv2-base-patch16-ensemble` model configuration, image preprocessing, and tokenizer.
 It bundles these defaults at revision `cfd3195ba4ea9592eec887ded089f4c08eff231d` and uses them offline.

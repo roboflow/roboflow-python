@@ -753,47 +753,6 @@ class PackageOwlV2Test(unittest.TestCase):
             self.assertIn("processor_config.json", archive.namelist())
         self.assertFalse((self.source / "weights.pt").exists())
 
-    def test_rejects_prompt_count_mismatch(self):
-        (self.source / "owlv2_prompts.json").write_text('["a dent"]')
-        with self.assertRaisesRegex(ModelPackagingError, "one nonblank text prompt"):
-            package_custom_weights("owlv2", str(self.source), "owlv2.pth")
-
-    def test_omits_tokenizer_for_server_default(self):
-        (self.source / "tokenizer_config.json").unlink()
-        (self.source / "tokenizer.json").unlink()
-        bundle = package_custom_weights("owlv2", str(self.source), "owlv2.pth")
-        self.addCleanup(bundle.cleanup)
-        with zipfile.ZipFile(bundle.archive_path) as archive:
-            self.assertNotIn("tokenizer_config.json", archive.namelist())
-            self.assertNotIn("tokenizer.json", archive.namelist())
-            self.assertIn("processor_config.json", archive.namelist())
-
-    def test_rejects_partial_tokenizer_overrides(self):
-        (self.source / "tokenizer_config.json").unlink()
-        (self.source / "tokenizer.json").unlink()
-        for name in ("tokenizer_config.json", "tokenizer.json", "special_tokens_map.json", "vocab.json"):
-            with self.subTest(name=name):
-                (self.source / name).write_text("{}")
-                with self.assertRaisesRegex(MissingFileError, "complete tokenizer override"):
-                    package_custom_weights("owlv2", str(self.source), "owlv2.pth")
-                (self.source / name).unlink()
-
-    def test_packages_legacy_tokenizer_override(self):
-        (self.source / "tokenizer.json").unlink()
-        (self.source / "vocab.json").write_text("{}")
-        (self.source / "merges.txt").write_text("#version: 0.2\n")
-        bundle = package_custom_weights("owlv2", str(self.source), "owlv2.pth")
-        self.addCleanup(bundle.cleanup)
-        with zipfile.ZipFile(bundle.archive_path) as archive:
-            self.assertIn("tokenizer_config.json", archive.namelist())
-            self.assertIn("vocab.json", archive.namelist())
-            self.assertIn("merges.txt", archive.namelist())
-
-    def test_rejects_duplicate_labels(self):
-        (self.source / "class_names.txt").write_text("dent\ndent\n")
-        with self.assertRaisesRegex(ModelPackagingError, "unique"):
-            package_custom_weights("owlv2", str(self.source), "owlv2.pth")
-
     def test_packages_only_weights_and_class_names(self):
         for path in self.source.iterdir():
             if path.name not in {"owlv2.pth", "class_names.txt"}:
@@ -803,11 +762,6 @@ class PackageOwlV2Test(unittest.TestCase):
         with zipfile.ZipFile(bundle.archive_path) as archive:
             self.assertEqual(set(archive.namelist()), {"weights.pt", "class_names.txt"})
 
-    def test_rejects_invalid_model_configuration_override(self):
-        (self.source / "config.json").write_text('{"model_type": "owlvit"}')
-        with self.assertRaisesRegex(ModelPackagingError, "config.json must describe an OWLv2 model"):
-            package_custom_weights("owlv2", str(self.source), "owlv2.pth")
-
     def test_packages_weights_alone_for_explicit_queries(self):
         for path in self.source.iterdir():
             if path.name != "owlv2.pth":
@@ -816,12 +770,6 @@ class PackageOwlV2Test(unittest.TestCase):
         self.addCleanup(bundle.cleanup)
         with zipfile.ZipFile(bundle.archive_path) as archive:
             self.assertEqual(archive.namelist(), ["weights.pt"])
-
-    def test_prompt_override_requires_output_labels(self):
-        (self.source / "class_names.txt").unlink()
-        (self.source / "owlv2_prompts.json").write_text('["a dent"]')
-        with self.assertRaisesRegex(MissingFileError, "class_names.txt"):
-            package_custom_weights("owlv2", str(self.source), "owlv2.pth")
 
 
 class ProcessHuggingfaceTest(unittest.TestCase):

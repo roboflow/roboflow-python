@@ -1131,62 +1131,21 @@ def _process_rfdetr(
 
 
 def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Path, str, list[str]]:
-    tokenizer_files = {
-        "tokenizer_config.json",
-        "tokenizer.json",
-        "vocab.json",
-        "merges.txt",
-        "special_tokens_map.json",
+    # The export job validates these files, because uploads can bypass the SDK.
+    optional = {
         "added_tokens.json",
-    }
-    optional = tokenizer_files | {
         "class_names.txt",
         "config.json",
+        "merges.txt",
+        "owlv2_prompts.json",
         "preprocessor_config.json",
         "processor_config.json",
-        "owlv2_prompts.json",
+        "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "vocab.json",
     }
     files = {name: _resolve_within_source(model_path, name) for name in optional}
-    if files["owlv2_prompts.json"].is_file() and not files["class_names.txt"].is_file():
-        raise MissingFileError("owlv2_prompts.json requires class_names.txt to name the output labels.")
-    if any(files[name].is_file() for name in tokenizer_files) and (
-        not files["tokenizer_config.json"].is_file()
-        or not (
-            files["tokenizer.json"].is_file() or all(files[name].is_file() for name in ("vocab.json", "merges.txt"))
-        )
-    ):
-        raise MissingFileError(
-            "Provide a complete tokenizer override: tokenizer_config.json and either tokenizer.json "
-            "or both vocab.json and merges.txt. Omit all tokenizer files to use the standard OWLv2 tokenizer."
-        )
-    try:
-        config = json.loads(files["config.json"].read_text()) if files["config.json"].is_file() else None
-        class_names = files["class_names.txt"].read_text().splitlines() if files["class_names.txt"].is_file() else None
-        prompts = (
-            json.loads(files["owlv2_prompts.json"].read_text())
-            if files["owlv2_prompts.json"].is_file()
-            else class_names
-        )
-    except (ValueError, UnicodeError) as error:
-        raise ModelPackagingError(f"Invalid OWLv2 metadata: {error}") from error
-    if files["config.json"].is_file() and (not isinstance(config, dict) or config.get("model_type") != "owlv2"):
-        raise ModelPackagingError("config.json must describe an OWLv2 model (model_type='owlv2').")
-    if class_names is not None and (
-        not class_names
-        or any(not name.strip() or name != name.strip() for name in class_names)
-        or len(set(class_names)) != len(class_names)
-    ):
-        raise ModelPackagingError(
-            "class_names.txt must contain unique, nonblank labels, one per line, without surrounding spaces."
-        )
-    if class_names is not None and (
-        not isinstance(prompts, list)
-        or len(prompts) != len(class_names)
-        or any(not isinstance(prompt, str) or not prompt.strip() for prompt in prompts)
-    ):
-        raise ModelPackagingError(
-            "owlv2_prompts.json must contain one nonblank text prompt per class, in class_names.txt order."
-        )
     weights = _resolve_within_source(model_path, filename)
     if not weights.is_file():
         raise MissingFileError(
