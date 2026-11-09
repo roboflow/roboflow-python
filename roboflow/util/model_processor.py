@@ -1131,7 +1131,6 @@ def _process_rfdetr(
 
 
 def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Path, str, list[str]]:
-    required = {"class_names.txt"}
     tokenizer_files = {
         "tokenizer_config.json",
         "tokenizer.json",
@@ -1141,17 +1140,15 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
         "added_tokens.json",
     }
     optional = tokenizer_files | {
+        "class_names.txt",
         "config.json",
         "preprocessor_config.json",
         "processor_config.json",
         "owlv2_prompts.json",
     }
-    files = {name: _resolve_within_source(model_path, name) for name in required | optional}
-    missing = sorted(name for name in required if not files[name].is_file())
-    if missing:
-        raise MissingFileError(
-            f"Missing OWLv2 upload files: {', '.join(missing)}. Provide class_names.txt with one output label per line."
-        )
+    files = {name: _resolve_within_source(model_path, name) for name in optional}
+    if files["owlv2_prompts.json"].is_file() and not files["class_names.txt"].is_file():
+        raise MissingFileError("owlv2_prompts.json requires class_names.txt to name the output labels.")
     if any(files[name].is_file() for name in tokenizer_files) and (
         not files["tokenizer_config.json"].is_file()
         or not (
@@ -1164,7 +1161,7 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
         )
     try:
         config = json.loads(files["config.json"].read_text()) if files["config.json"].is_file() else None
-        class_names = files["class_names.txt"].read_text().splitlines()
+        class_names = files["class_names.txt"].read_text().splitlines() if files["class_names.txt"].is_file() else None
         prompts = (
             json.loads(files["owlv2_prompts.json"].read_text())
             if files["owlv2_prompts.json"].is_file()
@@ -1174,7 +1171,7 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
         raise ModelPackagingError(f"Invalid OWLv2 metadata: {error}") from error
     if files["config.json"].is_file() and (not isinstance(config, dict) or config.get("model_type") != "owlv2"):
         raise ModelPackagingError("config.json must describe an OWLv2 model (model_type='owlv2').")
-    if (
+    if class_names is not None and (
         not class_names
         or any(not name.strip() or name != name.strip() for name in class_names)
         or len(set(class_names)) != len(class_names)
@@ -1182,7 +1179,7 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
         raise ModelPackagingError(
             "class_names.txt must contain unique, nonblank labels, one per line, without surrounding spaces."
         )
-    if (
+    if class_names is not None and (
         not isinstance(prompts, list)
         or len(prompts) != len(class_names)
         or any(not isinstance(prompt, str) or not prompt.strip() for prompt in prompts)
@@ -1198,7 +1195,7 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
     archive_path = build_dir / "roboflow_deploy.zip"
     _write_zip(
         archive_path,
-        [(weights, "weights.pt", True)] + [(path, name, name in required) for name, path in sorted(files.items())],
+        [(weights, "weights.pt", True)] + [(path, name, False) for name, path in sorted(files.items())],
     )
     return archive_path, "owlv2", []
 

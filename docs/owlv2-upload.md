@@ -1,18 +1,17 @@
 # Upload a custom OWLv2 model
 
 Use `model_type="owlv2"` to upload fine-tuned OWLv2 weights for Auto Label and Workflows.
-For a standard OWLv2 model, the upload folder needs only two files:
+For a standard OWLv2 model, the only required file is the checkpoint:
 
 ```text
 weights-upload/
   owlv2.pth
-  class_names.txt
 ```
 
 `owlv2.pth` must contain the complete `Owlv2ForObjectDetection.state_dict()`, including the text encoder and detection heads.
 A training checkpoint that wraps the weights under another key is not accepted.
-`class_names.txt` contains unique, nonblank output labels, one per line. Class IDs follow this order.
-The labels also become the text prompts. The weights do not impose a fixed class count.
+To use image-only requests in Auto Label or the Workflows Object Detection Model block, add `class_names.txt` beside the checkpoint.
+It contains unique, nonblank output labels, one per line. Class IDs follow this order. By default, these labels are also the text queries.
 
 The exporter assumes the standard `google/owlv2-base-patch16-ensemble` model configuration, image preprocessing, and tokenizer.
 It bundles these defaults at revision `cfd3195ba4ea9592eec887ded089f4c08eff231d` and uses them offline.
@@ -38,10 +37,21 @@ workspace.deploy_model(
 )
 ```
 
-After upload processing finishes, select the uploaded model under custom models in Auto Label.
-In Workflows, select its model ID in an Object Detection Model block.
-The saved prompts stay fixed for each model package.
-Inference reuses the existing OWLv2 implementation. Roboflow Instant embedding uploads keep their separate format and route.
+## Run local inference
+
+On a local server that supports `/v2/models/infer`, send your model ID, image, and text queries.
+Replace the model ID and image path below. The example uses the same API key as the upload.
+
+```bash
+curl 'http://localhost:9001/v2/models/infer?model_id=your-workspace/custom-owlv2' \
+  -H "Authorization: Bearer $ROBOFLOW_API_KEY" \
+  -F 'image=@field.jpg' \
+  -F 'inputs={"classes":["maize tassel","weed"]}'
+```
+
+Each class ID indexes the query list for that request. Explicit queries override any saved prompts for that call.
+If you included `class_names.txt`, omit the `inputs` field to use the saved labels, or select this model in Auto Label.
+If you uploaded only the weights, supply queries on every request.
 
 ## Custom model or preprocessing
 

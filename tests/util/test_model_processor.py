@@ -808,8 +808,18 @@ class PackageOwlV2Test(unittest.TestCase):
         with self.assertRaisesRegex(ModelPackagingError, "config.json must describe an OWLv2 model"):
             package_custom_weights("owlv2", str(self.source), "owlv2.pth")
 
-    def test_rejects_missing_class_names(self):
+    def test_packages_weights_alone_for_explicit_queries(self):
+        for path in self.source.iterdir():
+            if path.name != "owlv2.pth":
+                path.unlink()
+        bundle = package_custom_weights("owlv2", str(self.source), "owlv2.pth")
+        self.addCleanup(bundle.cleanup)
+        with zipfile.ZipFile(bundle.archive_path) as archive:
+            self.assertEqual(archive.namelist(), ["weights.pt"])
+
+    def test_prompt_override_requires_output_labels(self):
         (self.source / "class_names.txt").unlink()
+        (self.source / "owlv2_prompts.json").write_text('["a dent"]')
         with self.assertRaisesRegex(MissingFileError, "class_names.txt"):
             package_custom_weights("owlv2", str(self.source), "owlv2.pth")
 
