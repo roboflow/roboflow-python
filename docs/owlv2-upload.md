@@ -77,4 +77,5 @@ For example, labels `dent` and `scratch` can use `["a dent in a metal panel", "a
 The exporter strictly matches the weights to the selected model configuration and rejects partial or adapter-only checkpoints.
 If the weights do not match the default architecture, supply the original `config.json`.
 Weight shapes cannot identify custom resizing or normalization. Omitted image preprocessing files mean standard preprocessing.
-The SDK packages files without loading the checkpoint.
+The SDK packages files without loading the checkpoint. Before the upload, it checks only that the set of files is consistent.
+The exporter validates the contents of the files.

@@ -771,6 +771,31 @@ class PackageOwlV2Test(unittest.TestCase):
         with zipfile.ZipFile(bundle.archive_path) as archive:
             self.assertEqual(archive.namelist(), ["weights.pt"])
 
+    def test_prompt_override_requires_output_labels(self):
+        (self.source / "class_names.txt").unlink()
+        (self.source / "owlv2_prompts.json").write_text('["a dent"]')
+        with self.assertRaisesRegex(MissingFileError, "class_names.txt"):
+            package_custom_weights("owlv2", str(self.source), "owlv2.pth")
+
+    def test_rejects_partial_tokenizer_overrides(self):
+        (self.source / "tokenizer_config.json").unlink()
+        (self.source / "tokenizer.json").unlink()
+        for name in ("tokenizer_config.json", "tokenizer.json", "special_tokens_map.json", "vocab.json"):
+            with self.subTest(name=name):
+                (self.source / name).write_text("{}")
+                with self.assertRaisesRegex(MissingFileError, "complete tokenizer override"):
+                    package_custom_weights("owlv2", str(self.source), "owlv2.pth")
+                (self.source / name).unlink()
+
+    def test_packages_legacy_tokenizer_override(self):
+        (self.source / "tokenizer.json").unlink()
+        (self.source / "vocab.json").write_text("{}")
+        (self.source / "merges.txt").write_text("#version: 0.2\n")
+        bundle = package_custom_weights("owlv2", str(self.source), "owlv2.pth")
+        self.addCleanup(bundle.cleanup)
+        with zipfile.ZipFile(bundle.archive_path) as archive:
+            self.assertLessEqual({"tokenizer_config.json", "vocab.json", "merges.txt"}, set(archive.namelist()))
+
 
 class ProcessHuggingfaceTest(unittest.TestCase):
     """Packaging for HuggingFace-backed models (paligemma / florence-2)."""

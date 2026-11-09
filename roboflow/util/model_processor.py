@@ -1131,21 +1131,36 @@ def _process_rfdetr(
 
 
 def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Path, str, list[str]]:
-    # The export job validates these files, because uploads can bypass the SDK.
-    optional = {
+    tokenizer_files = {
         "added_tokens.json",
-        "class_names.txt",
-        "config.json",
         "merges.txt",
-        "owlv2_prompts.json",
-        "preprocessor_config.json",
-        "processor_config.json",
         "special_tokens_map.json",
         "tokenizer.json",
         "tokenizer_config.json",
         "vocab.json",
     }
+    optional = tokenizer_files | {
+        "class_names.txt",
+        "config.json",
+        "owlv2_prompts.json",
+        "preprocessor_config.json",
+        "processor_config.json",
+    }
     files = {name: _resolve_within_source(model_path, name) for name in optional}
+    present = {name for name, path in files.items() if path.is_file()}
+    # The export job is the authority on these files, because uploads can bypass the SDK. The SDK
+    # repeats only the file-set rules, so that a doomed upload fails here and not in a remote job
+    # after a multi-gigabyte transfer. File contents are validated by the export job alone.
+    if "owlv2_prompts.json" in present and "class_names.txt" not in present:
+        raise MissingFileError("owlv2_prompts.json requires class_names.txt to name the output labels.")
+    if present & tokenizer_files and (
+        "tokenizer_config.json" not in present
+        or not ("tokenizer.json" in present or {"vocab.json", "merges.txt"} <= present)
+    ):
+        raise MissingFileError(
+            "Provide a complete tokenizer override: tokenizer_config.json and either tokenizer.json "
+            "or both vocab.json and merges.txt. Omit all tokenizer files to use the standard OWLv2 tokenizer."
+        )
     weights = _resolve_within_source(model_path, filename)
     if not weights.is_file():
         raise MissingFileError(
