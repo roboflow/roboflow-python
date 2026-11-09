@@ -63,6 +63,7 @@ SUPPORTED_MODELS = (
     "paligemma2",
     "florence-2",
     "rfdetr",
+    "owlv2",
 )
 
 SUPPORTED_HUGGINGFACE_TYPES = (
@@ -456,7 +457,11 @@ def _process_model(
             f"It must start with a supported family: {', '.join(SUPPORTED_MODELS)}."
         )
 
-    if model_type.startswith(("paligemma", "paligemma2", "florence-2")):
+    if model_type == "owlv2":
+        return _process_owlv2(model_path, filename, build_dir)
+    elif model_type.startswith("owlv2"):
+        raise UnsupportedModelError("Use model_type='owlv2' for OWLv2 checkpoints.")
+    elif model_type.startswith(("paligemma", "paligemma2", "florence-2")):
         return _process_huggingface(model_type, model_path, build_dir)
     if model_type.startswith("yolonas"):
         return _process_yolonas(model_type, model_path, filename, build_dir)
@@ -1085,6 +1090,50 @@ def _process_rfdetr(
         ],
     )
     return archive_path, model_type, warnings
+
+
+def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Path, str, list[str]]:
+    tokenizer_files = {
+        "added_tokens.json",
+        "merges.txt",
+        "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "vocab.json",
+    }
+    optional = tokenizer_files | {
+        "class_names.txt",
+        "config.json",
+        "owlv2_prompts.json",
+        "preprocessor_config.json",
+        "processor_config.json",
+    }
+    files = {name: _resolve_within_source(model_path, name) for name in optional}
+    present = {name for name, path in files.items() if path.is_file()}
+    # The export job is the authority on these files, because uploads can bypass the SDK. The SDK
+    # repeats only the file-set rules, so that a doomed upload fails here and not in a remote job
+    # after a multi-gigabyte transfer. File contents are validated by the export job alone.
+    if "owlv2_prompts.json" in present and "class_names.txt" not in present:
+        raise MissingFileError("owlv2_prompts.json requires class_names.txt to name the output labels.")
+    if present & tokenizer_files and (
+        "tokenizer_config.json" not in present
+        or not ("tokenizer.json" in present or {"vocab.json", "merges.txt"} <= present)
+    ):
+        raise MissingFileError(
+            "Provide a complete tokenizer override: tokenizer_config.json and either tokenizer.json "
+            "or both vocab.json and merges.txt. Omit all tokenizer files to use the standard OWLv2 tokenizer."
+        )
+    weights = _resolve_within_source(model_path, filename)
+    if not weights.is_file():
+        raise MissingFileError(
+            f"OWLv2 weights file '{weights}' was not found. Set filename to the checkpoint's relative path."
+        )
+    archive_path = build_dir / "roboflow_deploy.zip"
+    _write_zip(
+        archive_path,
+        [(weights, "weights.pt", True)] + [(path, name, False) for name, path in sorted(files.items())],
+    )
+    return archive_path, "owlv2", []
 
 
 def _process_huggingface(
