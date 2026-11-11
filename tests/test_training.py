@@ -1,5 +1,7 @@
+import tempfile
 import unittest
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from roboflow.config import (
     CLASSIFICATION_MODEL,
@@ -86,6 +88,34 @@ class TestTrainedModelVideo(unittest.TestCase):
 
         self.assertEqual(result, {"frames": []})
         self.assertIs(poll.call_args.args[0], model._video_model())
+
+
+class TestTrainedModelDownload(unittest.TestCase):
+    def test_download_keeps_the_extension_of_the_served_artifact(self):
+        signed_query = "?X-Goog-Signature=abc.def"
+        cases = [
+            ("https://storage.googleapis.com/bucket/ws/models/doc/weights.pt", "weights.pt"),
+            ("https://storage.googleapis.com/bucket/ws/proj/3/best.pt", "weights.pt"),
+            ("https://storage.googleapis.com/bucket/ws/models/doc/weights.onnx", "weights.onnx"),
+            ("https://storage.googleapis.com/bucket/ws/models/doc/model.safetensors", "weights.safetensors"),
+            ("https://storage.googleapis.com/bucket/ws/models/doc/weights", "weights.pt"),
+        ]
+
+        for artifact_url, expected_filename in cases:
+            with self.subTest(artifact_url=artifact_url), tempfile.TemporaryDirectory() as location:
+                model = TrainedModel("key", "ws", "proj", "ws/model-slug", model_type="rfdetr-base")
+                response = MagicMock()
+                response.iter_content.return_value = [b"weights-bytes"]
+                weights_url = artifact_url + signed_query
+
+                with (
+                    patch("roboflow.core.training.rfapi.get_model_weights_url", return_value=weights_url),
+                    patch("roboflow.core.training.http.get", return_value=response),
+                ):
+                    out_path = model.download(location=location)
+
+                self.assertEqual(Path(out_path), Path(location) / expected_filename)
+                self.assertEqual(Path(out_path).read_bytes(), b"weights-bytes")
 
 
 class TestTrainingModels(unittest.TestCase):
