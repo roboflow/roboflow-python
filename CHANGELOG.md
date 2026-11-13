@@ -34,6 +34,14 @@ All notable changes to this project will be documented in this file.
   YOLOv10. Existing models remain available for inference, and YOLO dataset
   formats remain supported ([#572](https://github.com/roboflow/roboflow-python/pull/572)).
 
+### Fixed
+
+- Folder uploads (`upload_dataset()` and `roboflow image upload <folder>`) skip
+  a CSV with fewer than six columns, such as a table of image metadata, with a
+  warning. Before, its rows were sent as the annotation of every image they
+  named, which failed the save, even when the folder's annotation CSV also
+  listed the image ([#583](https://github.com/roboflow/roboflow-python/pull/583)).
+
 ## 1.7.3
 
 ### Added
