@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import PurePosixPath
 from typing import List
+from urllib.parse import urlparse
 
 from roboflow.adapters import rfapi
 from roboflow.config import (
@@ -159,12 +161,17 @@ class TrainedModel:
         return self._video_model().poll_until_video_results(job_id)
 
     def download(self, format="pt", location="."):
-        """Download this model's PyTorch weights to ``location/weights.pt``."""
+        """Download this model's weights to ``location`` and return the file path.
+
+        The file is ``weights`` plus the extension of the artifact that the API
+        serves: ``weights.pt`` for most models, ``weights.onnx`` for a NAS child.
+        """
         weights_url = rfapi.get_model_weights_url(
             self.__api_key, self.workspace, self.project, self._weights_id, model_format=format
         )
+        suffix = PurePosixPath(urlparse(weights_url).path).suffix or ".pt"
         os.makedirs(location, exist_ok=True)
-        out_path = os.path.join(location, "weights.pt")
+        out_path = os.path.join(location, f"weights{suffix}")
         response = http.get(weights_url, stream=True)
         response.raise_for_status()
         with open(out_path, "wb") as f:

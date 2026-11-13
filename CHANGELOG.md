@@ -34,6 +34,13 @@ All notable changes to this project will be documented in this file.
   YOLOv10. Existing models remain available for inference, and YOLO dataset
   formats remain supported ([#572](https://github.com/roboflow/roboflow-python/pull/572)).
 
+### Fixed
+
+- `TrainedModel.download()` saves the file as `weights` plus the extension of
+  the artifact that the API serves, for example `weights.onnx`. Before, it
+  always used `weights.pt`
+  ([#582](https://github.com/roboflow/roboflow-python/pull/582)).
+
 ## 1.7.3
 
 ### Added
