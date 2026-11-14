@@ -39,7 +39,7 @@ def check_key(api_key, model, notebook, num_retries=0):
             response = http.post(API_URL + "/?api_key=" + api_key)
 
             if response.status_code == 401:
-                raise RuntimeError(response.text)
+                raise rfapi.AuthenticationError(response.text, status_code=response.status_code)
 
             if response.status_code != 200:
                 # retry 5 times

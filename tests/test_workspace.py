@@ -4,9 +4,10 @@ import os
 import tempfile
 import unittest
 import zipfile
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from roboflow.core.workspace import Workspace, _zip_directory
+from roboflow.adapters.rfapi import AnnotationSaveError, ImageUploadError, RoboflowError
+from roboflow.core.workspace import Workspace, _poll_zip_status, _zip_directory
 
 
 def _make_workspace():
@@ -47,6 +48,71 @@ class TestZipDirectory(unittest.TestCase):
                 self.assertEqual(names, {"sample.jpg"})
             finally:
                 os.unlink(zip_path)
+
+
+class TestDatasetUploadResults(unittest.TestCase):
+    @patch("roboflow.util.folderparser.parsefolder", return_value={"location": "/dataset", "images": []})
+    def test_default_success_return_is_backward_compatible(self, parsefolder):
+        workspace = _make_workspace()
+        project = MagicMock(id="test-ws/project", type="object-detection")
+        with patch.object(workspace, "_get_or_create_project", return_value=(project, False)):
+            self.assertIsNone(workspace.upload_dataset("/dataset", "project"))
+
+    @patch("roboflow.util.folderparser.parsefolder")
+    def test_counts_uploaded_and_duplicate_images(self, parsefolder):
+        project = MagicMock(id="test-ws/project", type="object-detection")
+        project.upload_image.side_effect = [
+            ({"id": "new", "success": True}, 0.1, 0),
+            ({"id": "existing", "duplicate": True}, 0.1, 0),
+        ]
+        parsefolder.return_value = {
+            "location": "/dataset",
+            "images": [{"file": f"/{name}.jpg", "split": "train"} for name in ("new", "existing")],
+        }
+        workspace = _make_workspace()
+        with patch.object(workspace, "_get_or_create_project", return_value=(project, False)):
+            result = workspace.upload_dataset("/dataset", "project", num_workers=1, return_summary=True)
+        self.assertEqual(result, {"uploaded": 1, "duplicates": 1})
+
+    @patch("roboflow.util.folderparser.parsefolder")
+    def test_reports_all_failures_after_attempting_every_image(self, parsefolder):
+        project = MagicMock(id="test-ws/project", type="object-detection")
+
+        def upload_image(image_path, **kwargs):
+            if image_path.endswith("image.jpg"):
+                raise ImageUploadError("Upload rejected")
+            if image_path.endswith("unexpected.jpg"):
+                raise ValueError("Invalid image")
+            return {"id": image_path, "success": True}, 0.1, 0
+
+        project.upload_image.side_effect = upload_image
+        project.save_annotation.side_effect = AnnotationSaveError("Annotation rejected")
+        parsefolder.return_value = {
+            "location": "/dataset",
+            "images": [
+                {"file": "/image.jpg", "split": "train"},
+                {"file": "/annotation.jpg", "split": "train", "annotationfile": {"file": "/annotation.xml"}},
+                {"file": "/unexpected.jpg", "split": "train"},
+                {"file": "/ok.jpg", "split": "train"},
+            ],
+        }
+        workspace = _make_workspace()
+        with patch.object(workspace, "_get_or_create_project", return_value=(project, False)):
+            with self.assertRaisesRegex(RoboflowError, "failed for 3 of 4 images") as raised:
+                workspace.upload_dataset("/dataset", "project", num_workers=2)
+        self.assertEqual(project.upload_image.call_count, 4)
+        for message in (
+            "image.jpg: Upload rejected",
+            "annotation.jpg: annotations: Annotation rejected",
+            "unexpected.jpg: Invalid image",
+        ):
+            self.assertIn(message, str(raised.exception))
+
+    @patch("roboflow.adapters.rfapi.get_zip_upload_status")
+    def test_failed_zip_processing_raises(self, get_status):
+        get_status.return_value = {"status": "failed", "error": "Invalid annotations"}
+        with self.assertRaisesRegex(RoboflowError, "task_id=task-1.*Invalid annotations"):
+            _poll_zip_status("key", "workspace", "task-1", 0, 10)
 
 
 class TestWorkspaceAsyncTasks(unittest.TestCase):

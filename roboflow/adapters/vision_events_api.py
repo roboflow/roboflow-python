@@ -8,8 +8,6 @@ from roboflow.adapters.rfapi import RoboflowError
 from roboflow.config import API_URL
 from roboflow.util import http
 
-_BASE = f"{API_URL}/vision-events"
-
 
 def _auth_headers(api_key: str) -> Dict[str, str]:
     return {"Authorization": f"Bearer {api_key}"}
@@ -28,7 +26,7 @@ def write_event(api_key: str, event: Dict[str, Any]) -> dict:
     Raises:
         RoboflowError: On non-201 response status codes.
     """
-    response = http.post(_BASE, json=event, headers=_auth_headers(api_key))
+    response = http.post(f"{API_URL}/vision-events", json=event, headers=_auth_headers(api_key))
     if response.status_code != 201:
         raise RoboflowError(response.text)
     return response.json()
@@ -48,7 +46,7 @@ def write_batch(api_key: str, events: List[Dict[str, Any]]) -> dict:
         RoboflowError: On non-201 response status codes.
     """
     response = http.post(
-        f"{_BASE}/batch",
+        f"{API_URL}/vision-events/batch",
         json={"events": events},
         headers=_auth_headers(api_key),
     )
@@ -73,7 +71,7 @@ def query(api_key: str, query_params: Dict[str, Any]) -> dict:
         RoboflowError: On non-200 response status codes.
     """
     response = http.post(
-        f"{_BASE}/query",
+        f"{API_URL}/vision-events/query",
         json=query_params,
         headers=_auth_headers(api_key),
     )
@@ -99,7 +97,7 @@ def list_use_cases(api_key: str, status: Optional[str] = None) -> dict:
     if status is not None:
         params["status"] = status
     response = http.get(
-        f"{_BASE}/use-cases",
+        f"{API_URL}/vision-events/use-cases",
         params=params,
         headers=_auth_headers(api_key),
     )
@@ -122,7 +120,7 @@ def get_custom_metadata_schema(api_key: str, use_case_id: str) -> dict:
         RoboflowError: On non-200 response status codes.
     """
     response = http.get(
-        f"{_BASE}/custom-metadata-schema/{use_case_id}",
+        f"{API_URL}/vision-events/custom-metadata-schema/{use_case_id}",
         headers=_auth_headers(api_key),
     )
     if response.status_code != 200:
@@ -144,7 +142,7 @@ def create_use_case(api_key: str, name: str) -> dict:
         RoboflowError: On non-201 response status codes.
     """
     response = http.post(
-        f"{_BASE}/use-cases",
+        f"{API_URL}/vision-events/use-cases",
         json={"name": name},
         headers=_auth_headers(api_key),
     )
@@ -168,7 +166,7 @@ def rename_use_case(api_key: str, use_case_id: str, name: str) -> dict:
         RoboflowError: On non-200 response status codes.
     """
     response = http.put(
-        f"{_BASE}/use-cases/{use_case_id}",
+        f"{API_URL}/vision-events/use-cases/{use_case_id}",
         json={"name": name},
         headers=_auth_headers(api_key),
     )
@@ -191,7 +189,7 @@ def archive_use_case(api_key: str, use_case_id: str) -> dict:
         RoboflowError: On non-200 response status codes.
     """
     response = http.post(
-        f"{_BASE}/use-cases/{use_case_id}/archive",
+        f"{API_URL}/vision-events/use-cases/{use_case_id}/archive",
         headers=_auth_headers(api_key),
     )
     if response.status_code != 200:
@@ -213,7 +211,7 @@ def unarchive_use_case(api_key: str, use_case_id: str) -> dict:
         RoboflowError: On non-200 response status codes.
     """
     response = http.post(
-        f"{_BASE}/use-cases/{use_case_id}/unarchive",
+        f"{API_URL}/vision-events/use-cases/{use_case_id}/unarchive",
         headers=_auth_headers(api_key),
     )
     if response.status_code != 200:
@@ -253,7 +251,7 @@ def upload_image(
         m = MultipartEncoder(fields=fields)
         headers = _auth_headers(api_key)
         headers["Content-Type"] = m.content_type
-        response = http.post(f"{_BASE}/upload", data=m, headers=headers)
+        response = http.post(f"{API_URL}/vision-events/upload", data=m, headers=headers)
 
     if response.status_code != 201:
         raise RoboflowError(response.text)

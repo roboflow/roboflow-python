@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Dataset, weight, and search export downloads use buffered 64 KiB writes with
+  byte-based progress, handle missing or invalid Content-Length headers, and detect
+  truncated responses with both current urllib3 and supported urllib3 1.x versions.
+- Local video inference uploads stream from the file instead of loading the entire video into memory.
+- `Version.train()` raises on failed training instead of returning a model, including
+  when stale results from an earlier run are present.
+- Vision Events requests follow region and environment changes made after SDK import.
+- Weight downloads reject HTTP errors and replace existing weights only after the
+  complete response has been written successfully.
+- Dataset downloads reuse a directory only after download, extraction, and YAML
+  processing have completed for the same version, format, and API endpoint. Interrupted
+  SDK downloads can be retried; other non-empty directories require `overwrite=True`.
+- Dataset and model uploads propagate failures to SDK and CLI callers. Directory
+  uploads expose actual counts with `return_summary=True`, preserving the default
+  `None` result. CLI model uploads reject packaging mismatches without prompting,
+  and CLI upload output stays valid JSON without buffering SDK logs in memory.
+  Directory and model upload commands preserve HTTP status codes to distinguish
+  authentication, missing resources, and other failures.
+- COCO imports resolve image paths relative to their annotation file, keeping
+  identically named images in different splits separate and rejecting ambiguous matches.
+- Object detection preserves response coordinates when the input image was not
+  resized, and rescales boxes using the actual dimensions sent to inference.
+
 ### Added
 
 - `Project.autolabel(..., keypoint_confidence_threshold=0.75)` and
