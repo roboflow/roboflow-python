@@ -1059,13 +1059,18 @@ def init_zip_upload(
     return response.json()
 
 
-def upload_zip_to_signed_url(signed_url, zip_path) -> None:
-    """PUT the zip file to the GCS signed URL returned by init_zip_upload."""
+def upload_zip_to_signed_url(signed_url, zip_path, required_headers=None) -> None:
+    """PUT the zip file to the signed URL returned by init_zip_upload.
+
+    ``required_headers`` is the ``requiredHeaders`` map init_zip_upload returns
+    beside the URL. A signed URL may only validate with them: an Azure Blob SAS
+    needs ``x-ms-blob-type`` and, when it is create-only, ``If-None-Match``.
+    """
     with open(zip_path, "rb") as fh:
         response = http.put(
             signed_url,
             data=fh,
-            headers={"Content-Type": "application/zip"},
+            headers={"Content-Type": "application/zip", **(required_headers or {})},
             timeout=(60, 3600),
         )
     if not response.ok:
