@@ -515,8 +515,54 @@ class TestUpdateWorkflow(unittest.TestCase):
         from roboflow.adapters.rfapi import RoboflowError, update_workflow
 
         mock_post.return_value = MagicMock(status_code=500, text="Server error")
-        with self.assertRaises(RoboflowError):
+        with self.assertRaises(RoboflowError) as ctx:
             update_workflow("key", "ws", workflow_id="id-1", workflow_name="WF1", workflow_url="wf1", config="{}")
+        self.assertEqual(ctx.exception.status_code, 500)
+        self.assertEqual(str(ctx.exception), "Server error")
+
+    @patch("roboflow.util.http.requests.post")
+    def test_gated_workflow_raises_the_deploy_gate_refusal(self, mock_post):
+        from roboflow.adapters.rfapi import RoboflowError, update_workflow
+        from roboflow.adapters.workflowdeploygatesapi import WorkflowDeployGateError
+
+        next_steps = [
+            {"action": "save_version", "method": "POST", "path": "/workspaces/ws/workflows/id-1/versions"},
+            {
+                "action": "deploy_version",
+                "method": "POST",
+                "path": "/workspaces/ws/workflows/id-1/versions/{versionId}/deploy",
+            },
+        ]
+        body = {
+            "error": {
+                "message": "This workflow has deploy gates, so updateWorkflow cannot publish its config.",
+                "status": 409,
+                "code": "deploy_check_required",
+                "details": {"gateTypes": ["workflow_eval"], "nextSteps": next_steps},
+            }
+        }
+        mock_post.return_value = MagicMock(status_code=409, json=lambda: body, text=json.dumps(body))
+        with self.assertRaises(WorkflowDeployGateError) as ctx:
+            update_workflow("key", "ws", workflow_id="id-1", workflow_name="WF1", workflow_url="wf1", config="{}")
+        error = ctx.exception
+        self.assertIsInstance(error, RoboflowError)
+        self.assertEqual(error.status_code, 409)
+        self.assertEqual(error.code, "deploy_check_required")
+        self.assertEqual(str(error), body["error"]["message"])
+        self.assertEqual(error.gate_types, ["workflow_eval"])
+        self.assertEqual(error.next_steps, next_steps)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_other_409s_stay_plain_errors(self, mock_post):
+        from roboflow.adapters.rfapi import RoboflowError, update_workflow
+        from roboflow.adapters.workflowdeploygatesapi import WorkflowDeployGateError
+
+        body = {"error": {"message": "Name taken", "code": "CONFLICT"}}
+        mock_post.return_value = MagicMock(status_code=409, json=lambda: body, text=json.dumps(body))
+        with self.assertRaises(RoboflowError) as ctx:
+            update_workflow("key", "ws", workflow_id="id-1", workflow_name="WF1", workflow_url="wf1", config="{}")
+        self.assertNotIsInstance(ctx.exception, WorkflowDeployGateError)
+        self.assertEqual(str(ctx.exception), json.dumps(body))
 
 
 class TestListWorkflowVersions(unittest.TestCase):
