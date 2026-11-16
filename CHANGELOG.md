@@ -36,6 +36,10 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- `TrainedModel.download()` saves the file as `weights` plus the extension of
+  the artifact that the API serves, for example `weights.onnx`. Before, it
+  always used `weights.pt`
+  ([#582](https://github.com/roboflow/roboflow-python/pull/582)).
 - Folder uploads (`upload_dataset()` and `roboflow image upload <folder>`) skip
   a CSV with fewer than six columns, such as a table of image metadata, with a
   warning. Before, its rows were sent as the annotation of every image they
