@@ -77,8 +77,9 @@ class TestTrainStart(unittest.TestCase):
         self.assertEqual(result["project"], "my-project")
         self.assertEqual(result["version"], 1)
 
+    @patch("roboflow.adapters.rfapi.get_version", return_value={"version": {"exports": ["yolov5pytorch"]}})
     @patch("roboflow.adapters.rfapi.start_version_training")
-    def test_start_with_all_options(self, mock_train: MagicMock) -> None:
+    def test_start_with_all_options(self, mock_train: MagicMock, mock_version: MagicMock) -> None:
         from roboflow.cli.handlers.train import _start
 
         mock_train.return_value = True
@@ -98,6 +99,7 @@ class TestTrainStart(unittest.TestCase):
         finally:
             sys.stdout = old_stdout
 
+        mock_version.assert_called_once_with("test-key", "test-ws", "my-project", "1")
         mock_train.assert_called_once_with(
             "test-key",
             "test-ws",

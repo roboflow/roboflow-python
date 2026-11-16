@@ -311,42 +311,38 @@ def _get_model(args):  # noqa: ANN001
 
 def _upload_model(args):  # noqa: ANN001
     import roboflow
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import output, output_api_error, output_error, suppress_sdk_output
+    from roboflow.config import load_roboflow_api_key
 
-    api_key = args.api_key or None
-    rf = roboflow.Roboflow(api_key=api_key)
-    workspace = rf.workspace(args.workspace)
+    if not args.project:
+        output_error(args, "At least one project is required.", hint="Use -p/--project.")
+        return
 
-    if args.version_number is not None:
-        # Deploy to a specific version
-        project_id = args.project[0] if isinstance(args.project, list) else args.project
-        if not project_id:
-            output_error(args, "Project is required for model upload.", hint="Use -p/--project.")
-            return
+    api_key = args.api_key or load_roboflow_api_key(args.workspace)
+    if not api_key:
+        output_error(args, "No API key found", hint="Set ROBOFLOW_API_KEY or run 'roboflow auth login'", exit_code=2)
+        return
 
-        try:
-            project = workspace.project(project_id)
-            version = project.version(args.version_number)
-            version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
-        except Exception as exc:
-            output_error(args, str(exc))
-            return
-    else:
-        # Deploy to multiple projects
-        if not args.project:
-            output_error(args, "At least one project is required.", hint="Use -p/--project.")
-            return
-
-        try:
-            workspace.deploy_model(
-                model_type=str(args.model_type),
-                model_path=str(args.model_path),
-                project_ids=args.project,
-                model_name=str(args.model_name) if args.model_name else "",
-                filename=str(args.filename),
-            )
-        except Exception as exc:
-            output_error(args, str(exc))
-            return
+    try:
+        with suppress_sdk_output():
+            rf = roboflow.Roboflow(api_key=api_key)
+            workspace = rf.workspace(args.workspace)
+            if args.version_number is not None:
+                project_id = args.project[0] if isinstance(args.project, list) else args.project
+                project = workspace.project(project_id)
+                version = project.version(args.version_number)
+                version.deploy(str(args.model_type), str(args.model_path), str(args.filename), interactive=False)
+            else:
+                workspace.deploy_model(
+                    model_type=str(args.model_type),
+                    model_path=str(args.model_path),
+                    project_ids=args.project,
+                    model_name=str(args.model_name) if args.model_name else "",
+                    filename=str(args.filename),
+                    interactive=False,
+                )
+    except Exception as exc:
+        output_api_error(args, exc, hint="Check the model files and project permissions, then retry.")
+        return
 
     output(args, {"status": "uploaded"}, text="Model uploaded successfully.")

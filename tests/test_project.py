@@ -588,7 +588,8 @@ class TestProject(RoboflowTest):
             try:
                 params = {"dataset_path": "/test/dataset", "project_name": PROJECT_NAME}
                 params.update(case.get("params", {}))
-                self.workspace.upload_dataset(**params)
+                with self.assertRaisesRegex(RoboflowError, "failed for 1 of 1 images"):
+                    self.workspace.upload_dataset(**params)
             finally:
                 for mock in mocks.values():
                     mock.stop()
