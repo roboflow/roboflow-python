@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Changed
+
+- Migrate CLI error handling to Typer's public exception API, preserving JSON
+  usage errors, aborts, completion failures and argument ordering. Require
+  Typer >=0.27.2 in both full and slim installs and remove the external Click
+  dependency; test the minimum and latest Typer releases. This raises the
+  previous minimum from 0.12.0 to use the supported exception API.
+
 ### Added
 
 - `Project.autolabel(..., keypoint_confidence_threshold=0.75)` and
