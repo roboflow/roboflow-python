@@ -6,7 +6,7 @@ import json
 import os
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from typer.testing import CliRunner
 
@@ -272,7 +272,7 @@ class TestWorkflowEvalCommands(unittest.TestCase):
         result = _invoke("--json", "workflow-eval", "run", "start", "-e", "e1", "--body", body, "--wait")
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(json.loads(result.output)["state"], "completed")
-        mock_wait.assert_called_once_with("e1", "r1", timeout=3600, interval=5)
+        mock_wait.assert_called_once_with("e1", "r1", timeout=0, interval=5, on_poll=ANY)
 
     @patch(f"{CLIENT}.list_case_results")
     def test_execution_results_filters(self, mock_results) -> None:
@@ -339,6 +339,83 @@ class TestWorkflowEvalCommands(unittest.TestCase):
         result = _invoke("--json", "workflow-eval", "spec", "ai-draft", "-e", "e1", "-i", "be strict")
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(mock_draft.call_args.args, ("e1", "be strict"))
+
+
+class TestWorkflowEvalRunWait(unittest.TestCase):
+    """``run get/start --wait`` with a fake clock: ``sleep`` advances ``monotonic``."""
+
+    def _wait(self, *argv: str, runs: list, interval: str = "3600", timeout: str | None = None, admission=None):
+        clock = [0.0]
+
+        def sleep(seconds: float) -> None:
+            clock[0] += seconds
+
+        with (
+            patch(f"{CLIENT}.get_run", side_effect=runs) as get_run,
+            patch("time.monotonic", side_effect=lambda: clock[0]),
+            patch("time.sleep", side_effect=sleep),
+            patch(f"{CLIENT}.start_run", return_value=admission),
+        ):
+            if admission is None:
+                command = ["workflow-eval", "run", "get", "r1", "-e", "e1"]
+            else:
+                command = ["workflow-eval", "run", "start", "-e", "e1", "--body", '{"executions": []}']
+            command += ["--wait", "--interval", interval, *(["--timeout", timeout] if timeout else [])]
+            result = _invoke(*argv, *command)
+        return result, get_run.call_count
+
+    @staticmethod
+    def _runs(mode: str, polls: int, **extra) -> list:
+        running = {"id": "r1", "state": "running", "executionMode": mode, "selectedCaseCount": 100, **extra}
+        return [running] * polls + [{"id": "r1", "state": "completed", "executionMode": mode}]
+
+    def test_browser_run_without_timeout_waits_past_the_old_limit(self) -> None:
+        result, polls = self._wait("--json", runs=self._runs("browser", 4))
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(json.loads(result.stdout)["state"], "completed")
+        self.assertEqual(polls, 5)
+
+    def test_server_run_without_timeout_keeps_3600(self) -> None:
+        result, polls = self._wait("--json", runs=self._runs("server", 4))
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn("still running after 3600s", result.stderr)
+        self.assertEqual(polls, 2)
+
+    def test_timeout_zero_waits_without_limit(self) -> None:
+        result, polls = self._wait("--json", runs=self._runs("server", 4), timeout="0")
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(polls, 5)
+
+    def test_explicit_timeout_applies_to_browser_runs(self) -> None:
+        result, _ = self._wait("--json", runs=self._runs("browser", 4), interval="30", timeout="60")
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn("still running after 60s", result.stderr)
+
+    def test_run_start_uses_the_admission_execution_mode(self) -> None:
+        admission = {"run": {"id": "r1", "state": "queued"}, "executionMode": "browser"}
+        runs = self._runs("", 4)  # polled Runs lack executionMode: the admission decides
+        result, polls = self._wait("--json", runs=runs, admission=admission)
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(polls, 5)
+
+    def test_progress_is_throttled_to_one_line_every_10s(self) -> None:
+        runs = self._runs("browser", 25, childStateCounts={"running": 1}, lastActivityAt="2026-10-22T10:00:00Z")
+        result, _ = self._wait(runs=runs, interval="1")
+        self.assertEqual(result.exit_code, 0, result.output)
+        lines = [line for line in result.stderr.splitlines() if line.startswith("Run r1")]
+        self.assertEqual(len(lines), 3)  # t = 0, 10, 20
+        self.assertEqual(
+            lines[0], "Run r1 · running · 100 cases · executions running 1 · last activity 2026-10-22T10:00:00Z"
+        )
+
+    def test_progress_is_suppressed_with_json_and_quiet(self) -> None:
+        for flag in ("--json", "--quiet"):
+            with self.subTest(flag=flag):
+                result, _ = self._wait(flag, runs=self._runs("browser", 25), interval="1")
+                self.assertEqual(result.exit_code, 0, result.output)
+                self.assertNotIn("Run r1 ·", result.stderr)
+                if flag == "--json":
+                    self.assertEqual(json.loads(result.stdout)["state"], "completed")
 
 
 if __name__ == "__main__":
