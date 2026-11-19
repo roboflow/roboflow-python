@@ -1,6 +1,6 @@
 # Upload a custom OWLv2 model
 
-For a standard OWLv2 upload, you only need one file, `weights-upload/owlv2.pth`. You supply text prompts at inference time.
+After you fine-tune OWLv2 in your own environment, upload the weights to Roboflow. You supply text prompts at inference time.
 
 ## Save the checkpoint
 
@@ -17,7 +17,7 @@ torch.save(model.state_dict(), upload_dir / "owlv2.pth")
 
 The exporter assumes the standard `google/owlv2-base-patch16-ensemble` model configuration, image preprocessing, and tokenizer.
 It bundles these defaults at revision `cfd3195ba4ea9592eec887ded089f4c08eff231d` and uses them offline.
-Fine-tuning the weights does not require additional files if those components stay unchanged.
+If your model uses these defaults, upload only `weights-upload/owlv2.pth`.
 The exporter saves the resolved configuration and processor in the inference package.
 
 ## Upload
@@ -57,7 +57,7 @@ Each class ID indexes the query list for that request. You can change the querie
 
 ## Custom model or preprocessing
 
-If training changed a component, place its override files beside the weights.
+If your model uses a different configuration, image processor, or tokenizer, place its files beside the weights.
 Each supplied component takes precedence over its default.
 
 | Optional files | When to supply them |
