@@ -1,16 +1,48 @@
 # Upload a custom OWLv2 model
 
-Use `model_type="owlv2"` to upload fine-tuned OWLv2 weights for text-prompted object detection.
-For a standard OWLv2 model, the only required file is the checkpoint:
+For a standard OWLv2 upload, you only need one file, `weights-upload/owlv2.pth`. You supply text prompts at inference time.
 
-```text
-weights-upload/
-  owlv2.pth
+## Save the checkpoint
+
+In your training notebook, use the fine-tuned Hugging Face `Owlv2ForObjectDetection` instance as `model`.
+If you saved a Hugging Face model folder, first load your fine-tuned model from that folder:
+
+```python
+from transformers import Owlv2ForObjectDetection
+
+model = Owlv2ForObjectDetection.from_pretrained("path/to/your/fine-tuned-model")
 ```
 
-`owlv2.pth` must contain the complete `Owlv2ForObjectDetection.state_dict()`, including the text encoder and detection heads.
-A training checkpoint that wraps the weights under another key is not accepted.
-Use `workspace.deploy_model` to register the model in your workspace. Supply text queries when you run it.
+Save the weights:
+
+```python
+from pathlib import Path
+import torch
+
+upload_dir = Path("weights-upload")
+upload_dir.mkdir(exist_ok=True)
+torch.save(model.state_dict(), upload_dir / "owlv2.pth")
+```
+
+The file contains a PyTorch dictionary. Each key is a model parameter or buffer name, and each value is its tensor.
+Save the complete detector, including the vision encoder, text encoder, and detection heads, even if you froze some layers during training.
+If your training code already saved `torch.save(model.state_dict(), ...)`, copy that file to `weights-upload/owlv2.pth`.
+
+If your training checkpoint also contains the optimizer or epoch, extract the model weights first.
+For example, if your training code saved `{"model_state_dict": model.state_dict(), ...}`, use the following conversion.
+Replace `model_state_dict` with the key your training code wrote.
+
+```python
+from pathlib import Path
+import torch
+
+checkpoint = torch.load("training_checkpoint.pth", map_location="cpu", weights_only=True)
+upload_dir = Path("weights-upload")
+upload_dir.mkdir(exist_ok=True)
+torch.save(checkpoint["model_state_dict"], upload_dir / "owlv2.pth")
+```
+
+An adapter or detection head alone omits weights that the exporter needs.
 
 The exporter assumes the standard `google/owlv2-base-patch16-ensemble` model configuration, image preprocessing, and tokenizer.
 It bundles these defaults at revision `cfd3195ba4ea9592eec887ded089f4c08eff231d` and uses them offline.
