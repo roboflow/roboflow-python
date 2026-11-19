@@ -12,6 +12,31 @@ thisdir = dirname(abspath(__file__))
 
 
 class TestFolderParser(unittest.TestCase):
+    def test_parse_coco_with_optional_metadata(self):
+        image = {"id": 1, "file_name": "image.jpg", "width": 10, "height": 10}
+        annotation = {"id": 1, "image_id": 1, "category_id": 1, "bbox": [0, 0, 2, 2], "area": 4, "iscrowd": 0}
+        categories = [{"id": 1, "name": "cat"}]
+        for metadata in (
+            {},
+            {"info": {"description": "example"}},
+            {"licenses": [{"id": 1, "name": "example"}]},
+            {"info": {"description": "example"}, "licenses": [{"id": 1, "name": "example"}]},
+        ):
+            with self.subTest(metadata=metadata), tempfile.TemporaryDirectory() as tmpdir:
+                open(os.path.join(tmpdir, "image.jpg"), "wb").close()
+                document = dict(metadata, images=[image], annotations=[annotation], categories=categories)
+                with open(os.path.join(tmpdir, "_annotations.coco.json"), "w") as f:
+                    json.dump(document, f)
+
+                parsed = folderparser.parsefolder(tmpdir)
+
+                result = json.loads(parsed["images"][0]["annotationfile"]["rawText"])
+                self.assertEqual(result["images"], [image])
+                self.assertEqual(result["annotations"], [annotation])
+                self.assertEqual(result["categories"], categories)
+                self.assertEqual(result["info"], metadata.get("info", {}))
+                self.assertEqual(result["licenses"], metadata.get("licenses", []))
+
     def test_parse_chess(self):
         chessfolder = f"{thisdir}/../datasets/chess"
         parsed = folderparser.parsefolder(chessfolder)
