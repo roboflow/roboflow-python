@@ -15,13 +15,6 @@ upload_dir.mkdir(exist_ok=True)
 torch.save(model.state_dict(), upload_dir / "owlv2.pth")
 ```
 
-For a wrapped checkpoint, replace the `torch.save` line above with these lines. Use the key from training.
-
-```python
-checkpoint = torch.load("training_checkpoint.pth", map_location="cpu", weights_only=True)
-torch.save(checkpoint["model_state_dict"], upload_dir / "owlv2.pth")
-```
-
 The exporter assumes the standard `google/owlv2-base-patch16-ensemble` model configuration, image preprocessing, and tokenizer.
 It bundles these defaults at revision `cfd3195ba4ea9592eec887ded089f4c08eff231d` and uses them offline.
 Fine-tuning the weights does not require additional files if those components stay unchanged.
@@ -78,7 +71,6 @@ Include additional tokenizer files that the original processor saved, such as `a
 Partial tokenizer overrides produce an error. They are never mixed with the default tokenizer.
 You can save a complete processor override with `processor.save_pretrained(folder)`.
 
-The exporter strictly matches the weights to the selected model configuration and rejects partial or adapter-only checkpoints.
 If the weights do not match the default architecture, supply the original `config.json`.
 Weight shapes cannot identify custom resizing or normalization. Omitted image preprocessing files mean standard preprocessing.
 The SDK packages files without loading the checkpoint. Before the upload, it checks only that the set of files is consistent.
