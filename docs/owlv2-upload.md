@@ -4,16 +4,7 @@ For a standard OWLv2 upload, you only need one file, `weights-upload/owlv2.pth`.
 
 ## Save the checkpoint
 
-In your training notebook, use the fine-tuned Hugging Face `Owlv2ForObjectDetection` instance as `model`.
-If you saved a Hugging Face model folder, first load your fine-tuned model from that folder:
-
-```python
-from transformers import Owlv2ForObjectDetection
-
-model = Owlv2ForObjectDetection.from_pretrained("path/to/your/fine-tuned-model")
-```
-
-Save the weights:
+Upload the full `Owlv2ForObjectDetection.state_dict()`. If you used `save_pretrained`, load the fine-tuned folder with `Owlv2ForObjectDetection.from_pretrained` first.
 
 ```python
 from pathlib import Path
@@ -24,25 +15,12 @@ upload_dir.mkdir(exist_ok=True)
 torch.save(model.state_dict(), upload_dir / "owlv2.pth")
 ```
 
-The file contains a PyTorch dictionary. Each key is a model parameter or buffer name, and each value is its tensor.
-Save the complete detector, including the vision encoder, text encoder, and detection heads, even if you froze some layers during training.
-If your training code already saved `torch.save(model.state_dict(), ...)`, copy that file to `weights-upload/owlv2.pth`.
-
-If your training checkpoint also contains the optimizer or epoch, extract the model weights first.
-For example, if your training code saved `{"model_state_dict": model.state_dict(), ...}`, use the following conversion.
-Replace `model_state_dict` with the key your training code wrote.
+For a wrapped checkpoint, replace the `torch.save` line above with these lines. Use the key from training.
 
 ```python
-from pathlib import Path
-import torch
-
 checkpoint = torch.load("training_checkpoint.pth", map_location="cpu", weights_only=True)
-upload_dir = Path("weights-upload")
-upload_dir.mkdir(exist_ok=True)
 torch.save(checkpoint["model_state_dict"], upload_dir / "owlv2.pth")
 ```
-
-An adapter or detection head alone omits weights that the exporter needs.
 
 The exporter assumes the standard `google/owlv2-base-patch16-ensemble` model configuration, image preprocessing, and tokenizer.
 It bundles these defaults at revision `cfd3195ba4ea9592eec887ded089f4c08eff231d` and uses them offline.
