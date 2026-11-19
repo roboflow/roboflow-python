@@ -40,6 +40,12 @@ workspace.deploy_model(
 ```
 
 In AutoLabel, select the uploaded workspace model and enter the project class names and optional visual descriptions. Preview the predictions, then start the labeling job.
+Each description is one text prompt. A prompt can have at most 16 tokens, which includes the start and end tokens. A longer prompt returns an error that names the prompt.
+
+## Use the model in a Workflow
+
+Add the **OWLv2 Model** block (`roboflow_core/owlv2_model@v1`). Set `model_id` to `your-workspace/custom-owlv2` and `class_names` to your text prompts.
+The block returns bounding boxes. To get masks, connect its `predictions` output to a Segment Anything block.
 
 ## Run local inference
 
@@ -72,5 +78,6 @@ Partial tokenizer overrides produce an error. They are never mixed with the defa
 You can save a complete processor override with `processor.save_pretrained(folder)`.
 
 Weight shapes cannot identify custom resizing or normalization. Omitted image preprocessing files mean standard preprocessing.
+The image preprocessing size must equal the `image_size` in the model configuration. If the sizes are different, the export fails with an error.
 The SDK packages files without loading the checkpoint. Before the upload, it checks only that the set of files is consistent.
 The exporter validates the contents of the files.

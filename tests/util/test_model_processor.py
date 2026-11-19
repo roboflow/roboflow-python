@@ -733,7 +733,7 @@ class PackageOwlV2Test(unittest.TestCase):
             "processor_config.json": "{}",
             "tokenizer_config.json": "{}",
             "tokenizer.json": "{}",
-            "class_names.txt": "dent\nscratch\n",
+            "training_notes.txt": "not part of the model",
             "owlv2.pth": "checkpoint",
         }.items():
             (self.source / name).write_text(contents)
@@ -744,7 +744,7 @@ class PackageOwlV2Test(unittest.TestCase):
         self.addCleanup(bundle.cleanup)
         with zipfile.ZipFile(bundle.archive_path) as archive:
             self.assertEqual(archive.read("weights.pt"), b"checkpoint")
-            self.assertNotIn("class_names.txt", archive.namelist())
+            self.assertNotIn("training_notes.txt", archive.namelist())
             self.assertIn("processor_config.json", archive.namelist())
         self.assertFalse((self.source / "weights.pt").exists())
 
