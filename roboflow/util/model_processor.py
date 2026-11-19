@@ -1140,9 +1140,7 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
         "vocab.json",
     }
     optional = tokenizer_files | {
-        "class_names.txt",
         "config.json",
-        "owlv2_prompts.json",
         "preprocessor_config.json",
         "processor_config.json",
     }
@@ -1151,8 +1149,6 @@ def _process_owlv2(model_path: Path, filename: str, build_dir: Path) -> tuple[Pa
     # The export job is the authority on these files, because uploads can bypass the SDK. The SDK
     # repeats only the file-set rules, so that a doomed upload fails here and not in a remote job
     # after a multi-gigabyte transfer. File contents are validated by the export job alone.
-    if "owlv2_prompts.json" in present and "class_names.txt" not in present:
-        raise MissingFileError("owlv2_prompts.json requires class_names.txt to name the output labels.")
     if present & tokenizer_files and (
         "tokenizer_config.json" not in present
         or not ("tokenizer.json" in present or {"vocab.json", "merges.txt"} <= present)

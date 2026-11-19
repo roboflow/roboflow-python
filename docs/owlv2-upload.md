@@ -1,6 +1,6 @@
 # Upload a custom OWLv2 model
 
-Use `model_type="owlv2"` to upload fine-tuned OWLv2 weights for Auto Label and Workflows.
+Use `model_type="owlv2"` to upload fine-tuned OWLv2 weights for text-prompted object detection.
 For a standard OWLv2 model, the only required file is the checkpoint:
 
 ```text
@@ -10,9 +10,7 @@ weights-upload/
 
 `owlv2.pth` must contain the complete `Owlv2ForObjectDetection.state_dict()`, including the text encoder and detection heads.
 A training checkpoint that wraps the weights under another key is not accepted.
-To use image-only requests in Auto Label or the Workflows Object Detection Model block, add `class_names.txt` beside the checkpoint.
-It contains unique, nonblank output labels, one per line. Class IDs follow this order. By default, these labels are also the text queries.
-If you upload without `class_names.txt`, use `workspace.deploy_model`. An upload to a dataset version requires the labels file.
+Use `workspace.deploy_model` to register the model in your workspace. Supply text queries when you run it.
 
 The exporter assumes the standard `google/owlv2-base-patch16-ensemble` model configuration, image preprocessing, and tokenizer.
 It bundles these defaults at revision `cfd3195ba4ea9592eec887ded089f4c08eff231d` and uses them offline.
@@ -50,9 +48,7 @@ curl 'http://localhost:9001/v2/models/infer?model_id=your-workspace/custom-owlv2
   -F 'inputs={"classes":["maize tassel","weed"]}'
 ```
 
-Each class ID indexes the query list for that request. Explicit queries override any saved prompts for that call.
-If you included `class_names.txt`, omit the `inputs` field to use the saved labels, or select this model in Auto Label.
-If you uploaded only the weights, supply queries on every request.
+Each class ID indexes the query list for that request. You can change the queries between images.
 
 ## Custom model or preprocessing
 
@@ -64,15 +60,11 @@ Each supplied component takes precedence over its default.
 | `config.json` | A different model architecture, saved with `model.config.save_pretrained(folder)` |
 | `processor_config.json` or `preprocessor_config.json` | Different image preprocessing, such as resizing or normalization |
 | Tokenizer files | Different tokenization, saved with the original tokenizer or processor |
-| `owlv2_prompts.json` | Text prompts that differ from the output labels |
 
 A tokenizer override needs `tokenizer_config.json` and either `tokenizer.json` or both `vocab.json` and `merges.txt`.
 Include additional tokenizer files that the original processor saved, such as `added_tokens.json` and `special_tokens_map.json`.
 Partial tokenizer overrides produce an error. They are never mixed with the default tokenizer.
 You can save a complete processor override with `processor.save_pretrained(folder)`.
-
-`owlv2_prompts.json` is a JSON array with one nonblank prompt per label, in label order.
-For example, labels `dent` and `scratch` can use `["a dent in a metal panel", "a scratch in a metal panel"]`.
 
 The exporter strictly matches the weights to the selected model configuration and rejects partial or adapter-only checkpoints.
 If the weights do not match the default architecture, supply the original `config.json`.

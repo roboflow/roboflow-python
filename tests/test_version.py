@@ -1,8 +1,6 @@
 import json
 import os
-import tempfile
 import unittest
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -22,7 +20,7 @@ from roboflow.config import (
 from roboflow.core.training import Training
 from roboflow.core.version import Version, unwrap_version_id
 from roboflow.models.object_detection import ObjectDetectionModel
-from roboflow.util.model_processor import MissingFileError
+from roboflow.util.model_processor import UnsupportedModelError
 from tests.helpers import get_version
 
 
@@ -279,12 +277,9 @@ class TestValidateAgainstProjectType(unittest.TestCase):
 
 
 class TestDeployOwlV2(unittest.TestCase):
-    def test_weights_without_labels_are_rejected_before_packaging(self):
-        with tempfile.TemporaryDirectory() as model_path:
-            (Path(model_path) / "owlv2.pth").write_text("checkpoint")
-            with self.assertRaisesRegex(MissingFileError, "workspace.deploy_model"):
-                get_version().deploy("owlv2", model_path, "owlv2.pth")
-            self.assertEqual([path.name for path in Path(model_path).iterdir()], ["owlv2.pth"])
+    def test_version_upload_directs_caller_to_workspace(self):
+        with self.assertRaisesRegex(UnsupportedModelError, "workspace.deploy_model"):
+            get_version().deploy("owlv2", "/model", "owlv2.pth")
 
 
 class TestConstructionDoesNotProbeNetwork(unittest.TestCase):

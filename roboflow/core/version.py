@@ -6,7 +6,6 @@ import os
 import sys
 import time
 import warnings
-from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Union
 
 from dotenv import load_dotenv
@@ -38,7 +37,7 @@ from roboflow.util import http
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import extract_zip, write_line
 from roboflow.util.model_processor import (
-    MissingFileError,
+    UnsupportedModelError,
     package_custom_weights_interactive,
     validate_model_type_for_project,
 )
@@ -668,11 +667,8 @@ class Version:
             model_path (str): File path to the model weights to be uploaded.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
-        if model_type == "owlv2" and not (Path(model_path) / "class_names.txt").is_file():
-            raise MissingFileError(
-                "An OWLv2 upload to a dataset version needs class_names.txt. "
-                "Use workspace.deploy_model to upload weights without labels."
-            )
+        if model_type == "owlv2":
+            raise UnsupportedModelError("Use workspace.deploy_model to upload an open-vocabulary OWLv2 model.")
         bundle = package_custom_weights_interactive(model_type, model_path, filename, build_dir=model_path)
 
         self._validate_against_project_type(bundle.model_type)
