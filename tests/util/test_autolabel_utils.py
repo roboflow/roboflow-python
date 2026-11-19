@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from roboflow.util.autolabel_utils import image_payload, ontology_payload, resolve_model
+from roboflow.util.autolabel_utils import existing_annotations_flags, image_payload, ontology_payload, resolve_model
 
 
 class TestImagePayload(unittest.TestCase):
@@ -113,3 +113,22 @@ class TestResolveModel(unittest.TestCase):
     def test_unknown_model_type_raises(self):
         with self.assertRaises(ValueError):
             resolve_model("x", "hosted")
+
+
+class TestExistingAnnotationsFlags(unittest.TestCase):
+    def test_replace_is_the_server_default_and_sends_nothing(self):
+        self.assertEqual(existing_annotations_flags(None), {})
+        self.assertEqual(existing_annotations_flags("replace"), {})
+
+    def test_preserve(self):
+        self.assertEqual(existing_annotations_flags("preserve"), {"preserveExistingAnnotations": True})
+
+    def test_merge_also_sends_preserve(self):
+        self.assertEqual(
+            existing_annotations_flags("merge"),
+            {"preserveExistingAnnotations": True, "mergeExistingAnnotations": True},
+        )
+
+    def test_unknown_mode_is_rejected(self):
+        with self.assertRaises(ValueError):
+            existing_annotations_flags("keep")

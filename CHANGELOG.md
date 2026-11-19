@@ -12,6 +12,39 @@ All notable changes to this project will be documented in this file.
   project is labeled with a trained keypoint model. Points below it are saved as
   not visible; omitted, the server default (0.6) applies
   ([#571](https://github.com/roboflow/roboflow-python/pull/571)).
+- `Project.autolabel(..., existing_annotations=...)` and
+  `roboflow autolabel start --existing-annotations ...` choose what a job does
+  with annotations already on the batch images: `"replace"` (the default)
+  removes them, `"preserve"` keeps them and adds every prediction, and
+  `"merge"` keeps them and adds only the predictions that don't overlap an
+  existing annotation of the same class (IoU of at least 0.5), so objects that
+  are already labeled aren't duplicated
+  ([#570](https://github.com/roboflow/roboflow-python/pull/570)).
+
+### Deprecated
+
+- `Project.autolabel(..., preserve_existing_annotations=True)` still works but
+  warns; use `existing_annotations="preserve"`. `--preserve-existing` is now a
+  hidden alias of `--existing-annotations preserve`
+  ([#570](https://github.com/roboflow/roboflow-python/pull/570)).
+
+### Removed
+
+- Custom model weight uploads no longer support YOLOv5, YOLOv7, YOLOv9, or
+  YOLOv10. Existing models remain available for inference, and YOLO dataset
+  formats remain supported ([#572](https://github.com/roboflow/roboflow-python/pull/572)).
+
+### Fixed
+
+- `TrainedModel.download()` saves the file as `weights` plus the extension of
+  the artifact that the API serves, for example `weights.onnx`. Before, it
+  always used `weights.pt`
+  ([#582](https://github.com/roboflow/roboflow-python/pull/582)).
+- Folder uploads (`upload_dataset()` and `roboflow image upload <folder>`) skip
+  a CSV with fewer than six columns, such as a table of image metadata, with a
+  warning. Before, its rows were sent as the annotation of every image they
+  named, which failed the save, even when the folder's annotation CSV also
+  listed the image ([#583](https://github.com/roboflow/roboflow-python/pull/583)).
 
 ## 1.7.3
 

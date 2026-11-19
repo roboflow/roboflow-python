@@ -8,6 +8,7 @@ import os
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 MODEL_TYPES = ("foundational", "roboflow")
+EXISTING_ANNOTATIONS_MODES = ("replace", "preserve", "merge")
 
 
 def image_payload(image: str) -> Dict[str, str]:
@@ -72,6 +73,22 @@ def ontology_payload(ontology: Optional[Ontology]) -> Optional[Dict[str, str]]:
     if isinstance(ontology, dict):
         return dict(ontology)
     return {name: name for name in ontology}
+
+
+def existing_annotations_flags(mode: Optional[str]) -> Dict[str, bool]:
+    """Translate an ``existing_annotations`` mode into the API's two booleans.
+
+    ``merge`` sends ``preserveExistingAnnotations`` too, the way the web app
+    does, so a server without merge keeps the annotations instead of replacing
+    them. ``replace`` is the server default and sends nothing.
+    """
+    if mode is None or mode == "replace":
+        return {}
+    if mode == "preserve":
+        return {"preserveExistingAnnotations": True}
+    if mode == "merge":
+        return {"preserveExistingAnnotations": True, "mergeExistingAnnotations": True}
+    raise ValueError("existing_annotations must be 'replace', 'preserve' or 'merge'")
 
 
 def resolve_model(
