@@ -36,6 +36,8 @@ workspace.deploy_model(
 )
 ```
 
+In AutoLabel, select the uploaded workspace model and enter the project class names and optional visual descriptions. Preview the predictions, then start the labeling job.
+
 ## Run local inference
 
 On a local server that supports `/v2/models/infer`, send your model ID, image, and text queries.
