@@ -49,8 +49,8 @@ Replace the model ID and image path below. The example uses the same API key as 
 ```bash
 curl 'http://localhost:9001/v2/models/infer?model_id=your-workspace/custom-owlv2' \
   -H "Authorization: Bearer $ROBOFLOW_API_KEY" \
-  -F 'image=@field.jpg' \
-  -F 'inputs={"classes":["maize tassel","weed"]}'
+  -F 'image=@street.jpg' \
+  -F 'inputs={"classes":["bicycle","bus"]}'
 ```
 
 Each class ID indexes the query list for that request. You can change the queries between images.
