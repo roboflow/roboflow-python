@@ -55,14 +55,14 @@ curl 'http://localhost:9001/v2/models/infer?model_id=your-workspace/custom-owlv2
 
 Each class ID indexes the query list for that request. You can change the queries between images.
 
-## Custom model or preprocessing
+## Optional OWLv2 configuration files
 
 If your model uses a different configuration, image processor, or tokenizer, place its files beside the weights.
 Each supplied component takes precedence over its default.
 
 | Optional files | When to supply them |
 | --- | --- |
-| `config.json` | A different model architecture, saved with `model.config.save_pretrained(folder)` |
+| `config.json` | Your `Owlv2ForObjectDetection` uses a non-default configuration, such as a different vision patch size. Save it with `model.config.save_pretrained(folder)`. |
 | `processor_config.json` or `preprocessor_config.json` | Different image preprocessing, such as resizing or normalization |
 | Tokenizer files | Different tokenization, saved with the original tokenizer or processor |
 
@@ -71,7 +71,6 @@ Include additional tokenizer files that the original processor saved, such as `a
 Partial tokenizer overrides produce an error. They are never mixed with the default tokenizer.
 You can save a complete processor override with `processor.save_pretrained(folder)`.
 
-If the weights do not match the default architecture, supply the original `config.json`.
 Weight shapes cannot identify custom resizing or normalization. Omitted image preprocessing files mean standard preprocessing.
 The SDK packages files without loading the checkpoint. Before the upload, it checks only that the set of files is consistent.
 The exporter validates the contents of the files.
