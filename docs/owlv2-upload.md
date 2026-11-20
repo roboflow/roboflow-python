@@ -44,7 +44,7 @@ Each description is one text prompt. A prompt can have at most 16 tokens, which 
 
 ## Use the model in a Workflow
 
-Add the **OWLv2 Model** block (`roboflow_core/owlv2_model@v1`). Set `model_id` to `your-workspace/custom-owlv2` and `class_names` to your text prompts.
+Add the **OWLv2 Model** block (`roboflow_core/owlv2_model@v1`). Set `model_id` to `your-workspace/custom-owlv2` and `text_prompts` to the descriptions you want to detect.
 The block returns bounding boxes. To get masks, connect its `predictions` output to a Segment Anything block.
 
 ## Run local inference
