@@ -1782,7 +1782,10 @@ class Workspace:
         ``framesSampled`` and ``videos``: one entry per video id with
         ``status`` (``pending``, ``done`` or ``failed``), ``windows`` and, as
         the video progresses, ``framesSeen``, ``segments``, ``windowsFailed``,
-        ``unanalysedIntervals`` or ``error``. ``numImages`` counts the videos.
+        ``unanalysedIntervals`` or ``error``. ``preserved: true`` means the
+        video had frame annotations, so the job wrote no segments to it;
+        ``truncated: true`` means the job kept only the longest segments.
+        ``numImages`` counts the videos.
 
         Args:
             job_id: the ``jobId`` returned by ``Project.autolabel``.

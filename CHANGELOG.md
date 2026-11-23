@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 - Docs for video Auto Label on action-recognition projects:
   `Project.autolabel(batch_id, model="video-segment", ontology={"a person jumps": "jump"},
   model_options={"sampleFps": 2})` and
-  `roboflow autolabel start -m video-segment --model-options '{"sampleFps": 2}'`
+  `roboflow autolabel start -p <project> --batch-id <batch> -m video-segment --model-options '{"sampleFps": 2}'`
   label a batch of videos, and `Workspace.autolabel_job` documents the video
   progress fields (`framesPlanned`, `framesSampled`, `videos`, ...). Needs the
   backend from roboflow/roboflow#19988.

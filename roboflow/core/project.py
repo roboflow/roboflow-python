@@ -1381,8 +1381,9 @@ class Project:
 
         Action-recognition projects label a batch of videos with
         ``model="video-segment"`` (not listed by ``Workspace.autolabel_models()``).
-        The job takes every video in the batch and replaces each video's
-        existing segments. Only ``ontology``, ``model_options={"sampleFps": n}``
+        The job takes every video in the batch (up to 50) and replaces each
+        video's existing segments; a video that has frame annotations is left
+        unchanged. Only ``ontology``, ``model_options={"sampleFps": n}``
         and ``reviewer_email`` apply; the server refuses the image-only
         options and ``existing_annotations="preserve"`` or ``"merge"``.
 
@@ -1406,8 +1407,9 @@ class Project:
                 only the class names are used. Defaults to the dataset's classes
                 (or the trained model's classes for ``model_type="roboflow"``).
                 For ``"video-segment"``, the key is the action description the
-                model reads (``{"a person jumps": "jump"}``); every class must
-                already exist in the project, and a class given by its own name
+                model reads (``{"a person jumps": "jump"}``), one description
+                per class; every class must already exist in the project, and a
+                class given by its own name
                 (or in a list) uses the project's saved class description.
             num_images: Number of images from the batch to label. Defaults to
                 the whole batch.

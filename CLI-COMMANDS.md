@@ -345,10 +345,12 @@ annotation of the same class (IoU of at least 0.5), so objects that are already
 labeled aren't duplicated. Keypoint-detection projects are labeled with a trained
 keypoint model; `--keypoint-confidence` sets the lowest confidence a keypoint
 needs to be saved as visible (server default 0.6). Action-recognition projects
-label a batch of videos with `-m video-segment` (it is not in `models`): the
-ontology maps an action description to a class that already exists in the
-project, `--model-options '{"sampleFps": n}'` sets the frames per second the
-model sees (0.5 to 12, default 8), and the job replaces each video's segments.
+label a batch of up to 50 videos with `-m video-segment` (it is not in
+`models`): the ontology maps one action description to each class, and the
+class must already exist in the project. `--model-options '{"sampleFps": n}'`
+sets the frames per second the model sees (0.5 to 12, default 8). The job
+replaces each video's segments, but leaves a video with frame annotations
+unchanged (`preserved: true` in `job`).
 Video jobs do not take the image options (`--num-images`, `--confidence`,
 `--no-nms`, `--existing-annotations preserve|merge`, ...); the server refuses
 them. `job` shows video progress in `framesSampled` / `framesPlanned` and per
