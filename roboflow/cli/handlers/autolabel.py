@@ -62,13 +62,16 @@ def preview(
 def start(
     ctx: typer.Context,
     project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
-    batch_id: Annotated[str, typer.Option("--batch-id", help="Source batch ID containing the images to label")],
+    batch_id: Annotated[
+        str, typer.Option("--batch-id", help="Source batch ID containing the images (or videos) to label")
+    ],
     model: Annotated[
         str,
         typer.Option(
             "-m",
             "--model",
-            help="Foundation model ID from 'autolabel models', or a Roboflow model ID with --model-type roboflow",
+            help="Foundation model ID from 'autolabel models', a Roboflow model ID with --model-type roboflow, "
+            "or 'video-segment' for a batch of videos in an action-recognition project",
         ),
     ],
     model_type: Annotated[
@@ -104,7 +107,9 @@ def start(
     model_options: Annotated[
         Optional[str],
         typer.Option(
-            "--model-options", help='JSON model options, e.g. \'{"outputFormat": "polygon"}\', or @options.json'
+            "--model-options",
+            help='JSON model options, e.g. \'{"outputFormat": "polygon"}\', or @options.json. '
+            "For video-segment, only '{\"sampleFps\": 2}' (0.5 to 12 frames per second, default 8)",
         ),
     ] = None,
     existing_annotations: Annotated[
@@ -129,7 +134,7 @@ def start(
         ),
     ] = None,
 ) -> None:
-    """Start a hosted auto-label job over a batch of images."""
+    """Start a hosted auto-label job over a batch of images, or of videos with -m video-segment."""
     args = ctx_to_args(ctx, project=project)
     resolved_ontology = _parse_ontology(args, ontology, classes)
     resolved_thresholds = _parse_json_option(args, "--confidence-thresholds", confidence_thresholds)

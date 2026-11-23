@@ -202,6 +202,29 @@ class TestAutolabelStart(unittest.TestCase):
             keypoint_confidence_threshold=None,
         )
 
+    @patch("roboflow.util.http.requests.post")
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_video_segment_start_sends_only_the_video_fields(self, _resolve, mock_post):
+        # video-segment is not in the models catalog; the server owns validation, so nothing client-side may block it,
+        # and the server refuses any image-only field, so none may leak into the body.
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {"jobId": "job-1"}
+        result = runner.invoke(
+            app,
+            ["autolabel", "start", "-p", "ws/proj", "--batch-id", "videos-1", "-m", "video-segment"]
+            + ["--ontology", '{"a person jumps": "jump"}', "--model-options", '{"sampleFps": 2}'],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(
+            mock_post.call_args.kwargs["json"],
+            {
+                "batchId": "videos-1",
+                "modelType": "video-segment",
+                "ontology": {"a person jumps": "jump"},
+                "modelOptions": {"sampleFps": 2},
+            },
+        )
+
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
     def test_legacy_preserve_existing_flag(self, _resolve, mock_api):
