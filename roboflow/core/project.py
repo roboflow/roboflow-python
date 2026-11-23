@@ -1329,6 +1329,8 @@ class Project:
     ) -> Dict:
         """Preview one image with a foundation model before starting an auto-label job.
 
+        Image models only: ``video-segment`` has no preview.
+
         Previews are free: no job is created and no credits are spent. Use it to
         compare the candidates from ``Workspace.autolabel_models()`` on a sample
         image and start the real job with the winner.
@@ -1381,9 +1383,9 @@ class Project:
 
         Action-recognition projects label a batch of videos with
         ``model="video-segment"`` (not listed by ``Workspace.autolabel_models()``).
-        The job takes every video in the batch (up to 50) and replaces each
-        video's existing segments; a video that has frame annotations is left
-        unchanged. Only ``ontology``, ``model_options={"sampleFps": n}``
+        The job labels every video in the batch (the server refuses a batch of
+        more than 50 videos) and replaces each video's existing segments; a
+        video that has frame annotations is left unchanged. Only ``ontology``, ``model_options={"sampleFps": n}``
         and ``reviewer_email`` apply; the server refuses the image-only
         options and ``existing_annotations="preserve"`` or ``"merge"``.
 

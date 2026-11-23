@@ -39,7 +39,7 @@ def preview(
         Optional[float], typer.Option("--confidence", help="Detection threshold from 0.0 to 1.0 (sam3 only)")
     ] = None,
 ) -> None:
-    """Preview one image with a foundation model. Free: no job is created."""
+    """Preview one image with a foundation model. Free: no job is created. Not available for video-segment."""
     args = ctx_to_args(ctx, project=project)
     resolved_ontology = _parse_ontology(args, ontology, classes)
     resolved_image = _parse_image(args, image)
@@ -118,7 +118,8 @@ def start(
             "--existing-annotations",
             help="What to do with annotations already on the batch images: 'replace' (default) removes "
             "them, 'preserve' keeps them and adds every prediction, 'merge' keeps them and skips "
-            "predictions that overlap an existing annotation of the same class",
+            "predictions that overlap an existing annotation of the same class. video-segment accepts only "
+            "'replace'",
         ),
     ] = None,
     preserve_existing: Annotated[
