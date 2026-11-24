@@ -145,6 +145,44 @@ class TestImageUploadDirectory(unittest.TestCase):
     """Test the directory import path."""
 
     @patch("roboflow.Roboflow")
+    def test_api_errors_follow_exit_code_contract(self, mock_rf_cls):
+        from roboflow.adapters.rfapi import RoboflowError
+
+        workspace = mock_rf_cls.return_value.workspace
+        with tempfile.TemporaryDirectory() as directory:
+            for operation in (workspace, workspace.return_value.upload_dataset):
+                for status, code in ((401, 2), (404, 3), (500, 1)):
+                    with self.subTest(operation=operation, status=status):
+                        operation.side_effect = RoboflowError("Upload rejected", status_code=status)
+                        result = runner.invoke(
+                            app, ["--json", "--api-key", "test-key", "image", "upload", directory, "-p", "proj"]
+                        )
+                        operation.side_effect = None
+                        self.assertEqual(result.exit_code, code)
+                        self.assertEqual(result.stdout, "")
+                        error = json.loads(result.stderr)["error"]
+                        self.assertEqual(error["message"], "Upload rejected")
+                        self.assertTrue(error["hint"])
+
+    @patch("roboflow.Roboflow")
+    def test_failed_upload_has_no_success_output(self, mock_rf_cls):
+        from roboflow.cli.handlers.image import _handle_upload_directory
+
+        upload = mock_rf_cls.return_value.workspace.return_value.upload_dataset
+        args = _make_args(json=True, project="proj", concurrency=2)
+        for failure in (RuntimeError("Annotation rejected"), {"status": "failed", "error": "Invalid zip"}):
+            with self.subTest(failure=failure):
+                upload.side_effect = failure if isinstance(failure, Exception) else None
+                upload.return_value = failure
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with patch("sys.stdout", stdout), patch("sys.stderr", stderr):
+                    with self.assertRaises(SystemExit) as raised:
+                        _handle_upload_directory(args, "key", "/dataset")
+                self.assertEqual(raised.exception.code, 1)
+                self.assertEqual(stdout.getvalue(), "")
+                self.assertIn("error", json.loads(stderr.getvalue()))
+
+    @patch("roboflow.Roboflow")
     def test_upload_directory(self, mock_rf_cls):
         from roboflow.cli.handlers.image import _handle_upload
 
@@ -155,6 +193,7 @@ class TestImageUploadDirectory(unittest.TestCase):
                     f.write("x")
 
             mock_ws = MagicMock()
+            mock_ws.upload_dataset.return_value = {"uploaded": 1, "duplicates": 0}
             mock_rf_cls.return_value.workspace.return_value = mock_ws
 
             args = _make_args(
@@ -183,7 +222,7 @@ class TestImageUploadDirectory(unittest.TestCase):
             mock_ws.upload_dataset.assert_called_once()
             result = json.loads(buf.getvalue())
             self.assertEqual(result["status"], "imported")
-            self.assertEqual(result["count"], 2)  # .jpg and .png only
+            self.assertEqual(result["count"], 1)  # Count the SDK results, not local files.
 
     @patch("roboflow.Roboflow")
     def test_upload_zip_file_routes_to_directory_handler(self, mock_rf_cls):
@@ -315,8 +354,7 @@ class TestImageUploadDirectory(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_ws = MagicMock()
-            # MagicMock return → not a dict → per-image output branch
-            mock_ws.upload_dataset.return_value = None
+            mock_ws.upload_dataset.return_value = {"uploaded": 0, "duplicates": 0}
             mock_rf_cls.return_value.workspace.return_value = mock_ws
 
             args = _make_args(
@@ -407,6 +445,7 @@ class TestImageUploadDirectory(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_ws = MagicMock()
+            mock_ws.upload_dataset.return_value = {"uploaded": 0, "duplicates": 0}
             mock_rf_cls.return_value.workspace.return_value = mock_ws
 
             args = _make_args(
@@ -441,6 +480,7 @@ class TestImageUploadDirectory(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_ws = MagicMock()
+            mock_ws.upload_dataset.return_value = {"uploaded": 0, "duplicates": 0}
             mock_rf_cls.return_value.workspace.return_value = mock_ws
 
             args = _make_args(

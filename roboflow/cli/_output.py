@@ -7,8 +7,8 @@ for failures so that ``--json`` mode works uniformly.
 from __future__ import annotations
 
 import contextlib
-import io
 import json
+import os
 import sys
 from typing import Any, Iterator, Optional
 
@@ -234,8 +234,8 @@ def output_api_error(
 ) -> None:
     """Render a server-side error and exit with the correct code.
 
-    Maps an exception's HTTP status (carried as ``exc.status_code`` when the
-    raiser sets it — see ``_raise_for_trash_response`` in ``adapters.rfapi``)
+    Maps an exception's HTTP status (carried as ``exc.status_code`` or
+    ``exc.response.status_code`` for requests HTTP errors)
     to the per-CONTRIBUTING.md exit-code contract:
 
     * **401** → exit code 2 ("auth error"). ``auth_hint`` overrides ``hint``
@@ -253,6 +253,8 @@ def output_api_error(
     whether to retry vs. re-auth.
     """
     status = getattr(exc, "status_code", None)
+    if status is None:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
     if status == 401:
         output_error(
             args,
@@ -279,5 +281,5 @@ def suppress_sdk_output(args: Any = None) -> Iterator[None]:
     are not useful CLI output in any mode.  The CLI controls its own
     output via ``output()`` and ``output_error()``.
     """
-    with contextlib.redirect_stdout(io.StringIO()):
+    with open(os.devnull, "w", encoding="utf-8") as sink, contextlib.redirect_stdout(sink):
         yield

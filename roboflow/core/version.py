@@ -9,14 +9,12 @@ import warnings
 from typing import TYPE_CHECKING, Optional, Union
 
 from dotenv import load_dotenv
-from tqdm import tqdm
 
 from roboflow.adapters import rfapi
 from roboflow.config import (
     API_URL,
     APP_URL,
     DEMO_KEYS,
-    TQDM_DISABLE,
     TYPE_ACTION_RECOGNITION,
     TYPE_CLASSICATION,
     TYPE_INSTANCE_SEGMENTATION,
@@ -35,8 +33,12 @@ from roboflow.models.semantic_segmentation import SemanticSegmentationModel
 from roboflow.models.vlm import VLMModel
 from roboflow.util import http
 from roboflow.util.annotations import amend_data_yaml
-from roboflow.util.general import extract_zip, write_line
-from roboflow.util.model_processor import package_custom_weights_interactive, validate_model_type_for_project
+from roboflow.util.general import extract_zip, save_response_content, write_line
+from roboflow.util.model_processor import (
+    package_custom_weights,
+    package_custom_weights_interactive,
+    validate_model_type_for_project,
+)
 from roboflow.util.train_recipe import fold_epochs_into_recipe
 from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions
 
@@ -373,12 +375,17 @@ class Version:
             location (str): An optional path for saving the file
             overwrite (bool): An optional flag to overwrite an existing dataset if the dataset has already downloaded
 
+        Only completed downloads of the same dataset version, format, and API endpoint
+        are reused. Interrupted SDK downloads can be retried; other non-empty directories
+        require overwrite=True or a different location.
+
         Returns:
             Dataset Object
 
         Raises:
             RuntimeError: If the Roboflow API returns an error with a helpful JSON body
             HTTPError: If the Network/Roboflow API fails and does not return JSON
+            FileExistsError: If a non-empty location cannot be reused without overwrite=True
         """  # noqa: E501 // docs
 
         self.__wait_if_generating()
@@ -388,12 +395,24 @@ class Version:
         if model_format not in self.exports:
             self.export(model_format)
 
-        # if model_format is not in
-
         if location is None:
             location = self.__get_download_location()
-        if os.path.exists(location) and not overwrite:
-            return Dataset(self.name, self.version, model_format, os.path.abspath(location))
+        location = os.path.abspath(location)
+        marker = os.path.join(location, ".roboflow-download.json")
+        metadata = {"id": self.id, "version": self.version, "format": model_format, "api_url": API_URL}
+        if not overwrite:
+            try:
+                with open(marker) as f:
+                    cached = json.load(f)
+            except (OSError, ValueError):
+                cached = None
+            if cached == {**metadata, "complete": True}:
+                return Dataset(self.name, self.version, model_format, location)
+            if os.path.exists(location) and os.listdir(location) and cached != {**metadata, "complete": False}:
+                raise FileExistsError(
+                    f"Cannot reuse non-empty download location '{location}'. "
+                    "Use overwrite=True to replace dataset files, or choose a different location."
+                )
 
         if self.__api_key == "coco-128-sample":
             link = "https://app.roboflow.com/ds/n9QwXwUK42?key=NnVCe2yMxP"
@@ -415,11 +434,17 @@ class Version:
 
             link = export_info["export"]["link"]
 
+        os.makedirs(location, exist_ok=True)
+        # Record an incomplete download before changing dataset files so it can be retried.
+        with open(marker, "w") as f:
+            json.dump({**metadata, "complete": False}, f)
         self.__download_zip(link, location, model_format)
         extract_zip(location, desc=f"Extracting Dataset Version Zip to {location} in {model_format}:")
         self.__reformat_yaml(location, model_format)  # TODO: is roboflow-python a place to be munging yaml files?
+        with open(marker, "w") as f:
+            json.dump({**metadata, "complete": True}, f)
 
-        return Dataset(self.name, self.version, model_format, os.path.abspath(location))
+        return Dataset(self.name, self.version, model_format, location)
 
     def export(self, model_format=None) -> bool | None:
         """
@@ -557,14 +582,12 @@ class Version:
             else:
                 models = {}
 
-            if "train" in version.keys():
-                if "results" in version["train"].keys():
-                    status = "finished"
-                    break
-                if "status" in version["train"].keys():
-                    if version["train"]["status"] == "failed":
-                        write_line(line="Training failed")
-                        break
+            training = version.get("train") or {}
+            if training.get("status") == "failed":
+                raise RuntimeError(f"Training failed for {workspace}/{project}/{self.version}")
+            if "results" in training:
+                status = "finished"
+                break
 
             epoch_ids: Union[np.ndarray, list]
             mAP: Union[np.ndarray, list]
@@ -655,15 +678,19 @@ class Version:
         return self._model
 
     # @warn_for_wrong_dependencies_versions([("ultralytics", "==", "8.0.196")])
-    def deploy(self, model_type: str, model_path: str, filename: str = "weights/best.pt") -> None:
+    def deploy(
+        self, model_type: str, model_path: str, filename: str = "weights/best.pt", *, interactive: bool = True
+    ) -> None:
         """Uploads provided weights file to Roboflow.
 
         Args:
             model_type (str): The type of the model to be deployed.
             model_path (str): File path to the model weights to be uploaded.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
+            interactive (bool): Ask before overriding packaging mismatches. If False, raise instead.
         """
-        bundle = package_custom_weights_interactive(model_type, model_path, filename, build_dir=model_path)
+        package = package_custom_weights_interactive if interactive else package_custom_weights
+        bundle = package(model_type, model_path, filename, build_dir=model_path)
 
         self._validate_against_project_type(bundle.model_type)
         self._upload_zip(bundle.model_type, model_path, bundle.archive_path.name)
@@ -676,41 +703,19 @@ class Version:
             f"{API_URL}/{self.workspace}/{self.project}/{self.version}"
             f"/uploadModel?api_key={self.__api_key}&modelType={model_type}&nocache=true"
         )
-        try:
-            if res.status_code == 429:
-                raise RuntimeError(
-                    "This version already has a trained model. Please generate and"
-                    " train a new version in order to upload model to Roboflow."
-                )
-            else:
-                res.raise_for_status()
-        except Exception as e:
-            print(f"An error occured when getting the model upload URL: {e}")
-            return
+        res.raise_for_status()
 
-        res = http.put(
-            res.json()["url"],
-            data=open(os.path.join(model_path, model_file_name), "rb"),
-        )
-        try:
+        with open(os.path.join(model_path, model_file_name), "rb") as model_file:
+            res = http.put(res.json()["url"], data=model_file)
             res.raise_for_status()
 
-            if self.public:
-                print(
-                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
-                )
-                print(
-                    "Share your model with the world at:"
-                    f" {UNIVERSE_URL}/{self.workspace}/{self.project}/"
-                    f"model/{self.version}"
-                )
-            else:
-                print(
-                    f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}"
-                )
-
-        except Exception as e:
-            print(f"An error occured when uploading the model: {e}")
+        print(f"View the status of your deployment at: {APP_URL}/{self.workspace}/{self.project}/{self.version}")
+        if self.public:
+            print(
+                "Share your model with the world at:"
+                f" {UNIVERSE_URL}/{self.workspace}/{self.project}/"
+                f"model/{self.version}"
+            )
 
     def __download_zip(self, link, location, format):
         """
@@ -724,33 +729,13 @@ class Version:
         if not os.path.exists(location):
             os.makedirs(location)
 
-        def bar_progress(current, total, width=80):
-            progress_message = (
-                f"Downloading Dataset Version Zip in {location} to {format}: "
-                f"{current / total * 100:.0f}% [{current} / {total}] bytes"
+        with http.get(link, stream=True) as response:
+            response.raise_for_status()
+            save_response_content(
+                response,
+                os.path.join(location, "roboflow.zip"),
+                desc=f"Downloading Dataset Version Zip in {location} to {format}:",
             )
-            sys.stdout.write("\r" + progress_message)
-            sys.stdout.flush()
-
-        try:
-            response = http.get(link, stream=True)
-
-            # write the zip file to the desired location
-            with open(location + "/roboflow.zip", "wb") as f:
-                total_length = int(response.headers.get("content-length"))  # type: ignore[arg-type]
-                desc = None if TQDM_DISABLE else f"Downloading Dataset Version Zip in {location} to {format}:"
-                for chunk in tqdm(
-                    response.iter_content(chunk_size=1024),
-                    desc=desc,
-                    total=int(total_length / 1024) + 1,
-                ):
-                    if chunk:
-                        f.write(chunk)
-                        f.flush()
-
-        except Exception as e:
-            print(f"Error when trying to download dataset @ {link}")
-            raise e
         sys.stdout.write("\n")
         sys.stdout.flush()
 

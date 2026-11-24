@@ -173,7 +173,6 @@ class ObjectDetectionModel(InferenceModel):
             self.__exception_check(image_path_check=image_path)
 
         original_dimensions = None
-        should_resize = False
         # If image is local image
         if not hosted:
             import cv2
@@ -248,21 +247,14 @@ class ObjectDetectionModel(InferenceModel):
         if self.format == "json":
             resp_json = resp.json()
 
-            if should_resize and original_dimensions is not None:
-                new_preds = []
+            if original_dimensions is not None and dimensions != original_dimensions:
+                scale_x = original_dimensions[0] / dimensions[0]
+                scale_y = original_dimensions[1] / dimensions[1]
                 for p in resp_json["predictions"]:
-                    p["x"] = int(p["x"] * (int(original_dimensions[0]) / int(self.preprocessing["resize"]["width"])))
-                    p["y"] = int(p["y"] * (int(original_dimensions[1]) / int(self.preprocessing["resize"]["height"])))
-                    p["width"] = int(
-                        p["width"] * (int(original_dimensions[0]) / int(self.preprocessing["resize"]["width"]))
-                    )
-                    p["height"] = int(
-                        p["height"] * (int(original_dimensions[1]) / int(self.preprocessing["resize"]["height"]))
-                    )
-
-                    new_preds.append(p)
-
-                resp_json["predictions"] = new_preds
+                    p["x"] = int(p["x"] * scale_x)
+                    p["y"] = int(p["y"] * scale_y)
+                    p["width"] = int(p["width"] * scale_x)
+                    p["height"] = int(p["height"] * scale_y)
 
             return PredictionGroup.create_prediction_group(
                 resp_json,

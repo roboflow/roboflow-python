@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import tempfile
 import time
 import urllib
 from typing import List, Optional, Tuple
@@ -8,10 +9,10 @@ from urllib.parse import urljoin
 
 from PIL import Image
 from requests_toolbelt.multipart.encoder import MultipartEncoder
-from tqdm import tqdm
 
 from roboflow.config import API_URL
 from roboflow.util import http
+from roboflow.util.general import save_response_content
 from roboflow.util.image_utils import validate_image_path
 from roboflow.util.prediction import PredictionGroup
 
@@ -230,19 +231,14 @@ class InferenceModel:
 
             signed_url_expires = signed_url.split("&X-Goog-Expires")[1].split("&")[0].strip("=")
 
-            # make a POST request to the signed URL
+            # Stream the video to the signed URL.
             headers = {"Content-Type": "application/octet-stream"}
 
             try:
                 with open(video_path, "rb") as f:
-                    video_data = f.read()
+                    result = http.put(signed_url, data=f, headers=headers)
             except Exception as e:
-                raise Exception(f"Error reading video: {e}")
-
-            try:
-                result = http.put(signed_url, data=video_data, headers=headers)
-            except Exception as e:
-                raise Exception(f"There was an error uploading the video: {e}")
+                raise Exception(f"There was an error uploading the video: {e}") from e
 
             if not result.ok:
                 raise Exception(f"There was an error uploading the video: {result.text}")
@@ -399,18 +395,12 @@ class InferenceModel:
 
         pt_weights_url = r.json()["weightsUrl"]
 
-        response = http.get(pt_weights_url, stream=True)
-
-        # write the zip file to the desired location
-        with open(location + "/weights.pt", "wb") as f:
-            total_length = int(response.headers.get("content-length"))  # type: ignore[arg-type]
-            for chunk in tqdm(
-                response.iter_content(chunk_size=1024),
-                desc=f"Downloading weights to {location}/weights.pt",
-                total=int(total_length / 1024) + 1,
-            ):
-                if chunk:
-                    f.write(chunk)
-                    f.flush()
+        with http.get(pt_weights_url, stream=True) as response:
+            response.raise_for_status()
+            # Keep existing weights intact until the entire download has succeeded.
+            with tempfile.TemporaryDirectory(dir=location) as temp_dir:
+                weights_path = os.path.join(temp_dir, "weights.pt")
+                save_response_content(response, weights_path, desc=f"Downloading weights to {location}/weights.pt")
+                os.replace(weights_path, os.path.join(location, "weights.pt"))
 
         return

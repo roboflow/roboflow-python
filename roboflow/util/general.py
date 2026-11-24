@@ -4,6 +4,7 @@ import time
 import zipfile
 from random import random
 
+from requests import Response
 from tqdm import tqdm
 
 from roboflow.config import TQDM_DISABLE
@@ -46,6 +47,39 @@ class Retry:
                     self.retries += 1
                 else:
                     raise
+
+
+def save_response_content(response: Response, path: str, desc: str | None = None) -> None:
+    """Write an HTTP response in bounded chunks with byte-based progress.
+
+    Args:
+        response: Streaming response whose HTTP status has already been checked.
+        path: Destination file path.
+        desc: Description shown in the progress bar.
+    """
+    total: int | None
+    try:
+        total = int(response.headers.get("content-length", ""))
+        if total < 0:
+            total = None
+    except (TypeError, ValueError):
+        total = None
+    # iter_content decodes compressed responses; Content-Length counts wire bytes.
+    if (
+        response.headers.get("content-encoding", "identity").lower() != "identity"
+        or "transfer-encoding" in response.headers
+    ):
+        total = None
+    # urllib3 1.x does not enforce Content-Length by default, including for gzip.
+    response.raw.enforce_content_length = True
+    with (
+        open(path, "wb") as f,
+        tqdm(total=total, desc=desc, unit="B", unit_scale=True, disable=bool(TQDM_DISABLE)) as progress,
+    ):
+        for chunk in response.iter_content(chunk_size=64 * 1024):
+            if chunk:
+                f.write(chunk)
+                progress.update(len(chunk))
 
 
 def extract_zip(location: str, desc: str = "Extracting"):
