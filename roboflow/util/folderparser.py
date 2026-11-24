@@ -290,6 +290,7 @@ def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotatio
 def _loadAnnotations(folder, annotations):
     valid_extensions = {".json", ".csv", ".jsonl"}
     annotations = [a for a in annotations if a["extension"] in valid_extensions]
+    annotations = [a for a in annotations if a["extension"] != ".csv" or _is_annotation_csv(folder, a)]
     for ann in annotations:
         extension = ann["extension"]
         if extension == ".json":
@@ -307,6 +308,19 @@ def _loadAnnotations(folder, annotations):
             ann["parsed"] = parsed
             ann["parsedType"] = parsed.get("type", "csv")
     return annotations
+
+
+def _is_annotation_csv(folder, ann):
+    # _classes.csv holds multi-label classification. The rows of any other CSV go to the server, whose CSV
+    # parser reads boxes only from rows of six or more columns: a narrower CSV, like a table of image metadata,
+    # holds no annotations.
+    if ann["name"] == "_classes.csv":
+        return True
+    with open(f"{folder}{ann['file']}") as f:
+        columns = len(f.readline().split(","))
+    if columns < 6:
+        print(f"warning: skipping {ann['file']}: annotation CSVs have at least six columns")
+    return columns >= 6
 
 
 def _read_jsonl(path):

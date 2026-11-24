@@ -12,6 +12,7 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from roboflow.config import API_URL, DEFAULT_BATCH_NAME, DEFAULT_JOB_NAME
 from roboflow.util import http
+from roboflow.util.autolabel_utils import existing_annotations_flags
 from roboflow.util.search_utils import normalize_media_types
 
 
@@ -1566,21 +1567,30 @@ def start_autolabel_job(
     run_nms=None,
     reviewer_email=None,
     model_options=None,
-    preserve_existing_annotations=None,
+    existing_annotations=None,
+    keypoint_confidence_threshold=None,
 ):
     """Start a hosted auto-label job over a batch.
 
     Calls ``POST /:workspace/:project/autolabel``. ``model_type`` is sent
     as-is: a catalog id from ``list_autolabel_models`` (for example
     ``gpt-6-astra-boxes`` or ``sam3-rle``) or ``custom_roboflow`` with the
-    Roboflow model id in ``model_options["modelId"]``. ``ontology`` is keyed
-    by prompt: ``{"kitten": "cat"}`` labels prompt matches as class ``cat``.
+    Roboflow model id in ``model_options["modelId"]``, or ``video-segment``
+    to label a batch of videos in an action-recognition project (see
+    ``Project.autolabel``). ``ontology`` is keyed by prompt:
+    ``{"kitten": "cat"}`` labels prompt matches as class ``cat``.
     The backend fans
     ``default_confidence`` out across the ontology when
     ``confidence_thresholds`` is omitted and defaults ``num_images_to_label``
-    to the whole batch. ``preserve_existing_annotations`` keeps annotations
-    already on the images and only adds new ones; the server default (False)
-    replaces them. Returns ``{jobId, annotationJobId, message}``.
+    to the whole batch. ``existing_annotations`` is ``"replace"`` (the server
+    default), ``"preserve"`` or ``"merge"``; see ``Project.autolabel``.
+    ``keypoint_confidence_threshold`` (0-1, keypoint-detection projects only)
+    is the lowest confidence a predicted keypoint needs to be saved as
+    visible; the server default is 0.6. Returns
+    ``{jobId, annotationJobId, message}``.
+
+    Raises:
+        ValueError: ``existing_annotations`` is not one of those modes.
     """
     payload = {"batchId": batch_id, "modelType": model_type}
     optional = {
@@ -1591,9 +1601,10 @@ def start_autolabel_job(
         "runNMS": run_nms,
         "reviewerEmail": reviewer_email,
         "modelOptions": model_options,
-        "preserveExistingAnnotations": preserve_existing_annotations,
+        "keypointConfidenceThreshold": keypoint_confidence_threshold,
     }
     payload.update({key: value for key, value in optional.items() if value is not None})
+    payload.update(existing_annotations_flags(existing_annotations))
     response = http.post(
         f"{API_URL}/{workspace_url}/{project_url}/autolabel",
         params={"api_key": api_key},
@@ -1605,7 +1616,8 @@ def start_autolabel_job(
 def get_autolabel_job(api_key, workspace_url, job_id):
     """Fetch per-subjob status and progress for a hosted auto-label job.
 
-    Calls ``GET /:workspace/autolabel/jobs/:jobId``.
+    Calls ``GET /:workspace/autolabel/jobs/:jobId``. Video jobs add
+    progress fields; ``Workspace.autolabel_job`` lists them.
     """
     response = http.get(
         f"{API_URL}/{workspace_url}/autolabel/jobs/{job_id}",
@@ -2498,6 +2510,19 @@ class _FullAccess:
 FULL_ACCESS = _FullAccess()
 
 
+class _ClearValue:
+    """Sentinel for "send JSON ``null``" on fields where ``None`` means "leave unchanged".
+
+    ``update_api_key(..., rotation_due_at=CLEAR)`` clears the key's rotation due date.
+    """
+
+    def __repr__(self) -> str:
+        return "CLEAR"
+
+
+CLEAR = _ClearValue()
+
+
 def list_api_keys(
     api_key: str,
     workspace_url: str,
@@ -2541,6 +2566,8 @@ def create_api_key(
     folder_ids: Optional[List[str]] = None,
     custom_metadata: Optional[Dict] = None,
     protected: bool = False,
+    rotation_due_at: Optional[str] = None,
+    owners: Optional[List[str]] = None,
 ) -> dict:
     """POST /{workspace}/api-keys — create a new API key.
 
@@ -2549,8 +2576,11 @@ def create_api_key(
     own scopes, so a full-access credential creates a full-access key. Pass a list
     to scope the key (``role:<name>`` presets are accepted), ``[]`` for a key with
     no abilities, or ``FULL_ACCESS`` to send an explicit ``null`` (unscoped/full
-    access). ``scopes``, ``folder_ids``, and ``custom_metadata`` require the
-    Advanced API Keys plan feature — the backend returns 403 if unavailable.
+    access). ``rotation_due_at`` (ISO date or date-time, UTC, in the future) and
+    ``owners`` (member ids reminded before it; ``[]`` means everyone who can roll
+    the key) set the rotation schedule. ``scopes``, ``folder_ids``,
+    ``custom_metadata``, ``rotation_due_at`` and ``owners`` require the Advanced
+    API Keys plan feature — the backend returns 403 if unavailable.
     """
     body: Dict[str, Any] = {}
     if name is not None:
@@ -2566,6 +2596,10 @@ def create_api_key(
         body["customMetadata"] = custom_metadata
     if protected:
         body["protected"] = True
+    if rotation_due_at is not None:
+        body["rotationDueAt"] = rotation_due_at
+    if owners is not None:
+        body["owners"] = owners
     response = http.post(f"{API_URL}/{workspace_url}/api-keys", params={"api_key": api_key}, json=body)
     if not response.ok:
         raise RoboflowError(response.text, status_code=response.status_code)
@@ -2576,21 +2610,24 @@ def update_api_key(api_key: str, workspace_url: str, key_id: str, **fields: Any)
     """PATCH /{workspace}/api-keys/{keyId} — update an existing API key.
 
     Pass only the fields you want to change as keyword arguments:
-    ``name``, ``scopes``, ``custom_metadata``, ``protected``, ``disabled``.
+    ``name``, ``scopes``, ``custom_metadata``, ``protected``, ``disabled``,
+    ``rotation_due_at``, ``owners``.
     ``None`` values are omitted (left unchanged). To send explicit values,
     pass ``scopes=[]`` (no abilities), ``scopes=FULL_ACCESS`` (unscoped/full
-    access, serialized as ``null``), or ``custom_metadata={}`` (clear metadata).
+    access, serialized as ``null``), ``custom_metadata={}`` (clear metadata),
+    ``rotation_due_at=CLEAR`` (clear the due date, serialized as ``null``) or
+    ``owners=[]`` (remind everyone who can roll the key).
     The API cannot unprotect a key (``protected=False`` → 403).
     Disabling a protected key returns 409.
     """
     encoded = quote(key_id, safe="")
     # Canonical wire field is camelCase `customMetadata` (consistent with `folderIds`); callers may
     # pass the Pythonic `custom_metadata` kwarg, which is normalized here.
-    wire_aliases = {"custom_metadata": "customMetadata"}
+    wire_aliases = {"custom_metadata": "customMetadata", "rotation_due_at": "rotationDueAt"}
     body: Dict[str, Any] = {}
     for k, v in fields.items():
         wire_key = wire_aliases.get(k, k)
-        if v is FULL_ACCESS:
+        if v is FULL_ACCESS or v is CLEAR:
             body[wire_key] = None
         elif v is not None:
             body[wire_key] = v
@@ -2613,6 +2650,39 @@ def revoke_api_key(api_key: str, workspace_url: str, key_id: str) -> dict:
     response = http.delete(
         f"{API_URL}/{workspace_url}/api-keys/{encoded}",
         params={"api_key": api_key},
+    )
+    if not response.ok:
+        raise RoboflowError(response.text, status_code=response.status_code)
+    return response.json()
+
+
+def roll_api_key(
+    api_key: str,
+    workspace_url: str,
+    key_id: str,
+    rotation_due_at: Optional[str] = None,
+    owners: Optional[List[str]] = None,
+) -> dict:
+    """POST /{workspace}/api-keys/{keyId}/roll — revoke a key and mint its replacement.
+
+    The replacement keeps the old key's name, scopes, folders, metadata, protection
+    and disabled state, and its secret ``key`` value is returned only here (shown
+    once). ``rotation_due_at`` (ISO date or date-time, UTC, in the future) and
+    ``owners`` set the replacement's rotation schedule; omitted, the old key's
+    schedule carries over. Both require the Advanced API Keys plan feature.
+    Rolling a protected or already rolled key returns 409; a credential that holds
+    less access than the target key gets 403.
+    """
+    encoded = quote(key_id, safe="")
+    body: Dict[str, Any] = {}
+    if rotation_due_at is not None:
+        body["rotationDueAt"] = rotation_due_at
+    if owners is not None:
+        body["owners"] = owners
+    response = http.post(
+        f"{API_URL}/{workspace_url}/api-keys/{encoded}/roll",
+        params={"api_key": api_key},
+        json=body or None,
     )
     if not response.ok:
         raise RoboflowError(response.text, status_code=response.status_code)

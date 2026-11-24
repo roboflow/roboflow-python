@@ -39,7 +39,7 @@ def preview(
         Optional[float], typer.Option("--confidence", help="Detection threshold from 0.0 to 1.0 (sam3 only)")
     ] = None,
 ) -> None:
-    """Preview one image with a foundation model. Free: no job is created."""
+    """Preview one image with a foundation model. Free: no job is created. Not available for video-segment."""
     args = ctx_to_args(ctx, project=project)
     resolved_ontology = _parse_ontology(args, ontology, classes)
     resolved_image = _parse_image(args, image)
@@ -62,13 +62,16 @@ def preview(
 def start(
     ctx: typer.Context,
     project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
-    batch_id: Annotated[str, typer.Option("--batch-id", help="Source batch ID containing the images to label")],
+    batch_id: Annotated[
+        str, typer.Option("--batch-id", help="Source batch ID containing the images (or videos) to label")
+    ],
     model: Annotated[
         str,
         typer.Option(
             "-m",
             "--model",
-            help="Foundation model ID from 'autolabel models', or a Roboflow model ID with --model-type roboflow",
+            help="Foundation model ID from 'autolabel models', a Roboflow model ID with --model-type roboflow, "
+            "or 'video-segment' for a batch of videos in an action-recognition project",
         ),
     ],
     model_type: Annotated[
@@ -104,19 +107,35 @@ def start(
     model_options: Annotated[
         Optional[str],
         typer.Option(
-            "--model-options", help='JSON model options, e.g. \'{"outputFormat": "polygon"}\', or @options.json'
+            "--model-options",
+            help='JSON model options, e.g. \'{"outputFormat": "polygon"}\', or @options.json. '
+            "For video-segment, only '{\"sampleFps\": 2}' (0.5 to 12 frames per second, default 8)",
+        ),
+    ] = None,
+    existing_annotations: Annotated[
+        Optional[str],
+        typer.Option(
+            "--existing-annotations",
+            help="What to do with annotations already on the batch images: 'replace' (default) removes "
+            "them, 'preserve' keeps them and adds every prediction, 'merge' keeps them and skips "
+            "predictions that overlap an existing annotation of the same class. video-segment accepts only "
+            "'replace'",
         ),
     ] = None,
     preserve_existing: Annotated[
         bool,
-        typer.Option(
-            "--preserve-existing",
-            help="Keep annotations already on the batch images and only add new ones "
-            "(by default the job replaces them)",
-        ),
+        typer.Option("--preserve-existing", hidden=True, help="Same as --existing-annotations preserve"),
     ] = False,
+    keypoint_confidence: Annotated[
+        Optional[float],
+        typer.Option(
+            "--keypoint-confidence",
+            help="Keypoint projects: lowest confidence (0-1) a predicted keypoint needs to be saved as visible "
+            "(server default: 0.6)",
+        ),
+    ] = None,
 ) -> None:
-    """Start a hosted auto-label job over a batch of images."""
+    """Start a hosted auto-label job over a batch of images, or of videos with -m video-segment."""
     args = ctx_to_args(ctx, project=project)
     resolved_ontology = _parse_ontology(args, ontology, classes)
     resolved_thresholds = _parse_json_option(args, "--confidence-thresholds", confidence_thresholds)
@@ -138,7 +157,12 @@ def start(
             run_nms=False if no_nms else None,
             reviewer_email=reviewer,
             model_options=wire_options,
-            preserve_existing_annotations=True if preserve_existing else None,
+            existing_annotations=(
+                existing_annotations
+                if existing_annotations is not None
+                else ("preserve" if preserve_existing else None)
+            ),
+            keypoint_confidence_threshold=keypoint_confidence,
         )
 
     _project_command(args, start_job)

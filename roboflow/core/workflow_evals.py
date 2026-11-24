@@ -287,6 +287,34 @@ class WorkflowEvals:
     def get_dataset(self, dataset_id: str) -> Dict[str, Any]:
         return self._call("GET", f"/eval-datasets/{_seg(dataset_id)}")
 
+    def search_dataset(
+        self,
+        dataset_id: str,
+        *,
+        query: Optional[Dict[str, Any]] = None,
+        limit: Optional[int] = None,
+        cursor: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Search Cases using semantic, Source and saved ground-truth filters.
+
+        ``query`` accepts ``semantic``, ``source`` (filename, tags, width/height
+        ranges), and ``groundTruth`` (state, slices, sliceMatch, output,
+        className, count range, scalar: {output, value}). Class/count filters
+        require an output. Source/semantic filters additionally need image:read
+        and match only Source-backed Cases; GT filters also cover artifact-only Cases.
+
+        Returns items, dataset revisions, coverage, total (possibly None), and
+        optional nextCursor. Keep query and limit unchanged when continuing,
+        even after an empty page; stop only when nextCursor is absent. Page size
+        defaults to 24 (maximum 48). Restart without a cursor on HTTP 409.
+        Preview URLs expire. This read-only POST needs no idempotency key.
+        """
+        return self._call(
+            "POST",
+            f"/eval-datasets/{_seg(dataset_id)}/search",
+            body=_body(query=query, limit=limit, cursor=cursor),
+        )
+
     def update_dataset(self, dataset_id: str, body: Dict[str, Any], *, revision: Any) -> Dict[str, Any]:
         """Update Dataset metadata (``name``, ``description``)."""
         return self._call("PATCH", f"/eval-datasets/{_seg(dataset_id)}", body=body, revision=revision)

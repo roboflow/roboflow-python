@@ -198,19 +198,80 @@ class TestAutolabelStart(unittest.TestCase):
             run_nms=False,
             reviewer_email="r@example.com",
             model_options={"outputFormat": "polygon"},
-            preserve_existing_annotations=None,
+            existing_annotations=None,
+            keypoint_confidence_threshold=None,
+        )
+
+    @patch("roboflow.util.http.requests.post")
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_video_segment_start_sends_only_the_video_fields(self, _resolve, mock_post):
+        # video-segment is not in the models catalog; the server owns validation, so nothing client-side may block it,
+        # and the server refuses any image-only field, so none may leak into the body.
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {"jobId": "job-1"}
+        result = runner.invoke(
+            app,
+            ["autolabel", "start", "-p", "ws/proj", "--batch-id", "videos-1", "-m", "video-segment"]
+            + ["--ontology", '{"a person jumps": "jump"}', "--model-options", '{"sampleFps": 2}'],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(
+            mock_post.call_args.kwargs["json"],
+            {
+                "batchId": "videos-1",
+                "modelType": "video-segment",
+                "ontology": {"a person jumps": "jump"},
+                "modelOptions": {"sampleFps": 2},
+            },
         )
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
-    def test_preserve_existing_flag(self, _resolve, mock_api):
-        # The server default replaces annotations already on the batch images.
+    def test_legacy_preserve_existing_flag(self, _resolve, mock_api):
+        # Hidden alias of --existing-annotations preserve, kept for scripts written against 1.7.
         result = runner.invoke(
             app,
             ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "sam3-rle", "--preserve-existing"],
         )
         self.assertEqual(result.exit_code, 0, result.output)
-        self.assertIs(mock_api.call_args.kwargs["preserve_existing_annotations"], True)
+        self.assertEqual(mock_api.call_args.kwargs["existing_annotations"], "preserve")
+
+    @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_existing_annotations_option(self, _resolve, mock_api):
+        result = runner.invoke(
+            app,
+            ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "sam3-rle"]
+            + ["--existing-annotations", "merge"],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(mock_api.call_args.kwargs["existing_annotations"], "merge")
+
+    @patch("roboflow.util.http.requests.post")
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_unknown_existing_annotations_mode_is_an_error(self, _resolve, mock_post):
+        # An empty value (ex: an unset $MODE in a script) must fail too, not fall back to replace.
+        for mode in ("keep", ""):
+            with self.subTest(mode=mode):
+                result = runner.invoke(
+                    app,
+                    ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "sam3-rle"]
+                    + ["--existing-annotations", mode],
+                )
+                self.assertNotEqual(result.exit_code, 0)
+                self.assertIn("existing_annotations must be", result.output)
+        mock_post.assert_not_called()
+
+    @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
+    @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))
+    def test_keypoint_confidence_flag(self, _resolve, mock_api):
+        result = runner.invoke(
+            app,
+            ["autolabel", "start", "-p", "ws/proj", "--batch-id", "batch-1", "-m", "court-keypoints/2"]
+            + ["--model-type", "roboflow", "--keypoint-confidence", "0.75"],
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(mock_api.call_args.kwargs["keypoint_confidence_threshold"], 0.75)
 
     @patch("roboflow.adapters.rfapi.start_autolabel_job", return_value={"jobId": "job-1"})
     @patch(_RESOLVE_PROJECT, return_value=("key", "ws", "proj"))

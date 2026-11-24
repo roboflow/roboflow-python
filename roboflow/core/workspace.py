@@ -1773,8 +1773,26 @@ class Workspace:
         """
         Get status and per-subjob progress for a hosted auto-label job.
 
+        The job ``status`` goes ``pending`` -> ``processing_completion`` ->
+        ``done``; the annotation job (``annotationJobId``) then waits for review.
+
+        Video jobs (``model="video-segment"``) also carry ``mediaType: "video"``,
+        ``classes`` (``[{name, description?}]``), ``sampling``
+        (``{sampleFps, windowSeconds, overlapSeconds}``), ``framesPlanned``,
+        ``framesSampled`` and ``videos``: one entry per video id with
+        ``status`` (``pending``, ``done`` or ``failed``), ``windows`` and, as
+        the video progresses, ``framesSeen``, ``segments``, ``windowsFailed``,
+        ``unanalysedIntervals`` or ``error``. ``preserved: true`` means the
+        video had frame annotations, so the job wrote no segments to it;
+        ``truncated: true`` means the job kept only the longest segments.
+        ``numImages`` counts the videos.
+
         Args:
             job_id: the ``jobId`` returned by ``Project.autolabel``.
+
+        Example:
+            >>> job = ws.autolabel_job(job_id)
+            >>> job["status"], job.get("framesSampled"), job.get("framesPlanned")
         """
         return rfapi.get_autolabel_job(self.__api_key, self.url, job_id)
 

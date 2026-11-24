@@ -25,7 +25,6 @@ from roboflow.util.model_processor import (
     _filtered_args,
     _infer_yolo_size,
     _is_ptl_checkpoint,
-    _legacy_yolo_args,
     _require_rfdetr,
     _resolve_rfdetr_variant,
     _resolve_yolo_size,
@@ -58,7 +57,7 @@ class TaskOfModelTypeTest(unittest.TestCase):
     def test_segment(self):
         self.assertEqual(task_of_model_type("yolov11-seg"), TASK_SEG)
         self.assertEqual(task_of_model_type("rfdetr-seg-medium"), TASK_SEG)
-        self.assertEqual(task_of_model_type("yolov7-seg"), TASK_SEG)
+        self.assertEqual(task_of_model_type("yolov8-seg"), TASK_SEG)
 
     def test_pose(self):
         self.assertEqual(task_of_model_type("yolov11-pose"), TASK_POSE)
@@ -196,22 +195,6 @@ class ValidateModelTypeForProjectTest(unittest.TestCase):
         validate_model_type_for_project("yolov8", "some-new-type", "widgets")
 
 
-class LegacyYoloArgsTest(unittest.TestCase):
-    def test_reports_missing_batch_size(self):
-        with self.assertRaises(ModelPackagingError) as ctx:
-            _legacy_yolo_args({"imgsz": 640}, Path("opt.yaml"))
-        self.assertIn("batch_size", str(ctx.exception))
-
-    def test_reports_missing_image_size(self):
-        with self.assertRaises(ModelPackagingError) as ctx:
-            _legacy_yolo_args({"batch_size": 8}, Path("opt.yaml"))
-        self.assertIn("imgsz", str(ctx.exception))
-
-    def test_accepts_either_image_size_key(self):
-        self.assertEqual(_legacy_yolo_args({"imgsz": 640, "batch_size": 8}, Path("x")), {"imgsz": 640, "batch": 8})
-        self.assertEqual(_legacy_yolo_args({"img_size": 416, "batch_size": 4}, Path("x")), {"imgsz": 416, "batch": 4})
-
-
 class _FakeYoloModel:
     def __init__(self, yaml):
         self.yaml = yaml
@@ -275,15 +258,15 @@ class ResolveYoloSizeTest(unittest.TestCase):
 
     def test_bare_family_uninferable_raises_by_default(self):
         with self.assertRaises(SizeMismatchError):
-            _resolve_yolo_size("yolov10", _FakeYoloModel({}), [])
+            _resolve_yolo_size("yolov8", _FakeYoloModel({}), [])
 
     def test_bare_family_uninferable_proceeds_under_allow_mismatch(self):
         # The interactive retry sets allow_mismatch=True after the user confirms;
         # this branch must then converge (return) rather than raise forever.
         warnings: list = []
         self.assertEqual(
-            _resolve_yolo_size("yolov10", _FakeYoloModel({}), warnings, allow_mismatch=True),
-            "yolov10",
+            _resolve_yolo_size("yolov8", _FakeYoloModel({}), warnings, allow_mismatch=True),
+            "yolov8",
         )
         self.assertTrue(warnings and "bare family name" in warnings[0])
 
@@ -433,6 +416,18 @@ class PackageCustomWeightsTest(unittest.TestCase):
     def test_missing_model_path_raises_missing_file(self):
         with self.assertRaises(MissingFileError):
             package_custom_weights("yolonas", "/nonexistent/path/for/test")
+
+    def test_retired_yolo_families_fail_before_loading_weights(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for family in ("5", "7", "9", "10"):
+                for model_type in (f"yolov{family}", f"yolov{family}n", f"yolo{family}s-seg"):
+                    with self.subTest(model_type=model_type):
+                        with mock.patch.object(model_processor, "_import_required_module") as import_module:
+                            with mock.patch.object(model_processor, "_load_checkpoint") as load:
+                                with self.assertRaises(UnsupportedModelError):
+                                    package_custom_weights(model_type, tmp)
+                                import_module.assert_not_called()
+                                load.assert_not_called()
 
     def test_family_must_be_a_prefix_not_a_substring(self):
         # 'foo-yolov8n' merely contains a family token; the backend would
@@ -684,7 +679,7 @@ class PackageCustomWeightsTest(unittest.TestCase):
         self.assertIn("yaml", str(ctx.exception))
 
     def test_yolov11_missing_train_args_raises_packaging_error(self):
-        # yolov10/11/12/26 read args from checkpoint["train_args"]; a checkpoint
+        # yolov11/12/26 read args from checkpoint["train_args"]; a checkpoint
         # without it must fail with the ModelPackagingError contract.
         class DetectionModel:
             names = {0: "cat"}

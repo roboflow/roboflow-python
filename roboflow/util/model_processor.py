@@ -54,12 +54,7 @@ from roboflow.config import (
 from roboflow.util.versions import get_wrong_dependencies_versions, normalize_yolo_model_type
 
 SUPPORTED_MODELS = (
-    "yolov5",
-    "yolov7",
-    "yolov7-seg",
     "yolov8",
-    "yolov9",
-    "yolov10",
     "yolov11",
     "yolov12",
     "yolo26",
@@ -116,12 +111,11 @@ SUPPORTED_RFDETR_TYPES = tuple(_RFDETR_MODEL_TYPE_TO_CLASS)
 DEFAULT_WEIGHTS_FILENAME = "weights/best.pt"
 
 # YOLO families Roboflow rejects without a size suffix (e.g. `yolov8` must be
-# `yolov8n`/`yolov8s`/...). Legacy yolov5/7/9 go through the opt.yaml path and are
-# intentionally excluded.
-ULTRALYTICS_YOLO_FAMILIES = ("yolov8", "yolov10", "yolov11", "yolov12", "yolo26")
+# `yolov8n`/`yolov8s`/...).
+ULTRALYTICS_YOLO_FAMILIES = ("yolov8", "yolov11", "yolov12", "yolo26")
 
 # Canonical (depth_multiple, width_multiple) -> size letter for the classic YOLO
-# scaling (v5/v8/v9/v10). Newer families (v11+) instead store an explicit ``scale``
+# scaling in v8. Newer families (v11+) instead store an explicit ``scale``
 # letter in the model yaml, which is read first.
 YOLO_DEPTH_WIDTH_TO_SIZE = {
     (0.33, 0.25): "n",
@@ -552,19 +546,6 @@ def _load_checkpoint(torch_module: Any, checkpoint_path: Path, *, map_location: 
     return torch_module.load(checkpoint_path, **kwargs)
 
 
-def _legacy_yolo_args(opts: dict[str, Any], opt_path: Path) -> dict[str, Any]:
-    """Return required legacy YOLO upload args from opt.yaml."""
-    if "imgsz" in opts:
-        image_size = opts["imgsz"]
-    elif "img_size" in opts:
-        image_size = opts["img_size"]
-    else:
-        raise ModelPackagingError(f"{opt_path} is missing required key 'imgsz' or 'img_size'.")
-    if "batch_size" not in opts:
-        raise ModelPackagingError(f"{opt_path} is missing required key 'batch_size'.")
-    return {"imgsz": image_size, "batch": opts["batch_size"]}
-
-
 def _infer_yolo_size(model_instance: Any) -> str | None:
     """Infer a YOLO size letter (n/s/m/l/x/...) from a loaded checkpoint.
 
@@ -703,8 +684,6 @@ def _process_yolo(
             allow_mismatch=allow_dependency_mismatch,
             warnings=warnings,
         )
-    elif "yolov10" in model_type:
-        ultralytics = _import_required_module("ultralytics", "pip install ultralytics")
     elif "yolov11" in model_type:
         ultralytics = _import_required_module("ultralytics", "pip install 'ultralytics>=8.3.0'")
         _check_dependency_version(
@@ -758,50 +737,33 @@ def _process_yolo(
             )
 
     class_names = _class_names_from_model_instance(model_instance)
-    if any(name in model_type for name in ULTRALYTICS_YOLO_FAMILIES):
-        if ultralytics is None:
-            ultralytics = _import_required_module("ultralytics", "pip install ultralytics")
-        model_yaml = _require_model_attr(model_instance, "yaml", model_type)
-        if (
-            "-cls" in model_type
-            or model_type.startswith("yolov10")
-            or model_type.startswith("yolov11")
-            or model_type.startswith("yolov12")
-            or model_type.startswith("yolo26")
-        ):
-            if not isinstance(model_yaml, dict) or "nc" not in model_yaml:
-                raise ModelPackagingError(
-                    f"The {model_type} checkpoint's model config (model.yaml) is missing 'nc'; "
-                    "it does not look like a complete Ultralytics training checkpoint."
-                )
-            nc = model_yaml["nc"]
-            args = _require_checkpoint_field(checkpoint, "train_args", model_type)
-        else:
-            nc = _require_model_attr(model_instance, "nc", model_type)
-            args = _require_model_attr(model_instance, "args", model_type)
-        model_artifacts: dict[str, Any] = {
-            "names": class_names,
-            "yaml": model_yaml,
-            "nc": nc,
-            "args": _filtered_args(args),
-            "ultralytics_version": ultralytics.__version__,
-            "model_type": model_type,
-        }
+    if ultralytics is None:
+        ultralytics = _import_required_module("ultralytics", "pip install ultralytics")
+    model_yaml = _require_model_attr(model_instance, "yaml", model_type)
+    if (
+        "-cls" in model_type
+        or model_type.startswith("yolov11")
+        or model_type.startswith("yolov12")
+        or model_type.startswith("yolo26")
+    ):
+        if not isinstance(model_yaml, dict) or "nc" not in model_yaml:
+            raise ModelPackagingError(
+                f"The {model_type} checkpoint's model config (model.yaml) is missing 'nc'; "
+                "it does not look like a complete Ultralytics training checkpoint."
+            )
+        nc = model_yaml["nc"]
+        args = _require_checkpoint_field(checkpoint, "train_args", model_type)
     else:
-        # yolov5 / yolov7 / yolov9 read their upload args from opt.yaml
-        opt_path = model_path / "opt.yaml"
-        if not opt_path.exists():
-            raise MissingFileError(f"You must provide an opt.yaml file at '{opt_path}' for {model_type} uploads.")
-        with opt_path.open() as stream:
-            opts = yaml.safe_load(stream) or {}
-        model_artifacts = {
-            "names": class_names,
-            "nc": _require_model_attr(model_instance, "nc", model_type),
-            "args": _legacy_yolo_args(opts, opt_path),
-            "model_type": model_type,
-        }
-        if hasattr(model_instance, "yaml"):
-            model_artifacts["yaml"] = model_instance.yaml
+        nc = _require_model_attr(model_instance, "nc", model_type)
+        args = _require_model_attr(model_instance, "args", model_type)
+    model_artifacts: dict[str, Any] = {
+        "names": class_names,
+        "yaml": model_yaml,
+        "nc": nc,
+        "args": _filtered_args(args),
+        "ultralytics_version": ultralytics.__version__,
+        "model_type": model_type,
+    }
 
     (build_dir / "model_artifacts.json").write_text(json.dumps(model_artifacts))
     torch.save(model_instance.state_dict(), build_dir / "state_dict.pt")

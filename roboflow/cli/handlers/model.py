@@ -91,7 +91,7 @@ def model_infer(
 @model_app.command("upload")
 def upload_model(
     ctx: typer.Context,
-    model_type: Annotated[str, typer.Option("-t", "--type", help="Model type (e.g. yolov8, yolov5)")],
+    model_type: Annotated[str, typer.Option("-t", "--type", help="Model type (e.g. yolov8n, yolo26n, rfdetr-nano)")],
     model_path: Annotated[str, typer.Option("-m", "--model-path", help="Path to the trained model file")],
     project: Annotated[
         Optional[list[str]], typer.Option("-p", "--project", help="Project ID (repeatable for multi-project deploy)")

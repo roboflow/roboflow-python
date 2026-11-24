@@ -14,7 +14,70 @@ All notable changes to this project will be documented in this file.
   tag; a larger tag is refused before anything moves. The CLI is
   `roboflow annotation batch move -p <project> (--batch-name N | --batch-id ID)
   (--tag T | --image-id ID ...)`, with `--json` and the usual exit codes.
-  Needs the `POST /{workspace}/{project}/annotation-batches/move` API.
+  Needs the `POST /{workspace}/{project}/annotation-batches/move` API
+  ([#565](https://github.com/roboflow/roboflow-python/pull/565)).
+- Docs for video Auto Label on action-recognition projects:
+  `Project.autolabel(batch_id, model="video-segment", ontology={"a person jumps": "jump"},
+  model_options={"sampleFps": 2})` and
+  `roboflow autolabel start -p <project> --batch-id <batch> -m video-segment --model-options '{"sampleFps": 2}'`
+  label a batch of videos, and `Workspace.autolabel_job` documents the video
+  progress fields (`framesPlanned`, `framesSampled`, `videos`, ...). Needs a
+  Roboflow API release with action-recognition Auto Label
+  ([#585](https://github.com/roboflow/roboflow-python/pull/585)).
+- `Project.autolabel(..., keypoint_confidence_threshold=0.75)` and
+  `roboflow autolabel start --keypoint-confidence 0.75` set the lowest confidence
+  a predicted keypoint needs to be saved as visible when a keypoint-detection
+  project is labeled with a trained keypoint model. Points below it are saved as
+  not visible; omitted, the server default (0.6) applies
+  ([#571](https://github.com/roboflow/roboflow-python/pull/571)).
+- `Project.autolabel(..., existing_annotations=...)` and
+  `roboflow autolabel start --existing-annotations ...` choose what a job does
+  with annotations already on the batch images: `"replace"` (the default)
+  removes them, `"preserve"` keeps them and adds every prediction, and
+  `"merge"` keeps them and adds only the predictions that don't overlap an
+  existing annotation of the same class (IoU of at least 0.5), so objects that
+  are already labeled aren't duplicated
+  ([#570](https://github.com/roboflow/roboflow-python/pull/570)).
+
+### Deprecated
+
+- `Project.autolabel(..., preserve_existing_annotations=True)` still works but
+  warns; use `existing_annotations="preserve"`. `--preserve-existing` is now a
+  hidden alias of `--existing-annotations preserve`
+  ([#570](https://github.com/roboflow/roboflow-python/pull/570)).
+
+### Removed
+
+- Custom model weight uploads no longer support YOLOv5, YOLOv7, YOLOv9, or
+  YOLOv10. Existing models remain available for inference, and YOLO dataset
+  formats remain supported ([#572](https://github.com/roboflow/roboflow-python/pull/572)).
+
+### Fixed
+
+- `TrainedModel.download()` saves the file as `weights` plus the extension of
+  the artifact that the API serves, for example `weights.onnx`. Before, it
+  always used `weights.pt`
+  ([#582](https://github.com/roboflow/roboflow-python/pull/582)).
+- Folder uploads (`upload_dataset()` and `roboflow image upload <folder>`) skip
+  a CSV with fewer than six columns, such as a table of image metadata, with a
+  warning. Before, its rows were sent as the annotation of every image they
+  named, which failed the save, even when the folder's annotation CSV also
+  listed the image ([#583](https://github.com/roboflow/roboflow-python/pull/583)).
+
+## 1.7.3
+
+### Added
+
+- `roboflow api-key roll <key_id>` revokes an API key and creates its replacement
+  in one step, printing the new secret once. `--rotation-due-at` and `--owner`
+  (repeatable) set the replacement's rotation schedule; omitted, the old key's
+  schedule carries over. A protected key returns exit code 1 with a hint, like
+  `revoke`; a key that was already rolled or revoked is not found (exit code 3)
+  ([#566](https://github.com/roboflow/roboflow-python/pull/566)).
+- `roboflow api-key create` and `update` accept `--rotation-due-at` and `--owner`
+  (repeatable) to set a key's rotation schedule; `update` also takes
+  `--clear-rotation-due-at` and `--clear-owners`
+  ([#566](https://github.com/roboflow/roboflow-python/pull/566)).
 
 ## 1.7.2
 

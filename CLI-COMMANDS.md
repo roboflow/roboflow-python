@@ -323,7 +323,11 @@ roboflow autolabel preview -p my-project -m sam3-rle --image https://example.com
 roboflow autolabel start -p my-project --batch-id <batch-id> -m gpt-6-astra-boxes \
   --ontology '{"a cat": "cat", "a dog": "dog"}' --confidence 0.5 --reviewer b@co.com
 roboflow autolabel start -p my-project --batch-id <batch-id> -m my-project/3 --model-type roboflow
-roboflow autolabel start -p my-project --batch-id <batch-id> -m sam3-rle --preserve-existing
+roboflow autolabel start -p my-project --batch-id <batch-id> -m sam3-rle --existing-annotations merge
+roboflow autolabel start -p my-keypoints --batch-id <batch-id> -m my-keypoints/2 --model-type roboflow \
+  --keypoint-confidence 0.7
+roboflow autolabel start -p my-actions --batch-id <video-batch-id> -m video-segment \
+  --ontology '{"a person jumps": "jump"}' --model-options '{"sampleFps": 2}'
 roboflow autolabel job <job-id>
 roboflow autolabel job <job-id> -p other-workspace/my-project
 ```
@@ -337,11 +341,26 @@ repeated `--class` flags or as `--ontology` JSON. The ontology is keyed by
 matches either prompt as class `cat`. That direction is what lets several
 prompts share one output class. JSON options also accept a curl-style file
 reference (`--ontology @ontology.json`).
-`--image` accepts an HTTPS URL or a local file. By default a job replaces the
-annotations already on the batch images; `--preserve-existing` keeps them and
-only adds new ones. `job` looks the id up in your default workspace, so when
-the job was started with a `workspace/project` shorthand pass the same `-p` to
-`job`.
+`--image` accepts an HTTPS URL or a local file. `--existing-annotations` says
+what the job does with annotations already on the batch images: `replace` (the
+default) removes them, `preserve` keeps them and adds every prediction next to
+them, and `merge` keeps them and skips a prediction that overlaps an existing
+annotation of the same class (IoU of at least 0.5), so objects that are already
+labeled aren't duplicated. Keypoint-detection projects are labeled with a trained
+keypoint model; `--keypoint-confidence` sets the lowest confidence a keypoint
+needs to be saved as visible (server default 0.6). Action-recognition projects
+label a batch of up to 50 videos with `-m video-segment` (it is not in
+`models`): the ontology maps one action description to each class, and the
+class must already exist in the project. `--model-options '{"sampleFps": n}'`
+sets the frames per second the model sees (0.5 to 12, default 8). The job
+replaces each video's segments, but leaves a video with frame annotations
+unchanged (`preserved: true` in `job`).
+Video jobs do not take the image options (`--num-images`, `--confidence`,
+`--no-nms`, `--existing-annotations preserve|merge`, ...); the server refuses
+them. `job` shows video progress in `framesSampled` / `framesPlanned` and per
+video in `videos`. `job` looks the id up in
+your default workspace, so when the job was started with a `workspace/project`
+shorthand pass the same `-p` to `job`.
 
 The same operations are available in Python:
 

@@ -1,5 +1,5 @@
 # Set before the imports below, so roboflow.util.http can read it for the User-Agent while they run.
-__version__ = "1.7.2"
+__version__ = "1.7.3"
 
 import json
 import os

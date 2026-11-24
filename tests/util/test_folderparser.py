@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import os
 import tempfile
@@ -53,6 +55,26 @@ class TestFolderParser(unittest.TestCase):
         expected = "img_fName,img_w,img_h,class_label,bbx_xtl,bbx_ytl,bbx_xbr,bbx_ybr\n"
         expected += "train_10308.jpeg,1058,943,japonicus/koreicus,28,187,908,815\n"
         assert testImage["annotationfile"]["rawText"] == expected
+
+    def test_parse_csv_skips_metadata_csv(self):
+        # A metadata table lists the same images as the annotation CSV, and sorts before it.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.makedirs(os.path.join(tmpdir, "train"))
+            for name in ("a.jpg", "b.jpg"):
+                open(os.path.join(tmpdir, "train", name), "wb").close()
+            annotations = "filename,width,height,class,xmin,ymin,xmax,ymax\na.jpg,640,480,cat,10,20,110,220\n"
+            with open(os.path.join(tmpdir, "train", "_annotations.csv"), "w") as f:
+                f.write(annotations)
+            with open(os.path.join(tmpdir, "metadata.csv"), "w") as f:
+                f.write("filename,split,count,status\na.jpg,train,1,ok\nb.jpg,train,0,ok\n")
+
+            with contextlib.redirect_stdout(io.StringIO()) as stdout:
+                parsed = folderparser.parsefolder(tmpdir)
+
+        images = {i["file"]: i for i in parsed["images"]}
+        self.assertEqual(images["/train/a.jpg"]["annotationfile"], {"name": "annotation.csv", "rawText": annotations})
+        self.assertIsNone(images["/train/b.jpg"].get("annotationfile"))
+        self.assertIn("/metadata.csv", stdout.getvalue())
 
     def test_paligemma_format(self):
         folder = f"{thisdir}/../datasets/paligemma"

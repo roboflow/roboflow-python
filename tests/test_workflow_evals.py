@@ -20,8 +20,8 @@ E, R, X, D, S, C = "eval-1", "run-1", "exec-1", "ds-1", "spec-1", "case-1"
 SUBJECT = {"kind": "savedWorkflow", "workflowId": "wf", "subjectKey": "wf"}
 
 # (client method, args, kwargs, HTTP method, path relative to BASE, sends Idempotency-Key, If-Match value)
-# One row per public JSON route in the Workflow Evals OpenAPI registry. The 71st route,
-# POST /specs/ai-draft, streams SSE and is covered by the ai_draft tests below.
+# Public JSON routes in the Workflow Evals OpenAPI registry.
+# POST /specs/ai-draft streams SSE and is covered by the ai_draft tests below.
 ROUTES = [
     ("capabilities", (), {}, "GET", "/capabilities", False, None),
     ("openapi", (), {}, "GET", "/openapi.json", False, None),
@@ -50,6 +50,7 @@ ROUTES = [
     ("list_datasets", (), {}, "GET", "/eval-datasets", False, None),
     ("create_dataset", ({"name": "d"},), {}, "POST", "/eval-datasets", True, None),
     ("get_dataset", (D,), {}, "GET", f"/eval-datasets/{D}", False, None),
+    ("search_dataset", (D,), {}, "POST", f"/eval-datasets/{D}/search", False, None),
     ("update_dataset", (D, {"name": "d"}), {"revision": 1}, "PATCH", f"/eval-datasets/{D}", False, "1"),
     (
         "mutate_dataset_contract",
@@ -164,7 +165,7 @@ class TestWorkflowEvalsRoutes(unittest.TestCase):
         self.client = WorkflowEvals(KEY, WS)
 
     def test_covers_every_public_json_route(self):
-        self.assertEqual(len({(row[3], row[4]) for row in ROUTES}), 70)
+        self.assertEqual(len({(row[3], row[4]) for row in ROUTES}), 71)
 
     @responses.activate
     def test_each_method_calls_its_route(self):
@@ -209,6 +210,40 @@ class TestWorkflowEvalsClient(unittest.TestCase):
         self.assertIn("slice=a&slice=b", query)
         self.assertIn("failedCheck=true", query)
         self.assertIn("state=failed", query)
+
+    @responses.activate
+    def test_search_dataset_preserves_filters_and_empty_page_continuation(self):
+        url = f"{BASE}/eval-datasets/{D}/search"
+        query = {
+            "semantic": "cars on a street",
+            "source": {"filename": "street", "tags": ["daytime"], "width": {"min": 640}},
+            "groundTruth": {
+                "state": "complete",
+                "slices": ["daytime"],
+                "sliceMatch": "all",
+                "output": "boxes",
+                "className": "car",
+                "count": {"min": 0, "max": 3},
+                "scalar": {"output": "occluded", "value": False},
+            },
+        }
+        page = {
+            "items": [],
+            "nextCursor": "continue",
+            "dataset": {"id": D, "generation": 1, "contentRevision": 2},
+            "coverage": {"totalCases": 50, "sourceBackedCases": 40},
+            "total": None,
+        }
+        responses.add(responses.POST, url, json=page, status=200)
+        responses.add(responses.POST, url, json={**page, "nextCursor": None}, status=200)
+        self.assertEqual(self.client.search_dataset(D, query=query, limit=12), page)
+        self.client.search_dataset(D, query=query, limit=12, cursor=page["nextCursor"])
+        self.assertEqual(json.loads(responses.calls[0].request.body), {"query": query, "limit": 12})
+        self.assertEqual(
+            json.loads(responses.calls[1].request.body),
+            {"query": query, "limit": 12, "cursor": "continue"},
+        )
+        self.assertNotIn("Idempotency-Key", responses.calls[1].request.headers)
 
     @responses.activate
     def test_validate_spec_wraps_bare_spec(self):
