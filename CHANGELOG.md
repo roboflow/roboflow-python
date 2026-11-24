@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 1.7.4
 
 ### Added
 
@@ -16,6 +16,11 @@ All notable changes to this project will be documented in this file.
   (--tag T | --image-id ID ...)`, with `--json` and the usual exit codes.
   Needs the `POST /{workspace}/{project}/annotation-batches/move` API
   ([#565](https://github.com/roboflow/roboflow-python/pull/565)).
+- `rf.workspace().workflow_evals().search_dataset(dataset_id, query=..., limit=..., cursor=...)`
+  searches the Cases of a Workflow Eval Dataset with semantic, source
+  (filename, tags, size) and saved ground-truth filters, and returns a page of
+  items with `coverage`, `total` and a `nextCursor` to continue from
+  ([#578](https://github.com/roboflow/roboflow-python/pull/578)).
 - Docs for video Auto Label on action-recognition projects:
   `Project.autolabel(batch_id, model="video-segment", ontology={"a person jumps": "jump"},
   model_options={"sampleFps": 2})` and
