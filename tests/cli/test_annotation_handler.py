@@ -627,7 +627,8 @@ class TestBatchMove(unittest.TestCase):
         message = 'No images in this project carry the tag "lot-1000"'
         with patch(self._MOVE, side_effect=RoboflowError(message, status_code=400)):
             result = runner.invoke(
-                app, ["--json", "annotation", "batch", "move", "-p", "ws/proj", "--batch-name", "b", "--tag", "lot-1000"]
+                app,
+                ["--json", "annotation", "batch", "move", "-p", "ws/proj", "--batch-name", "b", "--tag", "lot-1000"],
             )
         self.assertEqual(result.exit_code, 1, result.output)
         error = json.loads(result.output)["error"]
