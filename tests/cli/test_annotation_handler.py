@@ -620,6 +620,20 @@ class TestBatchMove(unittest.TestCase):
         self.assertEqual(error["message"], message)
         self.assertIn("--image-id", error["hint"])
 
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_unknown_tag_with_1000_in_its_name_gets_no_cap_hint(self, _resolve):
+        from roboflow.adapters.rfapi import RoboflowError
+
+        message = 'No images in this project carry the tag "lot-1000"'
+        with patch(self._MOVE, side_effect=RoboflowError(message, status_code=400)):
+            result = runner.invoke(
+                app, ["--json", "annotation", "batch", "move", "-p", "ws/proj", "--batch-name", "b", "--tag", "lot-1000"]
+            )
+        self.assertEqual(result.exit_code, 1, result.output)
+        error = json.loads(result.output)["error"]
+        self.assertEqual(error["message"], message)
+        self.assertNotIn("hint", error)
+
 
 if __name__ == "__main__":
     unittest.main()

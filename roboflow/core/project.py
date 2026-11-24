@@ -1108,13 +1108,14 @@ class Project:
         Select the images with exactly one of ``image_ids`` or ``tag``, and the target with
         exactly one of ``batch_name`` (created if no batch has that name) or ``batch_id``.
         One call moves at most 1000 images: a longer ``image_ids`` list is refused here, and a
-        tag carried by more than 1000 images in the project is refused by the API before any
-        image moves. Images in an annotation job, in the dataset or already in the target
-        batch stay where they are and count as skipped; a call that would move nothing is
-        refused by the API.
+        tag carried by more than 1000 images in the project, or 20000 in the workspace, is
+        refused by the API before any image moves. Images in an annotation job, in the dataset
+        or already in the target batch stay where they are and count as skipped; a call that
+        would move nothing is refused by the API.
 
         Args:
-            batch_name (str): name of the target batch; reused if it exists, created otherwise
+            batch_name (str): name of the target batch, at most 200 characters; reused if it
+                exists, created otherwise
             batch_id (str): ID of an existing target batch
             image_ids (list[str]): IDs of the images to move, at most 1000
             tag (str): move every image in the project carrying this tag, at most 1000

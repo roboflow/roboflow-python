@@ -127,14 +127,21 @@ def batch_move(
     ctx: typer.Context,
     project: Annotated[str, typer.Option("-p", "--project", help="Project ID")],
     batch_name: Annotated[
-        Optional[str], typer.Option("--batch-name", help="Target batch name; created if no batch has it")
+        Optional[str],
+        typer.Option("--batch-name", help="Target batch name, at most 200 characters; created if no batch has it"),
     ] = None,
     batch_id: Annotated[Optional[str], typer.Option("--batch-id", help="Target batch ID")] = None,
     image_ids: Annotated[
         Optional[list[str]], typer.Option("--image-id", help="Image ID to move; repeat for multiple images")
     ] = None,
     tag: Annotated[
-        Optional[str], typer.Option(help="Move every image in the project with this tag (at most 1000)")
+        Optional[str],
+        typer.Option(
+            help=(
+                "Move every image in the project with this tag; refused if the tag is on more than 1000 images"
+                " in the project or 20000 in the workspace"
+            )
+        ),
     ] = None,
 ) -> None:
     """Move existing images, by ID or tag, into an annotation batch (at most 1000 per call)."""
@@ -567,7 +574,9 @@ def _batch_move(args: Any) -> None:
             tag=args.tag,
         )
     except rfapi.RoboflowError as exc:
-        over_tag_cap = args.tag is not None and str(rfapi.MAX_MOVE_TO_BATCH_IMAGES) in str(exc)
+        over_tag_cap = (
+            args.tag is not None and f"more than {rfapi.MAX_MOVE_TO_BATCH_IMAGES} images in this project" in str(exc)
+        )
         output_api_error(
             args,
             exc,
