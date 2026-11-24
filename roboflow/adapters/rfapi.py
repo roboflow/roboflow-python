@@ -781,7 +781,7 @@ def upload_image(
             if err_msg.get("error"):
                 err_msg = err_msg["error"]
 
-            if err_msg.get("message"):
+            if isinstance(err_msg, dict) and err_msg.get("message"):
                 err_msg = err_msg["message"]
 
             raise ImageUploadError(err_msg, status_code=response.status_code)
