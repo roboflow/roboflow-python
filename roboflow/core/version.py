@@ -36,7 +36,11 @@ from roboflow.models.vlm import VLMModel
 from roboflow.util import http
 from roboflow.util.annotations import amend_data_yaml
 from roboflow.util.general import extract_zip, write_line
-from roboflow.util.model_processor import package_custom_weights_interactive, validate_model_type_for_project
+from roboflow.util.model_processor import (
+    UnsupportedModelError,
+    package_custom_weights_interactive,
+    validate_model_type_for_project,
+)
 from roboflow.util.train_recipe import fold_epochs_into_recipe
 from roboflow.util.versions import get_model_format, get_wrong_dependencies_versions
 
@@ -663,6 +667,8 @@ class Version:
             model_path (str): File path to the model weights to be uploaded.
             filename (str, optional): The name of the weights file. Defaults to "weights/best.pt".
         """
+        if model_type == "owlv2":
+            raise UnsupportedModelError("Use workspace.deploy_model to upload an open-vocabulary OWLv2 model.")
         bundle = package_custom_weights_interactive(model_type, model_path, filename, build_dir=model_path)
 
         self._validate_against_project_type(bundle.model_type)

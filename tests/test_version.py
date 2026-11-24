@@ -20,6 +20,7 @@ from roboflow.config import (
 from roboflow.core.training import Training
 from roboflow.core.version import Version, unwrap_version_id
 from roboflow.models.object_detection import ObjectDetectionModel
+from roboflow.util.model_processor import UnsupportedModelError
 from tests.helpers import get_version
 
 
@@ -273,6 +274,12 @@ class TestValidateAgainstProjectType(unittest.TestCase):
     def test_classification_project_rejects_detection(self):
         with self.assertRaises(ValueError):
             self._version(TYPE_CLASSICATION)._validate_against_project_type("yolov11")
+
+
+class TestDeployOwlV2(unittest.TestCase):
+    def test_version_upload_directs_caller_to_workspace(self):
+        with self.assertRaisesRegex(UnsupportedModelError, "workspace.deploy_model"):
+            get_version().deploy("owlv2", "/model", "owlv2.pth")
 
 
 class TestConstructionDoesNotProbeNetwork(unittest.TestCase):
