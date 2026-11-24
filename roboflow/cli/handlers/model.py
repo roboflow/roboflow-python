@@ -311,11 +311,13 @@ def _get_model(args):  # noqa: ANN001
 
 def _upload_model(args):  # noqa: ANN001
     import roboflow
-    from roboflow.cli._output import output, output_error
+    from roboflow.cli._output import output, output_error, sdk_output_to_stderr, suppress_sdk_output
 
     api_key = args.api_key or None
-    rf = roboflow.Roboflow(api_key=api_key)
-    workspace = rf.workspace(args.workspace)
+    # Always suppress SDK "loading..." noise during workspace init
+    with suppress_sdk_output():
+        rf = roboflow.Roboflow(api_key=api_key)
+        workspace = rf.workspace(args.workspace)
 
     if args.version_number is not None:
         # Deploy to a specific version
@@ -325,9 +327,10 @@ def _upload_model(args):  # noqa: ANN001
             return
 
         try:
-            project = workspace.project(project_id)
-            version = project.version(args.version_number)
-            version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
+            with sdk_output_to_stderr(args):
+                project = workspace.project(project_id)
+                version = project.version(args.version_number)
+                version.deploy(str(args.model_type), str(args.model_path), str(args.filename))
         except Exception as exc:
             output_error(args, str(exc))
             return
@@ -338,13 +341,14 @@ def _upload_model(args):  # noqa: ANN001
             return
 
         try:
-            workspace.deploy_model(
-                model_type=str(args.model_type),
-                model_path=str(args.model_path),
-                project_ids=args.project,
-                model_name=str(args.model_name) if args.model_name else "",
-                filename=str(args.filename),
-            )
+            with sdk_output_to_stderr(args):
+                workspace.deploy_model(
+                    model_type=str(args.model_type),
+                    model_path=str(args.model_path),
+                    project_ids=args.project,
+                    model_name=str(args.model_name) if args.model_name else "",
+                    filename=str(args.filename),
+                )
         except Exception as exc:
             output_error(args, str(exc))
             return
