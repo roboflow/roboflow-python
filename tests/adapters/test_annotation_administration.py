@@ -222,11 +222,12 @@ class TestAnnotationJobAdministration(unittest.TestCase):
 
     @patch("roboflow.util.http.requests.post")
     def test_move_images_to_batch_error_raises_with_status(self, mock_post):
-        mock_post.return_value = _response({"error": {"message": "Batch not found"}}, status_code=404)
+        message = "Batch missing not found in dataset proj"
+        mock_post.return_value = _response({"error": {"message": message}}, status_code=400)
         with self.assertRaises(rfapi.RoboflowError) as context:
             rfapi.move_images_to_batch("key", "ws", "proj", batch_id="missing", tag="t")
-        self.assertEqual(context.exception.status_code, 404)
-        self.assertEqual(str(context.exception), "Batch not found")
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(str(context.exception), message)
 
     @patch("roboflow.util.http.requests.get")
     def test_http_error_preserves_status_code(self, mock_get):

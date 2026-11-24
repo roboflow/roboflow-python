@@ -576,7 +576,7 @@ def _batch_move(args: Any) -> None:
                 if over_tag_cap
                 else None
             ),
-            not_found_hint="Check the project and --batch-id; 'roboflow annotation batch admin-list' lists batches.",
+            not_found_hint="Check the project, and that the API key is from its workspace with 'batch:update' scope.",
         )
         return
     text = f"Moved {data['moved']} image(s) to batch '{data['batchName']}' ({data['batchId']})."

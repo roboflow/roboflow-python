@@ -1103,14 +1103,15 @@ class Project:
         image_ids: Optional[List[str]] = None,
         tag: Optional[str] = None,
     ) -> Dict:
-        """Move existing images into an annotation batch, from whichever batch holds them.
+        """Move unassigned images into an annotation batch, from whichever batch holds them.
 
         Select the images with exactly one of ``image_ids`` or ``tag``, and the target with
         exactly one of ``batch_name`` (created if no batch has that name) or ``batch_id``.
         One call moves at most 1000 images: a longer ``image_ids`` list is refused here, and a
         tag carried by more than 1000 images in the project is refused by the API before any
-        image moves. A call that would move nothing (every image already in the target
-        batch) is refused by the API.
+        image moves. Images in an annotation job, in the dataset or already in the target
+        batch stay where they are and count as skipped; a call that would move nothing is
+        refused by the API.
 
         Args:
             batch_name (str): name of the target batch; reused if it exists, created otherwise

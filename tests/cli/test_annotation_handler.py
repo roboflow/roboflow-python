@@ -580,6 +580,21 @@ class TestBatchMove(unittest.TestCase):
                 self.assertEqual(result.exit_code, code, result.output)
                 self.assertEqual(json.loads(result.output)["error"]["message"], "nope")
 
+    @patch(_RESOLVE, return_value=("key", "ws", "proj"))
+    def test_not_found_hint_points_at_the_key_not_the_batch(self, _resolve):
+        # The API answers 404 for a key without batch:update or from another workspace;
+        # an unknown --batch-id is a 400.
+        from roboflow.adapters.rfapi import RoboflowError
+
+        with patch(self._MOVE, side_effect=RoboflowError("Not found", status_code=404)):
+            result = runner.invoke(
+                app, ["--json", "annotation", "batch", "move", "-p", "ws/proj", "--batch-id", "b1", "--tag", "t"]
+            )
+        self.assertEqual(result.exit_code, 3, result.output)
+        hint = json.loads(result.output)["error"]["hint"]
+        self.assertIn("batch:update", hint)
+        self.assertNotIn("--batch-id", hint)
+
     @patch(_MOVE)
     @patch(_RESOLVE, return_value=("key", "ws", "proj"))
     def test_more_than_1000_image_ids_exit_1_without_calling_api(self, _resolve, mock_api):
