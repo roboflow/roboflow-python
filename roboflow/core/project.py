@@ -1329,6 +1329,8 @@ class Project:
     ) -> Dict:
         """Preview one image with a foundation model before starting an auto-label job.
 
+        Image models only: ``video-segment`` has no preview.
+
         Previews are free: no job is created and no credits are spent. Use it to
         compare the candidates from ``Workspace.autolabel_models()`` on a sample
         image and start the real job with the winner.
@@ -1377,13 +1379,22 @@ class Project:
         existing_annotations: Optional[str] = None,
         keypoint_confidence_threshold: Optional[float] = None,
     ) -> Dict:
-        """Start a hosted auto-label job over a batch of images.
+        """Start a hosted auto-label job over a batch of images, or of videos.
+
+        Action-recognition projects label a batch of videos with
+        ``model="video-segment"`` (not listed by ``Workspace.autolabel_models()``).
+        The job labels every video in the batch (the server refuses a batch of
+        more than 50 videos) and replaces each video's existing segments; a
+        video that has frame annotations is left unchanged. Only ``ontology``, ``model_options={"sampleFps": n}``
+        and ``reviewer_email`` apply; the server refuses the image-only
+        options and ``existing_annotations="preserve"`` or ``"merge"``.
 
         Args:
-            batch_id: Source batch containing the images to auto-label.
+            batch_id: Source batch containing the images (or videos) to auto-label.
             model: For ``model_type="foundational"``, a model id from
                 ``Workspace.autolabel_models()`` (e.g. ``"gpt-6-astra-boxes"``,
-                ``"sam3-rle"``, ``"sam3-polygon"``, ``"gemini-3-8-flash-boxes"``). For
+                ``"sam3-rle"``, ``"sam3-polygon"``, ``"gemini-3-8-flash-boxes"``),
+                or ``"video-segment"`` on an action-recognition project. For
                 ``model_type="roboflow"``, a Roboflow model id such as
                 ``"project-slug/3"`` or ``"workspace-slug/model-id"``.
             model_type: ``"foundational"`` (hosted foundation model, sent as-is;
@@ -1397,6 +1408,11 @@ class Project:
                 prompts are sent to the model; for ``ontologyFormat="classes"``
                 only the class names are used. Defaults to the dataset's classes
                 (or the trained model's classes for ``model_type="roboflow"``).
+                For ``"video-segment"``, the key is the action description the
+                model reads (``{"a person jumps": "jump"}``), one description
+                per class; every class must already exist in the project, and a
+                class given by its own name
+                (or in a list) uses the project's saved class description.
             num_images: Number of images from the batch to label. Defaults to
                 the whole batch.
             confidence: Confidence threshold applied to every class (mirrors
@@ -1407,7 +1423,9 @@ class Project:
             reviewer_email: Reviewer for the resulting annotation job. Must be a
                 workspace member; defaults to the workspace owner.
             model_options: Model-specific options, e.g.
-                ``{"outputFormat": "polygon"}`` for segmentation output.
+                ``{"outputFormat": "polygon"}`` for segmentation output. For
+                ``"video-segment"``, only ``{"sampleFps": n}``: the frames per
+                second the model sees, from 0.5 to 12 (server default 8).
             preserve_existing_annotations: Deprecated, use
                 ``existing_annotations="preserve"``. ``True`` is the same as
                 that mode; ``existing_annotations`` wins when both are set.
@@ -1435,6 +1453,12 @@ class Project:
             >>> job = project.autolabel("batch-id", model="gpt-6-astra-boxes",
             ...                         ontology={"a cat": "cat", "a dog": "dog"})
             >>> project.autolabel_job(job["jobId"])["status"]
+
+            Label a batch of videos in an action-recognition project:
+
+            >>> job = project.autolabel("video-batch-id", model="video-segment",
+            ...                         ontology={"a person jumps": "jump"},
+            ...                         model_options={"sampleFps": 2})
         """
         if preserve_existing_annotations is not None:
             replacement = "preserve" if preserve_existing_annotations else "replace"
@@ -1465,7 +1489,10 @@ class Project:
         )
 
     def autolabel_job(self, job_id: str) -> Dict:
-        """Get status and per-subjob progress for an auto-label job started with ``autolabel``."""
+        """Get status and progress for an auto-label job started with ``autolabel``.
+
+        See ``Workspace.autolabel_job`` for the response fields, including video jobs.
+        """
         return rfapi.get_autolabel_job(self.__api_key, self.__workspace, job_id)
 
     def get_batches(self) -> Dict:

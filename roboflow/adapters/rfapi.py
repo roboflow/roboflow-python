@@ -1550,8 +1550,10 @@ def start_autolabel_job(
     Calls ``POST /:workspace/:project/autolabel``. ``model_type`` is sent
     as-is: a catalog id from ``list_autolabel_models`` (for example
     ``gpt-6-astra-boxes`` or ``sam3-rle``) or ``custom_roboflow`` with the
-    Roboflow model id in ``model_options["modelId"]``. ``ontology`` is keyed
-    by prompt: ``{"kitten": "cat"}`` labels prompt matches as class ``cat``.
+    Roboflow model id in ``model_options["modelId"]``, or ``video-segment``
+    to label a batch of videos in an action-recognition project (see
+    ``Project.autolabel``). ``ontology`` is keyed by prompt:
+    ``{"kitten": "cat"}`` labels prompt matches as class ``cat``.
     The backend fans
     ``default_confidence`` out across the ontology when
     ``confidence_thresholds`` is omitted and defaults ``num_images_to_label``
@@ -1589,7 +1591,8 @@ def start_autolabel_job(
 def get_autolabel_job(api_key, workspace_url, job_id):
     """Fetch per-subjob status and progress for a hosted auto-label job.
 
-    Calls ``GET /:workspace/autolabel/jobs/:jobId``.
+    Calls ``GET /:workspace/autolabel/jobs/:jobId``. Video jobs add
+    progress fields; ``Workspace.autolabel_job`` lists them.
     """
     response = http.get(
         f"{API_URL}/{workspace_url}/autolabel/jobs/{job_id}",
