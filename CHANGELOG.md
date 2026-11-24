@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Move existing images into an annotation batch, by image IDs or by tag.
+  `Project.move_images_to_batch(batch_name=..., image_ids=[...])` (or
+  `tag=...`, or `batch_id=...` for an existing batch) returns
+  `{batchId, batchName, moved, skipped}`; `batch_name` reuses the batch with
+  that name or creates it. One call moves at most 1000 images, by IDs or by
+  tag; a larger tag is refused before anything moves. The CLI is
+  `roboflow annotation batch move -p <project> (--batch-name N | --batch-id ID)
+  (--tag T | --image-id ID ...)`, with `--json` and the usual exit codes.
+  Needs the `POST /{workspace}/{project}/annotation-batches/move` API
+  ([#565](https://github.com/roboflow/roboflow-python/pull/565)).
 - Docs for video Auto Label on action-recognition projects:
   `Project.autolabel(batch_id, model="video-segment", ontology={"a person jumps": "jump"},
   model_options={"sampleFps": 2})` and
