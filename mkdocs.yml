@@ -26,7 +26,6 @@ extra_css:
 
 nav:
   - Home: index.md
-  - Quickstart: quickstart.md
   - API reference:
     - Core:
       - Datasets: core/dataset.md
@@ -40,7 +39,7 @@ nav:
       - Classification: models/classification.md
       - Instance Segmentation: models/instance-segmentation.md
       - Semantic Segmentation: models/semantic-segmentation.md
-  - Changelog: changelog.md
+  - Changelog: https://github.com/roboflow/roboflow-python/blob/main/CHANGELOG.md
 
 theme:
   name: 'material'

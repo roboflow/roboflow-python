@@ -70,7 +70,7 @@ make check_code_quality
 
 The docs can be built with `mkdocs serve`.
 
-Before that, install the dependencies:
+Before that, install the dependencies (the docs need Python 3.11 or newer):
 
 ```python
 python -m pip install mkdocs mkdocs-material mkdocstrings mkdocstrings[python]
