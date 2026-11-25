@@ -531,7 +531,7 @@ class ObjectDetectionModel(InferenceModel):
         )
         # add classes parameter to api
         if self.classes is not None:
-            self.api_url += "&classes=" + self.classes
+            self.api_url += "&classes=" + urllib.parse.quote_plus(self.classes)
 
     def __str__(self):
         # Create the new API URL
