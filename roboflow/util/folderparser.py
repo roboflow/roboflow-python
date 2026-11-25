@@ -242,8 +242,8 @@ def _filterIndividualAnnotations(image, annotation, format, imgRefMap, annotatio
             annotations_for_image = annotationMap.get(f"{annotation['file']}/{imgReference['id']}", [])
             _annotation["rawText"] = json.dumps(
                 {
-                    "info": parsed["info"],
-                    "licenses": parsed["licenses"],
+                    "info": parsed.get("info", {}),
+                    "licenses": parsed.get("licenses", []),
                     "categories": parsed["categories"],
                     "images": [imgReference],
                     "annotations": annotations_for_image or [fake_annotation],
