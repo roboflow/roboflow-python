@@ -11,11 +11,10 @@ from __future__ import annotations
 import types
 from typing import Any
 
-import click
 import typer  # noqa: TC002 — needed at runtime for Context type
 
 
-def _sort_params(params: list[click.Parameter]) -> None:
+def _sort_params(params: list[Any]) -> None:
     """Sort params in-place: required first, then alphabetical by option name."""
     params.sort(
         key=lambda p: (
@@ -24,7 +23,7 @@ def _sort_params(params: list[click.Parameter]) -> None:
             # Required options first
             not getattr(p, "required", False),
             # Arguments before options (positionals first)
-            not isinstance(p, click.Argument),
+            not isinstance(p, typer.core.TyperArgument),
             # Alphabetical by the first long option name
             (p.opts[0].lstrip("-") if hasattr(p, "opts") and p.opts else p.name or ""),
         )
@@ -39,15 +38,15 @@ class SortedGroup(typer.core.TyperGroup):
     required options first).
     """
 
-    def list_commands(self, ctx: click.Context) -> list[str]:  # type: ignore[override]
+    def list_commands(self, ctx: Any) -> list[str]:
         return sorted(super().list_commands(ctx))
 
-    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+    def format_help(self, ctx: Any, formatter: Any) -> None:
         """Sort options alphabetically before rendering help."""
         _sort_params(self.params)
         super().format_help(ctx, formatter)
 
-    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:  # type: ignore[override]
+    def get_command(self, ctx: Any, cmd_name: str) -> Any:
         """Wrap returned commands to sort their options too."""
         cmd = super().get_command(ctx, cmd_name)
         if cmd is not None and not isinstance(cmd, SortedGroup):

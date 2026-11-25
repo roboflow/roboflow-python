@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## 1.7.4
 
+### Changed
+
+- Migrate CLI error handling to Typer's public exception API, preserving JSON
+  usage errors, aborts, completion failures and argument ordering. Require
+  Typer >=0.27.2 in both full and slim installs and remove the external Click
+  dependency; test the minimum and latest Typer releases. This raises the
+  previous minimum from 0.12.0 to use the supported exception API.
+
 ### Added
 
 - Move existing images into an annotation batch, by image IDs or by tag.

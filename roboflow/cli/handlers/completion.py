@@ -10,7 +10,6 @@ from __future__ import annotations
 import shutil
 from typing import Annotated, Optional
 
-import click
 import typer
 from typer._completion_classes import completion_init
 from typer._completion_shared import get_completion_script
@@ -72,7 +71,7 @@ def install(
 
     try:
         installed_shell, path = typer_install(shell=shell, prog_name="roboflow", complete_var="_ROBOFLOW_COMPLETE")
-    except click.exceptions.Exit:
+    except typer.Exit:
         output_error(
             args,
             "Could not detect or install completion.",
