@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- `Project.train()` defaults to aspect-preserving resize with black padding for
+  oriented object detection projects. Other project defaults and caller-supplied
+  version settings remain unchanged.
+
 ## 1.7.4
 
 ### Added
