@@ -122,6 +122,29 @@ class TestProject(RoboflowTest):
 
         self.assertEqual(str(error.exception), "Invalid image.")
 
+    UPLOAD_URL = f"{API_URL}/dataset/{PROJECT_NAME}/upload?api_key={ROBOFLOW_API_KEY}&batch={DEFAULT_BATCH_NAME}"
+
+    def test_upload_raises_upload_image_error_for_a_string_error(self):
+        responses.add(responses.POST, self.UPLOAD_URL, json={"error": "Instance recycling"}, status=503)
+
+        with self.assertRaises(ImageUploadError) as error:
+            self.project.upload("tests/images/rabbit.JPG")
+
+        self.assertEqual(str(error.exception), "Instance recycling")
+        self.assertEqual(error.exception.status_code, 503)
+
+    def test_upload_retries_after_a_string_error(self):
+        responses.add(responses.POST, self.UPLOAD_URL, json={"error": "Instance recycling"}, status=503)
+        responses.add(responses.POST, self.UPLOAD_URL, json={"success": True, "id": "img-1"}, status=200)
+
+        with patch("roboflow.util.general.time.sleep"):
+            result = self.project.upload("tests/images/rabbit.JPG", num_retry_uploads=2)
+
+        self.assertEqual(result[0]["image"]["id"], "img-1")
+        self.assertEqual(result[0]["upload_retry_attempts"], 1)
+        upload_posts = [call for call in responses.calls if f"/dataset/{PROJECT_NAME}/upload?" in call.request.url]
+        self.assertEqual(len(upload_posts), 2)
+
     def test_upload_raises_upload_annotation_error(self):
         image_id = "hbALkCFdNr9rssgOUXug"
         image_name = "invalid_annotation.json"

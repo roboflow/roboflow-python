@@ -68,6 +68,12 @@ All notable changes to this project will be documented in this file.
   warning. Before, its rows were sent as the annotation of every image they
   named, which failed the save, even when the folder's annotation CSV also
   listed the image ([#583](https://github.com/roboflow/roboflow-python/pull/583)).
+- `Project.upload()` raises `ImageUploadError` with the API's text and status
+  code when a failed image upload answers `{"error": "<text>"}`, for example a
+  503 from an instance that is shutting down, so `num_retry_uploads` retries it.
+  Before, the upload crashed with
+  `AttributeError: 'str' object has no attribute 'get'` and was not retried
+  ([#586](https://github.com/roboflow/roboflow-python/pull/586)).
 
 ## 1.7.3
 
