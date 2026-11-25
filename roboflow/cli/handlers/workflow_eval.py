@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from typing import Annotated, Any, Callable, Dict, List, Optional
 
 import typer
@@ -894,8 +895,18 @@ def preparation_cases(
 # ---------------------------------------------------------------------------
 
 _WaitOpt = Annotated[bool, typer.Option("--wait", help="Poll until the Run reaches a terminal state")]
-_TimeoutOpt = Annotated[float, typer.Option("--timeout", help="Seconds to wait before giving up")]
+_TimeoutOpt = Annotated[
+    Optional[float],
+    typer.Option(
+        "--timeout",
+        help="Seconds to wait before giving up; 0 = no limit "
+        "(default: no limit for Runs on a local inference server, 3600 otherwise)",
+    ),
+]
 _IntervalOpt = Annotated[float, typer.Option("--interval", help="Seconds between polls")]
+
+_SERVER_RUN_WAIT_TIMEOUT = 3600.0
+_PROGRESS_EVERY = 10.0
 
 
 def _run_id(admission: Dict[str, Any]) -> Optional[str]:
@@ -903,14 +914,74 @@ def _run_id(admission: Dict[str, Any]) -> Optional[str]:
     return run.get("id") if isinstance(run, dict) else admission.get("id")
 
 
-def _then_wait(args: Any, eval_id: str, timeout: float, interval: float) -> Callable[[Any, Dict[str, Any]], Any]:
+def _run_field(run: Dict[str, Any], key: str) -> Any:
+    nested = run.get("run")
+    return run.get(key) or (nested.get(key) if isinstance(nested, dict) else None)
+
+
+def _progress_line(run_id: str, run: Dict[str, Any]) -> str:
+    parts = [f"Run {run_id}", str(_run_field(run, "state") or "unknown")]
+    if run.get("selectedCaseCount") is not None:
+        parts.append(f"{run['selectedCaseCount']} cases")
+    counts = run.get("childStateCounts")
+    if isinstance(counts, dict) and counts:
+        parts.append("executions " + ", ".join(f"{state} {count}" for state, count in sorted(counts.items())))
+    if run.get("lastActivityAt"):
+        parts.append(f"last activity {run['lastActivityAt']}")
+    return " · ".join(parts)
+
+
+def _wait_for_run(
+    args: Any,
+    client: Any,
+    eval_id: str,
+    run_id: str,
+    timeout: Optional[float],
+    interval: float,
+    execution_mode: Optional[str] = None,
+) -> Any:
+    """Poll a Run to a terminal state, printing throttled progress on stderr.
+
+    Without an explicit ``timeout`` the limit is resolved from the Run's
+    ``executionMode`` (from the admission payload, else the first poll): Runs on a
+    local inference server (``browser``) wait without limit, server Runs keep 3600 s.
+    """
+    from roboflow.core.workflow_evals import RUN_TERMINAL_STATES
+
+    show_progress = not args.json and not args.quiet
+    started = time.monotonic()
+    limit = timeout
+    last_progress: Optional[float] = None
+
+    def on_poll(run: Dict[str, Any]) -> None:
+        nonlocal limit, last_progress
+        if limit is None:
+            mode = execution_mode or _run_field(run, "executionMode")
+            limit = 0 if mode == "browser" else _SERVER_RUN_WAIT_TIMEOUT
+        state = _run_field(run, "state")
+        if state in RUN_TERMINAL_STATES:
+            return
+        now = time.monotonic()
+        if show_progress and (last_progress is None or now - last_progress >= _PROGRESS_EVERY):
+            print(_progress_line(run_id, run), file=sys.stderr)
+            last_progress = now
+        if limit and now - started >= limit:
+            raise TimeoutError(f"Run {run_id} is still {state} after {limit:g}s")
+
+    return client.wait_for_run(eval_id, run_id, timeout=0, interval=interval, on_poll=on_poll)
+
+
+def _then_wait(
+    args: Any, eval_id: str, timeout: Optional[float], interval: float
+) -> Callable[[Any, Dict[str, Any]], Any]:
     def wait(client: Any, admission: Dict[str, Any]) -> Any:
         run_id = _run_id(admission)
         if not run_id:
             return admission
         if not args.json and not args.quiet:
             print(f"Waiting for Run {run_id}…", file=sys.stderr)
-        return client.wait_for_run(eval_id, run_id, timeout=timeout, interval=interval)
+        mode = _run_field(admission, "executionMode")
+        return _wait_for_run(args, client, eval_id, run_id, timeout, interval, mode)
 
     return wait
 
@@ -938,13 +1009,13 @@ def get_run(
     run_id: Annotated[str, typer.Argument(help="Run id")],
     eval_id: EvalOpt,
     wait: _WaitOpt = False,
-    timeout: _TimeoutOpt = 3600,
+    timeout: _TimeoutOpt = None,
     interval: _IntervalOpt = 5,
 ) -> None:
     """Show a Run's lifecycle, frozen setup and result availability."""
     args = ctx_to_args(ctx)
     if wait:
-        _invoke(args, lambda c: c.wait_for_run(eval_id, run_id, timeout=timeout, interval=interval))
+        _invoke(args, lambda c: _wait_for_run(args, c, eval_id, run_id, timeout, interval))
     else:
         _invoke(args, lambda c: c.get_run(eval_id, run_id))
 
@@ -960,7 +1031,7 @@ def start_run(
         ),
     ],
     wait: _WaitOpt = False,
-    timeout: _TimeoutOpt = 3600,
+    timeout: _TimeoutOpt = None,
     interval: _IntervalOpt = 5,
     idempotency_key: IdempotencyOpt = None,
 ) -> None:
@@ -1103,7 +1174,7 @@ def submit_capture(
     body: Annotated[
         str,
         typer.Option(
-            "--body", "-b", help="JSON {attemptCount, shardIndex, output, runtime?}: inline, @file, path, or -"
+            "--body", "-b", help="JSON {attemptCount, shardIndex, output, runtime}: inline, @file, path, or -"
         ),
     ],
 ) -> None:
