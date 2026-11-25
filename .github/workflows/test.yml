@@ -59,3 +59,24 @@ jobs:
           pip install responses
       - name: 🧪 Run slim-compatible tests
         run: "python -m unittest tests.test_slim_compat tests.test_vision_events"
+
+  # The same build as deploy-docs in publish.yml, so a broken docs build shows on the PR.
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - name: 🐍 Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 📚 Install MkDocs and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mkdocs-material mkdocstrings mkdocstrings[python]
+          pip install ".[dev]"
+      - name: 🏗️ Build documentation
+        run: mkdocs build

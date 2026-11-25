@@ -25,7 +25,7 @@ mypy roboflow
 
 ### Building Documentation
 ```bash
-# Install documentation dependencies
+# Install documentation dependencies (Python 3.11 or newer)
 python -m pip install mkdocs mkdocs-material mkdocstrings mkdocstrings[python]
 
 # Serve documentation locally
