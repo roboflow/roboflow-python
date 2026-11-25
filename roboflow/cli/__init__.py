@@ -10,11 +10,10 @@ import json
 import os
 from typing import Annotated, Any, Optional
 
-import click
 import typer
 
 import roboflow
-from roboflow.cli._compat import SortedGroup
+from roboflow.cli._compat import SortedGroup, UsageError
 
 # ---------------------------------------------------------------------------
 # Root application
@@ -417,7 +416,7 @@ def main() -> None:
             # Exit code 2 = Click usage error (missing arg, bad option)
             # Other codes = our output_error already printed JSON
             raise
-        except click.exceptions.UsageError as exc:
+        except UsageError as exc:
             # Click/typer validation error — emit JSON on stderr
             import json as _json
 
@@ -425,7 +424,7 @@ def main() -> None:
             payload = {"error": {"message": exc.format_message(), "hint": "Run with --help for usage information."}}
             print(_json.dumps(payload), file=sys.stderr)
             sys.exit(2)
-        except click.exceptions.Abort:
+        except typer.Abort:
             sys.exit(1)
         except Exception as exc:
             import json as _json
