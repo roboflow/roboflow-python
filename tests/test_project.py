@@ -1,5 +1,6 @@
 import json
 import os
+from copy import deepcopy
 from unittest.mock import patch
 
 import requests
@@ -77,6 +78,69 @@ class TestProject(RoboflowTest):
         }
 
         return mocks
+
+    def test_train_generates_type_appropriate_default_preprocessing(self):
+        project_types = [
+            ("oriented-object-detection", "Fit (black edges) in"),
+            ("object-detection", "Stretch to"),
+            ("classification", "Stretch to"),
+            ("instance-segmentation", "Stretch to"),
+            ("semantic-segmentation", "Stretch to"),
+            ("keypoint-detection", "Stretch to"),
+        ]
+
+        for project_type, resize_format in project_types:
+            with self.subTest(project_type=project_type):
+                self.project.type = project_type
+                generation_response = responses.add(
+                    responses.POST,
+                    f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/generate?api_key={ROBOFLOW_API_KEY}",
+                    json={"version": 1, "message": "Generated"},
+                    status=200,
+                    match=[
+                        json_params_matcher(
+                            {
+                                "preprocessing": {
+                                    "auto-orient": True,
+                                    "resize": {"width": 640, "height": 640, "format": resize_format},
+                                },
+                                "augmentation": {},
+                            }
+                        )
+                    ],
+                )
+
+                with patch("roboflow.core.version.Version.train", return_value=True):
+                    self.assertTrue(self.project.train())
+
+                self.assertEqual(generation_response.call_count, 1)
+
+    def test_train_preserves_explicit_obb_version_settings(self):
+        self.project.type = "oriented-object-detection"
+        version_settings = [
+            {
+                "preprocessing": {
+                    "resize": {"width": 320, "height": 480, "format": "Stretch to"},
+                },
+                "augmentation": {"flip": {"horizontal": True}},
+            },
+            {"preprocessing": {}, "augmentation": {}},
+        ]
+
+        for settings in version_settings:
+            with self.subTest(settings=settings):
+                generation_response = responses.add(
+                    responses.POST,
+                    f"{API_URL}/{WORKSPACE_NAME}/{PROJECT_NAME}/generate?api_key={ROBOFLOW_API_KEY}",
+                    json={"version": 1, "message": "Generated"},
+                    status=200,
+                    match=[json_params_matcher(settings)],
+                )
+
+                with patch("roboflow.core.version.Version.train", return_value=True):
+                    self.assertTrue(self.project.train(new_version_settings=deepcopy(settings)))
+
+                self.assertEqual(generation_response.call_count, 1)
 
     def test_check_valid_image_with_accepted_formats(self):
         images_to_test = [

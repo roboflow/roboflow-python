@@ -267,9 +267,13 @@ class Project:
         plot_in_notebook=False,
     ):
         """
-        Ask the Roboflow API to train a previously exported version's dataset.
+        Generate a dataset version and ask the Roboflow API to train it.
 
         Args:
+            new_version_settings: Version generation settings. When omitted, enable
+                auto-orient and resize to 640x640. Oriented object detection projects
+                preserve the aspect ratio with black padding; other project types
+                use Stretch. Explicit settings are passed through unchanged.
             speed: Whether to train quickly or accurately. Note: accurate training is a paid feature. Default speed is `fast`.
             checkpoint: A string representing the checkpoint to use while training
             plot: Whether to plot the training loss curve. Default is False.
@@ -297,7 +301,11 @@ class Project:
             new_version_settings = {
                 "preprocessing": {
                     "auto-orient": True,
-                    "resize": {"width": 640, "height": 640, "format": "Stretch to"},
+                    "resize": {
+                        "width": 640,
+                        "height": 640,
+                        "format": "Fit (black edges) in" if self.type == "oriented-object-detection" else "Stretch to",
+                    },
                 },
                 "augmentation": {},
             }
