@@ -43,6 +43,7 @@ To use the Roboflow Python package, you first need to authenticate with your Rob
 
 ```python
 import roboflow
+
 roboflow.login()
 ```
 
@@ -75,18 +76,18 @@ workspace = rf.workspace()
 # creating object detection model that will detect flowers
 project = workspace.create_project(
     project_name="Flower detector",
-    project_type="object-detection", # Or "classification", "instance-segmentation", "semantic-segmentation"
-    project_license="MIT", # "private" for private projects, only available for paid customers
-    annotation="flowers" # If you plan to annotate lillys, sunflowers, etc.
+    project_type="object-detection",  # Or "classification", "instance-segmentation", "semantic-segmentation"
+    project_license="MIT",  # "private" for private projects, only available for paid customers
+    annotation="flowers",  # If you plan to annotate lillys, sunflowers, etc.
 )
 
 # upload a dataset
 workspace.upload_dataset(
     dataset_path="./dataset/",
     num_workers=10,
-    dataset_format="yolov8", # supports yolov8, yolov5, and Pascal VOC
+    dataset_format="yolov8",  # supports yolov8, yolov5, and Pascal VOC
     project_license="MIT",
-    project_type="object-detection"
+    project_type="object-detection",
 )
 
 version = project.version("VERSION_NUMBER")
@@ -113,10 +114,10 @@ workspace = rf.workspace()
 
 # Export images matching a search query
 workspace.search_export(
-    query="class:person",       # search query (e.g. "tag:review", "class:dog", "*")
-    format="coco",              # annotation format: coco, yolov8, yolov5, voc, etc.
-    dataset="my-project",       # optional: limit to a specific project
-    location="./my-export",     # optional: output directory
+    query="class:person",  # search query (e.g. "tag:review", "class:dog", "*")
+    format="coco",  # annotation format: coco, yolov8, yolov5, voc, etc.
+    dataset="my-project",  # optional: limit to a specific project
+    location="./my-export",  # optional: output directory
 )
 ```
 
