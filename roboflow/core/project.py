@@ -518,7 +518,6 @@ class Project:
             tag_names = []
 
         t0 = time.time()
-        upload_retry_attempts = 0
         retry = Retry(num_retry_uploads, ImageUploadError)
 
         try:
@@ -536,14 +535,13 @@ class Project:
                 metadata=metadata,
                 **kwargs,
             )
-            upload_retry_attempts = retry.retries
         except ImageUploadError as e:
-            e.retries = upload_retry_attempts
+            e.retries = retry.retries
             raise e
 
         upload_time = time.time() - t0
 
-        return image, upload_time, upload_retry_attempts
+        return image, upload_time, retry.retries
 
     def save_annotation(
         self,
@@ -569,7 +567,6 @@ class Project:
         project_url = self.id.rsplit("/")[1]
         annotation_name, annotation_str = self._annotation_params(annotation_path)
         t0 = time.time()
-        upload_retry_attempts = 0
         retry = Retry(num_retry_uploads, AnnotationSaveError)
 
         try:
@@ -586,14 +583,13 @@ class Project:
                 overwrite=annotation_overwrite,
                 add_to_dataset=add_to_dataset,
             )
-            upload_retry_attempts = retry.retries
         except AnnotationSaveError as e:
-            e.retries = upload_retry_attempts
+            e.retries = retry.retries
             raise
 
         upload_time = time.time() - t0
 
-        return annotation, upload_time, upload_retry_attempts
+        return annotation, upload_time, retry.retries
 
     def annotate_video_segments(
         self,
