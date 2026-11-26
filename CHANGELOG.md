@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file.
   `rerun=True` (CLI: `--rerun`) starts a new eval when a done eval exists.
   A pending or running eval still returns with `reused: true`.
   Leakage and class mismatch never block an eval. They are tags on the result.
-  A tag is `None` when it has no value: for the training version, a model with no training version, a blocked request, or an eval with no pre-flight.
+  A tag is `None` when the platform has no value for it, for example for the training version.
   A blocked request raises `ModelEvalBlockedError` with a `blocks` list.
   `ModelEvalNotFoundError` and `ModelEvalAccessError` now cover these requests too.
   A full workspace raises `ModelEvalConcurrencyLimitError`.

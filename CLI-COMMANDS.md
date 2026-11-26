@@ -497,7 +497,7 @@ roboflow eval create -m my-workspace/my-model -p my-project -v 5 --json
 
 Both commands return `trainedOnVersion`, `leakage` and `classMismatch`.
 Leakage and class mismatch never block an eval. The eval runs with these tags.
-A tag is `null` when it has no value: for the training version, a model with no training version, a blocked request, or an eval with no pre-flight.
+A tag is `null` when the platform has no value for it, for example for the training version.
 Text output omits a null tag.
 `create` returns `reused: true` when an eval for the same model, version and
 settings is pending, running or done. Add `--rerun` to start a new eval when a
