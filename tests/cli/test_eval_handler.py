@@ -487,7 +487,7 @@ class TestEvalCreateCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("Reused: yes", result.stdout)
-        for text in ["unknown", "not checked", "Leakage", "Class"]:
+        for text in ["unknown", "not checked", "Trained on", "Leakage", "Class"]:
             self.assertNotIn(text, result.stdout)
 
     @patch("roboflow.util.http.requests.post")
@@ -509,6 +509,7 @@ class TestEvalCreateCommand(unittest.TestCase):
         hint = json.loads(result.stderr)["error"]["hint"]
         for text in ["--model", "--project", "--version"]:
             self.assertIn(text, hint)
+        self.assertIn("training-job:create", hint)
 
     @patch("roboflow.util.http.requests.post")
     def test_access_hint_names_the_create_scope(self, mock_post):
@@ -542,6 +543,17 @@ class TestEvalCreateCommand(unittest.TestCase):
 
 
 class TestEvalPreflightCommand(unittest.TestCase):
+    @patch("roboflow.util.http.requests.post")
+    def test_not_found_hint_names_the_scope(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=404)
+        mock_post.return_value.json.return_value = {"error": {"message": "Not found"}}
+        result = runner.invoke(
+            app, ["--json", "--api-key", "k", "--workspace", "ws", "eval", "preflight", "-m", "m", "-p", "chess"]
+        )
+
+        self.assertEqual(result.exit_code, 3)
+        self.assertIn("training-job:create", json.loads(result.stderr)["error"]["hint"])
+
     @patch("roboflow.util.http.requests.post")
     def test_json_prints_the_full_response(self, mock_post):
         preflight = {

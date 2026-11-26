@@ -1666,9 +1666,9 @@ class Workspace:
             that is pending, running or done returns with ``reused`` set to ``True``.
             With ``rerun=True`` a done eval does not count. A pending or running eval
             still returns with ``reused`` set to ``True``.
-            ``leakage`` and ``classMismatch`` never block the eval. The three tags are
-            ``None`` when the eval has no pre-flight result or runs on the version the
-            model trained on.
+            ``leakage`` and ``classMismatch`` never block the eval. A tag is ``None``
+            when it has no value: for the training version, a model with no training
+            version, a blocked request, or an eval with no pre-flight.
 
         Raises:
             roboflow.adapters.rfapi.ModelEvalBlockedError: The pre-flight check blocks the eval.
@@ -1699,7 +1699,11 @@ class Workspace:
 
         Returns:
             ``{allowed, blocks, trainedOnVersion, leakage, classMismatch}``. A blocked
-            request returns ``allowed: False`` with a ``blocks`` list. It does not raise.
+            request returns ``allowed: False`` with a ``blocks`` list. It does not raise for a block.
+
+        Raises:
+            roboflow.adapters.rfapi.ModelEvalNotFoundError: The model, project or version does not exist.
+            roboflow.adapters.rfapi.ModelEvalAccessError: The API key or workspace has no access.
         """
         return rfapi.preflight_model_eval(self.__api_key, self.url, model=model, project=project, version=version)
 

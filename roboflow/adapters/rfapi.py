@@ -2417,7 +2417,8 @@ def create_model_eval(
     a done eval does not count, so a new eval starts. A pending or running eval still comes back
     with ``reused: true``.
 
-    Raises :class:`ModelEvalBlockedError` (409) and :class:`ModelEvalConcurrencyLimitError` (429).
+    Raises :class:`ModelEvalBlockedError` (409), :class:`ModelEvalConcurrencyLimitError` (429),
+    :class:`ModelEvalNotFoundError` (404) and :class:`ModelEvalAccessError` (401 or 403).
     """
     body = _eval_start_body(model, project, version)
     if rerun:

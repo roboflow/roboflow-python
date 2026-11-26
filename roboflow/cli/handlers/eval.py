@@ -266,7 +266,9 @@ def _start_hint_for(exc: Exception) -> Optional[str]:
     if isinstance(exc, rfapi.ModelEvalAccessError):
         return "Check your API key, its training-job:create scope, and workspace Model Evaluation access."
     if isinstance(exc, rfapi.ModelEvalNotFoundError):
-        return "Check the --model, --project and --version values."
+        return (
+            "Check the --model, --project and --version values, and that the API key has the training-job:create scope."
+        )
     if isinstance(exc, rfapi.ModelEvalConcurrencyLimitError):
         return "Wait for an active eval to finish, then try again."
     return None
