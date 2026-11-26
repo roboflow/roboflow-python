@@ -485,6 +485,25 @@ without parsing message strings: `2` for authentication or access errors (401/40
 `invalid_split` / `invalid_confidence` (400). Requires the
 `model-eval:read` scope on the api key.
 
+### Evaluate a model on another dataset version
+
+```bash
+# Check the request first. This starts no job.
+roboflow eval preflight -m my-workspace/my-model -p my-project -v 5 --json
+
+# Start the eval. Omit -v to use the version the model trained on.
+roboflow eval create -m my-workspace/my-model -p my-project -v 5 --json
+```
+
+Both commands return `trainedOnVersion`, `leakage` and `classMismatch`.
+Leakage and class mismatch never block an eval. The eval runs with these tags.
+The tags are `null` when no pre-flight result exists.
+`create` returns `reused: true` when an eval for the same model, version and
+settings is pending, running or done.
+Exit code `6` means a pre-flight block (the `blocks` list is in the error).
+Exit code `7` means the workspace has too many active evals.
+Requires the `training-job:create` scope and workspace Model Evaluation access.
+
 ### Compare Models
 
 ```bash

@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Evaluate a model on a dataset version of the same project.
+  `Workspace.create_model_evaluation(model, project, version=None)` starts the eval
+  and returns `{evalId, status, reused, version, trainedOnVersion, leakage, classMismatch}`.
+  `Workspace.preflight_model_evaluation(...)` returns `{allowed, blocks, ...}` and starts no job.
+  Leakage and class mismatch never block an eval. They are tags on the result.
+  The tags are `None` on evals that had no pre-flight check.
+  A blocked request raises `ModelEvalBlockedError` with a `blocks` list.
+  A full workspace raises `ModelEvalConcurrencyLimitError`.
+  The CLI is `roboflow eval create` and `roboflow eval preflight`
+  (`-m <model> -p <project> [-v <version>]`).
+  Exit code 6 means blocked. Exit code 7 means the concurrency limit.
+  The eval reads (`roboflow eval get`, `Workspace.eval`) keep the same three tags.
+  Needs the `POST /{workspace}/model-evals` API.
+
 ## 1.7.4
 
 ### Added
