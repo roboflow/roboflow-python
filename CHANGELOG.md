@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
   `Workspace.create_model_evaluation(model, project, version=None)` starts the eval
   and returns `{evalId, status, reused, version, trainedOnVersion, leakage, classMismatch}`.
   `Workspace.preflight_model_evaluation(...)` returns `{allowed, blocks, ...}` and starts no job.
+  `rerun=True` (CLI: `--rerun`) starts a new eval when a done eval exists.
+  A pending or running eval still returns with `reused: true`.
   Leakage and class mismatch never block an eval. They are tags on the result.
   The tags are `None` on evals that had no pre-flight check.
   A blocked request raises `ModelEvalBlockedError` with a `blocks` list.

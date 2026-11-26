@@ -447,6 +447,23 @@ class TestEvalCreateCommand(unittest.TestCase):
         )
 
     @patch("roboflow.util.http.requests.post")
+    def test_rerun_flag_is_sent(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = CREATED
+        result = runner.invoke(app, [*CREATE_ARGS, "--rerun"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIs(mock_post.call_args.kwargs["json"]["rerun"], True)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_rerun_is_not_sent_by_default(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = CREATED
+        runner.invoke(app, CREATE_ARGS)
+
+        self.assertNotIn("rerun", mock_post.call_args.kwargs["json"])
+
+    @patch("roboflow.util.http.requests.post")
     def test_text_shows_the_tags(self, mock_post):
         mock_post.return_value = MagicMock(status_code=200)
         mock_post.return_value.json.return_value = CREATED

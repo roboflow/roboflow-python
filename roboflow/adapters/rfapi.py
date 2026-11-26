@@ -2394,7 +2394,7 @@ def _eval_post(api_key, workspace_url, path, body):
 
 
 def _eval_start_body(model, project, version):
-    body = {"modelId": model, "project": project}
+    body: Dict[str, Any] = {"modelId": model, "project": project}
     if version is not None:
         body["version"] = str(version)
     return body
@@ -2407,16 +2407,22 @@ def create_model_eval(
     model: str,
     project: str,
     version: Optional[Union[str, int]] = None,
+    rerun: bool = False,
 ) -> dict:
     """POST /{workspace}/model-evals — evaluate a model on a dataset version of its project.
 
     ``model`` is ``{workspace}/{model}`` or the bare model slug. ``version`` defaults to the
     version the model trained on. The call is idempotent: an eval that is pending, running or done
-    for the same model, version and settings comes back with ``reused: true``.
+    for the same model, version and settings comes back with ``reused: true``. With ``rerun=True``
+    a done eval does not count, so a new eval starts. A pending or running eval still comes back
+    with ``reused: true``.
 
     Raises :class:`ModelEvalBlockedError` (409) and :class:`ModelEvalConcurrencyLimitError` (429).
     """
-    return _eval_post(api_key, workspace_url, "", _eval_start_body(model, project, version))
+    body = _eval_start_body(model, project, version)
+    if rerun:
+        body["rerun"] = True
+    return _eval_post(api_key, workspace_url, "", body)
 
 
 def preflight_model_eval(

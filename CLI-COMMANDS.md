@@ -499,7 +499,8 @@ Both commands return `trainedOnVersion`, `leakage` and `classMismatch`.
 Leakage and class mismatch never block an eval. The eval runs with these tags.
 The tags are `null` when no pre-flight result exists.
 `create` returns `reused: true` when an eval for the same model, version and
-settings is pending, running or done.
+settings is pending, running or done. Add `--rerun` to start a new eval when a
+done eval exists. A pending or running eval still returns `reused: true`.
 Exit code `6` means a pre-flight block (the `blocks` list is in the error).
 Exit code `7` means the workspace has too many active evals.
 Requires the `training-job:create` scope and workspace Model Evaluation access.

@@ -1648,6 +1648,7 @@ class Workspace:
         model: str,
         project: str,
         version: Optional[Union[str, int]] = None,
+        rerun: bool = False,
     ) -> dict:
         """Evaluate a model on a dataset version of its project.
 
@@ -1656,11 +1657,15 @@ class Workspace:
             project: Project URL slug.
             version: Dataset version number. Defaults to the version the model
                 trained on.
+            rerun: Start a new eval even when a done eval exists for the same
+                model, version and settings.
 
         Returns:
             ``{evalId, status, reused, version, trainedOnVersion, leakage, classMismatch}``.
             The call is idempotent: an eval for the same model, version and settings
             that is pending, running or done returns with ``reused`` set to ``True``.
+            With ``rerun=True`` a done eval does not count. A pending or running eval
+            still returns with ``reused`` set to ``True``.
             ``leakage`` and ``classMismatch`` never block the eval. They are ``None``
             when the eval has no pre-flight result.
 
@@ -1675,7 +1680,9 @@ class Workspace:
             >>> result["leakage"]["status"]
             'none'
         """
-        return rfapi.create_model_eval(self.__api_key, self.url, model=model, project=project, version=version)
+        return rfapi.create_model_eval(
+            self.__api_key, self.url, model=model, project=project, version=version, rerun=rerun
+        )
 
     def preflight_model_evaluation(
         self,

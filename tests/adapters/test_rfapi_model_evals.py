@@ -293,6 +293,18 @@ class TestCreateModelEval(unittest.TestCase):
         self.assertEqual(mock_post.call_args.kwargs["json"], {"modelId": "my-model", "project": "chess"})
 
     @patch("roboflow.util.http.requests.post")
+    def test_sends_rerun_only_when_true(self, mock_post):
+        mock_post.return_value = _resp(200, CREATE_RESULT)
+
+        rfapi.create_model_eval("k", "ws", model="m", project="chess", version=5, rerun=True)
+        self.assertEqual(
+            mock_post.call_args.kwargs["json"], {"modelId": "m", "project": "chess", "version": "5", "rerun": True}
+        )
+
+        rfapi.create_model_eval("k", "ws", model="m", project="chess", version=5, rerun=False)
+        self.assertNotIn("rerun", mock_post.call_args.kwargs["json"])
+
+    @patch("roboflow.util.http.requests.post")
     def test_keeps_null_tags_of_a_reused_eval(self, mock_post):
         body = {**CREATE_RESULT, "reused": True, "trainedOnVersion": None, "leakage": None, "classMismatch": None}
         mock_post.return_value = _resp(200, body)

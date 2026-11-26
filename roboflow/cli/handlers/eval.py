@@ -35,9 +35,12 @@ def create_eval_cmd(
             "-v", "--version", min=1, help="Dataset version number (default: the version the model trained on)"
         ),
     ] = None,
+    rerun: Annotated[
+        bool, typer.Option("--rerun", help="Start a new eval even when a done eval exists for the request")
+    ] = False,
 ) -> None:
     """Evaluate a model on a dataset version of its project."""
-    args = ctx_to_args(ctx, model=model, project=project, version=version)
+    args = ctx_to_args(ctx, model=model, project=project, version=version, rerun=rerun)
     _create_eval(args)
 
 
@@ -289,7 +292,7 @@ def _create_eval(args):  # noqa: ANN001
     workspace_url, api_key = resolved
     try:
         result = rfapi.create_model_eval(
-            api_key, workspace_url, model=args.model, project=args.project, version=args.version
+            api_key, workspace_url, model=args.model, project=args.project, version=args.version, rerun=args.rerun
         )
     except Exception as exc:
         output_error(args, str(exc), hint=_hint_for(exc), exit_code=_eval_error_exit_code(exc))

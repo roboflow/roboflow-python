@@ -276,7 +276,15 @@ class TestWorkspaceEvalAccessors(unittest.TestCase):
         result = _make_workspace().create_model_evaluation("ws/my-model", "chess", 5)
 
         self.assertEqual(result, created)
-        mock_create.assert_called_once_with("k", "lee-sandbox", model="ws/my-model", project="chess", version=5)
+        mock_create.assert_called_once_with(
+            "k", "lee-sandbox", model="ws/my-model", project="chess", version=5, rerun=False
+        )
+
+    @patch("roboflow.adapters.rfapi.create_model_eval")
+    def test_create_model_evaluation_forwards_rerun(self, mock_create):
+        _make_workspace().create_model_evaluation("m", "chess", 5, rerun=True)
+
+        mock_create.assert_called_once_with("k", "lee-sandbox", model="m", project="chess", version=5, rerun=True)
 
     @patch("roboflow.adapters.rfapi.preflight_model_eval")
     def test_preflight_model_evaluation_returns_the_full_response(self, mock_preflight):
