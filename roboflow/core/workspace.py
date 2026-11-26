@@ -1643,6 +1643,56 @@ class Workspace:
             frontier_metric=frontier_metric,
         )
 
+    def create_model_evaluation(
+        self,
+        model: str,
+        project: str,
+        version: Optional[Union[str, int]] = None,
+    ) -> dict:
+        """Evaluate a model on a dataset version of its project.
+
+        Args:
+            model: Model URL (``workspace/model``) or bare model slug.
+            project: Project URL slug.
+            version: Dataset version number. Defaults to the version the model
+                trained on.
+
+        Returns:
+            ``{evalId, status, reused, version, trainedOnVersion, leakage, classMismatch}``.
+            The call is idempotent: an eval for the same model, version and settings
+            that is pending, running or done returns with ``reused`` set to ``True``.
+            ``leakage`` and ``classMismatch`` never block the eval. They are ``None``
+            when the eval has no pre-flight result.
+
+        Raises:
+            roboflow.adapters.rfapi.ModelEvalBlockedError: The pre-flight check blocks the eval.
+                The ``blocks`` attribute lists the ``code`` and ``message`` of each block.
+            roboflow.adapters.rfapi.ModelEvalConcurrencyLimitError: The workspace has too many
+                active evals.
+
+        Example:
+            >>> result = ws.create_model_evaluation("my-ws/my-model", "chess", 5)
+            >>> result["leakage"]["status"]
+            'none'
+        """
+        return rfapi.create_model_eval(self.__api_key, self.url, model=model, project=project, version=version)
+
+    def preflight_model_evaluation(
+        self,
+        model: str,
+        project: str,
+        version: Optional[Union[str, int]] = None,
+    ) -> dict:
+        """Check an evaluation request without starting it.
+
+        Takes the same arguments as :meth:`create_model_evaluation`.
+
+        Returns:
+            ``{allowed, blocks, trainedOnVersion, leakage, classMismatch}``. A blocked
+            request returns ``allowed: False`` with a ``blocks`` list. It does not raise.
+        """
+        return rfapi.preflight_model_eval(self.__api_key, self.url, model=model, project=project, version=version)
+
     def evals(
         self,
         *,

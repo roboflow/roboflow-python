@@ -2294,6 +2294,21 @@ class ModelEvalAccessError(RoboflowError):
     """Raised when an evaluation read is not authorized (HTTP 401 or 403)."""
 
 
+class ModelEvalBlockedError(RoboflowError):
+    """Raised when a pre-flight check blocks the eval (HTTP 409 with ``blocks``).
+
+    ``blocks`` is the server list of ``{"code": ..., "message": ...}`` dicts.
+    """
+
+    def __init__(self, message, blocks, status_code=409):
+        super().__init__(message, status_code=status_code)
+        self.blocks = blocks
+
+
+class ModelEvalConcurrencyLimitError(RoboflowError):
+    """Raised when the workspace has too many active evals (HTTP 429, ``eval_concurrency_limit``)."""
+
+
 class InvalidSplitError(RoboflowError):
     """Raised when ``split`` is not one of the accepted values (HTTP 400)."""
 
@@ -2316,6 +2331,7 @@ def _model_eval_error_for(response):
     """
     code = None
     message = response.text
+    blocks = None
     try:
         body = response.json()
         if isinstance(body, dict):
@@ -2323,6 +2339,8 @@ def _model_eval_error_for(response):
             if not isinstance(code, str):
                 code = None
             message = body.get("message") or code or message
+            if isinstance(body.get("blocks"), list):
+                blocks = body["blocks"]
     except (ValueError, TypeError):
         pass
 
@@ -2335,6 +2353,14 @@ def _model_eval_error_for(response):
     cls = cls_by_code.get(code or "")
     if response.status_code in (401, 403):
         return ModelEvalAccessError(message)
+    if response.status_code == 409 and blocks:
+        return ModelEvalBlockedError(
+            "\n".join(f"{block.get('code')}: {block.get('message')}" for block in blocks),
+            blocks,
+            status_code=409,
+        )
+    if response.status_code == 429 and code == "eval_concurrency_limit":
+        return ModelEvalConcurrencyLimitError(message, status_code=429)
     if cls is not None:
         return cls(message)
     if response.status_code == 404:
@@ -2356,6 +2382,56 @@ def _eval_get(api_key, workspace_url, path, params=None):
     if response.status_code != 200:
         raise _model_eval_error_for(response)
     return response.json()
+
+
+def _eval_post(api_key, workspace_url, path, body):
+    """POST helper for model-eval endpoints with typed error mapping."""
+    url = f"{API_URL}/{workspace_url}/model-evals{path}"
+    response = http.post(url, params={"api_key": api_key}, json=body)
+    if response.status_code != 200:
+        raise _model_eval_error_for(response)
+    return response.json()
+
+
+def _eval_start_body(model, project, version):
+    body = {"modelId": model, "project": project}
+    if version is not None:
+        body["version"] = str(version)
+    return body
+
+
+def create_model_eval(
+    api_key: str,
+    workspace_url: str,
+    *,
+    model: str,
+    project: str,
+    version: Optional[Union[str, int]] = None,
+) -> dict:
+    """POST /{workspace}/model-evals — evaluate a model on a dataset version of its project.
+
+    ``model`` is ``{workspace}/{model}`` or the bare model slug. ``version`` defaults to the
+    version the model trained on. The call is idempotent: an eval that is pending, running or done
+    for the same model, version and settings comes back with ``reused: true``.
+
+    Raises :class:`ModelEvalBlockedError` (409) and :class:`ModelEvalConcurrencyLimitError` (429).
+    """
+    return _eval_post(api_key, workspace_url, "", _eval_start_body(model, project, version))
+
+
+def preflight_model_eval(
+    api_key: str,
+    workspace_url: str,
+    *,
+    model: str,
+    project: str,
+    version: Optional[Union[str, int]] = None,
+) -> dict:
+    """POST /{workspace}/model-evals/preflight — check an eval request without starting it.
+
+    A blocked request is a normal result (``allowed: false`` with ``blocks``), not an error.
+    """
+    return _eval_post(api_key, workspace_url, "/preflight", _eval_start_body(model, project, version))
 
 
 def compare_model_evals(

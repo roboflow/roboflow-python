@@ -248,5 +248,152 @@ class TestCompareModelEvals(unittest.TestCase):
         )
 
 
+CREATE_RESULT = {
+    "evalId": "e9",
+    "status": "running",
+    "reused": False,
+    "version": "5",
+    "trainedOnVersion": "2",
+    "leakage": {
+        "status": "detected",
+        "splits": {
+            "test": {"total": 412, "leaked": 37, "fromTrain": 30, "fromValid": 9},
+            "valid": {"total": 200, "leaked": 5, "fromTrain": 5},
+        },
+    },
+    "classMismatch": {"targetOnly": ["washer"], "modelOnly": ["nut"]},
+}
+BLOCKS = [
+    {"code": "preprocessing_mismatch", "message": "The preprocessing differs."},
+    {"code": "different_project", "message": "The model does not belong to this project."},
+]
+
+
+class TestCreateModelEval(unittest.TestCase):
+    @patch("roboflow.util.http.requests.post")
+    def test_posts_body_and_returns_full_response(self, mock_post):
+        mock_post.return_value = _resp(200, CREATE_RESULT)
+
+        result = rfapi.create_model_eval("k", "ws", model="ws/my-model", project="chess", version=5)
+
+        self.assertEqual(result, CREATE_RESULT)
+        mock_post.assert_called_once_with(
+            f"{API_URL}/ws/model-evals",
+            params={"api_key": "k"},
+            json={"modelId": "ws/my-model", "project": "chess", "version": "5"},
+            headers={"User-Agent": USER_AGENT},
+        )
+
+    @patch("roboflow.util.http.requests.post")
+    def test_omits_version_when_not_given(self, mock_post):
+        mock_post.return_value = _resp(200, CREATE_RESULT)
+
+        rfapi.create_model_eval("k", "ws", model="my-model", project="chess")
+
+        self.assertEqual(mock_post.call_args.kwargs["json"], {"modelId": "my-model", "project": "chess"})
+
+    @patch("roboflow.util.http.requests.post")
+    def test_keeps_null_tags_of_a_reused_eval(self, mock_post):
+        body = {**CREATE_RESULT, "reused": True, "trainedOnVersion": None, "leakage": None, "classMismatch": None}
+        mock_post.return_value = _resp(200, body)
+
+        result = rfapi.create_model_eval("k", "ws", model="m", project="chess", version=5)
+
+        self.assertTrue(result["reused"])
+        self.assertIsNone(result["leakage"])
+
+    @patch("roboflow.util.http.requests.post")
+    def test_409_raises_blocked_error_with_blocks(self, mock_post):
+        mock_post.return_value = _resp(
+            409, {"error": "preprocessing_mismatch", "message": "The preprocessing differs.", "blocks": BLOCKS}
+        )
+
+        with self.assertRaises(rfapi.ModelEvalBlockedError) as ctx:
+            rfapi.create_model_eval("k", "ws", model="m", project="chess", version=5)
+
+        self.assertEqual(ctx.exception.blocks, BLOCKS)
+        self.assertEqual(ctx.exception.status_code, 409)
+        self.assertIn("The preprocessing differs.", str(ctx.exception))
+        self.assertNotIsInstance(ctx.exception, rfapi.ModelEvalNotDoneError)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_429_raises_concurrency_limit_error(self, mock_post):
+        mock_post.return_value = _resp(
+            429, {"error": "eval_concurrency_limit", "message": "10 evaluations are active."}
+        )
+
+        with self.assertRaises(rfapi.ModelEvalConcurrencyLimitError) as ctx:
+            rfapi.create_model_eval("k", "ws", model="m", project="chess", version=5)
+
+        self.assertEqual(ctx.exception.status_code, 429)
+        self.assertIn("10 evaluations", str(ctx.exception))
+
+    @patch("roboflow.util.http.requests.post")
+    def test_429_with_another_code_is_a_generic_error(self, mock_post):
+        mock_post.return_value = _resp(429, {"error": "rate_limited", "message": "Slow down."})
+
+        with self.assertRaises(rfapi.RoboflowError) as ctx:
+            rfapi.create_model_eval("k", "ws", model="m", project="chess")
+
+        self.assertNotIsInstance(ctx.exception, rfapi.ModelEvalConcurrencyLimitError)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_403_raises_access_error(self, mock_post):
+        mock_post.return_value = _resp(403, {"error": "forbidden", "message": "Plan does not include evaluations."})
+
+        with self.assertRaises(rfapi.ModelEvalAccessError):
+            rfapi.create_model_eval("k", "ws", model="m", project="chess")
+
+    @patch("roboflow.util.http.requests.post")
+    def test_404_raises_not_found_error(self, mock_post):
+        mock_post.return_value = _resp(404, {"error": "not_found", "message": "Model not found"})
+
+        with self.assertRaises(rfapi.ModelEvalNotFoundError):
+            rfapi.create_model_eval("k", "ws", model="m", project="chess")
+
+
+class TestPreflightModelEval(unittest.TestCase):
+    @patch("roboflow.util.http.requests.post")
+    def test_posts_to_preflight_and_returns_full_response(self, mock_post):
+        preflight = {
+            "allowed": True,
+            "blocks": [],
+            "trainedOnVersion": "2",
+            "leakage": CREATE_RESULT["leakage"],
+            "classMismatch": CREATE_RESULT["classMismatch"],
+        }
+        mock_post.return_value = _resp(200, preflight)
+
+        result = rfapi.preflight_model_eval("k", "ws", model="ws/my-model", project="chess", version="5")
+
+        self.assertEqual(result, preflight)
+        mock_post.assert_called_once_with(
+            f"{API_URL}/ws/model-evals/preflight",
+            params={"api_key": "k"},
+            json={"modelId": "ws/my-model", "project": "chess", "version": "5"},
+            headers={"User-Agent": USER_AGENT},
+        )
+
+    @patch("roboflow.util.http.requests.post")
+    def test_a_blocked_preflight_is_a_result_not_an_error(self, mock_post):
+        blocked = {
+            "allowed": False,
+            "blocks": BLOCKS[:1],
+            "trainedOnVersion": None,
+            "leakage": None,
+            "classMismatch": None,
+        }
+        mock_post.return_value = _resp(200, blocked)
+
+        self.assertEqual(rfapi.preflight_model_eval("k", "ws", model="m", project="chess"), blocked)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_403_raises_access_error(self, mock_post):
+        mock_post.return_value = _resp(403, {"error": "forbidden", "message": "No access."})
+
+        with self.assertRaises(rfapi.ModelEvalAccessError):
+            rfapi.preflight_model_eval("k", "ws", model="m", project="chess")
+
+
 if __name__ == "__main__":
     unittest.main()
