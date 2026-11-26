@@ -2283,7 +2283,7 @@ def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=Non
 
 
 class ModelEvalNotFoundError(RoboflowError):
-    """Raised when an eval id (or workspace) does not exist (HTTP 404)."""
+    """Raised when an eval id, workspace, model, project or version does not exist (HTTP 404)."""
 
 
 class ModelEvalNotDoneError(RoboflowError):
@@ -2291,7 +2291,7 @@ class ModelEvalNotDoneError(RoboflowError):
 
 
 class ModelEvalAccessError(RoboflowError):
-    """Raised when an evaluation read is not authorized (HTTP 401 or 403)."""
+    """Raised when an evaluation request is not authorized (HTTP 401 or 403)."""
 
 
 class ModelEvalBlockedError(RoboflowError):

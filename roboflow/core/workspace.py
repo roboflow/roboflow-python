@@ -1666,19 +1666,22 @@ class Workspace:
             that is pending, running or done returns with ``reused`` set to ``True``.
             With ``rerun=True`` a done eval does not count. A pending or running eval
             still returns with ``reused`` set to ``True``.
-            ``leakage`` and ``classMismatch`` never block the eval. They are ``None``
-            when the eval has no pre-flight result.
+            ``leakage`` and ``classMismatch`` never block the eval. The three tags are
+            ``None`` when the eval has no pre-flight result or runs on the version the
+            model trained on.
 
         Raises:
             roboflow.adapters.rfapi.ModelEvalBlockedError: The pre-flight check blocks the eval.
                 The ``blocks`` attribute lists the ``code`` and ``message`` of each block.
             roboflow.adapters.rfapi.ModelEvalConcurrencyLimitError: The workspace has too many
                 active evals.
+            roboflow.adapters.rfapi.ModelEvalNotFoundError: The model, project or version does not exist.
+            roboflow.adapters.rfapi.ModelEvalAccessError: The API key or workspace has no access.
 
         Example:
             >>> result = ws.create_model_evaluation("my-ws/my-model", "chess", 5)
-            >>> result["leakage"]["status"]
-            'none'
+            >>> result["reused"]
+            False
         """
         return rfapi.create_model_eval(
             self.__api_key, self.url, model=model, project=project, version=version, rerun=rerun
@@ -1692,7 +1695,7 @@ class Workspace:
     ) -> dict:
         """Check an evaluation request without starting it.
 
-        Takes the same arguments as :meth:`create_model_evaluation`.
+        Takes the same arguments as :meth:`create_model_evaluation`, except ``rerun``.
 
         Returns:
             ``{allowed, blocks, trainedOnVersion, leakage, classMismatch}``. A blocked

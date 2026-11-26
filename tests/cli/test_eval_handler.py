@@ -487,6 +487,37 @@ class TestEvalCreateCommand(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("Reused: yes", result.stdout)
+        for text in ["unknown", "not checked", "Leakage", "Class"]:
+            self.assertNotIn(text, result.stdout)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_text_handles_unknown_leakage_without_splits(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = {**CREATED, "leakage": {"status": "unknown", "splits": None}}
+        result = runner.invoke(app, CREATE_ARGS)
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("Leakage: unknown", result.stdout)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_not_found_hint_names_the_inputs(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=404)
+        mock_post.return_value.json.return_value = {"error": {"message": "Not found"}}
+        result = runner.invoke(app, ["--json", *CREATE_ARGS])
+
+        self.assertEqual(result.exit_code, 3)
+        hint = json.loads(result.stderr)["error"]["hint"]
+        for text in ["--model", "--project", "--version"]:
+            self.assertIn(text, hint)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_access_hint_names_the_create_scope(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=403)
+        mock_post.return_value.json.return_value = {"error": {"message": "Forbidden"}}
+        result = runner.invoke(app, ["--json", *CREATE_ARGS])
+
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn("training-job:create", json.loads(result.stderr)["error"]["hint"])
 
     @patch("roboflow.util.http.requests.post")
     def test_blocked_lists_the_blocks_and_exits_6(self, mock_post):
@@ -496,7 +527,9 @@ class TestEvalCreateCommand(unittest.TestCase):
         result = runner.invoke(app, ["--json", *CREATE_ARGS])
 
         self.assertEqual(result.exit_code, 6)
-        self.assertIn("preprocessing_mismatch", json.loads(result.stderr)["error"]["message"])
+        error = json.loads(result.stderr)["error"]
+        self.assertIn("preprocessing_mismatch", error["message"])
+        self.assertNotIn("hint", error)
 
     @patch("roboflow.util.http.requests.post")
     def test_concurrency_limit_exits_7(self, mock_post):

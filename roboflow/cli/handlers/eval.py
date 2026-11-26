@@ -1,7 +1,7 @@
 """Model evaluation commands.
 
-Wraps the public ``/{workspace}/model-evals`` REST surface — list runs in a
-workspace and pull each panel (mAP, confidence sweep, per-class table,
+Wraps the public ``/{workspace}/model-evals`` REST surface — start a run,
+check a request, list runs in a workspace and pull each panel (mAP, confidence sweep, per-class table,
 confusion matrix, vector clusters, per-image stats, recommendations).
 
 The eval-id is opaque (the human in the UI navigates by URL); commands take
@@ -16,7 +16,7 @@ import typer
 
 from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-eval_app = typer.Typer(cls=SortedGroup, help="Inspect model evaluation runs", no_args_is_help=True)
+eval_app = typer.Typer(cls=SortedGroup, help="Create and inspect model evaluation runs", no_args_is_help=True)
 
 
 # ---------------------------------------------------------------------------
@@ -256,27 +256,34 @@ def _hint_for(exc: Exception) -> Optional[str]:
         return "Use one of: train, valid, test (or 'all' where supported)."
     if isinstance(exc, rfapi.InvalidConfidenceError):
         return "Pass an integer between 0 and 100."
-    if isinstance(exc, rfapi.ModelEvalBlockedError):
-        return "Run 'roboflow eval preflight' to see the blocks. Pick a version with the same preprocessing."
+    return None
+
+
+def _start_hint_for(exc: Exception) -> Optional[str]:
+    """Hint for ``eval create`` and ``eval preflight`` errors. A blocked error has none: its message lists them."""
+    from roboflow.adapters import rfapi
+
+    if isinstance(exc, rfapi.ModelEvalAccessError):
+        return "Check your API key, its training-job:create scope, and workspace Model Evaluation access."
+    if isinstance(exc, rfapi.ModelEvalNotFoundError):
+        return "Check the --model, --project and --version values."
     if isinstance(exc, rfapi.ModelEvalConcurrencyLimitError):
         return "Wait for an active eval to finish, then try again."
     return None
 
 
 def _format_tags(result) -> list:  # noqa: ANN001
-    """Text lines for the pre-flight tags: trained-on version, leakage and class mismatch."""
-    lines = [f"  Trained on version: {result.get('trainedOnVersion') or 'unknown'}"]
+    """Text lines for the tags that are present: trained-on version, leakage and class mismatch."""
+    lines = []
+    if result.get("trainedOnVersion") is not None:
+        lines.append(f"  Trained on version: {result['trainedOnVersion']}")
     leakage = result.get("leakage")
-    if leakage is None:
-        lines.append("  Leakage: not checked")
-    else:
+    if leakage is not None:
         lines.append(f"  Leakage: {leakage['status']}")
         for split, counts in (leakage.get("splits") or {}).items():
             lines.append(f"    {split}: {counts['leaked']} of {counts['total']} images leaked")
     mismatch = result.get("classMismatch")
-    if mismatch is None:
-        lines.append("  Class mismatch: not checked")
-    else:
+    if mismatch is not None:
         lines.append(f"  Classes only in the target version: {', '.join(mismatch['targetOnly']) or 'none'}")
         lines.append(f"  Classes only in the model: {', '.join(mismatch['modelOnly']) or 'none'}")
     return lines
@@ -295,7 +302,7 @@ def _create_eval(args):  # noqa: ANN001
             api_key, workspace_url, model=args.model, project=args.project, version=args.version, rerun=args.rerun
         )
     except Exception as exc:
-        output_error(args, str(exc), hint=_hint_for(exc), exit_code=_eval_error_exit_code(exc))
+        output_error(args, str(exc), hint=_start_hint_for(exc), exit_code=_eval_error_exit_code(exc))
         return
     lines = [
         f"Eval: {result['evalId']}",
@@ -320,7 +327,7 @@ def _preflight_eval(args):  # noqa: ANN001
             api_key, workspace_url, model=args.model, project=args.project, version=args.version
         )
     except Exception as exc:
-        output_error(args, str(exc), hint=_hint_for(exc), exit_code=_eval_error_exit_code(exc))
+        output_error(args, str(exc), hint=_start_hint_for(exc), exit_code=_eval_error_exit_code(exc))
         return
     lines = [f"Allowed: {'yes' if result['allowed'] else 'no'}"]
     lines.extend(f"  Block {block['code']}: {block['message']}" for block in result["blocks"])

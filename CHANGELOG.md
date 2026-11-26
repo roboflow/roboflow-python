@@ -13,14 +13,16 @@ All notable changes to this project will be documented in this file.
   `rerun=True` (CLI: `--rerun`) starts a new eval when a done eval exists.
   A pending or running eval still returns with `reused: true`.
   Leakage and class mismatch never block an eval. They are tags on the result.
-  The tags are `None` on evals that had no pre-flight check.
+  The tags are `None` when the eval has no pre-flight result or runs on the version the model trained on.
   A blocked request raises `ModelEvalBlockedError` with a `blocks` list.
+  `ModelEvalNotFoundError` and `ModelEvalAccessError` now cover these requests too.
   A full workspace raises `ModelEvalConcurrencyLimitError`.
   The CLI is `roboflow eval create` and `roboflow eval preflight`
   (`-m <model> -p <project> [-v <version>]`).
   Exit code 6 means blocked. Exit code 7 means the concurrency limit.
-  The eval reads (`roboflow eval get`, `Workspace.eval`) keep the same three tags.
-  Needs the `POST /{workspace}/model-evals` API.
+  `Workspace.eval` and `roboflow eval get --json` keep the same three tags.
+  Needs the `POST /{workspace}/model-evals` and `POST /{workspace}/model-evals/preflight` APIs
+  ([#591](https://github.com/roboflow/roboflow-python/pull/591)).
 
 ## 1.7.4
 

@@ -497,11 +497,13 @@ roboflow eval create -m my-workspace/my-model -p my-project -v 5 --json
 
 Both commands return `trainedOnVersion`, `leakage` and `classMismatch`.
 Leakage and class mismatch never block an eval. The eval runs with these tags.
-The tags are `null` when no pre-flight result exists.
+The tags are `null` when the eval has no pre-flight result or runs on the version the model trained on.
+Text output omits a null tag.
 `create` returns `reused: true` when an eval for the same model, version and
 settings is pending, running or done. Add `--rerun` to start a new eval when a
 done eval exists. A pending or running eval still returns `reused: true`.
-Exit code `6` means a pre-flight block (the `blocks` list is in the error).
+Exit code `6` means a pre-flight block. The error message lists each block.
+Run `eval preflight --json` for the structured `blocks` list.
 Exit code `7` means the workspace has too many active evals.
 Requires the `training-job:create` scope and workspace Model Evaluation access.
 
