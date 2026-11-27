@@ -364,30 +364,30 @@ class TestCreateModelEval(unittest.TestCase):
             rfapi.create_model_eval("k", "ws", model="m", project="chess")
 
 
-class TestPreflightModelEval(unittest.TestCase):
+class TestCheckModelEvalCompatibility(unittest.TestCase):
     @patch("roboflow.util.http.requests.post")
-    def test_posts_to_preflight_and_returns_full_response(self, mock_post):
-        preflight = {
+    def test_posts_to_check_compatibility_and_returns_full_response(self, mock_post):
+        compatibility_check = {
             "allowed": True,
             "blocks": [],
             "trainedOnVersion": "2",
             "leakage": CREATE_RESULT["leakage"],
             "classMismatch": CREATE_RESULT["classMismatch"],
         }
-        mock_post.return_value = _resp(200, preflight)
+        mock_post.return_value = _resp(200, compatibility_check)
 
-        result = rfapi.preflight_model_eval("k", "ws", model="ws/my-model", project="chess", version="5")
+        result = rfapi.check_model_eval_compatibility("k", "ws", model="ws/my-model", project="chess", version="5")
 
-        self.assertEqual(result, preflight)
+        self.assertEqual(result, compatibility_check)
         mock_post.assert_called_once_with(
-            f"{API_URL}/ws/model-evals/preflight",
+            f"{API_URL}/ws/model-evals/check-compatibility",
             params={"api_key": "k"},
             json={"modelId": "ws/my-model", "project": "chess", "version": "5"},
             headers={"User-Agent": USER_AGENT},
         )
 
     @patch("roboflow.util.http.requests.post")
-    def test_a_blocked_preflight_is_a_result_not_an_error(self, mock_post):
+    def test_a_blocked_check_is_a_result_not_an_error(self, mock_post):
         blocked = {
             "allowed": False,
             "blocks": BLOCKS[:1],
@@ -397,14 +397,14 @@ class TestPreflightModelEval(unittest.TestCase):
         }
         mock_post.return_value = _resp(200, blocked)
 
-        self.assertEqual(rfapi.preflight_model_eval("k", "ws", model="m", project="chess"), blocked)
+        self.assertEqual(rfapi.check_model_eval_compatibility("k", "ws", model="m", project="chess"), blocked)
 
     @patch("roboflow.util.http.requests.post")
     def test_403_raises_access_error(self, mock_post):
         mock_post.return_value = _resp(403, {"error": "forbidden", "message": "No access."})
 
         with self.assertRaises(rfapi.ModelEvalAccessError):
-            rfapi.preflight_model_eval("k", "ws", model="m", project="chess")
+            rfapi.check_model_eval_compatibility("k", "ws", model="m", project="chess")
 
 
 if __name__ == "__main__":

@@ -1670,7 +1670,7 @@ class Workspace:
             when the platform has no value for it, for example for the training version.
 
         Raises:
-            roboflow.adapters.rfapi.ModelEvalBlockedError: The pre-flight check blocks the eval.
+            roboflow.adapters.rfapi.ModelEvalBlockedError: The compatibility check blocks the eval.
                 The ``blocks`` attribute lists the ``code`` and ``message`` of each block.
             roboflow.adapters.rfapi.ModelEvalConcurrencyLimitError: The workspace has too many
                 active evals.
@@ -1687,7 +1687,7 @@ class Workspace:
             self.__api_key, self.url, model=model, project=project, version=version, rerun=rerun
         )
 
-    def preflight_model_evaluation(
+    def check_model_evaluation_compatibility(
         self,
         model: str,
         project: str,
@@ -1706,7 +1706,9 @@ class Workspace:
                 or the API key has no ``training-job:create`` scope.
             roboflow.adapters.rfapi.ModelEvalAccessError: The API key or workspace has no access.
         """
-        return rfapi.preflight_model_eval(self.__api_key, self.url, model=model, project=project, version=version)
+        return rfapi.check_model_eval_compatibility(
+            self.__api_key, self.url, model=model, project=project, version=version
+        )
 
     def evals(
         self,

@@ -44,8 +44,8 @@ def create_eval_cmd(
     _create_eval(args)
 
 
-@eval_app.command("preflight")
-def preflight_eval_cmd(
+@eval_app.command("check-compatibility")
+def check_compatibility_eval_cmd(
     ctx: typer.Context,
     model: Annotated[str, typer.Option("-m", "--model", help="Model URL (workspace/model) or model slug")],
     project: Annotated[str, typer.Option("-p", "--project", help="Project slug")],
@@ -58,7 +58,7 @@ def preflight_eval_cmd(
 ) -> None:
     """Check an evaluation request without starting it."""
     args = ctx_to_args(ctx, model=model, project=project, version=version)
-    _preflight_eval(args)
+    _check_compatibility_eval(args)
 
 
 @eval_app.command("compare")
@@ -221,7 +221,7 @@ def _eval_error_exit_code(exc: Exception) -> int:
 
     1 = general; 2 = auth; 3 = not found; 4 = conflict (eval not done);
     5 = invalid argument (bad split / confidence); 6 = eval blocked by a
-    pre-flight check; 7 = workspace eval concurrency limit. Keeping these distinct
+    compatibility check; 7 = workspace eval concurrency limit. Keeping these distinct
     lets shell scripts and AI agents react to specific failure modes
     without parsing message strings.
     """
@@ -260,7 +260,7 @@ def _hint_for(exc: Exception) -> Optional[str]:
 
 
 def _start_hint_for(exc: Exception) -> Optional[str]:
-    """Hint for ``eval create`` and ``eval preflight`` errors. A blocked error has none: its message lists them."""
+    """Hint for the start commands. A blocked error has none: its message lists the blocks."""
     from roboflow.adapters import rfapi
 
     if isinstance(exc, rfapi.ModelEvalAccessError):
@@ -316,7 +316,7 @@ def _create_eval(args):  # noqa: ANN001
     output(args, result, text="\n".join(lines))
 
 
-def _preflight_eval(args):  # noqa: ANN001
+def _check_compatibility_eval(args):  # noqa: ANN001
     from roboflow.adapters import rfapi
     from roboflow.cli._output import output, output_error
 
@@ -325,7 +325,7 @@ def _preflight_eval(args):  # noqa: ANN001
         return
     workspace_url, api_key = resolved
     try:
-        result = rfapi.preflight_model_eval(
+        result = rfapi.check_model_eval_compatibility(
             api_key, workspace_url, model=args.model, project=args.project, version=args.version
         )
     except Exception as exc:

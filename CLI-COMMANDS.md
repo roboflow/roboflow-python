@@ -489,7 +489,7 @@ without parsing message strings: `2` for authentication or access errors (401/40
 
 ```bash
 # Check the request first. This starts no job.
-roboflow eval preflight -m my-workspace/my-model -p my-project -v 5 --json
+roboflow eval check-compatibility -m my-workspace/my-model -p my-project -v 5 --json
 
 # Start the eval. Omit -v to use the version the model trained on.
 roboflow eval create -m my-workspace/my-model -p my-project -v 5 --json
@@ -502,8 +502,8 @@ Text output omits a null tag.
 `create` returns `reused: true` when an eval for the same model, version and
 settings is pending, running or done. Add `--rerun` to start a new eval when a
 done eval exists. A pending or running eval still returns `reused: true`.
-Exit code `6` means a pre-flight block. The error message lists each block.
-Run `eval preflight --json` for the structured `blocks` list.
+Exit code `6` means a compatibility block. The error message lists each block.
+Run `eval check-compatibility --json` for the structured `blocks` list.
 Exit code `7` means the workspace has too many active evals.
 Requires the `training-job:create` scope and workspace Model Evaluation access.
 

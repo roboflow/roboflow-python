@@ -286,15 +286,21 @@ class TestWorkspaceEvalAccessors(unittest.TestCase):
 
         mock_create.assert_called_once_with("k", "lee-sandbox", model="m", project="chess", version=5, rerun=True)
 
-    @patch("roboflow.adapters.rfapi.preflight_model_eval")
-    def test_preflight_model_evaluation_returns_the_full_response(self, mock_preflight):
-        preflight = {"allowed": True, "blocks": [], "trainedOnVersion": "2", "leakage": None, "classMismatch": None}
-        mock_preflight.return_value = preflight
+    @patch("roboflow.adapters.rfapi.check_model_eval_compatibility")
+    def test_check_model_evaluation_compatibility_returns_the_full_response(self, mock_check):
+        compatibility_check = {
+            "allowed": True,
+            "blocks": [],
+            "trainedOnVersion": "2",
+            "leakage": None,
+            "classMismatch": None,
+        }
+        mock_check.return_value = compatibility_check
 
-        result = _make_workspace().preflight_model_evaluation("ws/my-model", "chess")
+        result = _make_workspace().check_model_evaluation_compatibility("ws/my-model", "chess")
 
-        self.assertEqual(result, preflight)
-        mock_preflight.assert_called_once_with("k", "lee-sandbox", model="ws/my-model", project="chess", version=None)
+        self.assertEqual(result, compatibility_check)
+        mock_check.assert_called_once_with("k", "lee-sandbox", model="ws/my-model", project="chess", version=None)
 
     def test_eval_read_keeps_the_pre_flight_tags(self):
         from roboflow.core.model_eval import ModelEval

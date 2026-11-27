@@ -35,7 +35,7 @@ class TestEvalRegistration(unittest.TestCase):
     def test_each_subcommand_help(self) -> None:
         for cmd in [
             "create",
-            "preflight",
+            "check-compatibility",
             "list",
             "get",
             "map-results",
@@ -542,13 +542,14 @@ class TestEvalCreateCommand(unittest.TestCase):
         self.assertIn("hint", json.loads(result.stderr)["error"])
 
 
-class TestEvalPreflightCommand(unittest.TestCase):
+class TestEvalCheckCompatibilityCommand(unittest.TestCase):
     @patch("roboflow.util.http.requests.post")
     def test_not_found_hint_names_the_scope(self, mock_post):
         mock_post.return_value = MagicMock(status_code=404)
         mock_post.return_value.json.return_value = {"error": {"message": "Not found"}}
         result = runner.invoke(
-            app, ["--json", "--api-key", "k", "--workspace", "ws", "eval", "preflight", "-m", "m", "-p", "chess"]
+            app,
+            ["--json", "--api-key", "k", "--workspace", "ws", "eval", "check-compatibility", "-m", "m", "-p", "chess"],
         )
 
         self.assertEqual(result.exit_code, 3)
@@ -556,20 +557,21 @@ class TestEvalPreflightCommand(unittest.TestCase):
 
     @patch("roboflow.util.http.requests.post")
     def test_json_prints_the_full_response(self, mock_post):
-        preflight = {
+        compatibility_check = {
             "allowed": True,
             "blocks": [],
             **{k: CREATED[k] for k in ("trainedOnVersion", "leakage", "classMismatch")},
         }
         mock_post.return_value = MagicMock(status_code=200)
-        mock_post.return_value.json.return_value = preflight
+        mock_post.return_value.json.return_value = compatibility_check
         result = runner.invoke(
-            app, ["--json", "--api-key", "k", "--workspace", "ws", "eval", "preflight", "-m", "m", "-p", "chess"]
+            app,
+            ["--json", "--api-key", "k", "--workspace", "ws", "eval", "check-compatibility", "-m", "m", "-p", "chess"],
         )
 
         self.assertEqual(result.exit_code, 0, result.output)
-        self.assertEqual(json.loads(result.stdout), preflight)
-        self.assertTrue(mock_post.call_args.args[0].endswith("/ws/model-evals/preflight"))
+        self.assertEqual(json.loads(result.stdout), compatibility_check)
+        self.assertTrue(mock_post.call_args.args[0].endswith("/ws/model-evals/check-compatibility"))
 
     @patch("roboflow.util.http.requests.post")
     def test_text_lists_blocks(self, mock_post):
@@ -582,7 +584,7 @@ class TestEvalPreflightCommand(unittest.TestCase):
             "classMismatch": None,
         }
         result = runner.invoke(
-            app, ["--api-key", "k", "--workspace", "ws", "eval", "preflight", "-m", "m", "-p", "chess"]
+            app, ["--api-key", "k", "--workspace", "ws", "eval", "check-compatibility", "-m", "m", "-p", "chess"]
         )
 
         self.assertEqual(result.exit_code, 0, result.output)

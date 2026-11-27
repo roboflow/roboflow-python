@@ -2295,7 +2295,7 @@ class ModelEvalAccessError(RoboflowError):
 
 
 class ModelEvalBlockedError(RoboflowError):
-    """Raised when a pre-flight check blocks the eval (HTTP 409 with ``blocks``).
+    """Raised when a compatibility check blocks the eval (HTTP 409 with ``blocks``).
 
     ``blocks`` is the server list of ``{"code": ..., "message": ...}`` dicts.
     """
@@ -2426,7 +2426,7 @@ def create_model_eval(
     return _eval_post(api_key, workspace_url, "", body)
 
 
-def preflight_model_eval(
+def check_model_eval_compatibility(
     api_key: str,
     workspace_url: str,
     *,
@@ -2434,11 +2434,11 @@ def preflight_model_eval(
     project: str,
     version: Optional[Union[str, int]] = None,
 ) -> dict:
-    """POST /{workspace}/model-evals/preflight — check an eval request without starting it.
+    """POST /{workspace}/model-evals/check-compatibility — check an eval request without starting it.
 
     A blocked request is a normal result (``allowed: false`` with ``blocks``), not an error.
     """
-    return _eval_post(api_key, workspace_url, "/preflight", _eval_start_body(model, project, version))
+    return _eval_post(api_key, workspace_url, "/check-compatibility", _eval_start_body(model, project, version))
 
 
 def compare_model_evals(
