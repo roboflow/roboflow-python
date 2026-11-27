@@ -2317,16 +2317,16 @@ class InvalidConfidenceError(RoboflowError):
     """Raised when ``confidence`` is non-integer or out of range 0-100 (HTTP 400)."""
 
 
-def _model_eval_error_for(response):
+def _model_eval_error_for(response, start=False):
     """Translate a model-eval error response into the right RoboflowError subclass.
 
-    The model-eval read routes return a flat envelope::
+    The read routes return a flat envelope::
 
         {"error": "<code>", "message": "<human readable>"}
 
-    The create routes return ``{"error": "<message>", "code": "<code>", "details": {"blocks": [...]}}``
-    for a blocked start and ``{"error": {"code": "<code>", "message": "<message>"}}`` for the
-    concurrency limit.
+    The create and compatibility check calls (``start=True``) also return
+    ``{"error": "<message>", "code": "<code>", "details": {"blocks": [...]}}`` for a blocked start
+    and ``{"error": {"code": "<code>", "message": "<message>"}}`` for the concurrency limit.
 
     Falls back to plain :class:`RoboflowError` when the body isn't JSON or
     the code is unrecognised, so new error codes don't crash older SDK
@@ -2340,16 +2340,16 @@ def _model_eval_error_for(response):
         body = response.json()
         if isinstance(body, dict):
             error = body.get("error")
-            if isinstance(error, dict):
+            if start and isinstance(error, dict):
                 code, text = error.get("code"), error.get("message")
-            elif "code" in body:
+            elif start and "code" in body:
                 code, text = body["code"], error
             else:
                 code, text = error, body.get("message")
             code = code if isinstance(code, str) else None
             message = text if isinstance(text, str) and text else code or message
             details = body.get("details")
-            if isinstance(details, dict) and isinstance(details.get("blocks"), list):
+            if start and isinstance(details, dict) and isinstance(details.get("blocks"), list):
                 blocks = details["blocks"]
     except (ValueError, TypeError):
         pass
@@ -2399,7 +2399,7 @@ def _eval_post(api_key, workspace_url, path, body):
     url = f"{API_URL}/{workspace_url}/model-evals{path}"
     response = http.post(url, params={"api_key": api_key}, json=body)
     if response.status_code != 200:
-        raise _model_eval_error_for(response)
+        raise _model_eval_error_for(response, start=True)
     return response.json()
 
 

@@ -171,6 +171,17 @@ class TestErrorMapping(unittest.TestCase):
             rfapi.get_model_eval("k", "ws", "x")
 
     @patch("roboflow.util.http.requests.get")
+    def test_nested_error_object_keeps_the_raw_text(self, mock_get):
+        body = {"error": {"type": "InvalidRequest", "message": "boom", "code": "invalid_split"}}
+        mock_get.return_value = _resp(400, body)
+
+        with self.assertRaises(rfapi.RoboflowError) as ctx:
+            rfapi.get_model_eval("k", "ws", "x")
+
+        self.assertEqual(str(ctx.exception), repr(body))
+        self.assertNotIsInstance(ctx.exception, rfapi.InvalidSplitError)
+
+    @patch("roboflow.util.http.requests.get")
     def test_409_not_done(self, mock_get):
         mock_get.return_value = _resp(409, {"error": "model_eval_not_done", "message": "Eval still running"})
 
