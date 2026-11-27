@@ -2320,14 +2320,18 @@ class InvalidConfidenceError(RoboflowError):
 def _model_eval_error_for(response):
     """Translate a model-eval error response into the right RoboflowError subclass.
 
-    The model-eval REST surface returns errors as a flat envelope::
+    The model-eval read routes return a flat envelope::
 
         {"error": "<code>", "message": "<human readable>"}
+
+    The create routes return ``{"error": "<message>", "code": "<code>", "details": {"blocks": [...]}}``
+    for a blocked start and ``{"error": {"code": "<code>", "message": "<message>"}}`` for the
+    concurrency limit.
 
     Falls back to plain :class:`RoboflowError` when the body isn't JSON or
     the code is unrecognised, so new error codes don't crash older SDK
     callers. Status-code fallbacks for 404/409 keep typed exceptions
-    available even if the server omits the ``error`` field.
+    available even if the server omits the code.
     """
     code = None
     message = response.text
@@ -2335,12 +2339,18 @@ def _model_eval_error_for(response):
     try:
         body = response.json()
         if isinstance(body, dict):
-            code = body.get("error")
-            if not isinstance(code, str):
-                code = None
-            message = body.get("message") or code or message
-            if isinstance(body.get("blocks"), list):
-                blocks = body["blocks"]
+            error = body.get("error")
+            if isinstance(error, dict):
+                code, text = error.get("code"), error.get("message")
+            elif "code" in body:
+                code, text = body["code"], error
+            else:
+                code, text = error, body.get("message")
+            code = code if isinstance(code, str) else None
+            message = text if isinstance(text, str) and text else code or message
+            details = body.get("details")
+            if isinstance(details, dict) and isinstance(details.get("blocks"), list):
+                blocks = details["blocks"]
     except (ValueError, TypeError):
         pass
 

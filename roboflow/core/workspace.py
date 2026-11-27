@@ -1672,6 +1672,7 @@ class Workspace:
         Raises:
             roboflow.adapters.rfapi.ModelEvalBlockedError: The compatibility check blocks the eval.
                 The ``blocks`` attribute lists the ``code`` and ``message`` of each block.
+                The ``model_not_ready`` code means the model has no finished training or complete upload.
             roboflow.adapters.rfapi.ModelEvalConcurrencyLimitError: The workspace has too many
                 active evals.
             roboflow.adapters.rfapi.ModelEvalNotFoundError: The model, project or version does not exist,
@@ -1700,6 +1701,7 @@ class Workspace:
         Returns:
             ``{allowed, blocks, trainedOnVersion, leakage, classMismatch}``. A blocked
             request returns ``allowed: False`` with a ``blocks`` list. It does not raise for a block.
+            The ``model_not_ready`` block code means the model has no finished training or complete upload.
 
         Raises:
             roboflow.adapters.rfapi.ModelEvalNotFoundError: The model, project or version does not exist,

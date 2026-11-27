@@ -317,7 +317,13 @@ class TestCreateModelEval(unittest.TestCase):
     @patch("roboflow.util.http.requests.post")
     def test_409_raises_blocked_error_with_blocks(self, mock_post):
         mock_post.return_value = _resp(
-            409, {"error": "preprocessing_mismatch", "message": "The preprocessing differs.", "blocks": BLOCKS}
+            409,
+            {
+                "error": BLOCKS[0]["message"],
+                "code": BLOCKS[0]["code"],
+                "details": {"blocks": BLOCKS},
+                "retryable": False,
+            },
         )
 
         with self.assertRaises(rfapi.ModelEvalBlockedError) as ctx:
@@ -331,7 +337,7 @@ class TestCreateModelEval(unittest.TestCase):
     @patch("roboflow.util.http.requests.post")
     def test_429_raises_concurrency_limit_error(self, mock_post):
         mock_post.return_value = _resp(
-            429, {"error": "eval_concurrency_limit", "message": "10 evaluations are active."}
+            429, {"error": {"code": "eval_concurrency_limit", "message": "10 evaluations are active."}}
         )
 
         with self.assertRaises(rfapi.ModelEvalConcurrencyLimitError) as ctx:

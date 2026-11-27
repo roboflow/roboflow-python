@@ -524,7 +524,12 @@ class TestEvalCreateCommand(unittest.TestCase):
     def test_blocked_lists_the_blocks_and_exits_6(self, mock_post):
         blocks = [{"code": "preprocessing_mismatch", "message": "The preprocessing differs."}]
         mock_post.return_value = MagicMock(status_code=409)
-        mock_post.return_value.json.return_value = {"error": "preprocessing_mismatch", "message": "x", "blocks": blocks}
+        mock_post.return_value.json.return_value = {
+            "error": blocks[0]["message"],
+            "code": blocks[0]["code"],
+            "details": {"blocks": blocks},
+            "retryable": False,
+        }
         result = runner.invoke(app, ["--json", *CREATE_ARGS])
 
         self.assertEqual(result.exit_code, 6)
@@ -535,7 +540,7 @@ class TestEvalCreateCommand(unittest.TestCase):
     @patch("roboflow.util.http.requests.post")
     def test_concurrency_limit_exits_7(self, mock_post):
         mock_post.return_value = MagicMock(status_code=429)
-        mock_post.return_value.json.return_value = {"error": "eval_concurrency_limit", "message": "Wait."}
+        mock_post.return_value.json.return_value = {"error": {"code": "eval_concurrency_limit", "message": "Wait."}}
         result = runner.invoke(app, ["--json", *CREATE_ARGS])
 
         self.assertEqual(result.exit_code, 7)
