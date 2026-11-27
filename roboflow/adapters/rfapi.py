@@ -2283,7 +2283,7 @@ def restore_trash_item(api_key, workspace_url, item_type, item_id, parent_id=Non
 
 
 class ModelEvalNotFoundError(RoboflowError):
-    """Raised when an eval id (or workspace) does not exist (HTTP 404)."""
+    """Raised when an eval id, workspace, model, project or version does not exist (HTTP 404)."""
 
 
 class ModelEvalNotDoneError(RoboflowError):
@@ -2291,7 +2291,22 @@ class ModelEvalNotDoneError(RoboflowError):
 
 
 class ModelEvalAccessError(RoboflowError):
-    """Raised when an evaluation read is not authorized (HTTP 401 or 403)."""
+    """Raised when an evaluation request is not authorized (HTTP 401 or 403)."""
+
+
+class ModelEvalBlockedError(RoboflowError):
+    """Raised when a compatibility check blocks the eval (HTTP 409 with ``blocks``).
+
+    ``blocks`` is the server list of ``{"code": ..., "message": ...}`` dicts.
+    """
+
+    def __init__(self, message, blocks, status_code=409):
+        super().__init__(message, status_code=status_code)
+        self.blocks = blocks
+
+
+class ModelEvalConcurrencyLimitError(RoboflowError):
+    """Raised when the workspace has too many active evals (HTTP 429, ``eval_concurrency_limit``)."""
 
 
 class InvalidSplitError(RoboflowError):
@@ -2302,27 +2317,40 @@ class InvalidConfidenceError(RoboflowError):
     """Raised when ``confidence`` is non-integer or out of range 0-100 (HTTP 400)."""
 
 
-def _model_eval_error_for(response):
+def _model_eval_error_for(response, start=False):
     """Translate a model-eval error response into the right RoboflowError subclass.
 
-    The model-eval REST surface returns errors as a flat envelope::
+    The read routes return a flat envelope::
 
         {"error": "<code>", "message": "<human readable>"}
+
+    The create and compatibility check calls (``start=True``) also return
+    ``{"error": "<message>", "code": "<code>", "details": {"blocks": [...]}}`` for a blocked start
+    and ``{"error": {"code": "<code>", "message": "<message>"}}`` for the concurrency limit.
 
     Falls back to plain :class:`RoboflowError` when the body isn't JSON or
     the code is unrecognised, so new error codes don't crash older SDK
     callers. Status-code fallbacks for 404/409 keep typed exceptions
-    available even if the server omits the ``error`` field.
+    available even if the server omits the code.
     """
     code = None
     message = response.text
+    blocks = None
     try:
         body = response.json()
         if isinstance(body, dict):
-            code = body.get("error")
-            if not isinstance(code, str):
-                code = None
-            message = body.get("message") or code or message
+            error = body.get("error")
+            if start and isinstance(error, dict):
+                code, text = error.get("code"), error.get("message")
+            elif start and "code" in body:
+                code, text = body["code"], error
+            else:
+                code, text = error, body.get("message")
+            code = code if isinstance(code, str) else None
+            message = text if isinstance(text, str) and text else code or message
+            details = body.get("details")
+            if start and isinstance(details, dict) and isinstance(details.get("blocks"), list):
+                blocks = details["blocks"]
     except (ValueError, TypeError):
         pass
 
@@ -2335,6 +2363,14 @@ def _model_eval_error_for(response):
     cls = cls_by_code.get(code or "")
     if response.status_code in (401, 403):
         return ModelEvalAccessError(message)
+    if response.status_code == 409 and blocks:
+        return ModelEvalBlockedError(
+            "\n".join(f"{block.get('code')}: {block.get('message')}" for block in blocks),
+            blocks,
+            status_code=409,
+        )
+    if response.status_code == 429 and code == "eval_concurrency_limit":
+        return ModelEvalConcurrencyLimitError(message, status_code=429)
     if cls is not None:
         return cls(message)
     if response.status_code == 404:
@@ -2356,6 +2392,63 @@ def _eval_get(api_key, workspace_url, path, params=None):
     if response.status_code != 200:
         raise _model_eval_error_for(response)
     return response.json()
+
+
+def _eval_post(api_key, workspace_url, path, body):
+    """POST helper for model-eval endpoints with typed error mapping."""
+    url = f"{API_URL}/{workspace_url}/model-evals{path}"
+    response = http.post(url, params={"api_key": api_key}, json=body)
+    if response.status_code != 200:
+        raise _model_eval_error_for(response, start=True)
+    return response.json()
+
+
+def _eval_start_body(model, project, version):
+    body: Dict[str, Any] = {"modelId": model, "project": project}
+    if version is not None:
+        body["version"] = str(version)
+    return body
+
+
+def create_model_eval(
+    api_key: str,
+    workspace_url: str,
+    *,
+    model: str,
+    project: str,
+    version: Optional[Union[str, int]] = None,
+    rerun: bool = False,
+) -> dict:
+    """POST /{workspace}/model-evals — evaluate a model on a dataset version of its project.
+
+    ``model`` is ``{workspace}/{model}`` or the bare model slug. ``version`` defaults to the
+    version the model trained on. The call is idempotent: an eval that is pending, running or done
+    for the same model, version and settings comes back with ``reused: true``. With ``rerun=True``
+    a done eval does not count, so a new eval starts. A pending or running eval still comes back
+    with ``reused: true``.
+
+    Raises :class:`ModelEvalBlockedError` (409), :class:`ModelEvalConcurrencyLimitError` (429),
+    :class:`ModelEvalNotFoundError` (404) and :class:`ModelEvalAccessError` (401 or 403).
+    """
+    body = _eval_start_body(model, project, version)
+    if rerun:
+        body["rerun"] = True
+    return _eval_post(api_key, workspace_url, "", body)
+
+
+def check_model_eval_compatibility(
+    api_key: str,
+    workspace_url: str,
+    *,
+    model: str,
+    project: str,
+    version: Optional[Union[str, int]] = None,
+) -> dict:
+    """POST /{workspace}/model-evals/check-compatibility — check an eval request without starting it.
+
+    A blocked request is a normal result (``allowed: false`` with ``blocks``), not an error.
+    """
+    return _eval_post(api_key, workspace_url, "/check-compatibility", _eval_start_body(model, project, version))
 
 
 def compare_model_evals(

@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Evaluate a model on a dataset version of the same project.
+  `Workspace.create_model_evaluation(model, project, version=None)` starts the eval
+  and returns `{evalId, status, reused, version, trainedOnVersion, leakage, classMismatch}`.
+  `Workspace.check_model_evaluation_compatibility(...)` returns `{allowed, blocks, ...}` and starts no job.
+  `rerun=True` (CLI: `--rerun`) starts a new eval when a done eval exists.
+  A pending or running eval still returns with `reused: true`.
+  Leakage and class mismatch never block an eval. They are tags on the result.
+  A tag is `None` when the platform has no value for it, for example for the training version.
+  A blocked request raises `ModelEvalBlockedError` with a `blocks` list.
+  `ModelEvalNotFoundError` and `ModelEvalAccessError` now cover these requests too.
+  A full workspace raises `ModelEvalConcurrencyLimitError`.
+  The CLI is `roboflow eval create` and `roboflow eval check-compatibility`
+  (`-m <model> -p <project> [-v <version>]`).
+  Exit code 6 means blocked. Exit code 7 means the concurrency limit.
+  `Workspace.eval` and `roboflow eval get --json` keep the same three tags.
+  Needs the `POST /{workspace}/model-evals` and `POST /{workspace}/model-evals/check-compatibility` APIs
+  ([#591](https://github.com/roboflow/roboflow-python/pull/591)).
+
 ## 1.7.4
 
 ### Added

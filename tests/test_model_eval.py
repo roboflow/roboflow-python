@@ -268,6 +268,52 @@ class TestWorkspaceEvalAccessors(unittest.TestCase):
             frontier_metric="mAP5095",
         )
 
+    @patch("roboflow.adapters.rfapi.create_model_eval")
+    def test_create_model_evaluation_returns_the_full_response(self, mock_create):
+        created = {"evalId": "e9", "reused": True, "trainedOnVersion": "2", "leakage": None, "classMismatch": None}
+        mock_create.return_value = created
+
+        result = _make_workspace().create_model_evaluation("ws/my-model", "chess", 5)
+
+        self.assertEqual(result, created)
+        mock_create.assert_called_once_with(
+            "k", "lee-sandbox", model="ws/my-model", project="chess", version=5, rerun=False
+        )
+
+    @patch("roboflow.adapters.rfapi.create_model_eval")
+    def test_create_model_evaluation_forwards_rerun(self, mock_create):
+        _make_workspace().create_model_evaluation("m", "chess", 5, rerun=True)
+
+        mock_create.assert_called_once_with("k", "lee-sandbox", model="m", project="chess", version=5, rerun=True)
+
+    @patch("roboflow.adapters.rfapi.check_model_eval_compatibility")
+    def test_check_model_evaluation_compatibility_returns_the_full_response(self, mock_check):
+        compatibility_check = {
+            "allowed": True,
+            "blocks": [],
+            "trainedOnVersion": "2",
+            "leakage": None,
+            "classMismatch": None,
+        }
+        mock_check.return_value = compatibility_check
+
+        result = _make_workspace().check_model_evaluation_compatibility("ws/my-model", "chess")
+
+        self.assertEqual(result, compatibility_check)
+        mock_check.assert_called_once_with("k", "lee-sandbox", model="ws/my-model", project="chess", version=None)
+
+    def test_eval_read_keeps_the_pre_flight_tags(self):
+        from roboflow.core.model_eval import ModelEval
+
+        tags = {
+            "trainedOnVersion": "2",
+            "leakage": {"status": "unknown", "splits": None},
+            "classMismatch": {"targetOnly": [], "modelOnly": ["nut"]},
+        }
+        ev = ModelEval("k", "ws", "e1", info={"evalId": "e1", "versionId": "5", **tags})
+
+        self.assertEqual({key: ev.to_dict()[key] for key in tags}, tags)
+
     @patch("roboflow.adapters.rfapi.list_model_evals")
     def test_evals_returns_modeleval_instances(self, mock_list):
         from roboflow.core.model_eval import ModelEval

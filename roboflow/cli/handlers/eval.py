@@ -1,7 +1,7 @@
 """Model evaluation commands.
 
-Wraps the public ``/{workspace}/model-evals`` REST surface — list runs in a
-workspace and pull each panel (mAP, confidence sweep, per-class table,
+Wraps the public ``/{workspace}/model-evals`` REST surface — start a run,
+check a request, list runs in a workspace and pull each panel (mAP, confidence sweep, per-class table,
 confusion matrix, vector clusters, per-image stats, recommendations).
 
 The eval-id is opaque (the human in the UI navigates by URL); commands take
@@ -16,12 +16,49 @@ import typer
 
 from roboflow.cli._compat import SortedGroup, ctx_to_args
 
-eval_app = typer.Typer(cls=SortedGroup, help="Inspect model evaluation runs", no_args_is_help=True)
+eval_app = typer.Typer(cls=SortedGroup, help="Create and inspect model evaluation runs", no_args_is_help=True)
 
 
 # ---------------------------------------------------------------------------
 # Command surface (Typer)
 # ---------------------------------------------------------------------------
+
+
+@eval_app.command("create")
+def create_eval_cmd(
+    ctx: typer.Context,
+    model: Annotated[str, typer.Option("-m", "--model", help="Model URL (workspace/model) or model slug")],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project slug")],
+    version: Annotated[
+        Optional[int],
+        typer.Option(
+            "-v", "--version", min=1, help="Dataset version number (default: the version the model trained on)"
+        ),
+    ] = None,
+    rerun: Annotated[
+        bool, typer.Option("--rerun", help="Start a new eval even when a done eval exists for the request")
+    ] = False,
+) -> None:
+    """Evaluate a model on a dataset version of its project."""
+    args = ctx_to_args(ctx, model=model, project=project, version=version, rerun=rerun)
+    _create_eval(args)
+
+
+@eval_app.command("check-compatibility")
+def check_compatibility_eval_cmd(
+    ctx: typer.Context,
+    model: Annotated[str, typer.Option("-m", "--model", help="Model URL (workspace/model) or model slug")],
+    project: Annotated[str, typer.Option("-p", "--project", help="Project slug")],
+    version: Annotated[
+        Optional[int],
+        typer.Option(
+            "-v", "--version", min=1, help="Dataset version number (default: the version the model trained on)"
+        ),
+    ] = None,
+) -> None:
+    """Check an evaluation request without starting it."""
+    args = ctx_to_args(ctx, model=model, project=project, version=version)
+    _check_compatibility_eval(args)
 
 
 @eval_app.command("compare")
@@ -183,7 +220,8 @@ def _eval_error_exit_code(exc: Exception) -> int:
     """Map a model-eval error to the canonical CLI exit code.
 
     1 = general; 2 = auth; 3 = not found; 4 = conflict (eval not done);
-    5 = invalid argument (bad split / confidence). Keeping these distinct
+    5 = invalid argument (bad split / confidence); 6 = eval blocked by a
+    compatibility check; 7 = workspace eval concurrency limit. Keeping these distinct
     lets shell scripts and AI agents react to specific failure modes
     without parsing message strings.
     """
@@ -197,6 +235,10 @@ def _eval_error_exit_code(exc: Exception) -> int:
         return 4
     if isinstance(exc, (rfapi.InvalidSplitError, rfapi.InvalidConfidenceError)):
         return 5
+    if isinstance(exc, rfapi.ModelEvalBlockedError):
+        return 6
+    if isinstance(exc, rfapi.ModelEvalConcurrencyLimitError):
+        return 7
     return 1
 
 
@@ -215,6 +257,84 @@ def _hint_for(exc: Exception) -> Optional[str]:
     if isinstance(exc, rfapi.InvalidConfidenceError):
         return "Pass an integer between 0 and 100."
     return None
+
+
+def _start_hint_for(exc: Exception) -> Optional[str]:
+    """Hint for the start commands. A blocked error has none: its message lists the blocks."""
+    from roboflow.adapters import rfapi
+
+    if isinstance(exc, rfapi.ModelEvalAccessError):
+        return "Check your API key, its training-job:create scope, and workspace Model Evaluation access."
+    if isinstance(exc, rfapi.ModelEvalNotFoundError):
+        return (
+            "Check the --model, --project and --version values, and that the API key has the training-job:create scope."
+        )
+    if isinstance(exc, rfapi.ModelEvalConcurrencyLimitError):
+        return "Wait for an active eval to finish, then try again."
+    return None
+
+
+def _format_tags(result) -> list:  # noqa: ANN001
+    """Text lines for the tags that are present: trained-on version, leakage and class mismatch."""
+    lines = []
+    if result.get("trainedOnVersion") is not None:
+        lines.append(f"  Trained on version: {result['trainedOnVersion']}")
+    leakage = result.get("leakage")
+    if leakage is not None:
+        lines.append(f"  Leakage: {leakage['status']}")
+        for split, counts in (leakage.get("splits") or {}).items():
+            lines.append(f"    {split}: {counts['leaked']} of {counts['total']} images leaked")
+    mismatch = result.get("classMismatch")
+    if mismatch is not None:
+        lines.append(f"  Classes only in the target version: {', '.join(mismatch['targetOnly']) or 'none'}")
+        lines.append(f"  Classes only in the model: {', '.join(mismatch['modelOnly']) or 'none'}")
+    return lines
+
+
+def _create_eval(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve(args)
+    if not resolved:
+        return
+    workspace_url, api_key = resolved
+    try:
+        result = rfapi.create_model_eval(
+            api_key, workspace_url, model=args.model, project=args.project, version=args.version, rerun=args.rerun
+        )
+    except Exception as exc:
+        output_error(args, str(exc), hint=_start_hint_for(exc), exit_code=_eval_error_exit_code(exc))
+        return
+    lines = [
+        f"Eval: {result['evalId']}",
+        f"  Status: {result['status']}",
+        f"  Reused: {'yes' if result['reused'] else 'no'}",
+        f"  Version: {result['version']}",
+        *_format_tags(result),
+    ]
+    output(args, result, text="\n".join(lines))
+
+
+def _check_compatibility_eval(args):  # noqa: ANN001
+    from roboflow.adapters import rfapi
+    from roboflow.cli._output import output, output_error
+
+    resolved = _resolve(args)
+    if not resolved:
+        return
+    workspace_url, api_key = resolved
+    try:
+        result = rfapi.check_model_eval_compatibility(
+            api_key, workspace_url, model=args.model, project=args.project, version=args.version
+        )
+    except Exception as exc:
+        output_error(args, str(exc), hint=_start_hint_for(exc), exit_code=_eval_error_exit_code(exc))
+        return
+    lines = [f"Allowed: {'yes' if result['allowed'] else 'no'}"]
+    lines.extend(f"  Block {block['code']}: {block['message']}" for block in result["blocks"])
+    lines.extend(_format_tags(result))
+    output(args, result, text="\n".join(lines))
 
 
 def _compare_evals(args):  # noqa: ANN001

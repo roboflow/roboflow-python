@@ -34,6 +34,8 @@ class TestEvalRegistration(unittest.TestCase):
 
     def test_each_subcommand_help(self) -> None:
         for cmd in [
+            "create",
+            "check-compatibility",
             "list",
             "get",
             "map-results",
@@ -401,6 +403,8 @@ class TestExitCodeMapping(unittest.TestCase):
             rfapi.ModelEvalAccessError("x"): 2,
             rfapi.ModelEvalNotFoundError("x"): 3,
             rfapi.ModelEvalNotDoneError("x"): 4,
+            rfapi.ModelEvalBlockedError("x", blocks=[]): 6,
+            rfapi.ModelEvalConcurrencyLimitError("x"): 7,
             rfapi.InvalidSplitError("x"): 5,
             rfapi.InvalidConfidenceError("x"): 5,
             rfapi.RoboflowError("x"): 1,
@@ -409,6 +413,188 @@ class TestExitCodeMapping(unittest.TestCase):
         for exc, expected in cases.items():
             with self.subTest(exc=type(exc).__name__):
                 self.assertEqual(_eval_error_exit_code(exc), expected)
+
+
+CREATED = {
+    "evalId": "e9",
+    "status": "running",
+    "reused": False,
+    "version": "5",
+    "trainedOnVersion": "2",
+    "leakage": {
+        "status": "detected",
+        "splits": {
+            "test": {"total": 412, "leaked": 37, "fromTrain": 30, "fromValid": 9},
+            "valid": {"total": 200, "leaked": 5, "fromTrain": 5},
+        },
+    },
+    "classMismatch": {"targetOnly": ["washer"], "modelOnly": ["nut"]},
+}
+CREATE_ARGS = ["--api-key", "k", "--workspace", "ws", "eval", "create", "-m", "ws/my-model", "-p", "chess", "-v", "5"]
+
+
+class TestEvalCreateCommand(unittest.TestCase):
+    @patch("roboflow.util.http.requests.post")
+    def test_json_prints_the_full_response(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = CREATED
+        result = runner.invoke(app, ["--json", *CREATE_ARGS])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(json.loads(result.stdout), CREATED)
+        self.assertEqual(
+            mock_post.call_args.kwargs["json"], {"modelId": "ws/my-model", "project": "chess", "version": "5"}
+        )
+
+    @patch("roboflow.util.http.requests.post")
+    def test_rerun_flag_is_sent(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = CREATED
+        result = runner.invoke(app, [*CREATE_ARGS, "--rerun"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIs(mock_post.call_args.kwargs["json"]["rerun"], True)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_rerun_is_not_sent_by_default(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = CREATED
+        runner.invoke(app, CREATE_ARGS)
+
+        self.assertNotIn("rerun", mock_post.call_args.kwargs["json"])
+
+    @patch("roboflow.util.http.requests.post")
+    def test_text_shows_the_tags(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = CREATED
+        result = runner.invoke(app, CREATE_ARGS)
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        for text in ["e9", "running", "Trained on version: 2", "detected", "37", "washer", "nut"]:
+            self.assertIn(text, result.stdout)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_text_handles_null_tags(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = {
+            **CREATED,
+            "reused": True,
+            "trainedOnVersion": None,
+            "leakage": None,
+            "classMismatch": None,
+        }
+        result = runner.invoke(app, CREATE_ARGS)
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("Reused: yes", result.stdout)
+        for text in ["unknown", "not checked", "Trained on", "Leakage", "Class"]:
+            self.assertNotIn(text, result.stdout)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_text_handles_unknown_leakage_without_splits(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = {**CREATED, "leakage": {"status": "unknown", "splits": None}}
+        result = runner.invoke(app, CREATE_ARGS)
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("Leakage: unknown", result.stdout)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_not_found_hint_names_the_inputs(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=404)
+        mock_post.return_value.json.return_value = {"error": {"message": "Not found"}}
+        result = runner.invoke(app, ["--json", *CREATE_ARGS])
+
+        self.assertEqual(result.exit_code, 3)
+        hint = json.loads(result.stderr)["error"]["hint"]
+        for text in ["--model", "--project", "--version"]:
+            self.assertIn(text, hint)
+        self.assertIn("training-job:create", hint)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_access_hint_names_the_create_scope(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=403)
+        mock_post.return_value.json.return_value = {"error": {"message": "Forbidden"}}
+        result = runner.invoke(app, ["--json", *CREATE_ARGS])
+
+        self.assertEqual(result.exit_code, 2)
+        self.assertIn("training-job:create", json.loads(result.stderr)["error"]["hint"])
+
+    @patch("roboflow.util.http.requests.post")
+    def test_blocked_lists_the_blocks_and_exits_6(self, mock_post):
+        blocks = [{"code": "preprocessing_mismatch", "message": "The preprocessing differs."}]
+        mock_post.return_value = MagicMock(status_code=409)
+        mock_post.return_value.json.return_value = {
+            "error": blocks[0]["message"],
+            "code": blocks[0]["code"],
+            "details": {"blocks": blocks},
+            "retryable": False,
+        }
+        result = runner.invoke(app, ["--json", *CREATE_ARGS])
+
+        self.assertEqual(result.exit_code, 6)
+        error = json.loads(result.stderr)["error"]
+        self.assertIn("preprocessing_mismatch", error["message"])
+        self.assertNotIn("hint", error)
+
+    @patch("roboflow.util.http.requests.post")
+    def test_concurrency_limit_exits_7(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=429)
+        mock_post.return_value.json.return_value = {"error": {"code": "eval_concurrency_limit", "message": "Wait."}}
+        result = runner.invoke(app, ["--json", *CREATE_ARGS])
+
+        self.assertEqual(result.exit_code, 7)
+        self.assertIn("hint", json.loads(result.stderr)["error"])
+
+
+class TestEvalCheckCompatibilityCommand(unittest.TestCase):
+    @patch("roboflow.util.http.requests.post")
+    def test_not_found_hint_names_the_scope(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=404)
+        mock_post.return_value.json.return_value = {"error": {"message": "Not found"}}
+        result = runner.invoke(
+            app,
+            ["--json", "--api-key", "k", "--workspace", "ws", "eval", "check-compatibility", "-m", "m", "-p", "chess"],
+        )
+
+        self.assertEqual(result.exit_code, 3)
+        self.assertIn("training-job:create", json.loads(result.stderr)["error"]["hint"])
+
+    @patch("roboflow.util.http.requests.post")
+    def test_json_prints_the_full_response(self, mock_post):
+        compatibility_check = {
+            "allowed": True,
+            "blocks": [],
+            **{k: CREATED[k] for k in ("trainedOnVersion", "leakage", "classMismatch")},
+        }
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = compatibility_check
+        result = runner.invoke(
+            app,
+            ["--json", "--api-key", "k", "--workspace", "ws", "eval", "check-compatibility", "-m", "m", "-p", "chess"],
+        )
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(json.loads(result.stdout), compatibility_check)
+        self.assertTrue(mock_post.call_args.args[0].endswith("/ws/model-evals/check-compatibility"))
+
+    @patch("roboflow.util.http.requests.post")
+    def test_text_lists_blocks(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = {
+            "allowed": False,
+            "blocks": [{"code": "instant_model", "message": "Instant models cannot be evaluated."}],
+            "trainedOnVersion": None,
+            "leakage": None,
+            "classMismatch": None,
+        }
+        result = runner.invoke(
+            app, ["--api-key", "k", "--workspace", "ws", "eval", "check-compatibility", "-m", "m", "-p", "chess"]
+        )
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("Allowed: no", result.stdout)
+        self.assertIn("instant_model", result.stdout)
 
 
 class TestEvalCompareCommand(unittest.TestCase):
