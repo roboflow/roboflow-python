@@ -84,7 +84,8 @@ class TestInstanceSegmentation(unittest.TestCase):
 
         responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
 
-        instance.predict(image_path)
+        group = instance.predict(image_path)
+        self.assertEqual(group.image_dims, {"width": "1024", "height": "992"})
 
         request = responses.calls[0].request
 
@@ -106,7 +107,8 @@ class TestInstanceSegmentation(unittest.TestCase):
         responses.add(responses.HEAD, image_path)
         responses.add(responses.POST, self.api_url, json=MOCK_RESPONSE)
 
-        instance.predict(image_path)
+        group = instance.predict(image_path)
+        self.assertEqual(group.json()["image"], {"width": "1333", "height": "1000"})
 
         request = responses.calls[1].request
 
@@ -114,6 +116,16 @@ class TestInstanceSegmentation(unittest.TestCase):
         self.assertRegex(request.url, rf"^{self.api_url}")
         self.assertDictEqual(request.params, expected_params)
         self.assertIsNone(request.body)
+
+    @responses.activate
+    def test_hosted_image_without_response_dimensions(self):
+        image_path = "https://example.com/raccoon.JPG"
+        instance = InstanceSegmentationModel(self.api_key, self.version_id)
+        responses.add(responses.HEAD, image_path)
+        responses.add(responses.POST, self.api_url, json={"predictions": []})
+
+        group = instance.predict(image_path)
+        self.assertEqual(group.image_dims, {"width": "Undefined", "height": "Undefined"})
 
     @responses.activate
     def test_predict_with_confidence_request(self):
