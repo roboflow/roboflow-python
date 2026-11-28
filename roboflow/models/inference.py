@@ -87,8 +87,7 @@ class InferenceModel:
         hosted_image = urllib.parse.urlparse(image_path).scheme in ("http", "https")
 
         if hosted_image:
-            image_dims = {"width": "Undefined", "height": "Undefined"}
-            return {"image": image_path}, {}, image_dims
+            return {"image": image_path}, {}, None
 
         image = Image.open(image_path)
         dimensions = image.size
@@ -137,8 +136,13 @@ class InferenceModel:
         response = http.post(url, **request_kwargs)
         response.raise_for_status()
 
+        result = response.json()
+        if image_dims is None:
+            image = result.get("image") or {}
+            image_dims = {key: str(image.get(key) or "Undefined") for key in ("width", "height")}
+
         return PredictionGroup.create_prediction_group(
-            response.json(),
+            result,
             image_path=image_path,
             prediction_type=prediction_type,
             image_dims=image_dims,
